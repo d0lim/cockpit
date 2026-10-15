@@ -1,0 +1,1509 @@
+{
+  "version": 1,
+  "fixtures": {
+    "run": {
+      "files": {
+        "src/backend/portal/.env": "# 로컬 개발용 .env — 시험 픽스처\nCOMPOSE_PROJECT_NAME=run-20261012-143000-abc1234\nORDERS_DB_USERNAME=orders_user_01\nPORTAL_ADMIN_ENABLED=enabled-for-test\nORDERS_PORTAL_RECOVERY_DELAY_SECONDS=86400000\nORDERS_PORTAL_MAX_PRE_SUBMISSION_ATTEMPTS=12345678\nORDERS_PORTAL_EXECUTION_LOCK_AT_MOST_FOR=PT10M30S\nPORTAL_ADMIN_CONSOLE_ALLOWED_ORIGINS=http://run-20261012-143000-abc1234.localhost:21073,http://run-20261012-143000-abc1234.localhost:21074\nVITE_API_BASE_URL=http://run-20261012-143000-abc1234.localhost:21000\nRUN_SRC=/tmp/cockpit/runs/run-20261012-143000-abc1234/src\nMYSQL_ROOT_PASSWORD=WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT\nMOCK_CONTROL_TOKEN=0b03996107a5accb2c2ae3362b840bcb9096e15d5b5036b97c6bd32a492c5b45\nPORTAL_ORDERS_CREDENTIAL_HASH=bdaa0910fd9b91d71639225ef5e1645240019a1c4b6e32a6d09c28bd1d43c385\nPORTAL_CALLBACK_RESPONSE_SIGNING_KEY_PEM=-----BEGIN PRIVATE KEY-----\\nuLswhNp+91kzP3nXqKFHfL05OhMoNPGBHlv494dAUYURHuuyBuTYpxV9YxfG0eMw\\nk7pG1boFXeqYeY6dwNSyKWVO03hY33LI+CMk4zGVvr44xGCHhm16dj6j32oS3n0g\\n-----END PRIVATE KEY-----\\n\nSHORT_SECRET=2VhkyiN\nPORTAL_ORDERS_BASE_URL=",
+        "work/e2e/e2e.private.env.json": "{\n  \"local\": {\n    \"rootCredential\": \"RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq\",\n    \"adminPassword\": \"8O6NXNEEwrmEP8hyUjvc5nFQ18DwAW8TDHJYtv9n3dM\",\n    \"ordersApiKey\": \"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\"\n  }\n}",
+        "src/backend/orders/.secrets/secrets.yml": "vendor:\n  api-key: 00000000-0000-0000-0000-000000000000\n  secret-key: |\n    -----BEGIN PRIVATE KEY-----\n    PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS\n    7f9uW7SZgizyxePVy6X3qrayOIEmn8Qc10mXVmxiPDGDRBrKxHwtEkwFrxKQ4uDZ\n    2txx\n    -----END PRIVATE KEY-----\n"
+      },
+      "sources": {
+        "outputs": [
+          {
+            "kind": "dotenv",
+            "path": "src/backend/portal/.env"
+          }
+        ],
+        "declared": [
+          {
+            "kind": "json",
+            "path": "work/e2e/e2e.private.env.json"
+          },
+          {
+            "kind": "pem",
+            "path": "src/backend/orders/.secrets/secrets.yml"
+          }
+        ],
+        "publicNames": [
+          "COMPOSE_PROJECT_NAME",
+          "ORDERS_DB_USERNAME",
+          "PORTAL_ADMIN_ENABLED",
+          "ORDERS_PORTAL_RECOVERY_DELAY_SECONDS",
+          "ORDERS_PORTAL_MAX_PRE_SUBMISSION_ATTEMPTS",
+          "ORDERS_PORTAL_EXECUTION_LOCK_AT_MOST_FOR",
+          "PORTAL_ADMIN_CONSOLE_ALLOWED_ORIGINS",
+          "VITE_API_BASE_URL",
+          "RUN_SRC"
+        ]
+      }
+    },
+    "empty": {
+      "files": {},
+      "sources": {
+        "outputs": [
+          {
+            "kind": "dotenv",
+            "path": "src/backend/portal/.env"
+          }
+        ],
+        "declared": [
+          {
+            "kind": "json",
+            "path": "work/e2e/e2e.private.env.json"
+          },
+          {
+            "kind": "pem",
+            "path": "src/backend/orders/.secrets/secrets.yml"
+          }
+        ],
+        "publicNames": [
+          "COMPOSE_PROJECT_NAME",
+          "ORDERS_DB_USERNAME",
+          "PORTAL_ADMIN_ENABLED",
+          "ORDERS_PORTAL_RECOVERY_DELAY_SECONDS",
+          "ORDERS_PORTAL_MAX_PRE_SUBMISSION_ATTEMPTS",
+          "ORDERS_PORTAL_EXECUTION_LOCK_AT_MOST_FOR",
+          "PORTAL_ADMIN_CONSOLE_ALLOWED_ORIGINS",
+          "VITE_API_BASE_URL",
+          "RUN_SRC"
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "단어 경계 없이 부분 문자열로 가린다 — 낱말에 붙어 있어도, JSON 문자열 안에서도",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [
+        "Z0N8BxFrzX2NZLXlQMhf5QzW7s3G8VFitrHpUYdb"
+      ],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "idZ0N8BxFrzX2NZLXlQMhf5QzW7s3G8VFitrHpUYdbx",
+          "expect": "id****UYdbx"
+        },
+        {
+          "input": "{\"note\":\"Z0N8BxFrzX2NZLXlQMhf5QzW7s3G8VFitrHpUYdb\"}",
+          "expect": "{\"note\":\"****UYdb\"}"
+        }
+      ]
+    },
+    {
+      "name": "긴 값부터 가린다 — 짧은 값이 긴 값의 접두여도 긴 값의 나머지가 남지 않는다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [
+        "sv3fbQD2WgYH",
+        "sv3fbQD2WgYHQV5On4n1B8rdEkVYACJy"
+      ],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "a sv3fbQD2WgYHQV5On4n1B8rdEkVYACJy b sv3fbQD2WgYH",
+          "expect": "a ****ACJy b ****WgYH"
+        }
+      ]
+    },
+    {
+      "name": "빈 값은 가림 대상이 아니다 — 글자 사이마다 끼어들어 출력이 부푼다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [
+        ""
+      ],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "run-20261012 ok",
+          "expect": "run-20261012 ok"
+        }
+      ]
+    },
+    {
+      "name": "구분자 \" 로 싼 credential 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "\"credential\":\"RyfJvhDBXkvHcZfYsB289XodB4FV1EyE7fcjp3Xfvuk\"",
+          "expect": "\"credential\":\"****\""
+        }
+      ]
+    },
+    {
+      "name": "구분자 \\\" 로 싼 credential 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "\\\"credential\\\":\\\"NKJdG4NXPHQL1NpDRQUigU5SgefwYeMRBEsuqcAjNup\\\"",
+          "expect": "\\\"credential\\\":\\\"****\\\""
+        }
+      ]
+    },
+    {
+      "name": "구분자 \\\\\\\" 로 싼 credential 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "\\\\\\\"credential\\\\\\\":\\\\\\\"1uScFImJgJyZKLVpHe2ycKacclgNqFEWXhaIckImeWj\\\\\\\"",
+          "expect": "\\\\\\\"credential\\\\\\\":\\\\\\\"****\\\\\\\""
+        }
+      ]
+    },
+    {
+      "name": "구분자 &quot; 로 싼 credential 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "&quot;credential&quot;:&quot;KNt0XJJembuqWivNiWEKuC710MCcj413bY5kzBOX0Ro&quot;",
+          "expect": "&quot;credential&quot;:&quot;****&quot;"
+        }
+      ]
+    },
+    {
+      "name": "구분자 &#34; 로 싼 credential 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "&#34;credential&#34;:&#34;mPO2XHazXRwkRTNze8ZY3Y6YPiRSe8JqPv2vtV9kM3C&#34;",
+          "expect": "&#34;credential&#34;:&#34;****&#34;"
+        }
+      ]
+    },
+    {
+      "name": "구분자 &#x22; 로 싼 credential 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "&#x22;credential&#x22;:&#x22;M6qYgr6nOK0pIJj6MQqBmeNkNPaJCl8fkpgzqB2cDdE&#x22;",
+          "expect": "&#x22;credential&#x22;:&#x22;****&#x22;"
+        }
+      ]
+    },
+    {
+      "name": "구분자 %22 로 싼 credential 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "%22credential%22:%2269YDtswBURZH3uOfNjF7zjWZpJ4Xi3YlmCkCs2bjH4h%22",
+          "expect": "%22credential%22:%22****%22"
+        }
+      ]
+    },
+    {
+      "name": "구분자가 섞이고 콜론이 %3A 여도 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "&quot;credential\":\\\"n9oO6NPahCNtdzZYGDwMQLqLxSGM9B5wCYAUOuyJH4h&quot;",
+          "expect": "&quot;credential\":\\\"****&quot;"
+        },
+        {
+          "input": "%22credential%22%3A%22n9oO6NPahCNtdzZYGDwMQLqLxSGM9B5wCYAUOuyJH4h%22",
+          "expect": "%22credential%22%3A%22****%22"
+        }
+      ]
+    },
+    {
+      "name": "이름이 Token·Secret 으로 끝나는 키의 값을 가린다 — enrollmentToken·totpSecret·token",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"enrollmentToken\":\"r92ZEavwVvdVntKuSFbYvJJpCVVWi9oI4rPwsQIRSXd\",\"totpSecret\":\"Q23DAL2XRWOD26XPJZDKT3DCZXLZ5AOJ\",\"token\":\"0kocBBCTN2JfyrvjXYeRoC80G9UsTEhMbIAhK4cdaDd\"}",
+          "expect": "{\"enrollmentToken\":\"****\",\"totpSecret\":\"****\",\"token\":\"****\"}"
+        }
+      ]
+    },
+    {
+      "name": "이름 끝이 자격이 아닌 키는 그대로 둔다 — tokenId·signingAuthorizationId·enrollmentTokenExpiresAt",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"tokenId\":\"ETH_TEST5\",\"signingAuthorizationId\":\"sa-0001\",\"enrollmentTokenExpiresAt\":\"2026-10-12T14:30:00Z\"}",
+          "expect": "{\"tokenId\":\"ETH_TEST5\",\"signingAuthorizationId\":\"sa-0001\",\"enrollmentTokenExpiresAt\":\"2026-10-12T14:30:00Z\"}"
+        }
+      ]
+    },
+    {
+      "name": "URL 쿼리의 credential=·secret= 값을 가리고 & 뒤 인자는 남긴다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "GET /admin/x?credential=zdLLlgxvDYOCSAgN65wEZi4dXJfKRxuZzmhfZSWTlJ4&amp;page=2",
+          "expect": "GET /admin/x?credential=****&amp;page=2"
+        },
+        {
+          "input": "otpauth://totp/iss:admin-1?secret=3UQPIFPCIL5OAKDZZNYIEVX5TPFR35ST&issuer=iss",
+          "expect": "otpauth://totp/iss:admin-1?secret=****&issuer=iss"
+        }
+      ]
+    },
+    {
+      "name": "세션 쿠키 portal_admin_session= 의 값을 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "Set-Cookie: portal_admin_session=PdfrkNgumxWPdQdLyL7FmKbnsvsxtRAD97k4iu8FzIH; Path=/; HttpOnly",
+          "expect": "Set-Cookie: portal_admin_session=****; Path=/; HttpOnly"
+        }
+      ]
+    },
+    {
+      "name": "Authorization: 헤더 값을 가린다 — 스킴은 남긴다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "Authorization: Basic d7sqV5paIHNJurMaysqo1GEv",
+          "expect": "Authorization: Basic ****"
+        },
+        {
+          "input": "authorization: rPbHZ8WbVLQcO9H0pyUlfnsXPCQt94epuj8EWLhu51A&#10;next",
+          "expect": "authorization: ****&#10;next"
+        }
+      ]
+    },
+    {
+      "name": "앞 8자에 - 와 _ 가 낀 wk_ 키를 가린다 — %22 뒤에서도",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "X-API-KEY: wk_-a__zRYn4vEywm45-l30XsQcbIvNkm10W6aJaYFPL36",
+          "expect": "X-API-KEY: wk_****PL36"
+        },
+        {
+          "input": "%22wk_-a__zRYn4vEywm45-l30XsQcbIvNkm10W6aJaYFPL36%22",
+          "expect": "%22wk_****PL36%22"
+        }
+      ]
+    },
+    {
+      "name": "기존 Bearer·sk_ 접두 패턴을 유지한다 — sk_ 는 %22 뒤에서도 건다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "Bearer xhrFsN1D6u5BFZ5tADRi6toBafy4L3Bu5HTWADpwROd",
+          "expect": "Bearer ****"
+        },
+        {
+          "input": "key=%22sk_5aS430aX8Tdnaz9wvRHTfWcI%22",
+          "expect": "key=%22sk_****fWcI%22"
+        }
+      ]
+    },
+    {
+      "name": "글자에 붙은 접두는 식별자로 보고 그대로 둔다 — risk_category·task_scheduler",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"column\":\"risk_category\",\"task_scheduler\":1}",
+          "expect": "{\"column\":\"risk_category\",\"task_scheduler\":1}"
+        }
+      ]
+    },
+    {
+      "name": "XML 속성에 &quot; 로 이스케이프되어 실린 응답 본문을 XML 구조를 깨지 않고 가린다",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "<failure type=\"Error\" message=\"AssertionError: status 201 body={&quot;result&quot;:{&quot;credential&quot;:&quot;oqZ45uDXXsVV30BYXeiE2fvNXPMYN2c5Kw8jczj1I7q&quot;,&quot;otpauthUri&quot;:&quot;otpauth://totp/iss:admin-1?secret=NF7PIXUKN2QM43WTF56LSEID55VDO3XT&amp;issuer=iss&quot;}}&#10;  this.assert (at js-graalvm-response-handler.js:45)\" />",
+          "expect": "<failure type=\"Error\" message=\"AssertionError: status 201 body={&quot;result&quot;:{&quot;credential&quot;:&quot;****&quot;,&quot;otpauthUri&quot;:&quot;otpauth://totp/iss:admin-1?secret=****&amp;issuer=iss&quot;}}&#10;  this.assert (at js-graalvm-response-handler.js:45)\" />"
+        }
+      ]
+    },
+    {
+      "name": "가린 결과를 다시 가려도 바뀌지 않는다 — 재스캔이 기대는 성질",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [
+        "cCbHIDQIvQyzQhiIyA3Tc7Nl8zulWMcvVmRsp57PlJn"
+      ],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"credential\":\"w4tylcXl9xsA2fpP5UidHesHg43CjD6zkmck1t8SOpc\",\"note\":\"cCbHIDQIvQyzQhiIyA3Tc7Nl8zulWMcvVmRsp57PlJn\"} Authorization: Bearer zzr8OgQFWdo5rRpP1wdhD72jfVURQTqf3xdkMryBCkg token=RSVbjJljwD0P5tC8jFlH",
+          "idempotent": true
+        }
+      ]
+    },
+    {
+      "name": "값 목록과 패턴으로 가리면 심은 값이 하나도 남지 않는다(allow)",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [
+        "Ek8osyd3h7mQtdLwMePUMplU22X0WFnDFad6mK1TfIu",
+        "wk_-_PwH0yaJjvkrQENUU0OPVpa-t3DsP346tN2NTaC8Nr",
+        "ME36P2IXVT4G2EENQ5CFLM76GCZZX3FG"
+      ],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"result\":{\"credential\":\"xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm\",\"note\":\"Ek8osyd3h7mQtdLwMePUMplU22X0WFnDFad6mK1TfIu\"}}\nGET http://orders:8080/v1/x?apiKey=wk_-_PwH0yaJjvkrQENUU0OPVpa-t3DsP346tN2NTaC8Nr&credential=xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm\n<failure message=\"body={&quot;enrollmentToken&quot;:&quot;A7oOdiK069jJVVPvveL549a41RX2hF8G8tR0lnaObon&quot;,&quot;otpauthUri&quot;:&quot;otpauth://totp/i:a?secret=ME36P2IXVT4G2EENQ5CFLM76GCZZX3FG&amp;issuer=i&quot;}\" />",
+          "notContains": [
+            "Ek8osyd3h7mQtdLwMePUMplU22X0WFnDFad6mK1TfIu",
+            "wk_-_PwH0yaJjvkrQENUU0OPVpa-t3DsP346tN2NTaC8Nr",
+            "ME36P2IXVT4G2EENQ5CFLM76GCZZX3FG",
+            "xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm",
+            "A7oOdiK069jJVVPvveL549a41RX2hF8G8tR0lnaObon"
+          ],
+          "contains": [
+            "****"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "값 목록을 비우고 패턴을 끄면 심은 값이 전부 보인다(deny)",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"result\":{\"credential\":\"xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm\",\"note\":\"Ek8osyd3h7mQtdLwMePUMplU22X0WFnDFad6mK1TfIu\"}}\nGET http://orders:8080/v1/x?apiKey=wk_-_PwH0yaJjvkrQENUU0OPVpa-t3DsP346tN2NTaC8Nr&credential=xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm\n<failure message=\"body={&quot;enrollmentToken&quot;:&quot;A7oOdiK069jJVVPvveL549a41RX2hF8G8tR0lnaObon&quot;,&quot;otpauthUri&quot;:&quot;otpauth://totp/i:a?secret=ME36P2IXVT4G2EENQ5CFLM76GCZZX3FG&amp;issuer=i&quot;}\" />",
+          "off": true,
+          "contains": [
+            "Ek8osyd3h7mQtdLwMePUMplU22X0WFnDFad6mK1TfIu",
+            "wk_-_PwH0yaJjvkrQENUU0OPVpa-t3DsP346tN2NTaC8Nr",
+            "ME36P2IXVT4G2EENQ5CFLM76GCZZX3FG",
+            "xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm",
+            "A7oOdiK069jJVVPvveL549a41RX2hF8G8tR0lnaObon"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "값 목록만 비우면 자격 모양이 아닌 자리의 env 값이 남는다 — 패턴만으로는 모자란다(deny)",
+      "origin": "ts/mask",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"result\":{\"credential\":\"xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm\",\"note\":\"Ek8osyd3h7mQtdLwMePUMplU22X0WFnDFad6mK1TfIu\"}}\nGET http://orders:8080/v1/x?apiKey=wk_-_PwH0yaJjvkrQENUU0OPVpa-t3DsP346tN2NTaC8Nr&credential=xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm\n<failure message=\"body={&quot;enrollmentToken&quot;:&quot;A7oOdiK069jJVVPvveL549a41RX2hF8G8tR0lnaObon&quot;,&quot;otpauthUri&quot;:&quot;otpauth://totp/i:a?secret=ME36P2IXVT4G2EENQ5CFLM76GCZZX3FG&amp;issuer=i&quot;}\" />",
+          "contains": [
+            "Ek8osyd3h7mQtdLwMePUMplU22X0WFnDFad6mK1TfIu"
+          ],
+          "notContains": [
+            "wk_-_PwH0yaJjvkrQENUU0OPVpa-t3DsP346tN2NTaC8Nr",
+            "ME36P2IXVT4G2EENQ5CFLM76GCZZX3FG",
+            "xBcybk8lnRfTvvtsfYIRlaS6bX7lYfMMOj4UGyLtZbm",
+            "A7oOdiK069jJVVPvveL549a41RX2hF8G8tR0lnaObon"
+          ]
+        }
+      ]
+    },
+    {
+      "name": ".env 는 허용목록 이름만 빼고 8자 이상 값 전부, private env 는 모든 문자열 값, secrets.yml 은 PEM 본문 줄",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "known",
+          "expect": [
+            "WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT",
+            "0b03996107a5accb2c2ae3362b840bcb9096e15d5b5036b97c6bd32a492c5b45",
+            "bdaa0910fd9b91d71639225ef5e1645240019a1c4b6e32a6d09c28bd1d43c385",
+            "-----BEGIN PRIVATE KEY-----\\nuLswhNp+91kzP3nXqKFHfL05OhMoNPGBHlv494dAUYURHuuyBuTYpxV9YxfG0eMw\\nk7pG1boFXeqYeY6dwNSyKWVO03hY33LI+CMk4zGVvr44xGCHhm16dj6j32oS3n0g\\n-----END PRIVATE KEY-----\\n",
+            "RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq",
+            "8O6NXNEEwrmEP8hyUjvc5nFQ18DwAW8TDHJYtv9n3dM",
+            "wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM",
+            "PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS",
+            "7f9uW7SZgizyxePVy6X3qrayOIEmn8Qc10mXVmxiPDGDRBrKxHwtEkwFrxKQ4uDZ"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "허용목록 이름의 값은 가리지 않는다 — 런 id 와 런 주소가 로그에 남는다",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "mask",
+          "input": "project=run-20261012-143000-abc1234 api=http://run-20261012-143000-abc1234.localhost:21000 delay=86400000 lock=PT10M30S user=orders_user_01",
+          "expect": "project=run-20261012-143000-abc1234 api=http://run-20261012-143000-abc1234.localhost:21000 delay=86400000 lock=PT10M30S user=orders_user_01"
+        }
+      ]
+    },
+    {
+      "name": "refresh() 는 그 시점의 파일을 다시 읽는다 — 묶음 뒤 생긴 시드 totpSecret1 이 값 목록에 든다",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "mask",
+          "input": "seed GUTN44TABN6XPEEM5L2F23ML4OAHN3VG",
+          "expect": "seed GUTN44TABN6XPEEM5L2F23ML4OAHN3VG"
+        },
+        {
+          "do": "write",
+          "path": "work/e2e/e2e.private.env.json",
+          "content": "{\"local\":{\"rootCredential\":\"RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq\",\"adminPassword\":\"8O6NXNEEwrmEP8hyUjvc5nFQ18DwAW8TDHJYtv9n3dM\",\"ordersApiKey\":\"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\",\"totpSecret1\":\"GUTN44TABN6XPEEM5L2F23ML4OAHN3VG\"}}"
+        },
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "mask",
+          "input": "seed GUTN44TABN6XPEEM5L2F23ML4OAHN3VG",
+          "expect": "seed ****N3VG"
+        }
+      ]
+    },
+    {
+      "name": "refresh 전에도 패턴은 건다 — 값 목록이 생기기 전인 런 시작부터 라이브 스트림을 가린다",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "empty",
+      "steps": [
+        {
+          "do": "mask",
+          "input": "&quot;credential&quot;:&quot;HPXsWZNRNh1KCaDipJpDhNtqnCLosI1uFzVpBTpMlgg&quot;",
+          "expect": "&quot;credential&quot;:&quot;****&quot;"
+        }
+      ]
+    },
+    {
+      "name": "그 파일의 값은 가린다(allow)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "mask",
+          "input": "root RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq",
+          "expect": "root ****tKKq"
+        }
+      ]
+    },
+    {
+      "name": "선언되지 않은 자리(work 의 portal http 디렉토리)의 private env 는 원천이 아니다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "write",
+          "path": "work/backend/portal/http/http-client.private.env.json",
+          "content": "{\"local\":{\"stale\":\"IvapmkiXatm85gyg0a1QWJiNcAAl8DYFyKntkOX39UQ\"}}"
+        },
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "mask",
+          "input": "stale IvapmkiXatm85gyg0a1QWJiNcAAl8DYFyKntkOX39UQ",
+          "expect": "stale IvapmkiXatm85gyg0a1QWJiNcAAl8DYFyKntkOX39UQ"
+        }
+      ]
+    },
+    {
+      "name": "private env 가 런 밖 파일을 가리키는 링크면 던지고, 이전 값 목록은 그대로 둔다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "write",
+          "base": "outside",
+          "path": "host-secret.json",
+          "content": "{\"local\":{\"hostOnly\":\"jymnqOThDxfMczWodHeBa6yghPjNF1Aaix2MafFpvl4\"}}"
+        },
+        {
+          "do": "remove",
+          "path": "work/e2e/e2e.private.env.json"
+        },
+        {
+          "do": "symlink",
+          "path": "work/e2e/e2e.private.env.json",
+          "base": "outside",
+          "target": "host-secret.json"
+        },
+        {
+          "do": "refresh",
+          "errorContains": "일반 파일이 아니다: work/e2e/e2e.private.env.json"
+        },
+        {
+          "do": "mask",
+          "input": "RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq",
+          "expect": "****tKKq"
+        }
+      ]
+    },
+    {
+      "name": "런 안을 가리키는 링크도 던진다 — 마지막 경로 성분은 일반 파일이어야 한다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "write",
+          "path": "work/e2e/copy.json",
+          "content": "{\n  \"local\": {\n    \"rootCredential\": \"RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq\",\n    \"adminPassword\": \"8O6NXNEEwrmEP8hyUjvc5nFQ18DwAW8TDHJYtv9n3dM\",\n    \"ordersApiKey\": \"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\"\n  }\n}"
+        },
+        {
+          "do": "remove",
+          "path": "work/e2e/e2e.private.env.json"
+        },
+        {
+          "do": "symlink",
+          "path": "work/e2e/e2e.private.env.json",
+          "base": "run",
+          "target": "work/e2e/copy.json"
+        },
+        {
+          "do": "refresh",
+          "errorContains": "일반 파일이 아니다: work/e2e/e2e.private.env.json"
+        }
+      ]
+    },
+    {
+      "name": "중간 디렉토리가 런 밖을 가리키는 링크면 던진다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "write",
+          "base": "outside",
+          "path": "e2e.private.env.json",
+          "content": "{\"local\":{\"hostOnly\":\"jHc243mISLDtQbjVnuzCKoHEcurMb6Un92Ez2Hbz0fb\"}}"
+        },
+        {
+          "do": "remove",
+          "path": "work/e2e"
+        },
+        {
+          "do": "symlink",
+          "path": "work/e2e",
+          "base": "outside",
+          "target": "."
+        },
+        {
+          "do": "refresh",
+          "errorContains": "실경로가 런 디렉토리 밖이다: work/e2e/e2e.private.env.json"
+        }
+      ]
+    },
+    {
+      "name": "상한(1 MiB)을 넘는 파일은 던진다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "write",
+          "path": "src/backend/orders/.secrets/secrets.yml",
+          "repeat": "x",
+          "count": 1048577
+        },
+        {
+          "do": "refresh",
+          "errorContains": "상한(1 MiB)을 넘는다: src/backend/orders/.secrets/secrets.yml"
+        }
+      ]
+    },
+    {
+      "name": "파일이 없으면 던진다 — 값 목록이 조용히 비지 않는다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "remove",
+          "path": "src/backend/orders/.secrets/secrets.yml"
+        },
+        {
+          "do": "refresh",
+          "errorContains": "없다: src/backend/orders/.secrets/secrets.yml"
+        }
+      ]
+    },
+    {
+      "name": "private env 가 JSON 이 아니면 던지되 메시지에 파일 내용을 싣지 않는다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "write",
+          "path": "work/e2e/e2e.private.env.json",
+          "content": "{\"local\": {\"rootCredential\": FAKEf9QxOU9FkEruwaWHfnyI45dfNoqV3cjp6Pan2td}}"
+        },
+        {
+          "do": "refresh",
+          "errorEquals": "런 자격 파일을 JSON 으로 읽지 못했다: work/e2e/e2e.private.env.json",
+          "errorNotContains": [
+            "FAKEf9QxOU9FkEruwaWHfnyI45dfNoqV3cjp6Pan2td"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "런 마스커로 쓴 번들에는 남은 곳이 없고, 파일 어디에도 심은 값이 없다(allow)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "bundle",
+          "writer": "masker",
+          "files": {
+            "junit/report.xml": "<testcase classname=\"http.login\" name=\"Response\"><failure type=\"Error\" message=\"body={&quot;credential&quot;:&quot;8ZGyeeJ5qvmbEmiL8QtKUmYvMatTeXif9N8yAJ5D8Ju&quot;,&quot;enrollmentToken&quot;:&quot;4PenBKEOgYdOohfHenwFxeRfbjG5CJOvUfeNO1F3Ehy&quot;}\" /></testcase>",
+            "views/admin-users.json": "{\"rows\":[{\"note\":\"WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT\",\"key\":\"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\"}]}",
+            "audit/orders-audit.log": "GET /v1/x?credential=8ZGyeeJ5qvmbEmiL8QtKUmYvMatTeXif9N8yAJ5D8Ju Authorization: Bearer RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq seed=PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS"
+          }
+        },
+        {
+          "do": "rescan",
+          "expect": []
+        },
+        {
+          "do": "bundleFree",
+          "values": [
+            "WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT",
+            "wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM",
+            "RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq",
+            "PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS",
+            "8ZGyeeJ5qvmbEmiL8QtKUmYvMatTeXif9N8yAJ5D8Ju",
+            "4PenBKEOgYdOohfHenwFxeRfbjG5CJOvUfeNO1F3Ehy"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "마스커를 끄고 쓴 번들은 세 파일 전부를 돌려준다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "bundle",
+          "writer": "identity",
+          "files": {
+            "junit/report.xml": "<testcase classname=\"http.login\" name=\"Response\"><failure type=\"Error\" message=\"body={&quot;credential&quot;:&quot;9c7tcP746LGLwn589k9y1yx9syeioa3lrNlwe623hVP&quot;,&quot;enrollmentToken&quot;:&quot;Dt6jhTKQVb2ElVPBEZMptEZL12yKDDfxYLr6rFz0U54&quot;}\" /></testcase>",
+            "views/admin-users.json": "{\"rows\":[{\"note\":\"WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT\",\"key\":\"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\"}]}",
+            "audit/orders-audit.log": "GET /v1/x?credential=9c7tcP746LGLwn589k9y1yx9syeioa3lrNlwe623hVP Authorization: Bearer RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq seed=PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS"
+          }
+        },
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "rescan",
+          "expect": [
+            "audit/orders-audit.log",
+            "junit/report.xml",
+            "views/admin-users.json"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "이스케이프 구분자를 뺀 패턴으로 가린 JUnit 은 돌려준다 — 값 목록에 없는 런 중 발급 자격(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "bundle",
+          "writer": "plainQuoteOnly",
+          "files": {
+            "junit/report.xml": "<testcase classname=\"http.login\" name=\"Response\"><failure type=\"Error\" message=\"body={&quot;credential&quot;:&quot;4KuIyZ4EM1iyW8QFvZ7K0MExDEjCa8MkXso48ydLCuR&quot;,&quot;enrollmentToken&quot;:&quot;ck7KQGC9YOIMsE8jekV3eXiNSQc7Gqqdry7geYiBFcp&quot;}\" /></testcase>",
+            "views/admin-users.json": "{\"rows\":[{\"note\":\"WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT\",\"key\":\"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\"}]}",
+            "audit/orders-audit.log": "GET /v1/x?credential=4KuIyZ4EM1iyW8QFvZ7K0MExDEjCa8MkXso48ydLCuR Authorization: Bearer RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq seed=PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS"
+          }
+        },
+        {
+          "do": "rescan",
+          "expect": [
+            "junit/report.xml"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "일반 파일이 아닌 항목(링크)은 확인할 수 없으니 돌려준다(deny)",
+      "origin": "ts/redact",
+      "kind": "run",
+      "mode": "hub",
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "fixture": "run",
+      "steps": [
+        {
+          "do": "refresh"
+        },
+        {
+          "do": "bundle",
+          "writer": "masker",
+          "files": {
+            "junit/report.xml": "<testcase classname=\"http.login\" name=\"Response\"><failure type=\"Error\" message=\"body={&quot;credential&quot;:&quot;jmKjpS0qCkTZEjfY4E1A4s0Dx0Aynjz46QssBqYlbL6&quot;,&quot;enrollmentToken&quot;:&quot;EbXTyR5PzRV4z3fT0LUvktaYOLOGCQzJwZN6BjRG2vf&quot;}\" /></testcase>",
+            "views/admin-users.json": "{\"rows\":[{\"note\":\"WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT\",\"key\":\"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\"}]}",
+            "audit/orders-audit.log": "GET /v1/x?credential=jmKjpS0qCkTZEjfY4E1A4s0Dx0Aynjz46QssBqYlbL6 Authorization: Bearer RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq seed=PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS"
+          }
+        },
+        {
+          "do": "bundleSymlink",
+          "path": "junit/linked.xml",
+          "base": "run",
+          "target": "work/e2e/e2e.private.env.json"
+        },
+        {
+          "do": "rescan",
+          "expect": [
+            "junit/linked.xml"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "시드·세션을 담은 실패 문장이 가려져 원문이 없고 **** 표시가 있다",
+      "origin": "ts/secrets",
+      "kind": "summarize",
+      "mode": "runner",
+      "known": [
+        "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        "root-cred-7d1e9b",
+        "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+      ],
+      "max": 500,
+      "checks": [
+        {
+          "input": "단정 실패: 시드 JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP 로 만든 코드가 세션 sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a 에서 401",
+          "notContains": [
+            "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+            "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+          ],
+          "contains": [
+            "****",
+            "단정 실패"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "가린 뒤 자른다 — 자르기 경계에 걸친 시드의 앞부분도 남지 않는다",
+      "origin": "ts/secrets",
+      "kind": "summarize",
+      "mode": "runner",
+      "known": [
+        "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        "root-cred-7d1e9b",
+        "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+      ],
+      "max": 60,
+      "checks": [
+        {
+          "input": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP 뒤 문장",
+          "notContains": [
+            "JBSWY3DP"
+          ],
+          "contains": [
+            "****"
+          ],
+          "maxRunes": 61
+        }
+      ]
+    },
+    {
+      "name": "길이 상한을 넘으면 자르고 잘렸다는 표시를 붙인다",
+      "origin": "ts/secrets",
+      "kind": "summarize",
+      "mode": "runner",
+      "known": [
+        "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        "root-cred-7d1e9b",
+        "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+      ],
+      "max": 20,
+      "checks": [
+        {
+          "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "expect": "aaaaaaaaaaaaaaaaaaaa…"
+        }
+      ]
+    },
+    {
+      "name": "닫는 따옴표 없이 잘린 JSON 조각의 자격 값도 가린다",
+      "origin": "ts/secrets",
+      "kind": "mask",
+      "mode": "runner",
+      "known": [
+        "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        "root-cred-7d1e9b",
+        "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+      ],
+      "checks": [
+        {
+          "input": "응답 일부 {\"credential\":\"abcUNKNOWNsecretvalue",
+          "notContains": [
+            "abcUNKNOWNsecretvalue"
+          ],
+          "expect": "응답 일부 {\"credential\":\"****"
+        }
+      ]
+    },
+    {
+      "name": "JSON 키 패턴: 자격 키의 값은 가리고 식별자 키(tokenId)의 값은 둔다",
+      "origin": "ts/secrets",
+      "kind": "mask",
+      "mode": "runner",
+      "known": [
+        "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        "root-cred-7d1e9b",
+        "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+      ],
+      "checks": [
+        {
+          "input": "{\"totpSecret\":\"XYZSEEDVALUE\",\"tokenId\":\"tok-123\",\"enrollToken\":\"e-77\"}",
+          "notContains": [
+            "XYZSEEDVALUE",
+            "e-77"
+          ],
+          "contains": [
+            "\"tokenId\":\"tok-123\""
+          ]
+        }
+      ]
+    },
+    {
+      "name": "이스케이프된 JSON 안의 자격 값도 가린다",
+      "origin": "ts/secrets",
+      "kind": "mask",
+      "mode": "runner",
+      "known": [
+        "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        "root-cred-7d1e9b",
+        "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+      ],
+      "checks": [
+        {
+          "input": "{\"message\":\"{\\\"password\\\":\\\"hunter2-plain\\\"}\"}",
+          "notContains": [
+            "hunter2-plain"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "나중에 캡처한 값도 가린다(값 목록을 매번 다시 본다)",
+      "origin": "ts/secrets",
+      "kind": "mask",
+      "mode": "runner",
+      "known": [],
+      "checks": [
+        {
+          "knownNow": [
+            "late-session-value-91"
+          ],
+          "input": "세션 late-session-value-91",
+          "expect": "세션 ****"
+        }
+      ]
+    },
+    {
+      "name": "짧은 캡처 값(번들 버전 \"1\"·순번 \"0\"·\"null\")은 가리지 않아 진단 문장의 숫자가 남는다",
+      "origin": "ts/secrets",
+      "kind": "summarize",
+      "mode": "runner",
+      "known": [
+        "1",
+        "0",
+        "null",
+        "ws-0001"
+      ],
+      "max": 500,
+      "checks": [
+        {
+          "input": "상태 201 을 기대했는데 401, 워크스페이스 ws-0001",
+          "expect": "상태 201 을 기대했는데 401, 워크스페이스 ****"
+        }
+      ]
+    },
+    {
+      "name": "가리지 않는 문장은 그대로다",
+      "origin": "ts/secrets",
+      "kind": "mask",
+      "mode": "runner",
+      "known": [
+        "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        "root-cred-7d1e9b",
+        "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
+      ],
+      "checks": [
+        {
+          "input": "상태 200 을 기대했는데 403",
+          "expect": "상태 200 을 기대했는데 403"
+        }
+      ]
+    },
+    {
+      "name": "중첩된 모든 문자열 값을 모은다",
+      "origin": "ts/secrets",
+      "kind": "values",
+      "json": {
+        "local": {
+          "a": "x1",
+          "n": 3,
+          "nested": {
+            "b": "y2"
+          }
+        },
+        "list": [
+          "z3"
+        ]
+      },
+      "expect": [
+        "x1",
+        "y2",
+        "z3"
+      ]
+    },
+    {
+      "name": "16384자를 넘는 JSON 문자열 값도 키 패턴이 끝까지 가린다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"token\":\"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\",\"id\":\"x-1\"}",
+          "expect": "{\"token\":\"****\",\"id\":\"x-1\"}"
+        }
+      ]
+    },
+    {
+      "name": "sk_ 가 겹친 입력은 두 키를 다 가리고 한 번 가린 결과와 두 번 가린 결과가 같다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "sk_GnrOFb82sk_Wbxpnvhb",
+          "expect": "sk_****82sk_****nvhb",
+          "notContains": [
+            "Wbxpnvhb"
+          ],
+          "idempotent": true
+        }
+      ]
+    },
+    {
+      "name": "값이 배열인 자격 키(헤더)의 원소를 전부 가리고 다른 키의 배열은 둔다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "{\"x-webhook-secret\":[\"rRXs8FNRgZ5wMzYFonIoXWng\",\"JCG5ZxBGowlb2OFqJlemjtJ5\"],\"content-type\":[\"application/json\"]}",
+          "expect": "{\"x-webhook-secret\":[\"****\",\"****\"],\"content-type\":[\"application/json\"]}"
+        },
+        {
+          "input": "{\"X-Api-Token\": [ \"QqpiVxl6DWrJNChhj1qAnNOj\" , \"rRXs8FNRgZ5wMzYFonIoXWng\" ]}",
+          "expect": "{\"X-Api-Token\": [ \"****\" , \"****\" ]}"
+        },
+        {
+          "input": "{\\\"authorization\\\":[\\\"Bearer JCG5ZxBGowlb2OFqJlemjtJ5\\\"]}",
+          "expect": "{\\\"authorization\\\":[\\\"****\\\"]}"
+        }
+      ]
+    },
+    {
+      "name": "여러 줄 PEM 블록은 통째로, 그 본문 줄 조각은 값 목록으로 가린다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [
+        "OV0mQlD12DXaFXigtl1j6Bp7OVunxyx3Sow6Sjf2rCCdl4LZ1iXd0vrkNHEfH/9M",
+        "2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt"
+      ],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "key:\n-----BEGIN PRIVATE KEY-----\nOV0mQlD12DXaFXigtl1j6Bp7OVunxyx3Sow6Sjf2rCCdl4LZ1iXd0vrkNHEfH/9M\n2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt\n-----END PRIVATE KEY-----\nnext",
+          "expect": "key:\n[PEM 가림]\nnext"
+        },
+        {
+          "input": "a: |\n    -----BEGIN PRIVATE KEY-----\n    OV0mQlD12DXaFXigtl1j6Bp7OVunxyx3Sow6Sjf2rCCdl4LZ1iXd0vrkNHEfH/9M\n    2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt\n    -----END PRIVATE KEY-----\nb: 1",
+          "expect": "a: |\n    [PEM 가림]\nb: 1"
+        },
+        {
+          "input": "조각 2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt 끝",
+          "expect": "조각 ****jhSt 끝"
+        }
+      ]
+    },
+    {
+      "name": "따옴표나 &·< 가 든 알려진 값은 JSON·HTML·URL 이스케이프와 base64 로 실려도 가린다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [
+        "Qx7\"Lp2Mn9w",
+        "Rk8&Tz<4Wq"
+      ],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "값=Rk8&Tz<4Wq 끝",
+          "expect": "값=****<4Wq 끝"
+        },
+        {
+          "input": "값=Rk8&amp;Tz&lt;4Wq 끝",
+          "expect": "값=****;4Wq 끝"
+        },
+        {
+          "input": "값=Qx7\\&quot;Lp2Mn9w 끝",
+          "expect": "값=****Mn9w 끝"
+        },
+        {
+          "input": "값=Qx7\"Lp2Mn9w 끝",
+          "expect": "값=****Mn9w 끝"
+        },
+        {
+          "input": "값=Qx7\\\"Lp2Mn9w 끝",
+          "expect": "값=****Mn9w 끝",
+          "notContains": [
+            "Qx7\\\"Lp2Mn9w"
+          ]
+        },
+        {
+          "input": "값=Qx7&quot;Lp2Mn9w 끝",
+          "expect": "값=****Mn9w 끝",
+          "notContains": [
+            "Qx7&quot;Lp2Mn9w"
+          ]
+        },
+        {
+          "input": "값=Qx7&#34;Lp2Mn9w 끝",
+          "expect": "값=****Mn9w 끝",
+          "notContains": [
+            "Qx7&#34;Lp2Mn9w"
+          ]
+        },
+        {
+          "input": "값=Qx7&#x22;Lp2Mn9w 끝",
+          "expect": "값=****Mn9w 끝",
+          "notContains": [
+            "Qx7&#x22;Lp2Mn9w"
+          ]
+        },
+        {
+          "input": "값=Qx7%22Lp2Mn9w 끝",
+          "expect": "값=****Mn9w 끝",
+          "notContains": [
+            "Qx7%22Lp2Mn9w"
+          ]
+        },
+        {
+          "input": "b64 UXg3IkxwMk1uOXc= 끝",
+          "expect": "b64 ****OXc= 끝"
+        },
+        {
+          "input": "\"{\\\"v\\\":\\\"Qx7\\\\\\\"Lp2Mn9w\\\"}\"",
+          "expect": "\"{\\\"v\\\":\\\"****Mn9w\\\"}\""
+        }
+      ]
+    },
+    {
+      "name": "러너 모드는 이스케이프 변형으로 실린 값도 끝자리 없이 가린다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "runner",
+      "known": [
+        "Qx7\"Lp2Mn9w"
+      ],
+      "checks": [
+        {
+          "input": "값=Qx7\\\"Lp2Mn9w 끝",
+          "expect": "값=**** 끝"
+        },
+        {
+          "input": "값=Qx7&quot;Lp2Mn9w 끝",
+          "expect": "값=**** 끝"
+        },
+        {
+          "input": "값=Qx7&#34;Lp2Mn9w 끝",
+          "expect": "값=**** 끝"
+        },
+        {
+          "input": "값=Qx7&#x22;Lp2Mn9w 끝",
+          "expect": "값=**** 끝"
+        },
+        {
+          "input": "값=Qx7%22Lp2Mn9w 끝",
+          "expect": "값=**** 끝"
+        }
+      ]
+    },
+    {
+      "name": "JWT 꼴 토큰은 값 목록 없이 가리고 eyJ 로 시작할 뿐인 낱말은 둔다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "jwt=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJydW4tdGVzdC11c2VyIn0.c2lnbmF0dXJlLWZvci10ZXN0aW5nLW9ubHk next",
+          "expect": "jwt=**** next"
+        },
+        {
+          "input": "eyJhbGci only and v1.eyJ.x",
+          "expect": "eyJhbGci only and v1.eyJ.x"
+        }
+      ]
+    },
+    {
+      "name": "선언 패턴이 잡은 비밀이 8자보다 짧으면 끝자리를 남기지 않는다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "(?:^|[^A-Za-z])pk_(?P<secret>[A-Za-z0-9]{4,})"
+      ],
+      "checks": [
+        {
+          "input": "id pk_ab12 end",
+          "expect": "id pk_**** end"
+        },
+        {
+          "input": "id pk_ab12cd34ef end",
+          "expect": "id pk_****34ef end"
+        }
+      ]
+    },
+    {
+      "name": "선언 패턴에 secret 이름 그룹이 없으면 일치 전체를 가린다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "tok-[0-9a-f]{12}"
+      ],
+      "checks": [
+        {
+          "input": "id tok-0123456789ab end",
+          "expect": "id ****89ab end"
+        }
+      ]
+    },
+    {
+      "name": "NBSP 같은 유니코드 공백이 낀 키-값과 JSON 키도 TS 와 같은 자리에서 가린다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "token = abcdef123 next",
+          "expect": "token = **** next"
+        },
+        {
+          "input": "{\"secret\" : \"v-123456\"}",
+          "expect": "{\"secret\" : \"****\"}"
+        }
+      ]
+    },
+    {
+      "name": "허브 모드도 닫는 따옴표 없이 잘린 JSON 조각의 자격 값을 가린다",
+      "origin": "go",
+      "kind": "mask",
+      "mode": "hub",
+      "known": [],
+      "patterns": [
+        "wk_(?P<secret>[A-Za-z0-9_-]{43})",
+        "(?:^|[^A-Za-z])(?:wk_|ak_|sk_)(?P<secret>[A-Za-z0-9]{8,})"
+      ],
+      "checks": [
+        {
+          "input": "응답 {\"credential\":\"abcUNKNOWNsecretvalue",
+          "expect": "응답 {\"credential\":\"****"
+        },
+        {
+          "input": "줄 {\"token\":\"abcUNKNOWN\n다음 줄",
+          "expect": "줄 {\"token\":\"****\n다음 줄"
+        }
+      ]
+    }
+  ]
+}
