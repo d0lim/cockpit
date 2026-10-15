@@ -1,0 +1,37 @@
+version: 2
+project_name: cockpit
+
+before:
+  hooks:
+    - scripts/build-runners.sh
+
+builds:
+  - id: cockpit
+    main: ./cmd/cockpit
+    binary: cockpit
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/d0lim/cockpit/internal/version.Version={{ .Version }}
+
+archives:
+  - formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot-{{ .ShortCommit }}"
+
+release:
+  disable: true
