@@ -1,0 +1,327 @@
+{
+  "type": "object",
+  "properties": {
+    "hostApi": {
+      "type": "integer"
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "builder": {
+          "type": "string"
+        },
+        "expectedServices": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "networkOnlyKeys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "expectedServices"
+      ],
+      "additionalProperties": false
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "dirty": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+          }
+        },
+        "runnerSources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+              }
+            },
+            "required": [
+              "name",
+              "path"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "compose": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+          }
+        },
+        "forbidden": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "files"
+      ],
+      "additionalProperties": false
+    },
+    "ports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "service": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "display": {
+            "type": "string"
+          },
+          "open": {
+            "type": "string",
+            "enum": [
+              "browser",
+              "link",
+              "copy"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "offset",
+          "service",
+          "port",
+          "display",
+          "open"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^IMG_[A-Z0-9_]+$"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "inputs"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "env": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "image": {
+          "type": "string",
+          "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$"
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+          }
+        }
+      },
+      "required": [
+        "command",
+        "image",
+        "outputs"
+      ],
+      "additionalProperties": false
+    },
+    "secrets": {
+      "type": "object",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "dotenv",
+                  "json",
+                  "pem"
+                ]
+              }
+            },
+            "required": [
+              "path",
+              "format"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "publicNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "databases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+          },
+          "driver": {
+            "type": "string",
+            "enum": [
+              "mysql",
+              "postgres"
+            ]
+          },
+          "readSchemas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ownerRole": {
+            "type": "string"
+          },
+          "rootSecret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "driver",
+          "readSchemas",
+          "rootSecret"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "exec": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "allow"
+      ],
+      "additionalProperties": false
+    },
+    "scripts": {
+      "type": "object",
+      "properties": {
+        "dir": {
+          "type": "string",
+          "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+        },
+        "suites": {
+          "type": "string",
+          "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+        },
+        "collectors": {
+          "type": "string",
+          "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+        }
+      },
+      "required": [
+        "dir",
+        "suites"
+      ],
+      "additionalProperties": false
+    },
+    "kit": {
+      "type": "object",
+      "properties": {
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "notes"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "declaration",
+  "required": [
+    "hostApi",
+    "project",
+    "compose",
+    "secrets",
+    "scripts"
+  ],
+  "additionalProperties": false
+}

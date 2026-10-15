@@ -1,0 +1,2062 @@
+{
+  "schemaVersion": 1,
+  "suite": "joint",
+  "stages": [
+    {
+      "id": "bootstrap",
+      "title": "부트스트랩"
+    },
+    {
+      "id": "portal",
+      "title": "포털"
+    },
+    {
+      "id": "inbound",
+      "title": "유입"
+    },
+    {
+      "id": "collect",
+      "title": "수집"
+    },
+    {
+      "id": "transfer",
+      "title": "이체"
+    },
+    {
+      "id": "outbound",
+      "title": "유출"
+    },
+    {
+      "id": "roster",
+      "title": "명부"
+    },
+    {
+      "id": "auth",
+      "title": "인증"
+    }
+  ],
+  "flows": [
+    {
+      "id": "health",
+      "title": "health 플로우",
+      "stage": "bootstrap",
+      "once": false,
+      "requires": [],
+      "steps": [
+        {
+          "id": "l0-1",
+          "title": "L0-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 27
+          }
+        },
+        {
+          "id": "l0-1b",
+          "title": "L0-1b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 38
+          }
+        },
+        {
+          "id": "l0-1c",
+          "title": "L0-1c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 47
+          }
+        },
+        {
+          "id": "l0-2",
+          "title": "L0-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 55
+          }
+        },
+        {
+          "id": "l0-3",
+          "title": "L0-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 56
+          }
+        },
+        {
+          "id": "l0-4",
+          "title": "L0-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 57
+          }
+        },
+        {
+          "id": "l0-8",
+          "title": "L0-8 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 58
+          }
+        },
+        {
+          "id": "l0-9",
+          "title": "L0-9 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 59
+          }
+        },
+        {
+          "id": "l0-10",
+          "title": "L0-10 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 70
+          }
+        },
+        {
+          "id": "l0-11",
+          "title": "L0-11 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 71
+          }
+        },
+        {
+          "id": "l0-5",
+          "title": "L0-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 72
+          }
+        },
+        {
+          "id": "l0-7",
+          "title": "L0-7 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 81
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-health.ts",
+        "line": 19
+      }
+    },
+    {
+      "id": "vendor-table",
+      "title": "vendor-table 플로우",
+      "stage": "bootstrap",
+      "once": false,
+      "requires": [],
+      "steps": [
+        {
+          "id": "l14-1",
+          "title": "L14-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/vendor-standin.ts",
+            "line": 164
+          }
+        },
+        {
+          "id": "l14-2",
+          "title": "L14-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/vendor-standin.ts",
+            "line": 176
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/vendor-standin.ts",
+        "line": 156
+      }
+    },
+    {
+      "id": "portal-bootstrap",
+      "title": "portal-bootstrap 플로우",
+      "stage": "bootstrap",
+      "once": true,
+      "requires": [
+        "health"
+      ],
+      "steps": [
+        {
+          "id": "l0-6",
+          "title": "L0-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 59
+          }
+        },
+        {
+          "id": "l2-1a",
+          "title": "L2-1a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 68
+          }
+        },
+        {
+          "id": "l2-1b",
+          "title": "L2-1b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 69
+          }
+        },
+        {
+          "id": "l2-1c",
+          "title": "L2-1c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 70
+          }
+        },
+        {
+          "id": "l2-1d",
+          "title": "L2-1d 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 71
+          }
+        },
+        {
+          "id": "l2-2a",
+          "title": "L2-2a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 83
+          }
+        },
+        {
+          "id": "l2-3a",
+          "title": "L2-3a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 83
+          }
+        },
+        {
+          "id": "l2-2b",
+          "title": "L2-2b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 84
+          }
+        },
+        {
+          "id": "l2-3b",
+          "title": "L2-3b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 84
+          }
+        },
+        {
+          "id": "l2-2c",
+          "title": "L2-2c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 85
+          }
+        },
+        {
+          "id": "l2-3c",
+          "title": "L2-3c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 85
+          }
+        },
+        {
+          "id": "l2-4",
+          "title": "L2-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 86
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-portal.ts",
+        "line": 51
+      }
+    },
+    {
+      "id": "site-login",
+      "title": "site-login 플로우",
+      "stage": "bootstrap",
+      "once": false,
+      "requires": [
+        "portal-bootstrap"
+      ],
+      "steps": [
+        {
+          "id": "l3-1a",
+          "title": "L3-1a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 39
+          }
+        },
+        {
+          "id": "l3-2a",
+          "title": "L3-2a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 39
+          }
+        },
+        {
+          "id": "l3-1b",
+          "title": "L3-1b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 40
+          }
+        },
+        {
+          "id": "l3-2b",
+          "title": "L3-2b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 40
+          }
+        },
+        {
+          "id": "l3-1c",
+          "title": "L3-1c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 41
+          }
+        },
+        {
+          "id": "l3-2c",
+          "title": "L3-2c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 41
+          }
+        },
+        {
+          "id": "l3-3",
+          "title": "L3-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 42
+          }
+        },
+        {
+          "id": "l3-4",
+          "title": "L3-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 54
+          }
+        },
+        {
+          "id": "l3-5",
+          "title": "L3-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 65
+          }
+        },
+        {
+          "id": "l3-6",
+          "title": "L3-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 76
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-site-login.ts",
+        "line": 31
+      }
+    },
+    {
+      "id": "site-release",
+      "title": "site-release 플로우",
+      "stage": "bootstrap",
+      "once": true,
+      "requires": [
+        "site-login"
+      ],
+      "steps": [
+        {
+          "id": "l4-1",
+          "title": "L4-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 76
+          }
+        },
+        {
+          "id": "l4-2",
+          "title": "L4-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 88
+          }
+        },
+        {
+          "id": "l4-3",
+          "title": "L4-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 100
+          }
+        },
+        {
+          "id": "l4-4",
+          "title": "L4-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 113
+          }
+        },
+        {
+          "id": "l4-5a",
+          "title": "L4-5a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 129
+          }
+        },
+        {
+          "id": "l4-5b",
+          "title": "L4-5b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 132
+          }
+        },
+        {
+          "id": "l4-5c",
+          "title": "L4-5c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 133
+          }
+        },
+        {
+          "id": "l4-5d",
+          "title": "L4-5d 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 138
+          }
+        },
+        {
+          "id": "l4-5e",
+          "title": "L4-5e 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 140
+          }
+        },
+        {
+          "id": "l4-5f",
+          "title": "L4-5f 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 141
+          }
+        },
+        {
+          "id": "l4-6",
+          "title": "L4-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 146
+          }
+        },
+        {
+          "id": "l4-6b",
+          "title": "L4-6b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 153
+          }
+        },
+        {
+          "id": "l4-6c",
+          "title": "L4-6c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 157
+          }
+        },
+        {
+          "id": "l4-7",
+          "title": "L4-7 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 169
+          }
+        },
+        {
+          "id": "l4-8",
+          "title": "L4-8 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 186
+          }
+        },
+        {
+          "id": "l4-9",
+          "title": "L4-9 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 194
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-site-release.ts",
+        "line": 68
+      }
+    },
+    {
+      "id": "org-register",
+      "title": "org-register 플로우",
+      "stage": "bootstrap",
+      "once": true,
+      "requires": [
+        "site-release"
+      ],
+      "steps": [
+        {
+          "id": "l5-1a",
+          "title": "L5-1a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 103
+          }
+        },
+        {
+          "id": "l5-1b",
+          "title": "L5-1b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 104
+          }
+        },
+        {
+          "id": "l5-2a",
+          "title": "L5-2a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 112
+          }
+        },
+        {
+          "id": "l5-2b",
+          "title": "L5-2b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 113
+          }
+        },
+        {
+          "id": "l5-3",
+          "title": "L5-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 118
+          }
+        },
+        {
+          "id": "l5-4",
+          "title": "L5-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 137
+          }
+        },
+        {
+          "id": "l5-5",
+          "title": "L5-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 138
+          }
+        },
+        {
+          "id": "l5-5b",
+          "title": "L5-5b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 139
+          }
+        },
+        {
+          "id": "l5-5c",
+          "title": "L5-5c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 140
+          }
+        },
+        {
+          "id": "l5-6",
+          "title": "L5-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 141
+          }
+        },
+        {
+          "id": "l5-7a",
+          "title": "L5-7a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 151
+          }
+        },
+        {
+          "id": "l5-7b",
+          "title": "L5-7b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 153
+          }
+        },
+        {
+          "id": "l5-7c",
+          "title": "L5-7c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 154
+          }
+        },
+        {
+          "id": "l5-7d",
+          "title": "L5-7d 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 155
+          }
+        },
+        {
+          "id": "l5-7e",
+          "title": "L5-7e 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 155
+          }
+        },
+        {
+          "id": "l5-7f",
+          "title": "L5-7f 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 156
+          }
+        },
+        {
+          "id": "l5-7g",
+          "title": "L5-7g 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 156
+          }
+        },
+        {
+          "id": "l5-7h",
+          "title": "L5-7h 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 157
+          }
+        },
+        {
+          "id": "l5-7i",
+          "title": "L5-7i 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 157
+          }
+        },
+        {
+          "id": "l5-7j",
+          "title": "L5-7j 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 158
+          }
+        },
+        {
+          "id": "l5-7k",
+          "title": "L5-7k 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 165
+          }
+        },
+        {
+          "id": "l5-8",
+          "title": "L5-8 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 172
+          }
+        },
+        {
+          "id": "l5-9",
+          "title": "L5-9 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 185
+          }
+        },
+        {
+          "id": "l5-10",
+          "title": "L5-10 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 200
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-org-register.ts",
+        "line": 95
+      }
+    },
+    {
+      "id": "org-login",
+      "title": "org-login 플로우",
+      "stage": "bootstrap",
+      "once": false,
+      "requires": [
+        "org-register"
+      ],
+      "steps": [
+        {
+          "id": "l3w-1a",
+          "title": "L3w-1a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 26
+          }
+        },
+        {
+          "id": "l3w-2a",
+          "title": "L3w-2a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 26
+          }
+        },
+        {
+          "id": "l3w-1b",
+          "title": "L3w-1b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 27
+          }
+        },
+        {
+          "id": "l3w-2b",
+          "title": "L3w-2b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 27
+          }
+        },
+        {
+          "id": "l3w-1c",
+          "title": "L3w-1c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 28
+          }
+        },
+        {
+          "id": "l3w-2c",
+          "title": "L3w-2c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 28
+          }
+        },
+        {
+          "id": "l3w-1d",
+          "title": "L3w-1d 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 29
+          }
+        },
+        {
+          "id": "l3w-2d",
+          "title": "L3w-2d 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 29
+          }
+        },
+        {
+          "id": "l3w-3",
+          "title": "L3w-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 30
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-org-login.ts",
+        "line": 18
+      }
+    },
+    {
+      "id": "webhook-register",
+      "title": "webhook-register 플로우",
+      "stage": "bootstrap",
+      "once": false,
+      "requires": [],
+      "steps": [
+        {
+          "id": "n-1",
+          "title": "N-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 125
+          }
+        },
+        {
+          "id": "n-2",
+          "title": "N-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 126
+          }
+        },
+        {
+          "id": "n-3",
+          "title": "N-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 127
+          }
+        },
+        {
+          "id": "n-4",
+          "title": "N-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 128
+          }
+        },
+        {
+          "id": "n-5",
+          "title": "N-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 129
+          }
+        },
+        {
+          "id": "n-6",
+          "title": "N-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 130
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-webhook.ts",
+        "line": 117
+      }
+    },
+    {
+      "id": "partner-roster",
+      "title": "partner-roster 플로우",
+      "stage": "bootstrap",
+      "once": false,
+      "requires": [],
+      "steps": [
+        {
+          "id": "l0-12",
+          "title": "L0-12 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/bootstrap-partner-roster.ts",
+            "line": 85
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/bootstrap-partner-roster.ts",
+        "line": 77
+      }
+    },
+    {
+      "id": "org-portal-publish",
+      "title": "org-portal-publish 플로우",
+      "stage": "portal",
+      "once": false,
+      "requires": [
+        "org-login"
+      ],
+      "steps": [
+        {
+          "id": "p-1",
+          "title": "P-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 32
+          }
+        },
+        {
+          "id": "l22-1",
+          "title": "L22-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 33
+          }
+        },
+        {
+          "id": "l22-2",
+          "title": "L22-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 41
+          }
+        },
+        {
+          "id": "l22-3",
+          "title": "L22-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 48
+          }
+        },
+        {
+          "id": "l22-4",
+          "title": "L22-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 56
+          }
+        },
+        {
+          "id": "l22-5",
+          "title": "L22-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 62
+          }
+        },
+        {
+          "id": "l22-6",
+          "title": "L22-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 69
+          }
+        },
+        {
+          "id": "l22-7a",
+          "title": "L22-7a 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 76
+          }
+        },
+        {
+          "id": "l22-7b",
+          "title": "L22-7b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 79
+          }
+        },
+        {
+          "id": "l22-7c",
+          "title": "L22-7c 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 80
+          }
+        },
+        {
+          "id": "l22-7d",
+          "title": "L22-7d 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 81
+          }
+        },
+        {
+          "id": "l22-7e",
+          "title": "L22-7e 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 82
+          }
+        },
+        {
+          "id": "l22-8",
+          "title": "L22-8 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 83
+          }
+        },
+        {
+          "id": "l22-9",
+          "title": "L22-9 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 94
+          }
+        },
+        {
+          "id": "l22-10",
+          "title": "L22-10 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 100
+          }
+        },
+        {
+          "id": "l22-11",
+          "title": "L22-11 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 105
+          }
+        },
+        {
+          "id": "l22-12",
+          "title": "L22-12 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 112
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/org-portal-publish.ts",
+        "line": 24
+      }
+    },
+    {
+      "id": "inbound",
+      "title": "inbound 플로우",
+      "stage": "inbound",
+      "once": false,
+      "requires": [
+        "vendor-table"
+      ],
+      "steps": [
+        {
+          "id": "l12-1",
+          "title": "L12-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/inbound.ts",
+            "line": 53
+          }
+        },
+        {
+          "id": "l12-2",
+          "title": "L12-2 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/inbound.ts",
+            "line": 66
+          }
+        },
+        {
+          "id": "l12-3",
+          "title": "L12-3 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/inbound.ts",
+            "line": 85
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/inbound.ts",
+        "line": 45
+      }
+    },
+    {
+      "id": "review-inbound",
+      "title": "review-inbound 플로우",
+      "stage": "inbound",
+      "once": false,
+      "requires": [
+        "vendor-table",
+        "partner-roster"
+      ],
+      "steps": [
+        {
+          "id": "l18-1",
+          "title": "L18-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 78
+          }
+        },
+        {
+          "id": "l18-2",
+          "title": "L18-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 102
+          }
+        },
+        {
+          "id": "l18-3",
+          "title": "L18-3 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 114
+          }
+        },
+        {
+          "id": "l18-4",
+          "title": "L18-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 130
+          }
+        },
+        {
+          "id": "l18-5",
+          "title": "L18-5 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 139
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/review-inbound.ts",
+        "line": 70
+      }
+    },
+    {
+      "id": "collect",
+      "title": "collect 플로우",
+      "stage": "collect",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login",
+        "inbound"
+      ],
+      "steps": [
+        {
+          "id": "p-2",
+          "title": "P-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 18
+          }
+        },
+        {
+          "id": "l10-3",
+          "title": "L10-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 19
+          }
+        },
+        {
+          "id": "l10-4",
+          "title": "L10-4 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 36
+          }
+        },
+        {
+          "id": "l10-4b",
+          "title": "L10-4b 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 44
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/collect.ts",
+        "line": 10
+      }
+    },
+    {
+      "id": "account-transfer",
+      "title": "account-transfer 플로우",
+      "stage": "transfer",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "steps": [
+        {
+          "id": "p-3",
+          "title": "P-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 19
+          }
+        },
+        {
+          "id": "l10-5",
+          "title": "L10-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 20
+          }
+        },
+        {
+          "id": "l10-6",
+          "title": "L10-6 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 39
+          }
+        },
+        {
+          "id": "l10-6b",
+          "title": "L10-6b 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 47
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/account-transfer.ts",
+        "line": 11
+      }
+    },
+    {
+      "id": "outbound-callback-reject",
+      "title": "outbound-callback-reject 플로우",
+      "stage": "outbound",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "steps": [
+        {
+          "id": "p-4",
+          "title": "P-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 31
+          }
+        },
+        {
+          "id": "l13-1",
+          "title": "L13-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 32
+          }
+        },
+        {
+          "id": "l13-2",
+          "title": "L13-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 43
+          }
+        },
+        {
+          "id": "l13-3",
+          "title": "L13-3 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 57
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/outbound-callback-reject.ts",
+        "line": 23
+      }
+    },
+    {
+      "id": "outbound-allow",
+      "title": "outbound-allow 플로우",
+      "stage": "outbound",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "steps": [
+        {
+          "id": "p-5",
+          "title": "P-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 69
+          }
+        },
+        {
+          "id": "l10-1",
+          "title": "L10-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 70
+          }
+        },
+        {
+          "id": "l10-2",
+          "title": "L10-2 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 84
+          }
+        },
+        {
+          "id": "l10-2b",
+          "title": "L10-2b 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 92
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/outbound.ts",
+        "line": 61
+      }
+    },
+    {
+      "id": "outbound-deny",
+      "title": "outbound-deny 플로우",
+      "stage": "outbound",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "steps": [
+        {
+          "id": "p-6",
+          "title": "P-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 112
+          }
+        },
+        {
+          "id": "l11-1",
+          "title": "L11-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 113
+          }
+        },
+        {
+          "id": "l11-2",
+          "title": "L11-2 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 125
+          }
+        },
+        {
+          "id": "l11-3",
+          "title": "L11-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 136
+          }
+        },
+        {
+          "id": "l11-4",
+          "title": "L11-4 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 147
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/outbound.ts",
+        "line": 104
+      }
+    },
+    {
+      "id": "review-allow",
+      "title": "review-allow 플로우",
+      "stage": "outbound",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login",
+        "partner-roster"
+      ],
+      "steps": [
+        {
+          "id": "p-7",
+          "title": "P-7 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 100
+          }
+        },
+        {
+          "id": "l15-1",
+          "title": "L15-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 101
+          }
+        },
+        {
+          "id": "l15-2",
+          "title": "L15-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 115
+          }
+        },
+        {
+          "id": "l15-3",
+          "title": "L15-3 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 121
+          }
+        },
+        {
+          "id": "l15-4",
+          "title": "L15-4 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 130
+          }
+        },
+        {
+          "id": "l15-5",
+          "title": "L15-5 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 139
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/review-outbound.ts",
+        "line": 92
+      }
+    },
+    {
+      "id": "review-deny",
+      "title": "review-deny 플로우",
+      "stage": "outbound",
+      "once": false,
+      "requires": [
+        "org-register",
+        "partner-roster"
+      ],
+      "steps": [
+        {
+          "id": "l16-1",
+          "title": "L16-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 173
+          }
+        },
+        {
+          "id": "l16-2",
+          "title": "L16-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 184
+          }
+        },
+        {
+          "id": "l16-3",
+          "title": "L16-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 194
+          }
+        },
+        {
+          "id": "l16-4",
+          "title": "L16-4 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 200
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/review-outbound.ts",
+        "line": 165
+      }
+    },
+    {
+      "id": "review-address-not-found",
+      "title": "review-address-not-found 플로우",
+      "stage": "outbound",
+      "once": false,
+      "requires": [
+        "org-register",
+        "partner-roster"
+      ],
+      "steps": [
+        {
+          "id": "l17-1",
+          "title": "L17-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 228
+          }
+        },
+        {
+          "id": "l17-2",
+          "title": "L17-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 238
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/review-outbound.ts",
+        "line": 220
+      }
+    },
+    {
+      "id": "partner-roster-registry",
+      "title": "partner-roster-registry 플로우",
+      "stage": "roster",
+      "once": false,
+      "requires": [],
+      "steps": [
+        {
+          "id": "l19-1",
+          "title": "L19-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 38
+          }
+        },
+        {
+          "id": "l19-2",
+          "title": "L19-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 44
+          }
+        },
+        {
+          "id": "l19-3",
+          "title": "L19-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 57
+          }
+        },
+        {
+          "id": "l19-4",
+          "title": "L19-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 69
+          }
+        },
+        {
+          "id": "l19-5",
+          "title": "L19-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 78
+          }
+        },
+        {
+          "id": "l19-6",
+          "title": "L19-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 87
+          }
+        },
+        {
+          "id": "l19-7",
+          "title": "L19-7 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 98
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/partner-roster-registry.ts",
+        "line": 30
+      }
+    },
+    {
+      "id": "partner-roster-outbound",
+      "title": "partner-roster-outbound 플로우",
+      "stage": "roster",
+      "once": false,
+      "requires": [
+        "org-register",
+        "partner-roster"
+      ],
+      "steps": [
+        {
+          "id": "l20-1",
+          "title": "L20-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 50
+          }
+        },
+        {
+          "id": "l20-2",
+          "title": "L20-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 59
+          }
+        },
+        {
+          "id": "l20-3",
+          "title": "L20-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 65
+          }
+        },
+        {
+          "id": "l20-4",
+          "title": "L20-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 77
+          }
+        },
+        {
+          "id": "l20-5",
+          "title": "L20-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 88
+          }
+        },
+        {
+          "id": "l20-6",
+          "title": "L20-6 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 94
+          }
+        },
+        {
+          "id": "l20-7",
+          "title": "L20-7 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 107
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/partner-roster-outbound.ts",
+        "line": 42
+      }
+    },
+    {
+      "id": "partner-roster-inbound",
+      "title": "partner-roster-inbound 플로우",
+      "stage": "roster",
+      "once": false,
+      "requires": [],
+      "steps": [
+        {
+          "id": "l21-1",
+          "title": "L21-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 46
+          }
+        },
+        {
+          "id": "l21-2",
+          "title": "L21-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 55
+          }
+        },
+        {
+          "id": "l21-3",
+          "title": "L21-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 73
+          }
+        },
+        {
+          "id": "l21-4",
+          "title": "L21-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 79
+          }
+        },
+        {
+          "id": "l21-5",
+          "title": "L21-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 93
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/partner-roster-inbound.ts",
+        "line": 38
+      }
+    },
+    {
+      "id": "auth-boundaries",
+      "title": "auth-boundaries 플로우",
+      "stage": "auth",
+      "once": false,
+      "requires": [
+        "site-login"
+      ],
+      "steps": [
+        {
+          "id": "b-1",
+          "title": "B-1 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 42
+          }
+        },
+        {
+          "id": "b-2",
+          "title": "B-2 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 47
+          }
+        },
+        {
+          "id": "b-3",
+          "title": "B-3 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 53
+          }
+        },
+        {
+          "id": "b-4",
+          "title": "B-4 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 56
+          }
+        },
+        {
+          "id": "b-5",
+          "title": "B-5 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 67
+          }
+        },
+        {
+          "id": "b-6",
+          "title": "B-6 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 79
+          }
+        },
+        {
+          "id": "b-7",
+          "title": "B-7 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 84
+          }
+        },
+        {
+          "id": "b-8",
+          "title": "B-8 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 87
+          }
+        },
+        {
+          "id": "b-9",
+          "title": "B-9 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 90
+          }
+        },
+        {
+          "id": "b-10",
+          "title": "B-10 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 96
+          }
+        },
+        {
+          "id": "b-10b",
+          "title": "B-10b 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 106
+          }
+        },
+        {
+          "id": "b-11",
+          "title": "B-11 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 116
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/auth-boundaries.ts",
+        "line": 34
+      }
+    },
+    {
+      "id": "webhook-forgery",
+      "title": "webhook-forgery 플로우",
+      "stage": "auth",
+      "once": false,
+      "requires": [
+        "inbound"
+      ],
+      "steps": [
+        {
+          "id": "b-12",
+          "title": "B-12 단계",
+          "kind": "request",
+          "source": {
+            "file": "flows/webhook-forgery.ts",
+            "line": 71
+          }
+        },
+        {
+          "id": "b-13",
+          "title": "B-13 단계",
+          "kind": "wait",
+          "source": {
+            "file": "flows/webhook-forgery.ts",
+            "line": 93
+          }
+        }
+      ],
+      "source": {
+        "file": "flows/webhook-forgery.ts",
+        "line": 63
+      }
+    }
+  ]
+}

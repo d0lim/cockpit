@@ -1,0 +1,114 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "sha": {
+      "type": "string"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "harness": {
+      "type": "integer"
+    },
+    "hubCommit": {
+      "type": "string"
+    },
+    "submitter": {
+      "type": "string"
+    },
+    "keep": {
+      "type": "boolean"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "startedAt": {
+      "type": "string"
+    },
+    "finishedAt": {
+      "type": "string"
+    },
+    "slot": {
+      "type": "integer"
+    },
+    "imageKeys": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "imageDigests": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "failedStage": {
+      "type": "string"
+    },
+    "notice": {
+      "type": "string"
+    },
+    "tail": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "error",
+        "aborted"
+      ]
+    },
+    "reportedAt": {
+      "type": "string"
+    },
+    "cockpitVersion": {
+      "type": "string"
+    },
+    "hostApi": {
+      "type": "integer"
+    },
+    "runnerImage": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "meta",
+  "required": [
+    "id",
+    "sha",
+    "suite",
+    "harness",
+    "hubCommit",
+    "submitter",
+    "keep",
+    "createdAt",
+    "verdict",
+    "reportedAt",
+    "cockpitVersion",
+    "hostApi",
+    "runnerImage"
+  ],
+  "additionalProperties": false
+}

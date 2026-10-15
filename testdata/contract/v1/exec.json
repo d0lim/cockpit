@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "suite": "joint",
+  "target": "auth-boundaries",
+  "complete": true,
+  "startedAt": "2026-10-13T01:00:00.000Z",
+  "steps": [
+    {
+      "flow": "site-login",
+      "id": "site-login-1",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-2",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-3",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-4",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-5",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-6",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-7",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-8",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-9",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "site-login",
+      "id": "site-login-10",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 3,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-1",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-2",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-3",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-4",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-5",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-6",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-7",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-8",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-9",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-10",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-11",
+      "status": "passed",
+      "durationMs": 5,
+      "requests": 1,
+      "httpStatus": 200
+    },
+    {
+      "flow": "auth-boundaries",
+      "id": "auth-boundaries-12",
+      "status": "failed",
+      "durationMs": 5,
+      "requests": 3,
+      "httpStatus": 200,
+      "message": "401 token=****"
+    }
+  ],
+  "stoppedAt": {
+    "flow": "auth-boundaries",
+    "step": "auth-boundaries-12"
+  },
+  "finishedAt": "2026-10-13T01:05:00.000Z"
+}

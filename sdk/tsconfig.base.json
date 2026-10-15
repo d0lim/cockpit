@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2022"
+    ],
+    "types": [],
+    "strict": true,
+    "noEmit": true
+  },
+  "files": [
+    "./cockpit-flow.d.ts",
+    "./cockpit-collect.d.ts"
+  ]
+}

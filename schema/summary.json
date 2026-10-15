@@ -1,0 +1,441 @@
+{
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "runId": {
+      "type": "string"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "error",
+        "aborted"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "type": "object",
+      "properties": {
+        "expected": {
+          "type": "integer"
+        },
+        "actual": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        },
+        "skipped": {
+          "type": "integer"
+        },
+        "requests": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "failed",
+        "skipped",
+        "requests"
+      ],
+      "additionalProperties": false
+    },
+    "flows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "once": {
+            "type": "boolean"
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string"
+              },
+              "line": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "file",
+              "line"
+            ],
+            "additionalProperties": false
+          },
+          "stepList": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "request",
+                    "wait",
+                    "capture"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "notRun",
+                    "running",
+                    "passed",
+                    "failed",
+                    "skipped"
+                  ]
+                },
+                "requests": {
+                  "type": "integer"
+                },
+                "durationMs": {
+                  "type": "integer"
+                },
+                "httpStatus": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "type": "string"
+                    },
+                    "line": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "file",
+                    "line"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "kind",
+                "status",
+                "requests"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "skipped",
+              "notRun",
+              "incomplete"
+            ]
+          },
+          "steps": {
+            "type": "integer"
+          },
+          "passed": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          },
+          "stoppedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stage",
+          "title",
+          "once",
+          "requires",
+          "stepList",
+          "status",
+          "steps",
+          "passed",
+          "failed",
+          "skipped"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "stoppedAt": {
+      "type": "object",
+      "properties": {
+        "flow": {
+          "type": "string"
+        },
+        "step": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "flow",
+        "step"
+      ],
+      "additionalProperties": false
+    },
+    "notProven": {
+      "type": "object",
+      "properties": {
+        "skipped": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "declared": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unread": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "skipped",
+        "declared",
+        "unread"
+      ],
+      "additionalProperties": false
+    },
+    "boot": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "pending": {
+          "type": "boolean"
+        },
+        "waiting": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "ok"
+      ],
+      "additionalProperties": false
+    },
+    "seal": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "error"
+      ]
+    },
+    "runner": {
+      "type": "object",
+      "properties": {
+        "containerId": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer"
+        },
+        "oomKilled": {
+          "type": "boolean"
+        },
+        "timedOut": {
+          "type": "boolean"
+        },
+        "aborted": {
+          "type": "boolean"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "containerId",
+        "oomKilled",
+        "timedOut",
+        "aborted",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "skipped",
+              "absent",
+              "error"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "commit": {
+      "type": "string"
+    },
+    "harness": {
+      "type": "integer"
+    },
+    "hubCommit": {
+      "type": "string"
+    },
+    "ports": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "images": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "digests": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "keys",
+        "digests"
+      ],
+      "additionalProperties": false
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "cockpitVersion": {
+      "type": "string"
+    },
+    "hostApi": {
+      "type": "integer"
+    },
+    "runnerImage": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "generatedAt": {
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "summary",
+  "required": [
+    "format",
+    "runId",
+    "suite",
+    "verdict",
+    "reasons",
+    "steps",
+    "flows",
+    "notProven",
+    "seal",
+    "stages",
+    "commit",
+    "harness",
+    "hubCommit",
+    "ports",
+    "images",
+    "versions",
+    "cockpitVersion",
+    "hostApi",
+    "runnerImage",
+    "generatedAt"
+  ],
+  "additionalProperties": false
+}

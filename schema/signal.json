@@ -1,0 +1,157 @@
+{
+  "type": "object",
+  "properties": {
+    "seq": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "tsSource": {
+      "type": "string",
+      "enum": [
+        "host",
+        "container",
+        "runner"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "metric",
+        "event",
+        "span"
+      ]
+    },
+    "collector": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "rev": {
+      "type": "integer"
+    },
+    "attrs": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "warn",
+            "bad",
+            "idle",
+            "info"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    },
+    "metric": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "span": {
+      "type": "object",
+      "properties": {
+        "traceId": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "error",
+            "incomplete"
+          ]
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "traceId": {
+                "type": "string"
+              },
+              "spanId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "traceId",
+              "spanId"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "traceId",
+        "name",
+        "start",
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "signal",
+  "required": [
+    "seq",
+    "ts",
+    "tsSource",
+    "kind",
+    "collector",
+    "attrs"
+  ],
+  "additionalProperties": false
+}

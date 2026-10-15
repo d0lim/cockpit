@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "captures": {
+    "adminUserId1": "usr-0RXWYXKS9CXE4",
+    "adminUserId2": "usr-0RXWYXM75CXEA",
+    "adminUserId3": "usr-0RXWYXMDXCXEE",
+    "baselineReleaseVersion": "null",
+    "draftId": "dft-0RXWYXPNSCXER",
+    "revisionId": "dfr-0RXWYXPNSCXES",
+    "payloadHash": "4364ec6218f127a38aff5809c19e6ec10b5d3e5f2af9953ec8ebfd0f78846571",
+    "publicationApprovalId": "pba-0RXWYXQNDCXET",
+    "publishedReleaseVersion": "1000000",
+    "publishedContentHash": "875f7a425d4b09ef8d390a1293cb7bace11e29547181d732dd2733f37707d43e",
+    "expectedSiteActivationSeq": "0",
+    "orgId": "org-local-e2e-0001",
+    "managerAdminUserId": "usr-0RXWZ1S7DCXEX",
+    "orgActiveVersionBefore": "1",
+    "orgActiveDigestBefore": "c52a91813efee617d42970a5efb80fe651dd679d047d91a07b43dd57fa39d691",
+    "inboundId": "inb-0RXWZCS7WTDJZ",
+    "reviewInboundId": "inb-0RXWZDD84TDQY",
+    "collectId": "col-0RXWZDXC8TED3",
+    "accountTransferId": "xfr-0RXWZE1YRTEQG",
+    "rejectOutboundId": "outb-0RXWZE69GTEYW",
+    "outboundId": "outb-0RXWZEAHCTEZ2",
+    "denyOutboundId": "outb-0RXWZEENGTF79",
+    "unknownOutboundId": "outb-0RXWZEJQ4TFFM",
+    "reviewAllowOutboundId": "outb-0RXWZEPVMTFFE",
+    "reviewDenyOutboundId": "outb-0RXWZEVK8TFP1",
+    "rosterOutboundId": "outb-0RXWZF0PWTC87"
+  },
+  "totpSteps": {
+    "admin-1": 59734098,
+    "admin-2": 59734097,
+    "admin-3": 59734096,
+    "org-local-manager": 59734099,
+    "org-pub-1": 59734100,
+    "org-pub-2": 59734099,
+    "org-pub-3": 59734099
+  }
+}

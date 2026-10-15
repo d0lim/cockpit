@@ -1,0 +1,49 @@
+{
+  "hostApi": 1,
+  "project": {
+    "builder": "builder",
+    "expectedServices": ["app", "db", "cache", "mock"],
+    "networkOnlyKeys": ["mockBase"]
+  },
+  "inputs": {
+    "dirty": ["app", "compose.yaml", ".cockpit"],
+    "runnerSources": [{ "name": "fixtures", "path": "app/fixtures" }]
+  },
+  "compose": {
+    "files": ["compose.yaml", "compose.sealed-app.yaml"],
+    "forbidden": ["outbound"]
+  },
+  "ports": [
+    { "name": "app", "offset": 0, "service": "app", "port": 8080, "display": "앱 API", "open": "browser" },
+    { "name": "db", "offset": 6, "service": "db", "port": 5432, "display": "DB", "open": "copy" },
+    { "name": "mock", "offset": 90, "service": "mock", "port": 9000, "display": "대역", "open": "link" }
+  ],
+  "images": [
+    { "key": "IMG_APP", "inputs": ["app"] },
+    { "key": "IMG_MOCK", "inputs": ["mock"] }
+  ],
+  "env": {
+    "command": ["sh", "make-env.sh"],
+    "image": "docker.io/library/alpine:3.20@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "outputs": ["app/.env"]
+  },
+  "secrets": {
+    "sources": [{ "path": "app/.secrets.json", "format": "json" }],
+    "publicNames": ["APP_PORT"],
+    "patterns": ["tk_[A-Za-z0-9]{16,}"]
+  },
+  "databases": [
+    { "name": "main", "driver": "postgres", "readSchemas": ["public"], "ownerRole": "app", "rootSecret": "POSTGRES_PASSWORD" }
+  ],
+  "exec": {
+    "allow": [["valkey-cli", "GET"], ["valkey-cli", "SCAN"]]
+  },
+  "scripts": {
+    "dir": "scripts",
+    "suites": "scripts/suites",
+    "collectors": "scripts/collectors"
+  },
+  "kit": {
+    "notes": "2팩터 코드는 oathtool 로 만든다."
+  }
+}

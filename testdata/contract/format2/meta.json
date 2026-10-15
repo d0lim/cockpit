@@ -1,0 +1,22 @@
+{
+  "id": "run-20261015-090630-aae48f9",
+  "sha": "aae48f98cce8e092949e7c53035ac0ffce3194b4",
+  "suite": "joint",
+  "harness": 4,
+  "hubCommit": "d9331e35c314aae8e17e1c9058e28663cd714bc6",
+  "submitter": "cli",
+  "keep": false,
+  "createdAt": "2026-10-15T00:06:30.916Z",
+  "startedAt": "2026-10-15T00:06:31.499Z",
+  "slot": 4,
+  "imageKeys": {
+    "IMG_FRONTEND": "097138f406f6",
+    "IMG_PORTAL": "b5ea723c2efa",
+    "IMG_RUNNER": "c2d6c56a09d5",
+    "IMG_GATEWAY": "03c5a633c950",
+    "IMG_ORDERS": "03c5a633c950",
+    "IMG_NOTIFIER": "5db33bd73aeb"
+  },
+  "verdict": "passed",
+  "reportedAt": "2026-10-15T00:09:56.393Z"
+}

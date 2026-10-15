@@ -4,10 +4,19 @@ go 1.27.0
 
 toolchain go1.27.2
 
-tool github.com/google/go-licenses
+tool (
+	github.com/google/go-licenses
+	github.com/gzuidhof/tygo
+)
+
+require (
+	github.com/google/jsonschema-go v0.4.3
+	github.com/gzuidhof/tygo v0.2.21
+)
 
 require (
 	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/go-logr/logr v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-licenses v1.6.0 // indirect
@@ -32,5 +41,6 @@ require (
 	gopkg.in/src-d/go-billy.v4 v4.3.2 // indirect
 	gopkg.in/src-d/go-git.v4 v4.13.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 )

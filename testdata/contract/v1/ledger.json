@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "flows": {
+    "health": {
+      "status": "passed",
+      "at": "2026-10-15T00:07:26.138Z"
+    },
+    "vendor-table": {
+      "status": "passed",
+      "at": "2026-10-15T00:07:26.343Z"
+    },
+    "portal-bootstrap": {
+      "status": "passed",
+      "at": "2026-10-15T00:07:26.909Z"
+    },
+    "site-login": {
+      "status": "passed",
+      "at": "2026-10-15T00:07:27.110Z"
+    },
+    "site-release": {
+      "status": "passed",
+      "at": "2026-10-15T00:08:00.529Z"
+    },
+    "org-register": {
+      "status": "passed",
+      "at": "2026-10-15T00:08:30.686Z"
+    },
+    "org-login": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:00.438Z"
+    },
+    "webhook-register": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:00.933Z"
+    },
+    "partner-roster": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:01.382Z"
+    },
+    "org-portal-publish": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:30.501Z"
+    },
+    "inbound": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:34.665Z"
+    },
+    "review-inbound": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:39.899Z"
+    },
+    "collect": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:41.065Z"
+    },
+    "account-transfer": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:42.166Z"
+    },
+    "outbound-callback-reject": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:43.280Z"
+    },
+    "outbound-allow": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:44.342Z"
+    },
+    "outbound-deny": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:46.429Z"
+    },
+    "review-allow": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:47.657Z"
+    },
+    "review-deny": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:48.728Z"
+    },
+    "review-address-not-found": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:48.769Z"
+    },
+    "partner-roster-registry": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:48.918Z"
+    },
+    "partner-roster-outbound": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:50.073Z"
+    },
+    "partner-roster-inbound": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:53.162Z"
+    },
+    "auth-boundaries": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:53.198Z"
+    },
+    "webhook-forgery": {
+      "status": "passed",
+      "at": "2026-10-15T00:09:55.265Z"
+    }
+  }
+}

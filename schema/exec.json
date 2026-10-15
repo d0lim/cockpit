@@ -1,0 +1,103 @@
+{
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "suite": {
+      "type": "string"
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "startedAt": {
+      "type": "string"
+    },
+    "finishedAt": {
+      "type": "string"
+    },
+    "stoppedAt": {
+      "type": "object",
+      "properties": {
+        "flow": {
+          "type": "string"
+        },
+        "step": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "flow",
+        "step"
+      ],
+      "additionalProperties": false
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "flow": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "notRun",
+              "running",
+              "passed",
+              "failed",
+              "skipped"
+            ]
+          },
+          "durationMs": {
+            "type": "integer"
+          },
+          "requests": {
+            "type": "integer"
+          },
+          "httpStatus": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string"
+          },
+          "finishedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "flow",
+          "id",
+          "status",
+          "requests"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "target": {
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "exec",
+  "required": [
+    "schemaVersion",
+    "suite",
+    "complete",
+    "startedAt",
+    "steps",
+    "target"
+  ],
+  "additionalProperties": false
+}

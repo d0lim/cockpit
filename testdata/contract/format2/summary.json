@@ -1,0 +1,3238 @@
+{
+  "format": 2,
+  "runId": "run-20261015-090630-aae48f9",
+  "suite": "joint",
+  "verdict": "passed",
+  "reasons": [],
+  "steps": {
+    "expected": 183,
+    "actual": 183,
+    "failed": 0,
+    "skipped": 0,
+    "requests": 286
+  },
+  "flows": [
+    {
+      "id": "health",
+      "stage": "bootstrap",
+      "title": "health 플로우",
+      "once": false,
+      "requires": [],
+      "source": {
+        "file": "flows/bootstrap-health.ts",
+        "line": 19
+      },
+      "stepList": [
+        {
+          "id": "l0-1",
+          "title": "L0-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 27
+          },
+          "durationMs": 8,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-1b",
+          "title": "L0-1b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 38
+          },
+          "durationMs": 17,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-1c",
+          "title": "L0-1c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 47
+          },
+          "durationMs": 67,
+          "httpStatus": 404
+        },
+        {
+          "id": "l0-2",
+          "title": "L0-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 55
+          },
+          "durationMs": 1,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-3",
+          "title": "L0-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 56
+          },
+          "durationMs": 2,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-4",
+          "title": "L0-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 57
+          },
+          "durationMs": 1,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-8",
+          "title": "L0-8 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 58
+          },
+          "durationMs": 3,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-9",
+          "title": "L0-9 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 59
+          },
+          "durationMs": 10,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-10",
+          "title": "L0-10 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 70
+          },
+          "durationMs": 3,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-11",
+          "title": "L0-11 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 71
+          },
+          "durationMs": 5,
+          "httpStatus": 200
+        },
+        {
+          "id": "l0-5",
+          "title": "L0-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 72
+          },
+          "durationMs": 49,
+          "httpStatus": 401
+        },
+        {
+          "id": "l0-7",
+          "title": "L0-7 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-health.ts",
+            "line": 81
+          },
+          "durationMs": 3,
+          "httpStatus": 401
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "vendor-table",
+      "stage": "bootstrap",
+      "title": "vendor-table 플로우",
+      "once": false,
+      "requires": [],
+      "source": {
+        "file": "flows/vendor-standin.ts",
+        "line": 156
+      },
+      "stepList": [
+        {
+          "id": "l14-1",
+          "title": "L14-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/vendor-standin.ts",
+            "line": 164
+          },
+          "durationMs": 5,
+          "httpStatus": 200
+        },
+        {
+          "id": "l14-2",
+          "title": "L14-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/vendor-standin.ts",
+            "line": 176
+          },
+          "durationMs": 195,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "portal-bootstrap",
+      "stage": "bootstrap",
+      "title": "portal-bootstrap 플로우",
+      "once": true,
+      "requires": [
+        "health"
+      ],
+      "source": {
+        "file": "flows/bootstrap-portal.ts",
+        "line": 51
+      },
+      "stepList": [
+        {
+          "id": "l0-6",
+          "title": "L0-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 59
+          },
+          "durationMs": 20,
+          "httpStatus": 503
+        },
+        {
+          "id": "l2-1a",
+          "title": "L2-1a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 68
+          },
+          "durationMs": 118,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-1b",
+          "title": "L2-1b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 69
+          },
+          "durationMs": 55,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-1c",
+          "title": "L2-1c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 70
+          },
+          "durationMs": 46,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-1d",
+          "title": "L2-1d 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 71
+          },
+          "durationMs": 4,
+          "httpStatus": 401
+        },
+        {
+          "id": "l2-2a",
+          "title": "L2-2a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 83
+          },
+          "durationMs": 124,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-3a",
+          "title": "L2-3a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 83
+          },
+          "durationMs": 19,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-2b",
+          "title": "L2-2b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 84
+          },
+          "durationMs": 39,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-3b",
+          "title": "L2-3b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 84
+          },
+          "durationMs": 13,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-2c",
+          "title": "L2-2c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 85
+          },
+          "durationMs": 65,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-3c",
+          "title": "L2-3c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 85
+          },
+          "durationMs": 16,
+          "httpStatus": 200
+        },
+        {
+          "id": "l2-4",
+          "title": "L2-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-portal.ts",
+            "line": 86
+          },
+          "durationMs": 4,
+          "httpStatus": 403
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site-login",
+      "stage": "bootstrap",
+      "title": "site-login 플로우",
+      "once": false,
+      "requires": [
+        "portal-bootstrap"
+      ],
+      "source": {
+        "file": "flows/bootstrap-site-login.ts",
+        "line": 31
+      },
+      "stepList": [
+        {
+          "id": "l3-1a",
+          "title": "L3-1a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 39
+          },
+          "durationMs": 37,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3-2a",
+          "title": "L3-2a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 39
+          },
+          "durationMs": 15,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3-1b",
+          "title": "L3-1b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 40
+          },
+          "durationMs": 32,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3-2b",
+          "title": "L3-2b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 40
+          },
+          "durationMs": 7,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3-1c",
+          "title": "L3-1c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 41
+          },
+          "durationMs": 30,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3-2c",
+          "title": "L3-2c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 41
+          },
+          "durationMs": 5,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3-3",
+          "title": "L3-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 42
+          },
+          "durationMs": 21,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3-4",
+          "title": "L3-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 54
+          },
+          "durationMs": 28,
+          "httpStatus": 401
+        },
+        {
+          "id": "l3-5",
+          "title": "L3-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 65
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "l3-6",
+          "title": "L3-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-login.ts",
+            "line": 76
+          },
+          "durationMs": 3,
+          "httpStatus": 204
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site-release",
+      "stage": "bootstrap",
+      "title": "site-release 플로우",
+      "once": true,
+      "requires": [
+        "site-login"
+      ],
+      "source": {
+        "file": "flows/bootstrap-site-release.ts",
+        "line": 68
+      },
+      "stepList": [
+        {
+          "id": "l4-1",
+          "title": "L4-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 76
+          },
+          "durationMs": 14,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-2",
+          "title": "L4-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 88
+          },
+          "durationMs": 35,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-3",
+          "title": "L4-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 100
+          },
+          "durationMs": 219,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-4",
+          "title": "L4-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 113
+          },
+          "durationMs": 27,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-5a",
+          "title": "L4-5a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 129
+          },
+          "durationMs": 2901,
+          "httpStatus": 403
+        },
+        {
+          "id": "l4-5b",
+          "title": "L4-5b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 132
+          },
+          "durationMs": 13,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-5c",
+          "title": "L4-5c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 133
+          },
+          "durationMs": 26,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-5d",
+          "title": "L4-5d 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 138
+          },
+          "durationMs": 29962,
+          "httpStatus": 409
+        },
+        {
+          "id": "l4-5e",
+          "title": "L4-5e 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 140
+          },
+          "durationMs": 14,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-5f",
+          "title": "L4-5f 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 141
+          },
+          "durationMs": 16,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-6",
+          "title": "L4-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 146
+          },
+          "durationMs": 60,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-6b",
+          "title": "L4-6b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 153
+          },
+          "durationMs": 61,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-6c",
+          "title": "L4-6c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 157
+          },
+          "durationMs": 8,
+          "httpStatus": 404
+        },
+        {
+          "id": "l4-7",
+          "title": "L4-7 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 169
+          },
+          "durationMs": 21,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-8",
+          "title": "L4-8 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 186
+          },
+          "durationMs": 7,
+          "httpStatus": 200
+        },
+        {
+          "id": "l4-9",
+          "title": "L4-9 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-site-release.ts",
+            "line": 194
+          },
+          "durationMs": 5,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "org-register",
+      "stage": "bootstrap",
+      "title": "org-register 플로우",
+      "once": true,
+      "requires": [
+        "site-release"
+      ],
+      "source": {
+        "file": "flows/bootstrap-org-register.ts",
+        "line": 95
+      },
+      "stepList": [
+        {
+          "id": "l5-1a",
+          "title": "L5-1a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 103
+          },
+          "durationMs": 10,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-1b",
+          "title": "L5-1b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 104
+          },
+          "durationMs": 37,
+          "httpStatus": 201
+        },
+        {
+          "id": "l5-2a",
+          "title": "L5-2a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 112
+          },
+          "durationMs": 6,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-2b",
+          "title": "L5-2b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 113
+          },
+          "durationMs": 29736,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-3",
+          "title": "L5-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 118
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "l5-4",
+          "title": "L5-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 137
+          },
+          "durationMs": 66,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-5",
+          "title": "L5-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 138
+          },
+          "durationMs": 9,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-5b",
+          "title": "L5-5b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 139
+          },
+          "durationMs": 27,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-5c",
+          "title": "L5-5c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 140
+          },
+          "durationMs": 4,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-6",
+          "title": "L5-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 141
+          },
+          "durationMs": 13,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7a",
+          "title": "L5-7a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 151
+          },
+          "durationMs": 13,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7b",
+          "title": "L5-7b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 153
+          },
+          "durationMs": 10,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7c",
+          "title": "L5-7c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 154
+          },
+          "durationMs": 11,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7d",
+          "title": "L5-7d 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 155
+          },
+          "durationMs": 30,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7e",
+          "title": "L5-7e 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 155
+          },
+          "durationMs": 9,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7f",
+          "title": "L5-7f 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 156
+          },
+          "durationMs": 31,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7g",
+          "title": "L5-7g 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 156
+          },
+          "durationMs": 8,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7h",
+          "title": "L5-7h 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 157
+          },
+          "durationMs": 29,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7i",
+          "title": "L5-7i 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 157
+          },
+          "durationMs": 7,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7j",
+          "title": "L5-7j 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 158
+          },
+          "durationMs": 35,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-7k",
+          "title": "L5-7k 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 165
+          },
+          "durationMs": 4,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-8",
+          "title": "L5-8 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 172
+          },
+          "durationMs": 5,
+          "httpStatus": 401
+        },
+        {
+          "id": "l5-9",
+          "title": "L5-9 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 185
+          },
+          "durationMs": 8,
+          "httpStatus": 200
+        },
+        {
+          "id": "l5-10",
+          "title": "L5-10 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-register.ts",
+            "line": 200
+          },
+          "durationMs": 5,
+          "httpStatus": 401
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "org-login",
+      "stage": "bootstrap",
+      "title": "org-login 플로우",
+      "once": false,
+      "requires": [
+        "org-register"
+      ],
+      "source": {
+        "file": "flows/bootstrap-org-login.ts",
+        "line": 18
+      },
+      "stepList": [
+        {
+          "id": "l3w-1a",
+          "title": "L3w-1a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 26
+          },
+          "durationMs": 27,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-2a",
+          "title": "L3w-2a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 26
+          },
+          "durationMs": 29597,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-1b",
+          "title": "L3w-1b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 27
+          },
+          "durationMs": 36,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-2b",
+          "title": "L3w-2b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 27
+          },
+          "durationMs": 4,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-1c",
+          "title": "L3w-1c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 28
+          },
+          "durationMs": 28,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-2c",
+          "title": "L3w-2c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 28
+          },
+          "durationMs": 4,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-1d",
+          "title": "L3w-1d 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 29
+          },
+          "durationMs": 27,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-2d",
+          "title": "L3w-2d 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 29
+          },
+          "durationMs": 4,
+          "httpStatus": 200
+        },
+        {
+          "id": "l3w-3",
+          "title": "L3w-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-org-login.ts",
+            "line": 30
+          },
+          "durationMs": 5,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "webhook-register",
+      "stage": "bootstrap",
+      "title": "webhook-register 플로우",
+      "once": false,
+      "requires": [],
+      "source": {
+        "file": "flows/bootstrap-webhook.ts",
+        "line": 117
+      },
+      "stepList": [
+        {
+          "id": "n-1",
+          "title": "N-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 125
+          },
+          "durationMs": 147,
+          "httpStatus": 200
+        },
+        {
+          "id": "n-2",
+          "title": "N-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 13,
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 126
+          },
+          "durationMs": 80,
+          "httpStatus": 200
+        },
+        {
+          "id": "n-3",
+          "title": "N-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 127
+          },
+          "durationMs": 167,
+          "httpStatus": 201
+        },
+        {
+          "id": "n-4",
+          "title": "N-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 128
+          },
+          "durationMs": 5,
+          "httpStatus": 200
+        },
+        {
+          "id": "n-5",
+          "title": "N-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 13,
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 129
+          },
+          "durationMs": 54,
+          "httpStatus": 200
+        },
+        {
+          "id": "n-6",
+          "title": "N-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/bootstrap-webhook.ts",
+            "line": 130
+          },
+          "durationMs": 32,
+          "httpStatus": 201
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "partner-roster",
+      "stage": "bootstrap",
+      "title": "partner-roster 플로우",
+      "once": false,
+      "requires": [],
+      "source": {
+        "file": "flows/bootstrap-partner-roster.ts",
+        "line": 77
+      },
+      "stepList": [
+        {
+          "id": "l0-12",
+          "title": "L0-12 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/bootstrap-partner-roster.ts",
+            "line": 85
+          },
+          "durationMs": 447,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "org-portal-publish",
+      "stage": "portal",
+      "title": "org-portal-publish 플로우",
+      "once": false,
+      "requires": [
+        "org-login"
+      ],
+      "source": {
+        "file": "flows/org-portal-publish.ts",
+        "line": 24
+      },
+      "stepList": [
+        {
+          "id": "p-1",
+          "title": "P-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 32
+          },
+          "durationMs": 10,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-1",
+          "title": "L22-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 33
+          },
+          "durationMs": 10,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-2",
+          "title": "L22-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 41
+          },
+          "durationMs": 14,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-3",
+          "title": "L22-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 48
+          },
+          "durationMs": 29,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-4",
+          "title": "L22-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 56
+          },
+          "durationMs": 100,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-5",
+          "title": "L22-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 62
+          },
+          "durationMs": 19,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-6",
+          "title": "L22-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 69
+          },
+          "durationMs": 12,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-7a",
+          "title": "L22-7a 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 76
+          },
+          "durationMs": 28724,
+          "httpStatus": 403
+        },
+        {
+          "id": "l22-7b",
+          "title": "L22-7b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 79
+          },
+          "durationMs": 10,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-7c",
+          "title": "L22-7c 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 80
+          },
+          "durationMs": 18,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-7d",
+          "title": "L22-7d 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 81
+          },
+          "durationMs": 9,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-7e",
+          "title": "L22-7e 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 82
+          },
+          "durationMs": 14,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-8",
+          "title": "L22-8 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 83
+          },
+          "durationMs": 55,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-9",
+          "title": "L22-9 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 94
+          },
+          "durationMs": 8,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-10",
+          "title": "L22-10 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 100
+          },
+          "durationMs": 12,
+          "httpStatus": 409
+        },
+        {
+          "id": "l22-11",
+          "title": "L22-11 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 105
+          },
+          "durationMs": 18,
+          "httpStatus": 200
+        },
+        {
+          "id": "l22-12",
+          "title": "L22-12 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/org-portal-publish.ts",
+            "line": 112
+          },
+          "durationMs": 29,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 17,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "inbound",
+      "stage": "inbound",
+      "title": "inbound 플로우",
+      "once": false,
+      "requires": [
+        "vendor-table"
+      ],
+      "source": {
+        "file": "flows/inbound.ts",
+        "line": 45
+      },
+      "stepList": [
+        {
+          "id": "l12-1",
+          "title": "L12-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/inbound.ts",
+            "line": 53
+          },
+          "durationMs": 42,
+          "httpStatus": 202
+        },
+        {
+          "id": "l12-2",
+          "title": "L12-2 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/inbound.ts",
+            "line": 66
+          },
+          "durationMs": 1059,
+          "httpStatus": 200
+        },
+        {
+          "id": "l12-3",
+          "title": "L12-3 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 4,
+          "source": {
+            "file": "flows/inbound.ts",
+            "line": 85
+          },
+          "durationMs": 3057,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "review-inbound",
+      "stage": "inbound",
+      "title": "review-inbound 플로우",
+      "once": false,
+      "requires": [
+        "vendor-table",
+        "partner-roster"
+      ],
+      "source": {
+        "file": "flows/review-inbound.ts",
+        "line": 70
+      },
+      "stepList": [
+        {
+          "id": "l18-1",
+          "title": "L18-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 4,
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 78
+          },
+          "durationMs": 1112,
+          "httpStatus": 200
+        },
+        {
+          "id": "l18-2",
+          "title": "L18-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 102
+          },
+          "durationMs": 2,
+          "httpStatus": 202
+        },
+        {
+          "id": "l18-3",
+          "title": "L18-3 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 4,
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 114
+          },
+          "durationMs": 3083,
+          "httpStatus": 200
+        },
+        {
+          "id": "l18-4",
+          "title": "L18-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 130
+          },
+          "durationMs": 2,
+          "httpStatus": 200
+        },
+        {
+          "id": "l18-5",
+          "title": "L18-5 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/review-inbound.ts",
+            "line": 139
+          },
+          "durationMs": 1023,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "collect",
+      "stage": "collect",
+      "title": "collect 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login",
+        "inbound"
+      ],
+      "source": {
+        "file": "flows/collect.ts",
+        "line": 10
+      },
+      "stepList": [
+        {
+          "id": "p-2",
+          "title": "P-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 18
+          },
+          "durationMs": 21,
+          "httpStatus": 200
+        },
+        {
+          "id": "l10-3",
+          "title": "L10-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 19
+          },
+          "durationMs": 92,
+          "httpStatus": 201
+        },
+        {
+          "id": "l10-4",
+          "title": "L10-4 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 36
+          },
+          "durationMs": 1030,
+          "httpStatus": 200
+        },
+        {
+          "id": "l10-4b",
+          "title": "L10-4b 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/collect.ts",
+            "line": 44
+          },
+          "durationMs": 14,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "account-transfer",
+      "stage": "transfer",
+      "title": "account-transfer 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "source": {
+        "file": "flows/account-transfer.ts",
+        "line": 11
+      },
+      "stepList": [
+        {
+          "id": "p-3",
+          "title": "P-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 19
+          },
+          "durationMs": 15,
+          "httpStatus": 200
+        },
+        {
+          "id": "l10-5",
+          "title": "L10-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 20
+          },
+          "durationMs": 43,
+          "httpStatus": 201
+        },
+        {
+          "id": "l10-6",
+          "title": "L10-6 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 39
+          },
+          "durationMs": 1027,
+          "httpStatus": 200
+        },
+        {
+          "id": "l10-6b",
+          "title": "L10-6b 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/account-transfer.ts",
+            "line": 47
+          },
+          "durationMs": 8,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "outbound-callback-reject",
+      "stage": "outbound",
+      "title": "outbound-callback-reject 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "source": {
+        "file": "flows/outbound-callback-reject.ts",
+        "line": 23
+      },
+      "stepList": [
+        {
+          "id": "p-4",
+          "title": "P-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 31
+          },
+          "durationMs": 7,
+          "httpStatus": 200
+        },
+        {
+          "id": "l13-1",
+          "title": "L13-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 32
+          },
+          "durationMs": 2,
+          "httpStatus": 200
+        },
+        {
+          "id": "l13-2",
+          "title": "L13-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 43
+          },
+          "durationMs": 68,
+          "httpStatus": 201
+        },
+        {
+          "id": "l13-3",
+          "title": "L13-3 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 4,
+          "source": {
+            "file": "flows/outbound-callback-reject.ts",
+            "line": 57
+          },
+          "durationMs": 1026,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "outbound-allow",
+      "stage": "outbound",
+      "title": "outbound-allow 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "source": {
+        "file": "flows/outbound.ts",
+        "line": 61
+      },
+      "stepList": [
+        {
+          "id": "p-5",
+          "title": "P-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 69
+          },
+          "durationMs": 8,
+          "httpStatus": 200
+        },
+        {
+          "id": "l10-1",
+          "title": "L10-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 70
+          },
+          "durationMs": 18,
+          "httpStatus": 201
+        },
+        {
+          "id": "l10-2",
+          "title": "L10-2 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 84
+          },
+          "durationMs": 1018,
+          "httpStatus": 200
+        },
+        {
+          "id": "l10-2b",
+          "title": "L10-2b 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 92
+          },
+          "durationMs": 7,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "outbound-deny",
+      "stage": "outbound",
+      "title": "outbound-deny 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login"
+      ],
+      "source": {
+        "file": "flows/outbound.ts",
+        "line": 104
+      },
+      "stepList": [
+        {
+          "id": "p-6",
+          "title": "P-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 112
+          },
+          "durationMs": 7,
+          "httpStatus": 200
+        },
+        {
+          "id": "l11-1",
+          "title": "L11-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 113
+          },
+          "durationMs": 16,
+          "httpStatus": 201
+        },
+        {
+          "id": "l11-2",
+          "title": "L11-2 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 125
+          },
+          "durationMs": 1017,
+          "httpStatus": 200
+        },
+        {
+          "id": "l11-3",
+          "title": "L11-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 136
+          },
+          "durationMs": 17,
+          "httpStatus": 201
+        },
+        {
+          "id": "l11-4",
+          "title": "L11-4 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/outbound.ts",
+            "line": 147
+          },
+          "durationMs": 1017,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "review-allow",
+      "stage": "outbound",
+      "title": "review-allow 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "org-login",
+        "partner-roster"
+      ],
+      "source": {
+        "file": "flows/review-outbound.ts",
+        "line": 92
+      },
+      "stepList": [
+        {
+          "id": "p-7",
+          "title": "P-7 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 100
+          },
+          "durationMs": 9,
+          "httpStatus": 200
+        },
+        {
+          "id": "l15-1",
+          "title": "L15-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 101
+          },
+          "durationMs": 151,
+          "httpStatus": 201
+        },
+        {
+          "id": "l15-2",
+          "title": "L15-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 115
+          },
+          "durationMs": 24,
+          "httpStatus": 200
+        },
+        {
+          "id": "l15-3",
+          "title": "L15-3 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 121
+          },
+          "durationMs": 1022,
+          "httpStatus": 200
+        },
+        {
+          "id": "l15-4",
+          "title": "L15-4 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 130
+          },
+          "durationMs": 6,
+          "httpStatus": 200
+        },
+        {
+          "id": "l15-5",
+          "title": "L15-5 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 139
+          },
+          "durationMs": 2,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "review-deny",
+      "stage": "outbound",
+      "title": "review-deny 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "partner-roster"
+      ],
+      "source": {
+        "file": "flows/review-outbound.ts",
+        "line": 165
+      },
+      "stepList": [
+        {
+          "id": "l16-1",
+          "title": "L16-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 173
+          },
+          "durationMs": 3,
+          "httpStatus": 200
+        },
+        {
+          "id": "l16-2",
+          "title": "L16-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 184
+          },
+          "durationMs": 33,
+          "httpStatus": 201
+        },
+        {
+          "id": "l16-3",
+          "title": "L16-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 194
+          },
+          "durationMs": 6,
+          "httpStatus": 200
+        },
+        {
+          "id": "l16-4",
+          "title": "L16-4 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 5,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 200
+          },
+          "durationMs": 1022,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "review-address-not-found",
+      "stage": "outbound",
+      "title": "review-address-not-found 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "partner-roster"
+      ],
+      "source": {
+        "file": "flows/review-outbound.ts",
+        "line": 220
+      },
+      "stepList": [
+        {
+          "id": "l17-1",
+          "title": "L17-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 228
+          },
+          "durationMs": 0,
+          "httpStatus": 200
+        },
+        {
+          "id": "l17-2",
+          "title": "L17-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/review-outbound.ts",
+            "line": 238
+          },
+          "durationMs": 35,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "partner-roster-registry",
+      "stage": "roster",
+      "title": "partner-roster-registry 플로우",
+      "once": false,
+      "requires": [],
+      "source": {
+        "file": "flows/partner-roster-registry.ts",
+        "line": 30
+      },
+      "stepList": [
+        {
+          "id": "l19-1",
+          "title": "L19-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 38
+          },
+          "durationMs": 28,
+          "httpStatus": 200
+        },
+        {
+          "id": "l19-2",
+          "title": "L19-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 4,
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 44
+          },
+          "durationMs": 31,
+          "httpStatus": 200
+        },
+        {
+          "id": "l19-3",
+          "title": "L19-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 57
+          },
+          "durationMs": 11,
+          "httpStatus": 200
+        },
+        {
+          "id": "l19-4",
+          "title": "L19-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 69
+          },
+          "durationMs": 9,
+          "httpStatus": 200
+        },
+        {
+          "id": "l19-5",
+          "title": "L19-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 78
+          },
+          "durationMs": 14,
+          "httpStatus": 200
+        },
+        {
+          "id": "l19-6",
+          "title": "L19-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 4,
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 87
+          },
+          "durationMs": 21,
+          "httpStatus": 200
+        },
+        {
+          "id": "l19-7",
+          "title": "L19-7 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 4,
+          "source": {
+            "file": "flows/partner-roster-registry.ts",
+            "line": 98
+          },
+          "durationMs": 21,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "partner-roster-outbound",
+      "stage": "roster",
+      "title": "partner-roster-outbound 플로우",
+      "once": false,
+      "requires": [
+        "org-register",
+        "partner-roster"
+      ],
+      "source": {
+        "file": "flows/partner-roster-outbound.ts",
+        "line": 42
+      },
+      "stepList": [
+        {
+          "id": "l20-1",
+          "title": "L20-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 50
+          },
+          "durationMs": 17,
+          "httpStatus": 201
+        },
+        {
+          "id": "l20-2",
+          "title": "L20-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 59
+          },
+          "durationMs": 25,
+          "httpStatus": 200
+        },
+        {
+          "id": "l20-3",
+          "title": "L20-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 65
+          },
+          "durationMs": 6,
+          "httpStatus": 200
+        },
+        {
+          "id": "l20-4",
+          "title": "L20-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 77
+          },
+          "durationMs": 33,
+          "httpStatus": 201
+        },
+        {
+          "id": "l20-5",
+          "title": "L20-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 88
+          },
+          "durationMs": 5,
+          "httpStatus": 200
+        },
+        {
+          "id": "l20-6",
+          "title": "L20-6 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 94
+          },
+          "durationMs": 1017,
+          "httpStatus": 200
+        },
+        {
+          "id": "l20-7",
+          "title": "L20-7 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 5,
+          "source": {
+            "file": "flows/partner-roster-outbound.ts",
+            "line": 107
+          },
+          "durationMs": 38,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "partner-roster-inbound",
+      "stage": "roster",
+      "title": "partner-roster-inbound 플로우",
+      "once": false,
+      "requires": [],
+      "source": {
+        "file": "flows/partner-roster-inbound.ts",
+        "line": 38
+      },
+      "stepList": [
+        {
+          "id": "l21-1",
+          "title": "L21-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 46
+          },
+          "durationMs": 13,
+          "httpStatus": 201
+        },
+        {
+          "id": "l21-2",
+          "title": "L21-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 5,
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 55
+          },
+          "durationMs": 2030,
+          "httpStatus": 200
+        },
+        {
+          "id": "l21-3",
+          "title": "L21-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 73
+          },
+          "durationMs": 7,
+          "httpStatus": 200
+        },
+        {
+          "id": "l21-4",
+          "title": "L21-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 79
+          },
+          "durationMs": 1016,
+          "httpStatus": 200
+        },
+        {
+          "id": "l21-5",
+          "title": "L21-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 2,
+          "source": {
+            "file": "flows/partner-roster-inbound.ts",
+            "line": 93
+          },
+          "durationMs": 11,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "auth-boundaries",
+      "stage": "auth",
+      "title": "auth-boundaries 플로우",
+      "once": false,
+      "requires": [
+        "site-login"
+      ],
+      "source": {
+        "file": "flows/auth-boundaries.ts",
+        "line": 34
+      },
+      "stepList": [
+        {
+          "id": "b-1",
+          "title": "B-1 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 42
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-2",
+          "title": "B-2 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 47
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-3",
+          "title": "B-3 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 53
+          },
+          "durationMs": 0,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-4",
+          "title": "B-4 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 56
+          },
+          "durationMs": 1,
+          "httpStatus": 403
+        },
+        {
+          "id": "b-5",
+          "title": "B-5 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 67
+          },
+          "durationMs": 0,
+          "httpStatus": 403
+        },
+        {
+          "id": "b-6",
+          "title": "B-6 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 79
+          },
+          "durationMs": 3,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-7",
+          "title": "B-7 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 84
+          },
+          "durationMs": 0,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-8",
+          "title": "B-8 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 87
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-9",
+          "title": "B-9 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 90
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-10",
+          "title": "B-10 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 96
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-10b",
+          "title": "B-10b 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 106
+          },
+          "durationMs": 1,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-11",
+          "title": "B-11 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 1,
+          "source": {
+            "file": "flows/auth-boundaries.ts",
+            "line": 116
+          },
+          "durationMs": 1,
+          "httpStatus": 404
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "webhook-forgery",
+      "stage": "auth",
+      "title": "webhook-forgery 플로우",
+      "once": false,
+      "requires": [
+        "inbound"
+      ],
+      "source": {
+        "file": "flows/webhook-forgery.ts",
+        "line": 63
+      },
+      "stepList": [
+        {
+          "id": "b-12",
+          "title": "B-12 단계",
+          "kind": "request",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/webhook-forgery.ts",
+            "line": 71
+          },
+          "durationMs": 42,
+          "httpStatus": 401
+        },
+        {
+          "id": "b-13",
+          "title": "B-13 단계",
+          "kind": "wait",
+          "status": "passed",
+          "requests": 3,
+          "source": {
+            "file": "flows/webhook-forgery.ts",
+            "line": 93
+          },
+          "durationMs": 2021,
+          "httpStatus": 200
+        }
+      ],
+      "status": "passed",
+      "stoppedAt": null,
+      "steps": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "stoppedAt": null,
+  "notProven": {
+    "skipped": [],
+    "declared": [],
+    "unread": []
+  },
+  "boot": {
+    "ok": true
+  },
+  "seal": "passed",
+  "runner": {
+    "containerId": "08b4bf987f0d3ea8bb899dfa55b995df4dcde625dd35b5f047b0fdae71e2f6f2",
+    "code": 0,
+    "oomKilled": false,
+    "timedOut": false,
+    "aborted": false,
+    "lines": [
+      "health › l0-1 passed 8ms [200]",
+      "health › l0-1b passed 17ms [200]",
+      "health › l0-1c passed 67ms [404]",
+      "health › l0-2 passed 1ms [200]",
+      "health › l0-3 passed 2ms [200]",
+      "health › l0-4 passed 1ms [200]",
+      "health › l0-8 passed 3ms [200]",
+      "health › l0-9 passed 10ms [200]",
+      "health › l0-10 passed 3ms [200]",
+      "health › l0-11 passed 5ms [200]",
+      "health › l0-5 passed 49ms [401]",
+      "health › l0-7 passed 3ms [401]",
+      "vendor-table › l14-1 passed 5ms [200]",
+      "vendor-table › l14-2 passed 195ms [200]",
+      "portal-bootstrap › l0-6 passed 20ms [503]",
+      "portal-bootstrap › l2-1a passed 118ms [200]",
+      "portal-bootstrap › l2-1b passed 55ms [200]",
+      "portal-bootstrap › l2-1c passed 46ms [200]",
+      "portal-bootstrap › l2-1d passed 4ms [401]",
+      "portal-bootstrap › l2-2a passed 124ms [200]",
+      "portal-bootstrap › l2-3a passed 19ms [200]",
+      "portal-bootstrap › l2-2b passed 39ms [200]",
+      "portal-bootstrap › l2-3b passed 13ms [200]",
+      "portal-bootstrap › l2-2c passed 65ms [200]",
+      "portal-bootstrap › l2-3c passed 16ms [200]",
+      "portal-bootstrap › l2-4 passed 4ms [403]",
+      "site-login › l3-1a passed 37ms [200]",
+      "site-login › l3-2a passed 15ms [200]",
+      "site-login › l3-1b passed 32ms [200]",
+      "site-login › l3-2b passed 7ms [200]",
+      "site-login › l3-1c passed 30ms [200]",
+      "site-login › l3-2c passed 5ms [200]",
+      "site-login › l3-3 passed 21ms [200]",
+      "site-login › l3-4 passed 28ms [401]",
+      "site-login › l3-5 passed 1ms [401]",
+      "site-login › l3-6 passed 3ms [204]",
+      "site-release › l4-1 passed 14ms [200]",
+      "site-release › l4-2 passed 35ms [200]",
+      "site-release › l4-3 passed 219ms [200]",
+      "site-release › l4-4 passed 27ms [200]",
+      "site-release › l4-5a passed 2901ms [403]",
+      "site-release › l4-5b passed 13ms [200]",
+      "site-release › l4-5c passed 26ms [200]",
+      "site-release › l4-5d passed 29962ms [409]",
+      "site-release › l4-5e passed 14ms [200]",
+      "site-release › l4-5f passed 16ms [200]",
+      "site-release › l4-6 passed 60ms [200]",
+      "site-release › l4-6b passed 61ms [200]",
+      "site-release › l4-6c passed 8ms [404]",
+      "site-release › l4-7 passed 21ms [200]",
+      "site-release › l4-8 passed 7ms [200]",
+      "site-release › l4-9 passed 5ms [200]",
+      "org-register › l5-1a passed 10ms [200]",
+      "org-register › l5-1b passed 37ms [201]",
+      "org-register › l5-2a passed 6ms [200]",
+      "org-register › l5-2b passed 29736ms [200]",
+      "org-register › l5-3 passed 1ms [401]",
+      "org-register › l5-4 passed 66ms [200]",
+      "org-register › l5-5 passed 9ms [200]",
+      "org-register › l5-5b passed 27ms [200]",
+      "org-register › l5-5c passed 4ms [200]",
+      "org-register › l5-6 passed 13ms [200]",
+      "org-register › l5-7a passed 13ms [200]",
+      "org-register › l5-7b passed 10ms [200]",
+      "org-register › l5-7c passed 11ms [200]",
+      "org-register › l5-7d passed 30ms [200]",
+      "org-register › l5-7e passed 9ms [200]",
+      "org-register › l5-7f passed 31ms [200]",
+      "org-register › l5-7g passed 8ms [200]",
+      "org-register › l5-7h passed 29ms [200]",
+      "org-register › l5-7i passed 7ms [200]",
+      "org-register › l5-7j passed 35ms [200]",
+      "org-register › l5-7k passed 4ms [200]",
+      "org-register › l5-8 passed 5ms [401]",
+      "org-register › l5-9 passed 8ms [200]",
+      "org-register › l5-10 passed 5ms [401]",
+      "org-login › l3w-1a passed 27ms [200]",
+      "org-login › l3w-2a passed 29597ms [200]",
+      "org-login › l3w-1b passed 36ms [200]",
+      "org-login › l3w-2b passed 4ms [200]",
+      "org-login › l3w-1c passed 28ms [200]",
+      "org-login › l3w-2c passed 4ms [200]",
+      "org-login › l3w-1d passed 27ms [200]",
+      "org-login › l3w-2d passed 4ms [200]",
+      "org-login › l3w-3 passed 5ms [200]",
+      "webhook-register › n-1 passed 147ms [200]",
+      "webhook-register › n-2 passed 80ms [200]",
+      "webhook-register › n-3 passed 167ms [201]",
+      "webhook-register › n-4 passed 5ms [200]",
+      "webhook-register › n-5 passed 54ms [200]",
+      "webhook-register › n-6 passed 32ms [201]",
+      "partner-roster › l0-12 passed 447ms [200]",
+      "org-portal-publish › p-1 passed 10ms [200]",
+      "org-portal-publish › l22-1 passed 10ms [200]",
+      "org-portal-publish › l22-2 passed 14ms [200]",
+      "org-portal-publish › l22-3 passed 29ms [200]",
+      "org-portal-publish › l22-4 passed 100ms [200]",
+      "org-portal-publish › l22-5 passed 19ms [200]",
+      "org-portal-publish › l22-6 passed 12ms [200]",
+      "org-portal-publish › l22-7a passed 28724ms [403]",
+      "org-portal-publish › l22-7b passed 10ms [200]",
+      "org-portal-publish › l22-7c passed 18ms [200]",
+      "org-portal-publish › l22-7d passed 9ms [200]",
+      "org-portal-publish › l22-7e passed 14ms [200]",
+      "org-portal-publish › l22-8 passed 55ms [200]",
+      "org-portal-publish › l22-9 passed 8ms [200]",
+      "org-portal-publish › l22-10 passed 12ms [409]",
+      "org-portal-publish › l22-11 passed 18ms [200]",
+      "org-portal-publish › l22-12 passed 29ms [200]",
+      "inbound › l12-1 passed 42ms [202]",
+      "inbound › l12-2 passed 1059ms [200]",
+      "inbound › l12-3 passed 3057ms [200]",
+      "review-inbound › l18-1 passed 1112ms [200]",
+      "review-inbound › l18-2 passed 2ms [202]",
+      "review-inbound › l18-3 passed 3083ms [200]",
+      "review-inbound › l18-4 passed 2ms [200]",
+      "review-inbound › l18-5 passed 1023ms [200]",
+      "collect › p-2 passed 21ms [200]",
+      "collect › l10-3 passed 92ms [201]",
+      "collect › l10-4 passed 1030ms [200]",
+      "collect › l10-4b passed 14ms [200]",
+      "account-transfer › p-3 passed 15ms [200]",
+      "account-transfer › l10-5 passed 43ms [201]",
+      "account-transfer › l10-6 passed 1027ms [200]",
+      "account-transfer › l10-6b passed 8ms [200]",
+      "outbound-callback-reject › p-4 passed 7ms [200]",
+      "outbound-callback-reject › l13-1 passed 2ms [200]",
+      "outbound-callback-reject › l13-2 passed 68ms [201]",
+      "outbound-callback-reject › l13-3 passed 1026ms [200]",
+      "outbound-allow › p-5 passed 8ms [200]",
+      "outbound-allow › l10-1 passed 18ms [201]",
+      "outbound-allow › l10-2 passed 1018ms [200]",
+      "outbound-allow › l10-2b passed 7ms [200]",
+      "outbound-deny › p-6 passed 7ms [200]",
+      "outbound-deny › l11-1 passed 16ms [201]",
+      "outbound-deny › l11-2 passed 1017ms [200]",
+      "outbound-deny › l11-3 passed 17ms [201]",
+      "outbound-deny › l11-4 passed 1017ms [200]",
+      "review-allow › p-7 passed 9ms [200]",
+      "review-allow › l15-1 passed 151ms [201]",
+      "review-allow › l15-2 passed 24ms [200]",
+      "review-allow › l15-3 passed 1022ms [200]",
+      "review-allow › l15-4 passed 6ms [200]",
+      "review-allow › l15-5 passed 2ms [200]",
+      "review-deny › l16-1 passed 3ms [200]",
+      "review-deny › l16-2 passed 33ms [201]",
+      "review-deny › l16-3 passed 6ms [200]",
+      "review-deny › l16-4 passed 1022ms [200]",
+      "review-address-not-found › l17-1 passed 0ms [200]",
+      "review-address-not-found › l17-2 passed 35ms [200]",
+      "partner-roster-registry › l19-1 passed 28ms [200]",
+      "partner-roster-registry › l19-2 passed 31ms [200]",
+      "partner-roster-registry › l19-3 passed 11ms [200]",
+      "partner-roster-registry › l19-4 passed 9ms [200]",
+      "partner-roster-registry › l19-5 passed 14ms [200]",
+      "partner-roster-registry › l19-6 passed 21ms [200]",
+      "partner-roster-registry › l19-7 passed 21ms [200]",
+      "partner-roster-outbound › l20-1 passed 17ms [201]",
+      "partner-roster-outbound › l20-2 passed 25ms [200]",
+      "partner-roster-outbound › l20-3 passed 6ms [200]",
+      "partner-roster-outbound › l20-4 passed 33ms [201]",
+      "partner-roster-outbound › l20-5 passed 5ms [200]",
+      "partner-roster-outbound › l20-6 passed 1017ms [200]",
+      "partner-roster-outbound › l20-7 passed 38ms [200]",
+      "partner-roster-inbound › l21-1 passed 13ms [201]",
+      "partner-roster-inbound › l21-2 passed 2030ms [200]",
+      "partner-roster-inbound › l21-3 passed 7ms [200]",
+      "partner-roster-inbound › l21-4 passed 1016ms [200]",
+      "partner-roster-inbound › l21-5 passed 11ms [200]",
+      "auth-boundaries › b-1 passed 1ms [401]",
+      "auth-boundaries › b-2 passed 1ms [401]",
+      "auth-boundaries › b-3 passed 0ms [401]",
+      "auth-boundaries › b-4 passed 1ms [403]",
+      "auth-boundaries › b-5 passed 0ms [403]",
+      "auth-boundaries › b-6 passed 3ms [401]",
+      "auth-boundaries › b-7 passed 0ms [401]",
+      "auth-boundaries › b-8 passed 1ms [401]",
+      "auth-boundaries › b-9 passed 1ms [401]",
+      "auth-boundaries › b-10 passed 1ms [401]",
+      "auth-boundaries › b-10b passed 1ms [401]",
+      "auth-boundaries › b-11 passed 1ms [404]",
+      "webhook-forgery › b-12 passed 42ms [401]",
+      "webhook-forgery › b-13 passed 2021ms [200]"
+    ]
+  },
+  "stages": {
+    "e2e.manifest.json": {
+      "status": "ok"
+    },
+    "e2e.result.json": {
+      "status": "ok"
+    },
+    "e2e.ledger.json": {
+      "status": "ok"
+    },
+    "e2e.context.json": {
+      "status": "ok"
+    },
+    "e2e.exec": {
+      "status": "absent",
+      "detail": "work/e2e/exec 가 없다"
+    },
+    "source": {
+      "status": "ok"
+    },
+    "mocks.orders": {
+      "status": "ok"
+    },
+    "mocks.approver": {
+      "status": "ok"
+    },
+    "views": {
+      "status": "ok"
+    },
+    "timeline": {
+      "status": "ok"
+    },
+    "audit.portal": {
+      "status": "ok"
+    },
+    "audit.orders": {
+      "status": "ok"
+    },
+    "seal": {
+      "status": "ok"
+    },
+    "opa": {
+      "status": "ok"
+    },
+    "images": {
+      "status": "ok"
+    },
+    "versions": {
+      "status": "ok"
+    },
+    "notifications.audit": {
+      "status": "ok"
+    },
+    "notifications.outbox": {
+      "status": "ok"
+    },
+    "notifications.rows": {
+      "status": "ok"
+    },
+    "notifications.subscriptions": {
+      "status": "ok"
+    },
+    "notifications.receiver": {
+      "status": "ok"
+    }
+  },
+  "commit": "aae48f98cce8e092949e7c53035ac0ffce3194b4",
+  "harness": 4,
+  "hubCommit": "d9331e35c314aae8e17e1c9058e28663cd714bc6",
+  "ports": {
+    "RUN_PORT_PORTAL": 21400,
+    "RUN_PORT_ORDERS": 21401,
+    "RUN_PORT_PORTAL_MYSQL": 21406,
+    "RUN_PORT_ORDERS_MYSQL": 21407,
+    "RUN_PORT_CONSOLE": 21473,
+    "RUN_PORT_DEMO": 21474,
+    "RUN_PORT_ORDERS_REDIS": 21479,
+    "RUN_PORT_WEBHOOK": 21482,
+    "RUN_PORT_MOCK_ORDERS": 21490,
+    "RUN_PORT_MOCK_DIRECTORY": 21491,
+    "RUN_PORT_MOCK_APPROVER": 21492,
+    "RUN_PORT_MOCK_PARTNER": 21493,
+    "RUN_PORT_MOCK_SCREENING": 21494
+  },
+  "images": {
+    "keys": {
+      "IMG_FRONTEND": "097138f406f6",
+      "IMG_PORTAL": "b5ea723c2efa",
+      "IMG_RUNNER": "c2d6c56a09d5",
+      "IMG_GATEWAY": "03c5a633c950",
+      "IMG_ORDERS": "03c5a633c950",
+      "IMG_NOTIFIER": "5db33bd73aeb"
+    },
+    "digests": {
+      "cockpit/portal-console-dev:097138f406f6": "sha256:26939a1dd686bfec81a89ed9f8eef06cf88b9cb374ec0c991500587d984bb244",
+      "nginx:1.31.6-alpine@sha256:96088ac9663de3b0a93f7c623beb3af341c99d59c4484dd884231ea601315ba5": "sha256:96088ac9663de3b0a93f7c623beb3af341c99d59c4484dd884231ea601315ba5",
+      "apache/kafka:3.9.0": "sha256:fae36a4c11b0ad015706a4c750d49ee46cde268e8c0725423d11f0a5fe816919",
+      "mysql:8.4": "sha256:447c1a8ae19dc1c7ffe8e1df5ffc49a87df2fdbc791bfae97da437b6cfa109af",
+      "openpolicyagent/opa:1.18.2": "sha256:b15e63224c26889e0fb44abeee0da5708204349c1b7650052ed14cf561f6dba4",
+      "cockpit/portal-server:b5ea723c2efa": "sha256:316054f64d6e17bab0e5ee2086b0771f5b84a1c8fea5513ce5881038cc2251bb",
+      "cockpit/review-gateway:03c5a633c950": "sha256:47eb77b41bfc8332aedb280b316ae6781f535eecce0f1aa2ffc1184f4296a96b",
+      "cockpit/orders:03c5a633c950": "sha256:a2450d97b38401809546dc9816cee85b7259cf8ce95005346f288e0fd15dc812",
+      "cockpit/mock:b5ea723c2efa": "sha256:6ec58114824fd8f5ed2a7673b3f5dcdfa1eb2c052692021c92e4ca9e1e8cfbb5",
+      "redis:7-alpine": "sha256:37a04ccc2474e3b295e39da2f0d844202f9f64c83ede1dc1c1b765dc9deac6ad",
+      "cockpit/notifier:5db33bd73aeb": "sha256:bc41b5af7cc2936c3af2d98082db59f1ae4b1f8077692c8f958fe586654b9fd8"
+    }
+  },
+  "versions": {
+    "docker": "29.8.1",
+    "compose": "5.5.1"
+  },
+  "opa": {
+    "status": 200,
+    "body": " Container run-20261015-090630-aae48f9-probe-run-19596b5ea0f3 Creating \n Container run-20261015-090630-aae48f9-probe-run-19596b5ea0f3 Created \n{}\n"
+  },
+  "generatedAt": "2026-10-15T00:09:56.393Z"
+}
