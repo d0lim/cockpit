@@ -18,7 +18,7 @@ cockpit 은 compose 로 뜨는 서비스라면 어느 저장소든 커밋 하나
 - 생성기와 검사기는 `go.mod` 의 `tool` 지시어로 핀한다. 계약의 원본은 Go 구조체이고 JSON Schema(`schema/`)와 타입 선언(`sdk/`)은 `go generate` 가 만들어 커밋한다. 생성물의 diff 가 남으면 `make verify` 가 실패한다.
 - `make verify` 가 유일한 관문이다. vet · `go test -race` · 생성물 diff · 라이선스 게이트(`scripts/check-licenses.sh`, AGPL 금지·k6 모듈 금지) · 소비자 이름 0건 검사(`scripts/check-no-consumer-names.sh`, 패턴은 환경 변수 `COCKPIT_CONSUMER_NAMES` 가 들고 비어 있으면 건너뛴다, 범위 `internal/`·`cmd/`·`web/`·`sdk/`·`schema/`, 스캔 파일 수가 0 이면 실패) · 빌드 · 바이너리 크기 측정을 한 타겟으로 묶는다. CI(`.github/workflows/verify.yaml`)는 원격이 선 뒤 이것만 부른다. Docker 가 필요한 봉인 런 관문(`make run-env`)은 로컬에서 돈다.
 - 릴리즈는 goreleaser v2 이고 Linux 러너는 `before.hooks` 의 `scripts/build-runners.sh` 가 먼저 만들어 `internal/runnerbin/bin/` 에 둔다. gz 는 커밋하지 않는다.
-- 코어 코드에 소비 프로젝트의 이름·서비스 이름·DB 스키마·토픽 이름을 쓰지 않는다. 그런 지식은 소비 저장소의 선언과 스크립트에 둔다. `testdata/` 는 실물 런의 모양을 옮긴 오라클과 코퍼스라 검사 범위 밖이다.
+- 코어 코드에 소비 프로젝트의 이름·서비스 이름·DB 스키마·토픽 이름을 쓰지 않는다. 그런 지식은 소비 저장소의 선언과 스크립트에 둔다. 루트 `testdata/` 는 실물 런의 모양을 옮긴 오라클과 코퍼스라 검사 범위 밖이다. `internal/` 아래의 testdata 는 검사 범위 안이므로 합성 이름만 쓴다.
 - 커밋 메시지는 `type(scope): 한국어 요약` 이다.
 
 ## 코드 규율
