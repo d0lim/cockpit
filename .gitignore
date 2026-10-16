@@ -2,5 +2,6 @@
 /dist/
 /internal/runnerbin/bin/*.gz
 node_modules/
+/internal/runnerbin/bin/VERSION
 /.mise.local.toml
 /mise.local.toml

@@ -1,22 +1,43 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/d0lim/cockpit/internal/version"
 )
 
+const usage = "usage: cockpit sdk write <dir> | runner-image | --version"
+
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	code := run(ctx, os.Args[1:], os.Getenv, os.Stdout, os.Stderr)
+	stop()
+	os.Exit(code)
 }
 
-func run(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 1 && args[0] == "--version" {
+func run(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		fmt.Fprintln(stderr, usage)
+		return 2
+	}
+	switch args[0] {
+	case "--version":
 		fmt.Fprintln(stdout, "cockpit "+version.String())
 		return 0
+	case "sdk":
+		if len(args) == 3 && args[1] == "write" {
+			return sdkWrite(args[2], stdout, stderr)
+		}
+	case "runner-image":
+		if len(args) == 1 {
+			return runnerImage(ctx, getenv, stdout, stderr)
+		}
 	}
-	fmt.Fprintln(stderr, "usage: cockpit --version")
+	fmt.Fprintln(stderr, usage)
 	return 2
 }

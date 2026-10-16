@@ -3,7 +3,7 @@ project_name: cockpit
 
 before:
   hooks:
-    - scripts/build-runners.sh
+    - scripts/build-runners.sh {{ .Version }}
 
 builds:
   - id: cockpit
