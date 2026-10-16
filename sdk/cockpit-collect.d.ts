@@ -37,14 +37,11 @@ declare module "cockpit:collect" {
 	export type SpanStatus = "ok" | "error" | "incomplete";
 	export type TimeSource = "host" | "container" | "runner";
 	export type Tone = "ok" | "warn" | "bad" | "idle" | "info";
-	export interface HttpHeaders {
-		get(name: string): string | null;
-	}
 	export interface HttpResponse {
 		readonly method: string;
 		readonly url: string;
 		readonly status: number;
-		readonly headers: HttpHeaders;
+		readonly headers: Readonly<Record<string, string>>;
 		readonly body: string;
 	}
 	export type ReservedAttrKey = keyof ReservedAttrs;

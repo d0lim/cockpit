@@ -6,7 +6,7 @@ const ping = step({
 	kind: "request",
 	async run(ctx: Ctx) {
 		const res = await ctx.http.send("GET", `${String(ctx.env.appBase)}/health`, { headers: { accept: "application/json" } });
-		if (res.status !== 200 || res.headers.get("content-type") === null) throw new Error(`상태 ${res.status}`);
+		if (res.status !== 200 || res.headers["content-type"] === undefined) throw new Error(`상태 ${res.status}`);
 		ctx.capture("requestId", ctx.crypto.randomUUID(), { persist: true });
 		const seed = ctx.readSource("fixtures", "seed.json");
 		const names = ctx.listSource("fixtures", ".");

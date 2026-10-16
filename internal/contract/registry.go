@@ -26,14 +26,11 @@ func Modules() []Module {
 	return []Module{flowModule(), collectModule()}
 }
 
-const httpResponseTS = `export interface HttpHeaders {
-	get(name: string): string | null;
-}
-export interface HttpResponse {
+const httpResponseTS = `export interface HttpResponse {
 	readonly method: string;
 	readonly url: string;
 	readonly status: number;
-	readonly headers: HttpHeaders;
+	readonly headers: Readonly<Record<string, string>>;
 	readonly body: string;
 }`
 

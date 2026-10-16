@@ -4,14 +4,11 @@ declare module "cockpit:flow" {
 		line: number;
 	}
 	export type StepKind = "request" | "wait" | "capture";
-	export interface HttpHeaders {
-		get(name: string): string | null;
-	}
 	export interface HttpResponse {
 		readonly method: string;
 		readonly url: string;
 		readonly status: number;
-		readonly headers: HttpHeaders;
+		readonly headers: Readonly<Record<string, string>>;
 		readonly body: string;
 	}
 	export interface SendOptions {
