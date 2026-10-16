@@ -11,6 +11,7 @@
     "noEmit": true
   },
   "files": [
+    "./cockpit-globals.d.ts",
     "./cockpit-flow.d.ts",
     "./cockpit-collect.d.ts"
   ]

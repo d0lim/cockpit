@@ -114,7 +114,7 @@ func Test깨끗한_트리에서는_생성_뒤_생성_diff_검사가_초록이다
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := len(strings.Fields(out)); n != len(Roots())+len(Modules())+1 {
+	if n := len(strings.Fields(out)); n != len(Roots())+len(Modules())+2 {
 		t.Fatalf("추적된 생성물 %d 개\n%s", n, out)
 	}
 }
@@ -177,7 +177,7 @@ func Test생성물_디렉토리는_루트와_모듈이_정한_파일만_든다(t
 	for _, m := range Modules() {
 		sdk = append(sdk, m.File)
 	}
-	sdk = append(sdk, "tsconfig.base.json")
+	sdk = append(sdk, "tsconfig.base.json", GlobalsFile)
 	for dir, want := range map[string][]string{"schema": schemas, "sdk": sdk} {
 		entries, err := os.ReadDir(filepath.Join(repoRoot(t), dir))
 		if err != nil {
@@ -191,7 +191,7 @@ func Test생성물_디렉토리는_루트와_모듈이_정한_파일만_든다(t
 			t.Fatalf("%s/ 의 파일 %v, 기대 %v", dir, got, sorted(want...))
 		}
 	}
-	if len(schemas) != 9 || len(sdk) != 3 {
+	if len(schemas) != 9 || len(sdk) != 4 {
 		t.Fatalf("루트 %d 개, sdk 파일 %d 개", len(schemas), len(sdk))
 	}
 }

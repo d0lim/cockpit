@@ -41,10 +41,10 @@ func TestSdk_write_는_디렉토리에_선언_셋을_쓰고_이름을_한_줄씩
 		t.Fatalf("exit %d stderr %q", code, errOut)
 	}
 	entries, err := os.ReadDir(dir)
-	if err != nil || len(entries) != 3 {
+	if err != nil || len(entries) != 4 {
 		t.Fatalf("%v %v", entries, err)
 	}
-	if lines := strings.Split(strings.TrimSpace(out), "\n"); len(lines) != 3 || !strings.HasSuffix(lines[1], "cockpit-flow.d.ts") {
+	if lines := strings.Split(strings.TrimSpace(out), "\n"); len(lines) != 4 || !strings.HasSuffix(lines[1], "cockpit-flow.d.ts") {
 		t.Fatalf("stdout %q", out)
 	}
 }

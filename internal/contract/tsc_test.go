@@ -96,21 +96,22 @@ func Test생성한_선언으로_올바른_플로우와_수집_스크립트가_ts
 	if run.err != nil || len(run.errors) > 0 {
 		t.Fatalf("tsc 실패: %v\n%s", run.err, run.output)
 	}
-	if len(run.samples) != 2 || len(run.sdk) != 2 {
+	if len(run.samples) != 2 || len(run.sdk) != 3 {
 		t.Fatalf("검사한 샘플 %v, 선언 %v\n%s", run.samples, run.sdk, run.output)
 	}
 }
 
 func Test러너_자리에서_ctx_sql을_부르거나_예약_값을_어긴_스크립트는_tsc에서_걸린다(t *testing.T) {
-	run := runTsc(t, "flow-uses-sql.ts", "collect-bad-values.ts")
+	run := runTsc(t, "flow-uses-sql.ts", "collect-bad-values.ts", "flow-uses-fetch.ts")
 	if run.err == nil {
 		t.Fatalf("tsc 가 통과했다\n%s", run.output)
 	}
-	if len(run.samples) != 2 || len(run.sdk) != 2 {
+	if len(run.samples) != 3 || len(run.sdk) != 3 {
 		t.Fatalf("검사한 샘플 %v, 선언 %v\n%s", run.samples, run.sdk, run.output)
 	}
 	want := []tscError{
 		{"flow-uses-sql.ts", "TS2339", "Property 'sql' does not exist on type 'Ctx'"},
+		{"flow-uses-fetch.ts", "TS2304", "Cannot find name 'fetch'"},
 		{"collect-bad-values.ts", "TS2322", `"purple"`},
 		{"collect-bad-values.ts", "TS2322", `"done"`},
 	}

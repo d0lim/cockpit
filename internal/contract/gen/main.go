@@ -57,6 +57,10 @@ func generate(root string) error {
 		Strict:           true,
 		NoEmit:           true,
 	}}
+	if err := write(filepath.Join(root, "sdk", contract.GlobalsFile), []byte(contract.GlobalsTS)); err != nil {
+		return err
+	}
+	config.Files = append(config.Files, "./"+contract.GlobalsFile)
 	for _, m := range contract.Modules() {
 		text, err := renderModule(m, decls)
 		if err != nil {

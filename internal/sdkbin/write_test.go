@@ -23,7 +23,7 @@ func Test쓴_파일_수와_이름과_내용이_내장한_sdk_와_같다(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(written, names) || !slices.Equal(names, []string{"cockpit-collect.d.ts", "cockpit-flow.d.ts", "tsconfig.base.json"}) {
+	if !slices.Equal(written, names) || !slices.Equal(names, []string{"cockpit-collect.d.ts", "cockpit-flow.d.ts", "cockpit-globals.d.ts", "tsconfig.base.json"}) {
 		t.Fatalf("written %v names %v", written, names)
 	}
 	for _, name := range names {
@@ -89,11 +89,11 @@ func Test쓴_디렉토리로_tsc_가_올바른_플로우를_통과시키고_sql_
 		t.Fatal(err)
 	}
 	ok, out, decls := runTsc(t, sdkDir, "flow-ok.ts")
-	if !ok || decls != 2 {
+	if !ok || decls != 3 {
 		t.Fatalf("올바른 샘플: ok=%v decls=%d\n%s", ok, decls, out)
 	}
 	ok, out, decls = runTsc(t, sdkDir, "flow-uses-sql.ts")
-	if ok || decls != 2 || !strings.Contains(out, "TS2339") {
+	if ok || decls != 3 || !strings.Contains(out, "TS2339") {
 		t.Fatalf("틀린 샘플: ok=%v decls=%d\n%s", ok, decls, out)
 	}
 }
