@@ -14,3 +14,7 @@ make verify
 ```
 
 `make verify` 가 vet · `go test -race` · 생성물 diff · 라이선스 게이트 · 소비자 이름 0건 검사 · 빌드 · 바이너리 크기 측정을 한 번에 돈다. 소비자 이름 검사는 환경 변수 `COCKPIT_CONSUMER_NAMES` 에 정규식이 있을 때만 돈다. 규칙은 `AGENTS.md`, 런 규칙의 본문은 `docs/` 에 있다.
+
+## 라이선스
+
+MIT 라이선스다. 전문은 `LICENSE` 에 있다.
