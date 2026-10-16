@@ -27,6 +27,8 @@ type probe struct {
 	planted map[string]string
 	release chan struct{}
 	gates   map[string]chan struct{}
+	extra   map[string]any
+	host    *Host
 }
 
 func newProbe(site Site) *probe {
@@ -42,6 +44,7 @@ func (p *probe) foreign() string {
 }
 
 func (p *probe) module(h *Host) (goja.Value, error) {
+	p.host = h
 	rt := h.Runtime()
 	obj := rt.NewObject()
 	planted := rt.NewObject()
@@ -100,6 +103,9 @@ func (p *probe) module(h *Host) (goja.Value, error) {
 		"badArgs": func(goja.FunctionCall) goja.Value {
 			panic(h.Error(&PortError{Code: PortBadArgs, Message: "maxRows must be a number"}))
 		},
+	}
+	for k, v := range p.extra {
+		set[k] = v
 	}
 	for k, v := range set {
 		if err := obj.Set(k, v); err != nil {

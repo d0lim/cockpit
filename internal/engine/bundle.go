@@ -10,9 +10,10 @@ import (
 )
 
 type BundleInput struct {
-	Entry string
-	Root  string
-	Site  Site
+	Entry  string
+	Driver string
+	Root   string
+	Site   Site
 }
 
 type Bundle struct {
@@ -60,15 +61,7 @@ func BuildBundle(ctx context.Context, in BundleInput) (Bundle, error) {
 	if err != nil {
 		return Bundle{}, fmt.Errorf("bundle root: %w", err)
 	}
-	entry, err := filepath.EvalSymlinks(in.Entry)
-	if err == nil {
-		entry, err = filepath.Abs(entry)
-	}
-	if err != nil {
-		return Bundle{}, fmt.Errorf("bundle entry: %w", err)
-	}
-	res := api.Build(api.BuildOptions{
-		EntryPoints:    []string{entry},
+	opts := api.BuildOptions{
 		Bundle:         true,
 		Write:          false,
 		Format:         api.FormatIIFE,
@@ -84,7 +77,20 @@ func BuildBundle(ctx context.Context, in BundleInput) (Bundle, error) {
 		Supported:      unsupportedSyntax,
 		LogLevel:       api.LogLevelSilent,
 		Plugins:        []api.Plugin{boundary{root: root, site: in.Site}.plugin()},
-	})
+	}
+	if in.Driver != "" {
+		opts.Stdin = &api.StdinOptions{Contents: in.Driver, ResolveDir: root, Sourcefile: driverName, Loader: api.LoaderTS}
+	} else {
+		entry, err := filepath.EvalSymlinks(in.Entry)
+		if err == nil {
+			entry, err = filepath.Abs(entry)
+		}
+		if err != nil {
+			return Bundle{}, fmt.Errorf("bundle entry: %w", err)
+		}
+		opts.EntryPoints = []string{entry}
+	}
+	res := api.Build(opts)
 	if len(res.Errors) > 0 {
 		return Bundle{}, &BundleError{Problems: problemsOf(res.Errors)}
 	}
@@ -148,6 +154,9 @@ func (b boundary) resolve(args api.OnResolveArgs) (api.OnResolveResult, error) {
 }
 
 func (b boundary) load(args api.OnLoadArgs) (api.OnLoadResult, error) {
+	if args.Path == "<stdin>" {
+		return api.OnLoadResult{}, nil
+	}
 	real, err := filepath.EvalSymlinks(args.Path)
 	if err != nil || !within(b.root, real) {
 		return api.OnLoadResult{}, fmt.Errorf("%q resolves outside the boundary", filepath.Base(args.Path))

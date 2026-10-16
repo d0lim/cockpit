@@ -128,8 +128,12 @@ func Test시간_상한을_넘기면_PORT_TIMEOUT_이고_상한_안_응답은_그
 	if err != nil || res.Status != 200 {
 		t.Fatalf("요청별 상한: %+v %v", res, err)
 	}
-	if n := c.Counter(); n.Sent != 2 {
+	if n := c.Counter(); n.Sent != 2 || n.LastStatus != 200 {
 		t.Fatalf("%+v", n)
+	}
+	c.ResetStatus()
+	if n := c.Counter(); n.Sent != 2 || n.LastStatus != 0 {
+		t.Fatalf("상태만 지운다: %+v", n)
 	}
 }
 

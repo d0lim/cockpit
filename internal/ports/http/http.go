@@ -124,6 +124,12 @@ func (c *Client) ResetCounter() {
 	c.counter = Counter{}
 }
 
+func (c *Client) ResetStatus() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.counter.LastStatus = 0
+}
+
 func (c *Client) sent() {
 	c.mu.Lock()
 	c.counter.Sent++
