@@ -46,13 +46,13 @@ func runCase(c corpusFile, k corpusCase, e engine) []string {
 	case "run":
 		return runRunCase(c, k, e)
 	}
-	return []string{"모르는 종류: " + k.Kind}
+	return []string{"unknown kind: " + k.Kind}
 }
 
 func runMaskCase(k corpusCase, e engine) []string {
 	m, err := e.build(Options{Mode: modeOf(k.Mode), Known: k.Known, Patterns: k.Patterns})
 	if err != nil {
-		return []string{"마스커를 만들지 못했다: " + err.Error()}
+		return []string{"cannot build masker: " + err.Error()}
 	}
 	var fails []string
 	for i, ch := range k.Checks {
@@ -77,23 +77,23 @@ func runMaskCase(k corpusCase, e engine) []string {
 func judge(i int, ch check, out string, again func(string) string) []string {
 	var f []string
 	if ch.Expect != nil && out != *ch.Expect {
-		f = append(f, fmt.Sprintf("검사 %d: 결과 %q, 기대 %q", i, clip(out), clip(*ch.Expect)))
+		f = append(f, fmt.Sprintf("check %d: got %q, want %q", i, clip(out), clip(*ch.Expect)))
 	}
 	for _, s := range ch.Contains {
 		if !strings.Contains(out, s) {
-			f = append(f, fmt.Sprintf("검사 %d: %q 가 없다", i, clip(s)))
+			f = append(f, fmt.Sprintf("check %d: %q is missing", i, clip(s)))
 		}
 	}
 	for _, s := range ch.NotContains {
 		if strings.Contains(out, s) {
-			f = append(f, fmt.Sprintf("검사 %d: %q 가 남았다", i, clip(s)))
+			f = append(f, fmt.Sprintf("check %d: %q is still present", i, clip(s)))
 		}
 	}
 	if ch.MaxRunes > 0 && utf8.RuneCountInString(out) > ch.MaxRunes {
-		f = append(f, fmt.Sprintf("검사 %d: 길이 %d 가 %d 를 넘는다", i, utf8.RuneCountInString(out), ch.MaxRunes))
+		f = append(f, fmt.Sprintf("check %d: length %d exceeds %d", i, utf8.RuneCountInString(out), ch.MaxRunes))
 	}
 	if ch.Idempotent && again(out) != out {
-		f = append(f, fmt.Sprintf("검사 %d: 다시 가리면 %q 로 바뀐다", i, clip(again(out))))
+		f = append(f, fmt.Sprintf("check %d: masking again turns it into %q", i, clip(again(out))))
 	}
 	return f
 }
@@ -105,7 +105,7 @@ func runValuesCase(k corpusCase) []string {
 	}
 	got := slices.Sorted(slices.Values(JSONStrings(doc)))
 	if !slices.Equal(got, k.Expect) {
-		return []string{fmt.Sprintf("값 %q, 기대 %q", got, k.Expect)}
+		return []string{fmt.Sprintf("values %q, want %q", got, k.Expect)}
 	}
 	return nil
 }
@@ -150,7 +150,7 @@ func runRunCase(c corpusFile, k corpusCase, e engine) (fails []string) {
 	}
 	for i, s := range k.Steps {
 		if msg := st.do(s); msg != "" {
-			fails = append(fails, fmt.Sprintf("단계 %d(%s): %s", i, s.Do, msg))
+			fails = append(fails, fmt.Sprintf("step %d (%s): %s", i, s.Do, msg))
 		}
 	}
 	return fails
@@ -170,13 +170,13 @@ func (st *runState) do(s step) string {
 		var want []string
 		_ = json.Unmarshal(s.Expect, &want)
 		if got := slices.Sorted(slices.Values(st.known)); !slices.Equal(got, slices.Sorted(slices.Values(want))) {
-			return fmt.Sprintf("값 목록 %d건이 기대 %d건과 다르다", len(got), len(want))
+			return fmt.Sprintf("value list of %d entries differs from the expected %d", len(got), len(want))
 		}
 	case "mask":
 		var want string
 		_ = json.Unmarshal(s.Expect, &want)
 		if got := st.e.mask(st.cur, s.Input); got != want {
-			return fmt.Sprintf("결과 %q, 기대 %q", clip(got), clip(want))
+			return fmt.Sprintf("got %q, want %q", clip(got), clip(want))
 		}
 	case "write":
 		text := strings.Repeat(s.Repeat, s.Count)
@@ -200,12 +200,12 @@ func (st *runState) do(s step) string {
 			return err.Error()
 		}
 		if !slices.Equal(r.Left, want) {
-			return fmt.Sprintf("남은 파일 %q, 기대 %q", r.Left, want)
+			return fmt.Sprintf("left files %q, want %q", r.Left, want)
 		}
 	case "bundleFree":
 		return st.bundleFree(s.Values)
 	default:
-		return "모르는 단계"
+		return "unknown step"
 	}
 	return ""
 }
@@ -250,9 +250,9 @@ func (st *runState) bundleFree(values []string) string {
 	case err != nil:
 		return err.Error()
 	case files == 0:
-		return "번들 파일 0건"
+		return "bundle has zero files"
 	case len(left) > 0:
-		return fmt.Sprintf("번들에 심은 값이 남았다: %q", left)
+		return fmt.Sprintf("planted values left in the bundle: %q", left)
 	}
 	return ""
 }
@@ -264,15 +264,15 @@ func judgeError(s step, err error) string {
 	}
 	switch {
 	case s.ErrorEquals != "" && msg != s.ErrorEquals:
-		return fmt.Sprintf("오류 %q, 기대 %q", msg, s.ErrorEquals)
+		return fmt.Sprintf("error %q, want %q", msg, s.ErrorEquals)
 	case s.ErrorContains != "" && !strings.Contains(msg, s.ErrorContains):
-		return fmt.Sprintf("오류 %q 에 %q 가 없다", msg, s.ErrorContains)
+		return fmt.Sprintf("error %q does not contain %q", msg, s.ErrorContains)
 	case s.ErrorEquals == "" && s.ErrorContains == "" && err != nil:
-		return "뜻밖의 오류: " + msg
+		return "unexpected error: " + msg
 	}
 	for _, v := range s.ErrorNotContains {
 		if strings.Contains(msg, v) {
-			return "오류 문장에 입력 조각이 실렸다"
+			return "error message carries a fragment of the input"
 		}
 	}
 	return ""

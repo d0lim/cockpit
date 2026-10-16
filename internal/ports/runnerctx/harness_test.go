@@ -31,16 +31,16 @@ const (
 )
 
 var ctxMutations = []porttest.Mutation{
-	{"ctx 와 하위 객체 동결", "New 의 deepFreeze 호출을 지운다", "빨강: isFrozen 단정이 깨진다", "Test환경과_자격은_읽히고_얼어_있으며_saveSeed_뒤_priv_가_새_값을_본다"},
-	{"priv 는 saveSeed 뒤 새 값", "priv 를 접근자 대신 정적 스냅샷으로 둔다", "빨강: saveSeed 뒤 totpSecret2 가 undefined 다", "Test환경과_자격은_읽히고_얼어_있으며_saveSeed_뒤_priv_가_새_값을_본다"},
-	{"포트 오류는 code 가 붙은 JS 오류", "throw 가 h.Error 대신 TypeError 를 던진다", "빨강: code 가 undefined 다", "Test허용_주소의_send_는_응답을_돌려주고_거부와_리다이렉트는_code_가_붙은_오류로_거절되며_문장은_가려진다"},
-	{"거부 문장 마스킹", "Deps.Mask 를 Identity 로 바꾼다", "빨강: PLANTED 가 거부 문장에 보인다", "Test허용_주소의_send_는_응답을_돌려주고_거부와_리다이렉트는_code_가_붙은_오류로_거절되며_문장은_가려진다"},
-	{"persist 없는 캡처는 비밀", "capture 가 persist 를 무시하고 true 로 적는다", "빨강: session 이 context.json 에 쓰인다", "Test캡처는_get_으로_돌아오고_persist_만_context_json_에_남으며_없는_캡처는_이름을_말하며_거부된다"},
-	{"2팩터 시드는 priv 에서 키 표로 찾는다", "seed 가 SeedKeys 를 무시하고 loginId 를 priv 키로 쓴다", "빨강: admin-1 이 PORT_UNAVAILABLE 로 거부된다", "Test2팩터_코드는_시드_키_표의_계정만_발급되고_스텝이_context_json_에_남는다"},
-	{"공개키로 서명 거부", "sign 이 Keys.Sign 의 오류를 삼키고 빈 버퍼를 돌려준다", "빨강: public sign 이 resolve 된다", "Test암호_포트는_v4_UUID와_난수와_키쌍을_내고_개인키로만_서명하며_Go_공개키로_검증된다"},
-	{"서명은 넘긴 바이트에 대한 것", "sign 이 데이터 대신 빈 바이트를 서명한다", "빨강: VerifyPKCS1v15 가 실패한다", "Test암호_포트는_v4_UUID와_난수와_키쌍을_내고_개인키로만_서명하며_Go_공개키로_검증된다"},
-	{"소스 밖 거부", "readSource 가 Source.Read 의 오류를 삼키고 빈 문자열을 돌려준다", "빨강: other 소스 읽기가 통과한다", "Test소스는_선언된_이름의_파일만_읽고_나열하며_그_밖은_code_가_붙은_오류로_거부한다"},
-	{"sleep 은 실제로 기다린다", "sleep 이 바로 resolve 한다", "빨강: clock 차가 25ms 미만이다", "Test시계는_밀리초를_주고_sleep_은_그만큼_뒤에_푼다"},
+	{"ctx and its child objects are frozen", "remove the deepFreeze call in New", "red: the isFrozen assertion fails", "TestEnvAndPrivAreReadableAndFrozenAndPrivSeesTheNewSeedAfterSaveSeed"},
+	{"priv shows the new value after saveSeed", "make priv a static snapshot instead of an accessor", "red: totpSecret2 is undefined after saveSeed", "TestEnvAndPrivAreReadableAndFrozenAndPrivSeesTheNewSeedAfterSaveSeed"},
+	{"port errors are JS errors with a code", "throw raises a TypeError instead of h.Error", "red: code is undefined", "TestSendResolvesForAllowedURLAndRejectsDeniedOrRedirectedWithCodeAndMaskedMessage"},
+	{"denial messages are masked", "set Deps.Mask to Identity", "red: PLANTED shows in the denial message", "TestSendResolvesForAllowedURLAndRejectsDeniedOrRedirectedWithCodeAndMaskedMessage"},
+	{"captures without persist are secret", "capture ignores persist and writes true", "red: session is written to context.json", "TestCapturesComeBackViaGetOnlyPersistedReachContextJSONAndMissingOnesAreRejectedByName"},
+	{"two-factor seeds are found in priv through the seed key table", "seed ignores SeedKeys and uses loginId as the priv key", "red: admin-1 is rejected with PORT_UNAVAILABLE", "TestTOTPIsIssuedOnlyForAccountsInSeedKeyTableAndStepIsStoredInContextJSON"},
+	{"signing with a public key is rejected", "sign swallows the Keys.Sign error and returns an empty buffer", "red: public sign resolves", "TestCryptoGivesV4UUIDRandomBytesAndKeyPairsAndSignsOnlyWithPrivateKeyVerifiableInGo"},
+	{"the signature covers the bytes passed in", "sign signs empty bytes instead of the data", "red: VerifyPKCS1v15 fails", "TestCryptoGivesV4UUIDRandomBytesAndKeyPairsAndSignsOnlyWithPrivateKeyVerifiableInGo"},
+	{"reads outside the declared sources are rejected", "readSource swallows the Source.Read error and returns an empty string", "red: reading the other source passes", "TestSourceReadsAndListsOnlyDeclaredNamesAndRejectsOthersWithAPortCode"},
+	{"sleep actually waits", "sleep resolves at once", "red: the clock difference is under 25ms", "TestClockGivesMillisAndSleepResolvesAfterTheGivenDelay"},
 }
 
 const prelude = `import { ctx, record } from "cockpit:flow";
@@ -155,7 +155,7 @@ func (w *world) run(src string) error {
 	}
 	bundle, err := engine.BuildBundle(context.Background(), engine.BundleInput{Entry: entry, Root: root, Site: engine.SiteRunner})
 	if err != nil {
-		w.t.Fatalf("번들: %v", err)
+		w.t.Fatalf("bundle: %v", err)
 	}
 	eng, err := engine.New(engine.Options{
 		Site:    engine.SiteRunner,
@@ -171,7 +171,7 @@ func (w *world) run(src string) error {
 func (w *world) mustRun(src string) {
 	w.t.Helper()
 	if err := w.run(src); err != nil {
-		w.t.Fatalf("런: %v", err)
+		w.t.Fatalf("run: %v", err)
 	}
 }
 

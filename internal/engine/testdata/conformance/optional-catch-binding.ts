@@ -17,6 +17,6 @@ export default function (): void {
 	} catch {
 		parsed = false;
 	}
-	check("바인딩 없는 catch 가 예외를 삼킨다", !parsed);
-	check("함수 안에서도 쓴다", pathOf("not a url") === "unparsed" && pathOf("http://h/p") === "/p");
+	check("catch without a binding swallows the error", !parsed);
+	check("works inside a function", pathOf("not a url") === "unparsed" && pathOf("http://h/p") === "/p");
 }

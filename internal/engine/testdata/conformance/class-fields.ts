@@ -29,11 +29,11 @@ class Client {
 
 export default function (): void {
 	const fresh = new Client();
-	check("선언만 한 필드는 undefined 다", fresh.lastStatus === undefined && "lastStatus" in fresh);
-	check("필드 초기값이 인스턴스마다 선다", fresh.sent === 0);
+	check("declared-only field is undefined", fresh.lastStatus === undefined && "lastStatus" in fresh);
+	check("field initializer runs per instance", fresh.sent === 0);
 	const client = new Client({ limit: 1 });
-	check("첫 전송은 통과한다", client.send("/a") && client.lastStatus === 200);
-	check("상한을 넘기면 막힌다", !client.send("/b") && client.sent === 1);
-	check("private readonly 필드가 런타임에 남는다", client.paths().join(",") === "/a");
-	check("정적 필드가 생성마다 는다", Client.created === 2);
+	check("first send passes", client.send("/a") && client.lastStatus === 200);
+	check("send over the limit is blocked", !client.send("/b") && client.sent === 1);
+	check("private readonly field exists at runtime", client.paths().join(",") === "/a");
+	check("static field grows with each construction", Client.created === 2);
 }

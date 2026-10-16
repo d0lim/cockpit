@@ -29,7 +29,7 @@ func DecodeBase32(input string) ([]byte, error) {
 	for _, ch := range cleaned {
 		v := strings.IndexRune(alphabet, ch)
 		if v < 0 {
-			return nil, errors.New("base32 가 아닌 문자가 있다")
+			return nil, errors.New("input has a character outside base32")
 		}
 		buf = ((buf << 5) | v) & 0xffff
 		bits += 5
@@ -43,7 +43,7 @@ func DecodeBase32(input string) ([]byte, error) {
 
 func At(seedBase32 string, step int64) (string, error) {
 	if seedBase32 == "" {
-		return "", errors.New("2팩터 시드가 비어 있다")
+		return "", errors.New("two-factor seed is empty")
 	}
 	key, err := DecodeBase32(seedBase32)
 	if err != nil {

@@ -34,7 +34,7 @@ func scannedCount(t *testing.T, out string) int {
 	t.Helper()
 	m := scanned.FindStringSubmatch(out)
 	if m == nil {
-		t.Fatalf("scanned 줄이 없다: %q", out)
+		t.Fatalf("missing scanned line: %q", out)
 	}
 	n, _ := strconv.Atoi(m[1])
 	return n
@@ -53,56 +53,56 @@ func plantName(t *testing.T) string {
 	return planted
 }
 
-func Test이름_검사는_깨끗한_트리를_통과시키고_스캔_수를_낸다(t *testing.T) {
+func TestConsumerNameCheckPassesCleanTreeAndReportsScanCount(t *testing.T) {
 	out, err := runGate(t, repoRoot(t), "check-no-consumer-names.sh", repoRoot(t), "COCKPIT_CONSUMER_NAMES=acme")
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	if n := scannedCount(t, out); n == 0 {
-		t.Fatalf("스캔 파일 수 0: %q", out)
+		t.Fatalf("scanned file count is 0: %q", out)
 	}
 	if !strings.Contains(out, "names ok") {
-		t.Fatalf("통과 표지가 없다: %q", out)
+		t.Fatalf("missing pass marker: %q", out)
 	}
 }
 
-func Test이름_검사는_패턴에_걸리는_심은_이름을_경로와_함께_거부한다(t *testing.T) {
+func TestConsumerNameCheckRejectsPlantedMatchingNameWithItsPath(t *testing.T) {
 	out, err := runGate(t, repoRoot(t), "check-no-consumer-names.sh", plantName(t), "COCKPIT_CONSUMER_NAMES=acme")
 	if err == nil {
-		t.Fatalf("심은 이름이 통과했다:\n%s", out)
+		t.Fatalf("planted name passed:\n%s", out)
 	}
 	if n := scannedCount(t, out); n != 1 {
-		t.Fatalf("스캔 파일 수 %d: %q", n, out)
+		t.Fatalf("scanned file count %d: %q", n, out)
 	}
 	if !strings.Contains(out, "x.go") || !strings.Contains(out, "acme-mock") {
-		t.Fatalf("경로와 이름이 보고되지 않았다: %q", out)
+		t.Fatalf("path and name not reported: %q", out)
 	}
 }
 
-func Test이름_검사는_패턴이_비어_있으면_스캔만_하고_건너뛴다(t *testing.T) {
+func TestConsumerNameCheckOnlyScansAndSkipsWhenPatternIsEmpty(t *testing.T) {
 	out, err := runGate(t, repoRoot(t), "check-no-consumer-names.sh", plantName(t), "COCKPIT_CONSUMER_NAMES=")
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	if n := scannedCount(t, out); n != 1 {
-		t.Fatalf("스캔 파일 수 %d: %q", n, out)
+		t.Fatalf("scanned file count %d: %q", n, out)
 	}
 	if !strings.Contains(out, "names skipped") || strings.Contains(out, "names ok") {
-		t.Fatalf("건너뜀 표지가 없다: %q", out)
+		t.Fatalf("missing skip marker: %q", out)
 	}
 }
 
-func Test이름_검사는_스캔할_파일이_없으면_실패한다(t *testing.T) {
+func TestConsumerNameCheckFailsWhenNoFilesToScan(t *testing.T) {
 	out, err := runGate(t, repoRoot(t), "check-no-consumer-names.sh", t.TempDir(), "COCKPIT_CONSUMER_NAMES=")
 	if err == nil {
-		t.Fatalf("빈 트리가 통과했다:\n%s", out)
+		t.Fatalf("empty tree passed:\n%s", out)
 	}
 	if n := scannedCount(t, out); n != 0 {
-		t.Fatalf("스캔 파일 수 %d: %q", n, out)
+		t.Fatalf("scanned file count %d: %q", n, out)
 	}
 }
 
-func Test라이선스_게이트는_k6_require를_모듈_이름으로_거부한다(t *testing.T) {
+func TestLicenseGateRejectsK6RequireByModuleName(t *testing.T) {
 	root := repoRoot(t)
 	planted := t.TempDir()
 	mod, err := os.ReadFile(filepath.Join(root, "go.mod"))
@@ -115,19 +115,19 @@ func Test라이선스_게이트는_k6_require를_모듈_이름으로_거부한�
 	}
 	out, err := runGate(t, root, "check-licenses.sh", planted)
 	if err == nil {
-		t.Fatalf("k6 require 가 통과했다:\n%s", out)
+		t.Fatalf("k6 require passed:\n%s", out)
 	}
 	if !strings.Contains(out, "denied module: go.k6.io/k6") {
-		t.Fatalf("거부 사유가 모듈 이름을 짚지 않는다: %q", out)
+		t.Fatalf("denial reason does not name the module: %q", out)
 	}
 }
 
-func Test라이선스_게이트는_깨끗한_트리를_통과시킨다(t *testing.T) {
+func TestLicenseGatePassesCleanTree(t *testing.T) {
 	out, err := runGate(t, repoRoot(t), "check-licenses.sh", repoRoot(t))
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	if !strings.Contains(out, "licenses ok") {
-		t.Fatalf("통과 표지가 없다: %q", out)
+		t.Fatalf("missing pass marker: %q", out)
 	}
 }

@@ -2,14 +2,14 @@ import { flow, step } from "cockpit:flow";
 
 export default flow({
 	id: "sneaky",
-	title: "러너 자리에서 DB 를 읽는다",
+	title: "Reads the DB in the runner",
 	stage: "basic",
 	once: false,
 	requires: [],
 	steps: [
 		step({
 			id: "read",
-			title: "주문 표를 읽는다",
+			title: "Reads the orders table",
 			kind: "request",
 			async run(ctx) {
 				await ctx.sql.query("main", "select 1");

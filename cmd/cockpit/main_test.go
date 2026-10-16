@@ -18,14 +18,14 @@ func call(env map[string]string, args ...string) (int, string, string) {
 	return code, out.String(), errOut.String()
 }
 
-func TestVersion출력은_허브_접두와_버전을_싣는다(t *testing.T) {
+func TestVersionFlagPrintsHubPrefixAndVersion(t *testing.T) {
 	code, out, errOut := call(nil, "--version")
 	if code != 0 || !strings.HasPrefix(out, "cockpit ") {
 		t.Fatalf("exit %d stdout %q stderr %q", code, out, errOut)
 	}
 }
 
-func Test인자_없는_호출과_모르는_명령과_불완전한_하위_명령은_usage_와_종료_2(t *testing.T) {
+func TestNoArgsUnknownCommandOrIncompleteSubcommandPrintsUsageAndExits2(t *testing.T) {
 	for _, args := range [][]string{nil, {"fly"}, {"sdk"}, {"sdk", "write"}, {"sdk", "read", "x"}, {"runner-image", "extra"}} {
 		code, _, errOut := call(nil, args...)
 		if code != 2 || !strings.Contains(errOut, "usage") {
@@ -34,7 +34,7 @@ func Test인자_없는_호출과_모르는_명령과_불완전한_하위_명령�
 	}
 }
 
-func TestSdk_write_는_디렉토리에_선언_셋을_쓰고_이름을_한_줄씩_낸다(t *testing.T) {
+func TestSdkWriteWritesDeclarationsToDirAndPrintsOnePathPerLine(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "sdk")
 	code, out, errOut := call(nil, "sdk", "write", dir)
 	if code != 0 {
@@ -49,7 +49,7 @@ func TestSdk_write_는_디렉토리에_선언_셋을_쓰고_이름을_한_줄씩
 	}
 }
 
-func TestRunner_image_는_보장한_이미지_태그_한_줄을_내고_실패하면_종료_2_다(t *testing.T) {
+func TestRunnerImagePrintsEnsuredTagOnOneLineAndExits2OnFailure(t *testing.T) {
 	home := t.TempDir()
 	original := ensureImage
 	t.Cleanup(func() { ensureImage = original })
@@ -63,10 +63,10 @@ func TestRunner_image_는_보장한_이미지_태그_한_줄을_내고_실패하
 		t.Fatalf("exit %d stdout %q stderr %q pin %q", code, out, errOut, pinPath)
 	}
 	ensureImage = func(context.Context, runnerbin.Pins) (runnerbin.Image, error) {
-		return runnerbin.Image{}, errors.New("러너 미내장 — 릴리즈 빌드가 아니다")
+		return runnerbin.Image{}, errors.New("runner not embedded: not a release build")
 	}
 	code, out, errOut = call(map[string]string{"COCKPIT_HOME": home}, "runner-image")
-	if code != 2 || out != "" || !strings.Contains(errOut, "러너 미내장") {
+	if code != 2 || out != "" || !strings.Contains(errOut, "runner not embedded") {
 		t.Fatalf("exit %d stdout %q stderr %q", code, out, errOut)
 	}
 }

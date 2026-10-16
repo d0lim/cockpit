@@ -19,8 +19,8 @@ async function failing(): Promise<never> {
 
 export default async function (): Promise<void> {
 	const counter = new Counter();
-	check("await 가 값을 푼다", (await counter.add(2)) === 4);
-	check("메서드 안의 await 가 이어진다", (await counter.add(3)) === 10);
+	check("await unwraps the value", (await counter.add(2)) === 4);
+	check("await inside a method resumes", (await counter.add(3)) === 10);
 	let caught = "";
 	try {
 		await failing();
@@ -29,9 +29,9 @@ export default async function (): Promise<void> {
 	} finally {
 		caught += "+finally";
 	}
-	check("거부가 catch 와 finally 로 온다", caught === "boom+finally");
+	check("rejection reaches catch and finally", caught === "boom+finally");
 	const recovered = await failing().catch((error: unknown) => `recovered ${(error as Error).message}`);
-	check(".catch 가 값을 돌려준다", recovered === "recovered boom");
+	check(".catch returns a value", recovered === "recovered boom");
 	const order: string[] = [];
 	const first = (async () => {
 		order.push("a");
@@ -40,5 +40,5 @@ export default async function (): Promise<void> {
 	})();
 	order.push("b");
 	await first;
-	check("await 는 마이크로태스크로 양보한다", order.join("") === "abc");
+	check("await yields to a microtask", order.join("") === "abc");
 }

@@ -31,7 +31,7 @@ const (
 	maxBody        = 8 << 20
 	maxSource      = 4 << 20
 	runDeadline    = 24 * time.Hour
-	rejected       = "거절: "
+	rejected       = "rejected: "
 )
 
 var suiteNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,40}$`)
@@ -45,21 +45,21 @@ type Deps struct {
 
 func parseArgs(args []string) (string, []string, error) {
 	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
-		return "", nil, errors.New("쓰는 법: cockpit-runner run <스위트> [--flow <플로우 id>]...")
+		return "", nil, errors.New("usage: cockpit-runner run <suite> [--flow <id>]...")
 	}
 	name := args[0]
 	if !suiteNamePattern.MatchString(name) {
-		return "", nil, fmt.Errorf("스위트 이름 %q 이 %s 꼴이 아니다", name, suiteNamePattern)
+		return "", nil, fmt.Errorf("suite name %q does not match %s", name, suiteNamePattern)
 	}
 	var targets []string
 	rest := args[1:]
 	for i := 0; i < len(rest); i++ {
 		if rest[i] != "--flow" || i+1 >= len(rest) {
-			return "", nil, fmt.Errorf("모르는 인자: %s", rest[i])
+			return "", nil, fmt.Errorf("unknown argument: %s", rest[i])
 		}
 		id := rest[i+1]
 		if !flowIDPattern.MatchString(id) {
-			return "", nil, fmt.Errorf("플로우 id %q 가 %s 꼴이 아니다", id, flowIDPattern)
+			return "", nil, fmt.Errorf("flow id %q does not match %s", id, flowIDPattern)
 		}
 		targets = append(targets, id)
 		i++
@@ -84,7 +84,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	}
 	base, err := mask.New(mask.Options{Mode: mask.Runner})
 	if err != nil {
-		fmt.Fprintln(deps.Stderr, "러너 마스커를 만들지 못했다")
+		fmt.Fprintln(deps.Stderr, "could not build the runner masker")
 		return 2
 	}
 	var current atomic.Pointer[mask.Masker]
@@ -99,11 +99,11 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		return fail(err.Error())
 	}
 	if hostAPI != contract.HostAPI {
-		return fail(fmt.Sprintf("선언의 hostApi %d 가 러너의 hostApi %d 와 다르다", hostAPI, contract.HostAPI))
+		return fail(fmt.Sprintf("declaration hostApi %d differs from runner hostApi %d", hostAPI, contract.HostAPI))
 	}
 	priv, err := totp.ReadPrivateEnv(s.privPath)
 	if err != nil {
-		return fail("private env " + s.privPath + " 을 읽지 못했다: " + err.Error())
+		return fail("could not read private env " + s.privPath + ": " + err.Error())
 	}
 	current.Store(base.WithKnown(slices.Sorted(maps.Values(priv))))
 	publicEnv, err := loadPublicEnv(s.envPath)
@@ -112,11 +112,11 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	}
 	ledger, err := ReadLedger(s.dir)
 	if err != nil {
-		return fail("원장을 읽지 못했다: " + err.Error())
+		return fail("could not read the ledger: " + err.Error())
 	}
 	e2eCtx, err := capture.Load(s.dir)
 	if err != nil {
-		return fail("컨텍스트를 읽지 못했다: " + err.Error())
+		return fail("could not read the context: " + err.Error())
 	}
 	roots, err := sourceRoots(s.sources)
 	if err != nil {
@@ -129,7 +129,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	defer reader.Close()
 	client, err := httpport.New(httpport.Options{Allowed: allowedOrigins(publicEnv), Timeout: requestTimeout, MaxBody: maxBody, Mask: maskText, Dial: deps.Dial})
 	if err != nil {
-		return fail("공개 env 의 주소를 허용 목록으로 만들지 못했다: " + err.Error())
+		return fail("could not build the allowlist from public env addresses: " + err.Error())
 	}
 	ctxDeps := &runnerctx.Deps{
 		Env: publicEnv, Priv: priv, PrivPath: s.privPath, SeedKeys: seedKeys(publicEnv),
@@ -150,7 +150,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	})
 	bundle, err := engine.BuildBundle(ctx, engine.BundleInput{Driver: driverSource(name), Root: s.scripts, Site: engine.SiteRunner})
 	if err != nil {
-		return fail("스위트 " + name + " 을 번들하지 못했다: " + err.Error())
+		return fail("could not bundle suite " + name + ": " + err.Error())
 	}
 	eng, err := engine.New(engine.Options{
 		Site:    engine.SiteRunner,
@@ -159,17 +159,17 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		Log:     slog.New(consoleHandler{w: deps.Stderr, mask: maskText}),
 	})
 	if err != nil {
-		return fail("엔진을 만들지 못했다: " + err.Error())
+		return fail("could not create the engine: " + err.Error())
 	}
 	if err := eng.Run(ctx, bundle, "default"); err != nil {
 		var f *engine.Failure
 		if errors.As(err, &f) && strings.HasPrefix(f.Message, rejected) {
 			return fail(f.Message)
 		}
-		return fail("러너 내부 오류(" + name + "): " + err.Error())
+		return fail("runner internal error (" + name + "): " + err.Error())
 	}
 	if !driver.Done() {
-		return fail("러너 내부 오류(" + name + "): 드라이버가 끝까지 돌지 않았다")
+		return fail("runner internal error (" + name + "): the driver did not run to the end")
 	}
 	return driver.ExitCode()
 }

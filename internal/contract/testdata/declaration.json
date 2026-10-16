@@ -14,9 +14,9 @@
     "forbidden": ["outbound"]
   },
   "ports": [
-    { "name": "app", "offset": 0, "service": "app", "port": 8080, "display": "앱 API", "open": "browser" },
+    { "name": "app", "offset": 0, "service": "app", "port": 8080, "display": "App API", "open": "browser" },
     { "name": "db", "offset": 6, "service": "db", "port": 5432, "display": "DB", "open": "copy" },
-    { "name": "mock", "offset": 90, "service": "mock", "port": 9000, "display": "대역", "open": "link" }
+    { "name": "mock", "offset": 90, "service": "mock", "port": 9000, "display": "Mock", "open": "link" }
   ],
   "images": [
     { "key": "IMG_APP", "inputs": ["app"] },
@@ -44,6 +44,6 @@
     "collectors": "scripts/collectors"
   },
   "kit": {
-    "notes": "2팩터 코드는 oathtool 로 만든다."
+    "notes": "Generate 2FA codes with oathtool."
   }
 }

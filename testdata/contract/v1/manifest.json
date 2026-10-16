@@ -4,48 +4,48 @@
   "stages": [
     {
       "id": "bootstrap",
-      "title": "부트스트랩"
+      "title": "Bootstrap"
     },
     {
       "id": "portal",
-      "title": "포털"
+      "title": "Portal"
     },
     {
       "id": "inbound",
-      "title": "유입"
+      "title": "Inbound"
     },
     {
       "id": "collect",
-      "title": "수집"
+      "title": "Collect"
     },
     {
       "id": "transfer",
-      "title": "이체"
+      "title": "Transfer"
     },
     {
       "id": "outbound",
-      "title": "유출"
+      "title": "Outbound"
     },
     {
       "id": "roster",
-      "title": "명부"
+      "title": "Roster"
     },
     {
       "id": "auth",
-      "title": "인증"
+      "title": "Auth"
     }
   ],
   "flows": [
     {
       "id": "health",
-      "title": "health 플로우",
+      "title": "health flow",
       "stage": "bootstrap",
       "once": false,
       "requires": [],
       "steps": [
         {
           "id": "l0-1",
-          "title": "L0-1 단계",
+          "title": "step L0-1",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -54,7 +54,7 @@
         },
         {
           "id": "l0-1b",
-          "title": "L0-1b 단계",
+          "title": "step L0-1b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -63,7 +63,7 @@
         },
         {
           "id": "l0-1c",
-          "title": "L0-1c 단계",
+          "title": "step L0-1c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -72,7 +72,7 @@
         },
         {
           "id": "l0-2",
-          "title": "L0-2 단계",
+          "title": "step L0-2",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -81,7 +81,7 @@
         },
         {
           "id": "l0-3",
-          "title": "L0-3 단계",
+          "title": "step L0-3",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -90,7 +90,7 @@
         },
         {
           "id": "l0-4",
-          "title": "L0-4 단계",
+          "title": "step L0-4",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -99,7 +99,7 @@
         },
         {
           "id": "l0-8",
-          "title": "L0-8 단계",
+          "title": "step L0-8",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -108,7 +108,7 @@
         },
         {
           "id": "l0-9",
-          "title": "L0-9 단계",
+          "title": "step L0-9",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -117,7 +117,7 @@
         },
         {
           "id": "l0-10",
-          "title": "L0-10 단계",
+          "title": "step L0-10",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -126,7 +126,7 @@
         },
         {
           "id": "l0-11",
-          "title": "L0-11 단계",
+          "title": "step L0-11",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -135,7 +135,7 @@
         },
         {
           "id": "l0-5",
-          "title": "L0-5 단계",
+          "title": "step L0-5",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -144,7 +144,7 @@
         },
         {
           "id": "l0-7",
-          "title": "L0-7 단계",
+          "title": "step L0-7",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-health.ts",
@@ -159,14 +159,14 @@
     },
     {
       "id": "vendor-table",
-      "title": "vendor-table 플로우",
+      "title": "vendor-table flow",
       "stage": "bootstrap",
       "once": false,
       "requires": [],
       "steps": [
         {
           "id": "l14-1",
-          "title": "L14-1 단계",
+          "title": "step L14-1",
           "kind": "request",
           "source": {
             "file": "flows/vendor-standin.ts",
@@ -175,7 +175,7 @@
         },
         {
           "id": "l14-2",
-          "title": "L14-2 단계",
+          "title": "step L14-2",
           "kind": "request",
           "source": {
             "file": "flows/vendor-standin.ts",
@@ -190,7 +190,7 @@
     },
     {
       "id": "portal-bootstrap",
-      "title": "portal-bootstrap 플로우",
+      "title": "portal-bootstrap flow",
       "stage": "bootstrap",
       "once": true,
       "requires": [
@@ -199,7 +199,7 @@
       "steps": [
         {
           "id": "l0-6",
-          "title": "L0-6 단계",
+          "title": "step L0-6",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -208,7 +208,7 @@
         },
         {
           "id": "l2-1a",
-          "title": "L2-1a 단계",
+          "title": "step L2-1a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -217,7 +217,7 @@
         },
         {
           "id": "l2-1b",
-          "title": "L2-1b 단계",
+          "title": "step L2-1b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -226,7 +226,7 @@
         },
         {
           "id": "l2-1c",
-          "title": "L2-1c 단계",
+          "title": "step L2-1c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -235,7 +235,7 @@
         },
         {
           "id": "l2-1d",
-          "title": "L2-1d 단계",
+          "title": "step L2-1d",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -244,7 +244,7 @@
         },
         {
           "id": "l2-2a",
-          "title": "L2-2a 단계",
+          "title": "step L2-2a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -253,7 +253,7 @@
         },
         {
           "id": "l2-3a",
-          "title": "L2-3a 단계",
+          "title": "step L2-3a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -262,7 +262,7 @@
         },
         {
           "id": "l2-2b",
-          "title": "L2-2b 단계",
+          "title": "step L2-2b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -271,7 +271,7 @@
         },
         {
           "id": "l2-3b",
-          "title": "L2-3b 단계",
+          "title": "step L2-3b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -280,7 +280,7 @@
         },
         {
           "id": "l2-2c",
-          "title": "L2-2c 단계",
+          "title": "step L2-2c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -289,7 +289,7 @@
         },
         {
           "id": "l2-3c",
-          "title": "L2-3c 단계",
+          "title": "step L2-3c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -298,7 +298,7 @@
         },
         {
           "id": "l2-4",
-          "title": "L2-4 단계",
+          "title": "step L2-4",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-portal.ts",
@@ -313,7 +313,7 @@
     },
     {
       "id": "site-login",
-      "title": "site-login 플로우",
+      "title": "site-login flow",
       "stage": "bootstrap",
       "once": false,
       "requires": [
@@ -322,7 +322,7 @@
       "steps": [
         {
           "id": "l3-1a",
-          "title": "L3-1a 단계",
+          "title": "step L3-1a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -331,7 +331,7 @@
         },
         {
           "id": "l3-2a",
-          "title": "L3-2a 단계",
+          "title": "step L3-2a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -340,7 +340,7 @@
         },
         {
           "id": "l3-1b",
-          "title": "L3-1b 단계",
+          "title": "step L3-1b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -349,7 +349,7 @@
         },
         {
           "id": "l3-2b",
-          "title": "L3-2b 단계",
+          "title": "step L3-2b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -358,7 +358,7 @@
         },
         {
           "id": "l3-1c",
-          "title": "L3-1c 단계",
+          "title": "step L3-1c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -367,7 +367,7 @@
         },
         {
           "id": "l3-2c",
-          "title": "L3-2c 단계",
+          "title": "step L3-2c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -376,7 +376,7 @@
         },
         {
           "id": "l3-3",
-          "title": "L3-3 단계",
+          "title": "step L3-3",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -385,7 +385,7 @@
         },
         {
           "id": "l3-4",
-          "title": "L3-4 단계",
+          "title": "step L3-4",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -394,7 +394,7 @@
         },
         {
           "id": "l3-5",
-          "title": "L3-5 단계",
+          "title": "step L3-5",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -403,7 +403,7 @@
         },
         {
           "id": "l3-6",
-          "title": "L3-6 단계",
+          "title": "step L3-6",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-login.ts",
@@ -418,7 +418,7 @@
     },
     {
       "id": "site-release",
-      "title": "site-release 플로우",
+      "title": "site-release flow",
       "stage": "bootstrap",
       "once": true,
       "requires": [
@@ -427,7 +427,7 @@
       "steps": [
         {
           "id": "l4-1",
-          "title": "L4-1 단계",
+          "title": "step L4-1",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -436,7 +436,7 @@
         },
         {
           "id": "l4-2",
-          "title": "L4-2 단계",
+          "title": "step L4-2",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -445,7 +445,7 @@
         },
         {
           "id": "l4-3",
-          "title": "L4-3 단계",
+          "title": "step L4-3",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -454,7 +454,7 @@
         },
         {
           "id": "l4-4",
-          "title": "L4-4 단계",
+          "title": "step L4-4",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -463,7 +463,7 @@
         },
         {
           "id": "l4-5a",
-          "title": "L4-5a 단계",
+          "title": "step L4-5a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -472,7 +472,7 @@
         },
         {
           "id": "l4-5b",
-          "title": "L4-5b 단계",
+          "title": "step L4-5b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -481,7 +481,7 @@
         },
         {
           "id": "l4-5c",
-          "title": "L4-5c 단계",
+          "title": "step L4-5c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -490,7 +490,7 @@
         },
         {
           "id": "l4-5d",
-          "title": "L4-5d 단계",
+          "title": "step L4-5d",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -499,7 +499,7 @@
         },
         {
           "id": "l4-5e",
-          "title": "L4-5e 단계",
+          "title": "step L4-5e",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -508,7 +508,7 @@
         },
         {
           "id": "l4-5f",
-          "title": "L4-5f 단계",
+          "title": "step L4-5f",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -517,7 +517,7 @@
         },
         {
           "id": "l4-6",
-          "title": "L4-6 단계",
+          "title": "step L4-6",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -526,7 +526,7 @@
         },
         {
           "id": "l4-6b",
-          "title": "L4-6b 단계",
+          "title": "step L4-6b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -535,7 +535,7 @@
         },
         {
           "id": "l4-6c",
-          "title": "L4-6c 단계",
+          "title": "step L4-6c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -544,7 +544,7 @@
         },
         {
           "id": "l4-7",
-          "title": "L4-7 단계",
+          "title": "step L4-7",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -553,7 +553,7 @@
         },
         {
           "id": "l4-8",
-          "title": "L4-8 단계",
+          "title": "step L4-8",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -562,7 +562,7 @@
         },
         {
           "id": "l4-9",
-          "title": "L4-9 단계",
+          "title": "step L4-9",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-site-release.ts",
@@ -577,7 +577,7 @@
     },
     {
       "id": "org-register",
-      "title": "org-register 플로우",
+      "title": "org-register flow",
       "stage": "bootstrap",
       "once": true,
       "requires": [
@@ -586,7 +586,7 @@
       "steps": [
         {
           "id": "l5-1a",
-          "title": "L5-1a 단계",
+          "title": "step L5-1a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -595,7 +595,7 @@
         },
         {
           "id": "l5-1b",
-          "title": "L5-1b 단계",
+          "title": "step L5-1b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -604,7 +604,7 @@
         },
         {
           "id": "l5-2a",
-          "title": "L5-2a 단계",
+          "title": "step L5-2a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -613,7 +613,7 @@
         },
         {
           "id": "l5-2b",
-          "title": "L5-2b 단계",
+          "title": "step L5-2b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -622,7 +622,7 @@
         },
         {
           "id": "l5-3",
-          "title": "L5-3 단계",
+          "title": "step L5-3",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -631,7 +631,7 @@
         },
         {
           "id": "l5-4",
-          "title": "L5-4 단계",
+          "title": "step L5-4",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -640,7 +640,7 @@
         },
         {
           "id": "l5-5",
-          "title": "L5-5 단계",
+          "title": "step L5-5",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -649,7 +649,7 @@
         },
         {
           "id": "l5-5b",
-          "title": "L5-5b 단계",
+          "title": "step L5-5b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -658,7 +658,7 @@
         },
         {
           "id": "l5-5c",
-          "title": "L5-5c 단계",
+          "title": "step L5-5c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -667,7 +667,7 @@
         },
         {
           "id": "l5-6",
-          "title": "L5-6 단계",
+          "title": "step L5-6",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -676,7 +676,7 @@
         },
         {
           "id": "l5-7a",
-          "title": "L5-7a 단계",
+          "title": "step L5-7a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -685,7 +685,7 @@
         },
         {
           "id": "l5-7b",
-          "title": "L5-7b 단계",
+          "title": "step L5-7b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -694,7 +694,7 @@
         },
         {
           "id": "l5-7c",
-          "title": "L5-7c 단계",
+          "title": "step L5-7c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -703,7 +703,7 @@
         },
         {
           "id": "l5-7d",
-          "title": "L5-7d 단계",
+          "title": "step L5-7d",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -712,7 +712,7 @@
         },
         {
           "id": "l5-7e",
-          "title": "L5-7e 단계",
+          "title": "step L5-7e",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -721,7 +721,7 @@
         },
         {
           "id": "l5-7f",
-          "title": "L5-7f 단계",
+          "title": "step L5-7f",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -730,7 +730,7 @@
         },
         {
           "id": "l5-7g",
-          "title": "L5-7g 단계",
+          "title": "step L5-7g",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -739,7 +739,7 @@
         },
         {
           "id": "l5-7h",
-          "title": "L5-7h 단계",
+          "title": "step L5-7h",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -748,7 +748,7 @@
         },
         {
           "id": "l5-7i",
-          "title": "L5-7i 단계",
+          "title": "step L5-7i",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -757,7 +757,7 @@
         },
         {
           "id": "l5-7j",
-          "title": "L5-7j 단계",
+          "title": "step L5-7j",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -766,7 +766,7 @@
         },
         {
           "id": "l5-7k",
-          "title": "L5-7k 단계",
+          "title": "step L5-7k",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -775,7 +775,7 @@
         },
         {
           "id": "l5-8",
-          "title": "L5-8 단계",
+          "title": "step L5-8",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -784,7 +784,7 @@
         },
         {
           "id": "l5-9",
-          "title": "L5-9 단계",
+          "title": "step L5-9",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -793,7 +793,7 @@
         },
         {
           "id": "l5-10",
-          "title": "L5-10 단계",
+          "title": "step L5-10",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-register.ts",
@@ -808,7 +808,7 @@
     },
     {
       "id": "org-login",
-      "title": "org-login 플로우",
+      "title": "org-login flow",
       "stage": "bootstrap",
       "once": false,
       "requires": [
@@ -817,7 +817,7 @@
       "steps": [
         {
           "id": "l3w-1a",
-          "title": "L3w-1a 단계",
+          "title": "step L3w-1a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -826,7 +826,7 @@
         },
         {
           "id": "l3w-2a",
-          "title": "L3w-2a 단계",
+          "title": "step L3w-2a",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -835,7 +835,7 @@
         },
         {
           "id": "l3w-1b",
-          "title": "L3w-1b 단계",
+          "title": "step L3w-1b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -844,7 +844,7 @@
         },
         {
           "id": "l3w-2b",
-          "title": "L3w-2b 단계",
+          "title": "step L3w-2b",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -853,7 +853,7 @@
         },
         {
           "id": "l3w-1c",
-          "title": "L3w-1c 단계",
+          "title": "step L3w-1c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -862,7 +862,7 @@
         },
         {
           "id": "l3w-2c",
-          "title": "L3w-2c 단계",
+          "title": "step L3w-2c",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -871,7 +871,7 @@
         },
         {
           "id": "l3w-1d",
-          "title": "L3w-1d 단계",
+          "title": "step L3w-1d",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -880,7 +880,7 @@
         },
         {
           "id": "l3w-2d",
-          "title": "L3w-2d 단계",
+          "title": "step L3w-2d",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -889,7 +889,7 @@
         },
         {
           "id": "l3w-3",
-          "title": "L3w-3 단계",
+          "title": "step L3w-3",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-org-login.ts",
@@ -904,14 +904,14 @@
     },
     {
       "id": "webhook-register",
-      "title": "webhook-register 플로우",
+      "title": "webhook-register flow",
       "stage": "bootstrap",
       "once": false,
       "requires": [],
       "steps": [
         {
           "id": "n-1",
-          "title": "N-1 단계",
+          "title": "step N-1",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-webhook.ts",
@@ -920,7 +920,7 @@
         },
         {
           "id": "n-2",
-          "title": "N-2 단계",
+          "title": "step N-2",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-webhook.ts",
@@ -929,7 +929,7 @@
         },
         {
           "id": "n-3",
-          "title": "N-3 단계",
+          "title": "step N-3",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-webhook.ts",
@@ -938,7 +938,7 @@
         },
         {
           "id": "n-4",
-          "title": "N-4 단계",
+          "title": "step N-4",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-webhook.ts",
@@ -947,7 +947,7 @@
         },
         {
           "id": "n-5",
-          "title": "N-5 단계",
+          "title": "step N-5",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-webhook.ts",
@@ -956,7 +956,7 @@
         },
         {
           "id": "n-6",
-          "title": "N-6 단계",
+          "title": "step N-6",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-webhook.ts",
@@ -971,14 +971,14 @@
     },
     {
       "id": "partner-roster",
-      "title": "partner-roster 플로우",
+      "title": "partner-roster flow",
       "stage": "bootstrap",
       "once": false,
       "requires": [],
       "steps": [
         {
           "id": "l0-12",
-          "title": "L0-12 단계",
+          "title": "step L0-12",
           "kind": "request",
           "source": {
             "file": "flows/bootstrap-partner-roster.ts",
@@ -993,7 +993,7 @@
     },
     {
       "id": "org-portal-publish",
-      "title": "org-portal-publish 플로우",
+      "title": "org-portal-publish flow",
       "stage": "portal",
       "once": false,
       "requires": [
@@ -1002,7 +1002,7 @@
       "steps": [
         {
           "id": "p-1",
-          "title": "P-1 단계",
+          "title": "step P-1",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1011,7 +1011,7 @@
         },
         {
           "id": "l22-1",
-          "title": "L22-1 단계",
+          "title": "step L22-1",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1020,7 +1020,7 @@
         },
         {
           "id": "l22-2",
-          "title": "L22-2 단계",
+          "title": "step L22-2",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1029,7 +1029,7 @@
         },
         {
           "id": "l22-3",
-          "title": "L22-3 단계",
+          "title": "step L22-3",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1038,7 +1038,7 @@
         },
         {
           "id": "l22-4",
-          "title": "L22-4 단계",
+          "title": "step L22-4",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1047,7 +1047,7 @@
         },
         {
           "id": "l22-5",
-          "title": "L22-5 단계",
+          "title": "step L22-5",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1056,7 +1056,7 @@
         },
         {
           "id": "l22-6",
-          "title": "L22-6 단계",
+          "title": "step L22-6",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1065,7 +1065,7 @@
         },
         {
           "id": "l22-7a",
-          "title": "L22-7a 단계",
+          "title": "step L22-7a",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1074,7 +1074,7 @@
         },
         {
           "id": "l22-7b",
-          "title": "L22-7b 단계",
+          "title": "step L22-7b",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1083,7 +1083,7 @@
         },
         {
           "id": "l22-7c",
-          "title": "L22-7c 단계",
+          "title": "step L22-7c",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1092,7 +1092,7 @@
         },
         {
           "id": "l22-7d",
-          "title": "L22-7d 단계",
+          "title": "step L22-7d",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1101,7 +1101,7 @@
         },
         {
           "id": "l22-7e",
-          "title": "L22-7e 단계",
+          "title": "step L22-7e",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1110,7 +1110,7 @@
         },
         {
           "id": "l22-8",
-          "title": "L22-8 단계",
+          "title": "step L22-8",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1119,7 +1119,7 @@
         },
         {
           "id": "l22-9",
-          "title": "L22-9 단계",
+          "title": "step L22-9",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1128,7 +1128,7 @@
         },
         {
           "id": "l22-10",
-          "title": "L22-10 단계",
+          "title": "step L22-10",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1137,7 +1137,7 @@
         },
         {
           "id": "l22-11",
-          "title": "L22-11 단계",
+          "title": "step L22-11",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1146,7 +1146,7 @@
         },
         {
           "id": "l22-12",
-          "title": "L22-12 단계",
+          "title": "step L22-12",
           "kind": "request",
           "source": {
             "file": "flows/org-portal-publish.ts",
@@ -1161,7 +1161,7 @@
     },
     {
       "id": "inbound",
-      "title": "inbound 플로우",
+      "title": "inbound flow",
       "stage": "inbound",
       "once": false,
       "requires": [
@@ -1170,7 +1170,7 @@
       "steps": [
         {
           "id": "l12-1",
-          "title": "L12-1 단계",
+          "title": "step L12-1",
           "kind": "request",
           "source": {
             "file": "flows/inbound.ts",
@@ -1179,7 +1179,7 @@
         },
         {
           "id": "l12-2",
-          "title": "L12-2 단계",
+          "title": "step L12-2",
           "kind": "wait",
           "source": {
             "file": "flows/inbound.ts",
@@ -1188,7 +1188,7 @@
         },
         {
           "id": "l12-3",
-          "title": "L12-3 단계",
+          "title": "step L12-3",
           "kind": "wait",
           "source": {
             "file": "flows/inbound.ts",
@@ -1203,7 +1203,7 @@
     },
     {
       "id": "review-inbound",
-      "title": "review-inbound 플로우",
+      "title": "review-inbound flow",
       "stage": "inbound",
       "once": false,
       "requires": [
@@ -1213,7 +1213,7 @@
       "steps": [
         {
           "id": "l18-1",
-          "title": "L18-1 단계",
+          "title": "step L18-1",
           "kind": "request",
           "source": {
             "file": "flows/review-inbound.ts",
@@ -1222,7 +1222,7 @@
         },
         {
           "id": "l18-2",
-          "title": "L18-2 단계",
+          "title": "step L18-2",
           "kind": "request",
           "source": {
             "file": "flows/review-inbound.ts",
@@ -1231,7 +1231,7 @@
         },
         {
           "id": "l18-3",
-          "title": "L18-3 단계",
+          "title": "step L18-3",
           "kind": "wait",
           "source": {
             "file": "flows/review-inbound.ts",
@@ -1240,7 +1240,7 @@
         },
         {
           "id": "l18-4",
-          "title": "L18-4 단계",
+          "title": "step L18-4",
           "kind": "request",
           "source": {
             "file": "flows/review-inbound.ts",
@@ -1249,7 +1249,7 @@
         },
         {
           "id": "l18-5",
-          "title": "L18-5 단계",
+          "title": "step L18-5",
           "kind": "wait",
           "source": {
             "file": "flows/review-inbound.ts",
@@ -1264,7 +1264,7 @@
     },
     {
       "id": "collect",
-      "title": "collect 플로우",
+      "title": "collect flow",
       "stage": "collect",
       "once": false,
       "requires": [
@@ -1275,7 +1275,7 @@
       "steps": [
         {
           "id": "p-2",
-          "title": "P-2 단계",
+          "title": "step P-2",
           "kind": "request",
           "source": {
             "file": "flows/collect.ts",
@@ -1284,7 +1284,7 @@
         },
         {
           "id": "l10-3",
-          "title": "L10-3 단계",
+          "title": "step L10-3",
           "kind": "request",
           "source": {
             "file": "flows/collect.ts",
@@ -1293,7 +1293,7 @@
         },
         {
           "id": "l10-4",
-          "title": "L10-4 단계",
+          "title": "step L10-4",
           "kind": "wait",
           "source": {
             "file": "flows/collect.ts",
@@ -1302,7 +1302,7 @@
         },
         {
           "id": "l10-4b",
-          "title": "L10-4b 단계",
+          "title": "step L10-4b",
           "kind": "wait",
           "source": {
             "file": "flows/collect.ts",
@@ -1317,7 +1317,7 @@
     },
     {
       "id": "account-transfer",
-      "title": "account-transfer 플로우",
+      "title": "account-transfer flow",
       "stage": "transfer",
       "once": false,
       "requires": [
@@ -1327,7 +1327,7 @@
       "steps": [
         {
           "id": "p-3",
-          "title": "P-3 단계",
+          "title": "step P-3",
           "kind": "request",
           "source": {
             "file": "flows/account-transfer.ts",
@@ -1336,7 +1336,7 @@
         },
         {
           "id": "l10-5",
-          "title": "L10-5 단계",
+          "title": "step L10-5",
           "kind": "request",
           "source": {
             "file": "flows/account-transfer.ts",
@@ -1345,7 +1345,7 @@
         },
         {
           "id": "l10-6",
-          "title": "L10-6 단계",
+          "title": "step L10-6",
           "kind": "wait",
           "source": {
             "file": "flows/account-transfer.ts",
@@ -1354,7 +1354,7 @@
         },
         {
           "id": "l10-6b",
-          "title": "L10-6b 단계",
+          "title": "step L10-6b",
           "kind": "wait",
           "source": {
             "file": "flows/account-transfer.ts",
@@ -1369,7 +1369,7 @@
     },
     {
       "id": "outbound-callback-reject",
-      "title": "outbound-callback-reject 플로우",
+      "title": "outbound-callback-reject flow",
       "stage": "outbound",
       "once": false,
       "requires": [
@@ -1379,7 +1379,7 @@
       "steps": [
         {
           "id": "p-4",
-          "title": "P-4 단계",
+          "title": "step P-4",
           "kind": "request",
           "source": {
             "file": "flows/outbound-callback-reject.ts",
@@ -1388,7 +1388,7 @@
         },
         {
           "id": "l13-1",
-          "title": "L13-1 단계",
+          "title": "step L13-1",
           "kind": "request",
           "source": {
             "file": "flows/outbound-callback-reject.ts",
@@ -1397,7 +1397,7 @@
         },
         {
           "id": "l13-2",
-          "title": "L13-2 단계",
+          "title": "step L13-2",
           "kind": "request",
           "source": {
             "file": "flows/outbound-callback-reject.ts",
@@ -1406,7 +1406,7 @@
         },
         {
           "id": "l13-3",
-          "title": "L13-3 단계",
+          "title": "step L13-3",
           "kind": "wait",
           "source": {
             "file": "flows/outbound-callback-reject.ts",
@@ -1421,7 +1421,7 @@
     },
     {
       "id": "outbound-allow",
-      "title": "outbound-allow 플로우",
+      "title": "outbound-allow flow",
       "stage": "outbound",
       "once": false,
       "requires": [
@@ -1431,7 +1431,7 @@
       "steps": [
         {
           "id": "p-5",
-          "title": "P-5 단계",
+          "title": "step P-5",
           "kind": "request",
           "source": {
             "file": "flows/outbound.ts",
@@ -1440,7 +1440,7 @@
         },
         {
           "id": "l10-1",
-          "title": "L10-1 단계",
+          "title": "step L10-1",
           "kind": "request",
           "source": {
             "file": "flows/outbound.ts",
@@ -1449,7 +1449,7 @@
         },
         {
           "id": "l10-2",
-          "title": "L10-2 단계",
+          "title": "step L10-2",
           "kind": "wait",
           "source": {
             "file": "flows/outbound.ts",
@@ -1458,7 +1458,7 @@
         },
         {
           "id": "l10-2b",
-          "title": "L10-2b 단계",
+          "title": "step L10-2b",
           "kind": "wait",
           "source": {
             "file": "flows/outbound.ts",
@@ -1473,7 +1473,7 @@
     },
     {
       "id": "outbound-deny",
-      "title": "outbound-deny 플로우",
+      "title": "outbound-deny flow",
       "stage": "outbound",
       "once": false,
       "requires": [
@@ -1483,7 +1483,7 @@
       "steps": [
         {
           "id": "p-6",
-          "title": "P-6 단계",
+          "title": "step P-6",
           "kind": "request",
           "source": {
             "file": "flows/outbound.ts",
@@ -1492,7 +1492,7 @@
         },
         {
           "id": "l11-1",
-          "title": "L11-1 단계",
+          "title": "step L11-1",
           "kind": "request",
           "source": {
             "file": "flows/outbound.ts",
@@ -1501,7 +1501,7 @@
         },
         {
           "id": "l11-2",
-          "title": "L11-2 단계",
+          "title": "step L11-2",
           "kind": "wait",
           "source": {
             "file": "flows/outbound.ts",
@@ -1510,7 +1510,7 @@
         },
         {
           "id": "l11-3",
-          "title": "L11-3 단계",
+          "title": "step L11-3",
           "kind": "request",
           "source": {
             "file": "flows/outbound.ts",
@@ -1519,7 +1519,7 @@
         },
         {
           "id": "l11-4",
-          "title": "L11-4 단계",
+          "title": "step L11-4",
           "kind": "wait",
           "source": {
             "file": "flows/outbound.ts",
@@ -1534,7 +1534,7 @@
     },
     {
       "id": "review-allow",
-      "title": "review-allow 플로우",
+      "title": "review-allow flow",
       "stage": "outbound",
       "once": false,
       "requires": [
@@ -1545,7 +1545,7 @@
       "steps": [
         {
           "id": "p-7",
-          "title": "P-7 단계",
+          "title": "step P-7",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1554,7 +1554,7 @@
         },
         {
           "id": "l15-1",
-          "title": "L15-1 단계",
+          "title": "step L15-1",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1563,7 +1563,7 @@
         },
         {
           "id": "l15-2",
-          "title": "L15-2 단계",
+          "title": "step L15-2",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1572,7 +1572,7 @@
         },
         {
           "id": "l15-3",
-          "title": "L15-3 단계",
+          "title": "step L15-3",
           "kind": "wait",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1581,7 +1581,7 @@
         },
         {
           "id": "l15-4",
-          "title": "L15-4 단계",
+          "title": "step L15-4",
           "kind": "wait",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1590,7 +1590,7 @@
         },
         {
           "id": "l15-5",
-          "title": "L15-5 단계",
+          "title": "step L15-5",
           "kind": "wait",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1605,7 +1605,7 @@
     },
     {
       "id": "review-deny",
-      "title": "review-deny 플로우",
+      "title": "review-deny flow",
       "stage": "outbound",
       "once": false,
       "requires": [
@@ -1615,7 +1615,7 @@
       "steps": [
         {
           "id": "l16-1",
-          "title": "L16-1 단계",
+          "title": "step L16-1",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1624,7 +1624,7 @@
         },
         {
           "id": "l16-2",
-          "title": "L16-2 단계",
+          "title": "step L16-2",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1633,7 +1633,7 @@
         },
         {
           "id": "l16-3",
-          "title": "L16-3 단계",
+          "title": "step L16-3",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1642,7 +1642,7 @@
         },
         {
           "id": "l16-4",
-          "title": "L16-4 단계",
+          "title": "step L16-4",
           "kind": "wait",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1657,7 +1657,7 @@
     },
     {
       "id": "review-address-not-found",
-      "title": "review-address-not-found 플로우",
+      "title": "review-address-not-found flow",
       "stage": "outbound",
       "once": false,
       "requires": [
@@ -1667,7 +1667,7 @@
       "steps": [
         {
           "id": "l17-1",
-          "title": "L17-1 단계",
+          "title": "step L17-1",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1676,7 +1676,7 @@
         },
         {
           "id": "l17-2",
-          "title": "L17-2 단계",
+          "title": "step L17-2",
           "kind": "request",
           "source": {
             "file": "flows/review-outbound.ts",
@@ -1691,14 +1691,14 @@
     },
     {
       "id": "partner-roster-registry",
-      "title": "partner-roster-registry 플로우",
+      "title": "partner-roster-registry flow",
       "stage": "roster",
       "once": false,
       "requires": [],
       "steps": [
         {
           "id": "l19-1",
-          "title": "L19-1 단계",
+          "title": "step L19-1",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-registry.ts",
@@ -1707,7 +1707,7 @@
         },
         {
           "id": "l19-2",
-          "title": "L19-2 단계",
+          "title": "step L19-2",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-registry.ts",
@@ -1716,7 +1716,7 @@
         },
         {
           "id": "l19-3",
-          "title": "L19-3 단계",
+          "title": "step L19-3",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-registry.ts",
@@ -1725,7 +1725,7 @@
         },
         {
           "id": "l19-4",
-          "title": "L19-4 단계",
+          "title": "step L19-4",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-registry.ts",
@@ -1734,7 +1734,7 @@
         },
         {
           "id": "l19-5",
-          "title": "L19-5 단계",
+          "title": "step L19-5",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-registry.ts",
@@ -1743,7 +1743,7 @@
         },
         {
           "id": "l19-6",
-          "title": "L19-6 단계",
+          "title": "step L19-6",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-registry.ts",
@@ -1752,7 +1752,7 @@
         },
         {
           "id": "l19-7",
-          "title": "L19-7 단계",
+          "title": "step L19-7",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-registry.ts",
@@ -1767,7 +1767,7 @@
     },
     {
       "id": "partner-roster-outbound",
-      "title": "partner-roster-outbound 플로우",
+      "title": "partner-roster-outbound flow",
       "stage": "roster",
       "once": false,
       "requires": [
@@ -1777,7 +1777,7 @@
       "steps": [
         {
           "id": "l20-1",
-          "title": "L20-1 단계",
+          "title": "step L20-1",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-outbound.ts",
@@ -1786,7 +1786,7 @@
         },
         {
           "id": "l20-2",
-          "title": "L20-2 단계",
+          "title": "step L20-2",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-outbound.ts",
@@ -1795,7 +1795,7 @@
         },
         {
           "id": "l20-3",
-          "title": "L20-3 단계",
+          "title": "step L20-3",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-outbound.ts",
@@ -1804,7 +1804,7 @@
         },
         {
           "id": "l20-4",
-          "title": "L20-4 단계",
+          "title": "step L20-4",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-outbound.ts",
@@ -1813,7 +1813,7 @@
         },
         {
           "id": "l20-5",
-          "title": "L20-5 단계",
+          "title": "step L20-5",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-outbound.ts",
@@ -1822,7 +1822,7 @@
         },
         {
           "id": "l20-6",
-          "title": "L20-6 단계",
+          "title": "step L20-6",
           "kind": "wait",
           "source": {
             "file": "flows/partner-roster-outbound.ts",
@@ -1831,7 +1831,7 @@
         },
         {
           "id": "l20-7",
-          "title": "L20-7 단계",
+          "title": "step L20-7",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-outbound.ts",
@@ -1846,14 +1846,14 @@
     },
     {
       "id": "partner-roster-inbound",
-      "title": "partner-roster-inbound 플로우",
+      "title": "partner-roster-inbound flow",
       "stage": "roster",
       "once": false,
       "requires": [],
       "steps": [
         {
           "id": "l21-1",
-          "title": "L21-1 단계",
+          "title": "step L21-1",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-inbound.ts",
@@ -1862,7 +1862,7 @@
         },
         {
           "id": "l21-2",
-          "title": "L21-2 단계",
+          "title": "step L21-2",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-inbound.ts",
@@ -1871,7 +1871,7 @@
         },
         {
           "id": "l21-3",
-          "title": "L21-3 단계",
+          "title": "step L21-3",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-inbound.ts",
@@ -1880,7 +1880,7 @@
         },
         {
           "id": "l21-4",
-          "title": "L21-4 단계",
+          "title": "step L21-4",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-inbound.ts",
@@ -1889,7 +1889,7 @@
         },
         {
           "id": "l21-5",
-          "title": "L21-5 단계",
+          "title": "step L21-5",
           "kind": "request",
           "source": {
             "file": "flows/partner-roster-inbound.ts",
@@ -1904,7 +1904,7 @@
     },
     {
       "id": "auth-boundaries",
-      "title": "auth-boundaries 플로우",
+      "title": "auth-boundaries flow",
       "stage": "auth",
       "once": false,
       "requires": [
@@ -1913,7 +1913,7 @@
       "steps": [
         {
           "id": "b-1",
-          "title": "B-1 단계",
+          "title": "step B-1",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1922,7 +1922,7 @@
         },
         {
           "id": "b-2",
-          "title": "B-2 단계",
+          "title": "step B-2",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1931,7 +1931,7 @@
         },
         {
           "id": "b-3",
-          "title": "B-3 단계",
+          "title": "step B-3",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1940,7 +1940,7 @@
         },
         {
           "id": "b-4",
-          "title": "B-4 단계",
+          "title": "step B-4",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1949,7 +1949,7 @@
         },
         {
           "id": "b-5",
-          "title": "B-5 단계",
+          "title": "step B-5",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1958,7 +1958,7 @@
         },
         {
           "id": "b-6",
-          "title": "B-6 단계",
+          "title": "step B-6",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1967,7 +1967,7 @@
         },
         {
           "id": "b-7",
-          "title": "B-7 단계",
+          "title": "step B-7",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1976,7 +1976,7 @@
         },
         {
           "id": "b-8",
-          "title": "B-8 단계",
+          "title": "step B-8",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1985,7 +1985,7 @@
         },
         {
           "id": "b-9",
-          "title": "B-9 단계",
+          "title": "step B-9",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -1994,7 +1994,7 @@
         },
         {
           "id": "b-10",
-          "title": "B-10 단계",
+          "title": "step B-10",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -2003,7 +2003,7 @@
         },
         {
           "id": "b-10b",
-          "title": "B-10b 단계",
+          "title": "step B-10b",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -2012,7 +2012,7 @@
         },
         {
           "id": "b-11",
-          "title": "B-11 단계",
+          "title": "step B-11",
           "kind": "request",
           "source": {
             "file": "flows/auth-boundaries.ts",
@@ -2027,7 +2027,7 @@
     },
     {
       "id": "webhook-forgery",
-      "title": "webhook-forgery 플로우",
+      "title": "webhook-forgery flow",
       "stage": "auth",
       "once": false,
       "requires": [
@@ -2036,7 +2036,7 @@
       "steps": [
         {
           "id": "b-12",
-          "title": "B-12 단계",
+          "title": "step B-12",
           "kind": "request",
           "source": {
             "file": "flows/webhook-forgery.ts",
@@ -2045,7 +2045,7 @@
         },
         {
           "id": "b-13",
-          "title": "B-13 단계",
+          "title": "step B-13",
           "kind": "wait",
           "source": {
             "file": "flows/webhook-forgery.ts",

@@ -18,10 +18,10 @@ type Attempt struct {
 
 func Attempts(canaryPort string) []Attempt {
 	return []Attempt{
-		{Key: "tcp", Label: "외부 IP TCP 1.1.1.1:443", Try: tcpTry("1.1.1.1:443")},
-		{Key: "dns", Label: "외부 호스트명 DNS example.com", Try: dnsTry("example.com")},
-		{Key: "host", Label: "호스트 카나리 host.docker.internal:" + canaryPort, Try: tcpTry(net.JoinHostPort("host.docker.internal", canaryPort))},
-		{Key: "udp", Label: "외부 UDP 1.1.1.1:53", Try: udpTry("1.1.1.1:53")},
+		{Key: "tcp", Label: "external IP TCP 1.1.1.1:443", Try: tcpTry("1.1.1.1:443")},
+		{Key: "dns", Label: "external hostname DNS example.com", Try: dnsTry("example.com")},
+		{Key: "host", Label: "host canary host.docker.internal:" + canaryPort, Try: tcpTry(net.JoinHostPort("host.docker.internal", canaryPort))},
+		{Key: "udp", Label: "external UDP 1.1.1.1:53", Try: udpTry("1.1.1.1:53")},
 	}
 }
 

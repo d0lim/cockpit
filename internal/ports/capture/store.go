@@ -39,7 +39,7 @@ func (s *Store) Get(name string) (string, error) {
 	defer s.mu.Unlock()
 	value, ok := s.byName[name]
 	if !ok {
-		return "", ports.BadArgs(s.mask, "캡처 "+name+" 이 없다 — 앞 단계나 전제 플로우가 남기지 않았다")
+		return "", ports.BadArgs(s.mask, "capture "+name+" is missing — no earlier step or prerequisite flow left it")
 	}
 	return value, nil
 }

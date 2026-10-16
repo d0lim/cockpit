@@ -7,7 +7,7 @@ import (
 
 const (
 	marker     = "****"
-	pemMarker  = "[PEM 가림]"
+	pemMarker  = "[PEM redacted]"
 	jsSpace    = `\t\n\v\f\r \x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}\x{feff}`
 	secretKey  = `(?:credential|[\w-]*token|[\w-]*secret|password|session|api[_-]?key|authorization|cookie)`
 	valueClass = `[^"\r\n<>]+?`

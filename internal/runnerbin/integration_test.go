@@ -28,7 +28,7 @@ const integrationSuite = `import { type Ctx, flow, stage, step, suite } from "co
 
 export default suite({
 	name: "fake",
-	stages: [stage({ id: "boot", title: "부트" })],
+	stages: [stage({ id: "boot", title: "boot" })],
 	flows: [
 		flow({
 			id: "alpha",
@@ -59,13 +59,13 @@ func dockerOut(t *testing.T, ctx context.Context, args ...string) (string, error
 	return strings.TrimSpace(string(out)), err
 }
 
-func TestIntegration_내장_러너로_만든_이미지는_같은_버전을_말하고_셸이_없으며_비_root_로_bind_에_쓴다(t *testing.T) {
+func TestIntegrationEmbeddedRunnerImageReportsSameVersionHasNoShellAndWritesBindsAsNonRoot(t *testing.T) {
 	if os.Getenv("COCKPIT_DOCKER") != "1" {
-		t.Skip("COCKPIT_DOCKER=1 과 scripts/build-runners.sh 가 필요하다")
+		t.Skip("needs COCKPIT_DOCKER=1 and scripts/build-runners.sh")
 	}
 	version, err := os.ReadFile("bin/VERSION")
 	if err != nil {
-		t.Skip("bin/VERSION 이 없다 — scripts/build-runners.sh 를 먼저 돌린다")
+		t.Skip("bin/VERSION is missing; run scripts/build-runners.sh first")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -77,7 +77,7 @@ func TestIntegration_내장_러너로_만든_이미지는_같은_버전을_말�
 	}
 	again, err := Ensure(ctx, d, Lookup, pins)
 	if err != nil || again != img || d.imports != 1 {
-		t.Fatalf("둘째 보장: %+v %v imports=%d", again, err, d.imports)
+		t.Fatalf("second ensure: %+v %v imports=%d", again, err, d.imports)
 	}
 	platform := "linux/" + img.Arch
 	out, err := dockerOut(t, ctx, "run", "--rm", "--platform", platform, img.Tag, "--version")
@@ -85,7 +85,7 @@ func TestIntegration_내장_러너로_만든_이미지는_같은_버전을_말�
 		t.Fatalf("--version: %q %v", out, err)
 	}
 	if out, err := dockerOut(t, ctx, "run", "--rm", "--platform", platform, "--entrypoint", "sh", img.Tag, "-c", "true"); err == nil || !strings.Contains(out, "executable file not found") {
-		t.Fatalf("sh 가 있다: %q %v", out, err)
+		t.Fatalf("sh is present: %q %v", out, err)
 	}
 	root := t.TempDir()
 	scripts := filepath.Join(root, "scripts")

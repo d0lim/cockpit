@@ -21,11 +21,11 @@ const rfcSeed = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
 const plantedSeed = "PLANTEDSEEDAAAAABBBBBCCCCCDDDDD2"
 
 var totpMutations = []porttest.Mutation{
-	{"RFC 6238 코드", "HMAC 의 동적 절단 오프셋을 0 으로 고정한다", "빨강: 59초 벡터가 287082 가 아니다", "TestRFC_6238_벡터와_base32_디코드가_맞는다"},
-	{"같은 창의 둘째 발급은 다음 창을 기다림", "ChooseStep 이 last 를 무시한다", "빨강: 둘째 발급이 기다리지 않고 같은 스텝을 낸다", "Test같은_계정의_같은_30초_창에서_둘째_발급은_다음_창을_기다리고_스텝을_먼저_적는다"},
-	{"스텝을 코드보다 먼저 적음", "Issue 가 코드를 만든 뒤 CommitStep 을 부른다", "빨강: 적기가 실패해도 코드가 나간다", "Test같은_계정의_같은_30초_창에서_둘째_발급은_다음_창을_기다리고_스텝을_먼저_적는다"},
-	{"시드는 오류 문장에 없음", "모르는 계정 오류에 시드 값을 싣는다", "빨강: 오류 문장에 PLANTED 시드가 보인다", "Test모르는_계정과_빈_시드는_거부되고_오류_문장에_시드가_없다"},
-	{"제자리 저장", "SeedFile.Save 가 rename 으로 쓴다", "빨강: inode 가 바뀌고 mode 가 0600 이 아니다", "Test시드_저장은_private_env_를_제자리에서_다시_쓰고_다른_절을_보존한다"},
+	{"RFC 6238 codes", "pin the HMAC dynamic truncation offset to 0", "red: the 59-second vector is not 287082", "TestRFC6238VectorsAndBase32DecodingMatch"},
+	{"a second issue in the same window waits for the next window", "ChooseStep ignores last", "red: the second issue returns the same step without waiting", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
+	{"the step is recorded before the code", "Issue calls CommitStep after making the code", "red: a code goes out even when recording the step fails", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
+	{"the seed never appears in error messages", "put the seed value in the unknown account error", "red: the PLANTED seed shows in the error message", "TestUnknownAccountAndEmptySeedAreRejectedWithoutTheSeedInTheMessage"},
+	{"in-place save", "SeedFile.Save writes through rename", "red: the inode changes and the mode is not 0600", "TestSeedSaveRewritesPrivateEnvInPlaceAndKeepsOtherSections"},
 }
 
 type fakeSteps struct {
@@ -62,13 +62,13 @@ func issuer(now *int64, steps *fakeSteps, slept *[]int64) Issuer {
 	}
 }
 
-func TestRFC_6238_벡터와_base32_디코드가_맞는다(t *testing.T) {
+func TestRFC6238VectorsAndBase32DecodingMatch(t *testing.T) {
 	raw, err := DecodeBase32("MZXW6===")
 	if err != nil || string(raw) != "foo" {
 		t.Fatalf("%q %v", raw, err)
 	}
 	if _, err := DecodeBase32("MZXW6=1="); err == nil {
-		t.Fatal("알파벳 밖 문자")
+		t.Fatal("character outside the alphabet")
 	}
 	code, err := At(rfcSeed, 1)
 	if err != nil || code != "287082" {
@@ -80,30 +80,30 @@ func TestRFC_6238_벡터와_base32_디코드가_맞는다(t *testing.T) {
 	}
 }
 
-func Test같은_계정의_같은_30초_창에서_둘째_발급은_다음_창을_기다리고_스텝을_먼저_적는다(t *testing.T) {
+func TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst(t *testing.T) {
 	now := int64(90_000 + 100)
 	steps := &fakeSteps{last: map[string]int64{}}
 	var slept []int64
 	iss := issuer(&now, steps, &slept)
 	first, err := iss.Issue(context.Background(), "admin-1")
 	if err != nil || first == "" || len(slept) != 0 || steps.commits[0] != 3 {
-		t.Fatalf("첫 발급: %q %v slept=%v commits=%v", first, err, slept, steps.commits)
+		t.Fatalf("first issue: %q %v slept=%v commits=%v", first, err, slept, steps.commits)
 	}
 	second, err := iss.Issue(context.Background(), "admin-1")
 	if err != nil || second == "" || len(slept) != 0 || steps.commits[1] != 4 {
-		t.Fatalf("둘째 발급(다음 창은 검증 창 안이라 기다리지 않는다): %q %v slept=%v commits=%v", second, err, slept, steps.commits)
+		t.Fatalf("second issue (the next window is inside the verify window, so no wait): %q %v slept=%v commits=%v", second, err, slept, steps.commits)
 	}
 	third, err := iss.Issue(context.Background(), "admin-1")
 	if err != nil || third == "" || len(slept) != 1 || slept[0] != 4*30_000-(90_000+100)+300 || steps.commits[2] != 5 {
-		t.Fatalf("셋째 발급은 창 밖이라 기다린다: %q %v slept=%v commits=%v", third, err, slept, steps.commits)
+		t.Fatalf("third issue is outside the window, so it waits: %q %v slept=%v commits=%v", third, err, slept, steps.commits)
 	}
 	steps.fail = true
 	if code, err := iss.Issue(context.Background(), "admin-1"); err == nil || code != "" {
-		t.Fatalf("적기 실패면 코드가 나가지 않는다: %q %v", code, err)
+		t.Fatalf("no code goes out when recording the step fails: %q %v", code, err)
 	}
 }
 
-func Test모르는_계정과_빈_시드는_거부되고_오류_문장에_시드가_없다(t *testing.T) {
+func TestUnknownAccountAndEmptySeedAreRejectedWithoutTheSeedInTheMessage(t *testing.T) {
 	now := int64(0)
 	steps := &fakeSteps{last: map[string]int64{}}
 	var slept []int64
@@ -130,7 +130,7 @@ func Test모르는_계정과_빈_시드는_거부되고_오류_문장에_시드�
 	}
 }
 
-func Test시드_저장은_private_env_를_제자리에서_다시_쓰고_다른_절을_보존한다(t *testing.T) {
+func TestSeedSaveRewritesPrivateEnvInPlaceAndKeepsOtherSections(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "e2e.private.env.json")
 	if err := os.WriteFile(path, []byte(`{"local":{"adminPassword":"PLANTED-pw-123456"},"meta":{"generatedAt":"t0"}}`), 0o600); err != nil {
 		t.Fatal(err)
@@ -150,7 +150,7 @@ func Test시드_저장은_private_env_를_제자리에서_다시_쓰고_다른_�
 		t.Fatalf("%s %v", raw, err)
 	}
 	if _, err := (SeedFile{Path: filepath.Join(t.TempDir(), "missing.json")}).Save("k", "v"); err == nil {
-		t.Fatal("없는 파일은 만들지 않는다")
+		t.Fatal("a missing file must not be created")
 	}
 	got, err := ReadPrivateEnv(path)
 	if err != nil || got["totpSecret1"] != plantedSeed {
@@ -158,6 +158,6 @@ func Test시드_저장은_private_env_를_제자리에서_다시_쓰고_다른_�
 	}
 }
 
-func Test2팩터_변이_기록표는_이_파일의_시험과_양방향으로_같다(t *testing.T) {
+func TestTOTPMutationRecordMatchesTestsInThisFile(t *testing.T) {
 	porttest.AssertMutationRecord(t, "totp_test.go", totpMutations)
 }

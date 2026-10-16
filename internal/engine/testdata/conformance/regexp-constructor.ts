@@ -12,10 +12,10 @@ function keyPattern(): RegExp {
 
 export default function (): void {
 	const pattern = keyPattern();
-	check("생성자가 플래그를 받는다", pattern.flags === "gi" && pattern.global && pattern.ignoreCase);
+	check("constructor takes flags", pattern.flags === "gi" && pattern.global && pattern.ignoreCase);
 	const masked = `{"accessToken":"abc123","id":"x"}`.replace(pattern, (_, head: string) => `${head}****`);
-	check("게으른 수량자와 앞보기", masked === `{"accessToken":"****","id":"x"}`);
+	check("lazy quantifier and lookahead", masked === `{"accessToken":"****","id":"x"}`);
 	const truncated = `"Password": "open`.replace(keyPattern(), (_, head: string) => `${head}****`);
-	check("끝($)에서도 멈춘다", truncated === `"Password": "****`);
-	check("source 가 패턴을 돌려준다", new RegExp("a+b", "y").source === "a+b");
+	check("also stops at the end ($)", truncated === `"Password": "****`);
+	check("source returns the pattern", new RegExp("a+b", "y").source === "a+b");
 }

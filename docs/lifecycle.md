@@ -1,3 +1,3 @@
-# 수명
+# Lifecycle
 
-런의 상태와 전이표, 대기열·보존 풀·떠 있는 상한·정지 후보·Docker 대사의 규칙을 적는 자리다. 허브의 런 상태·수명을 만들 때 채운다.
+This page is the place for the run states and the transition table, and for the rules of the queue, the kept pool, the running cap, stop candidates and Docker reconciliation. It is filled in when the hub's run state and lifecycle are built.

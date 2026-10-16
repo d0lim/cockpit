@@ -14,10 +14,10 @@ func rescanUnreadableScenario(e engine) []string {
 	}
 	clean, _ := New(Options{Mode: Hub, Known: []string{planted}})
 	dir, done, err := tree(map[string]string{
-		"clean.txt":      "상태 200",
-		"masked.txt":     clean.Mask("값 " + planted),
-		"leaky.txt":      "값 " + planted,
-		"sub/locked.txt": "상태 200",
+		"clean.txt":      "status 200",
+		"masked.txt":     clean.Mask("value " + planted),
+		"leaky.txt":      "value " + planted,
+		"sub/locked.txt": "status 200",
 	})
 	defer done()
 	if err != nil {
@@ -37,7 +37,7 @@ func rescanUnreadableScenario(e engine) []string {
 	case err != nil:
 		return []string{err.Error()}
 	case !slices.Equal(r.Left, want) || r.Scanned != 4:
-		return []string{fmt.Sprintf("남은 파일 %q·살핀 %d건, 기대 %q·4건", r.Left, r.Scanned, want)}
+		return []string{fmt.Sprintf("left files %q and scanned %d, want %q and 4", r.Left, r.Scanned, want)}
 	}
 	return nil
 }
@@ -47,12 +47,12 @@ func rescanLinkScenario(e engine) []string {
 	if err != nil {
 		return []string{err.Error()}
 	}
-	outside, doneOut, err := tree(map[string]string{"clean.txt": "상태 200", "nested/inner.txt": "값 " + planted})
+	outside, doneOut, err := tree(map[string]string{"clean.txt": "status 200", "nested/inner.txt": "value " + planted})
 	defer doneOut()
 	if err != nil {
 		return []string{err.Error()}
 	}
-	dir, done, err := tree(map[string]string{"ok.txt": "상태 200"})
+	dir, done, err := tree(map[string]string{"ok.txt": "status 200"})
 	defer done()
 	if err != nil {
 		return []string{err.Error()}
@@ -68,7 +68,7 @@ func rescanLinkScenario(e engine) []string {
 	case err != nil:
 		return []string{err.Error()}
 	case !slices.Equal(r.Left, []string{"dir-link", "file-link.txt"}) || r.Scanned != 3:
-		return []string{fmt.Sprintf("남은 파일 %q·살핀 %d건, 기대 [dir-link file-link.txt]·3건", r.Left, r.Scanned)}
+		return []string{fmt.Sprintf("left files %q and scanned %d, want [dir-link file-link.txt] and 3", r.Left, r.Scanned)}
 	}
 	return nil
 }
@@ -84,7 +84,7 @@ func rescanMissingDirScenario(e engine) []string {
 		return []string{err.Error()}
 	}
 	if _, err := e.rescan(filepath.Join(dir, "absent"), m.Mask); err == nil {
-		return []string{"없는 디렉토리를 재스캔했는데 오류가 없다"}
+		return []string{"rescanning a missing directory returned no error"}
 	}
 	return nil
 }

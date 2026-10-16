@@ -49,17 +49,17 @@ func readDoc(path string) (map[string]any, map[string]string, error) {
 	}
 	var doc map[string]any
 	if err := json.Unmarshal(raw, &doc); err != nil {
-		return nil, nil, errors.New("private env 가 JSON 객체가 아니다")
+		return nil, nil, errors.New("private env is not a JSON object")
 	}
 	values, ok := doc[section].(map[string]any)
 	if !ok {
-		return nil, nil, errors.New("private env 에 \"" + section + "\" 절이 없다")
+		return nil, nil, errors.New("private env has no \"" + section + "\" section")
 	}
 	local := map[string]string{}
 	for k, v := range values {
 		s, ok := v.(string)
 		if !ok {
-			return nil, nil, errors.New("private env 의 " + k + " 값이 문자열이 아니다")
+			return nil, nil, errors.New("private env value " + k + " is not a string")
 		}
 		local[k] = s
 	}

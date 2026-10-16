@@ -14,23 +14,23 @@ type scenario struct {
 }
 
 var scenarios = []scenario{
-	{"가린 뒤 자르면 경계에 걸친 심은 값의 조각이 남지 않고 자른 뒤 가리면 조각이 남는다", summarizeOrderScenario},
-	{"허브 모드는 8자 미만 값을 등록하지 않고 러너 모드는 6자부터 끝자리 없이 가린다", modeBoundsScenario},
-	{"선언 패턴이 RE2 로 읽히지 않으면 마스커를 만들지 않고 몇 번째 패턴인지 알린다", invalidPatternScenario},
-	{"값 목록을 바꾼 마스커는 모드와 선언 패턴을 잇고 원래 마스커의 값 목록은 그대로다", withKnownScenario},
-	{"선언 원천에 적지 않은 env 생성 산출물의 값도 가리고 공개 이름의 값은 가리지 않는다", outputsAndPublicScenario},
-	{"빈 값과 ${VAR} 리터럴은 등록하지 않고 원천과 이름을 누락으로 보고한다", missingScenario},
-	{"값 원천을 읽거나 해석하지 못하면 반쯤 만든 목록 없이 오류만 돌려준다", refreshFailureScenario},
-	{"재스캔은 읽지 못한 파일과 값이 남은 파일을 남은 것으로 세고 살핀 건수를 낸다", rescanUnreadableScenario},
-	{"재스캔은 심볼릭 링크를 따르지 않는다 — 링크는 남은 것이고 링크된 디렉토리 안은 보지 않는다", rescanLinkScenario},
-	{"재스캔할 디렉토리를 열지 못하면 오류를 돌려준다", rescanMissingDirScenario},
-	{"구조화 신호의 문자열 잎에 심은 값은 가려지고 구조와 숫자는 남는다", leavesPlantedScenario},
-	{"자격 이름 키의 배열 값은 원소를 전부 가리고 다른 키의 배열은 둔다", leavesArrayScenario},
-	{"자격 이름 키의 숫자와 참거짓 값도 가리고 다른 키의 숫자는 둔다", leavesScalarScenario},
-	{"모르는 타입의 값은 JSON 으로 풀어 잎과 키 규칙을 적용한다", leavesUnknownTypeScenario},
+	{"masking before truncating leaves no fragment of a planted value at the cut while truncating first does", summarizeOrderScenario},
+	{"hub mode skips values under 8 characters and runner mode masks from 6 characters without a visible tail", modeBoundsScenario},
+	{"a declared pattern that is not valid RE2 fails masker construction and names its index", invalidPatternScenario},
+	{"a masker with a new value list keeps the mode and declared patterns and the original keeps its value list", withKnownScenario},
+	{"values from generated env outputs outside the declared sources are masked and public names stay visible", outputsAndPublicScenario},
+	{"empty values and ${VAR} literals are not registered and are reported missing with source and name", missingScenario},
+	{"a value source that cannot be read or parsed returns only an error and no partial list", refreshFailureScenario},
+	{"rescan reports unreadable files and files with values left and counts the files it scanned", rescanUnreadableScenario},
+	{"rescan does not follow symlinks, reports links as left and skips the inside of linked directories", rescanLinkScenario},
+	{"rescan returns an error when it cannot open the directory", rescanMissingDirScenario},
+	{"planted values in string leaves of a structured signal are masked while structure and numbers stay", leavesPlantedScenario},
+	{"arrays under credential-named keys have every element masked and arrays under other keys stay", leavesArrayScenario},
+	{"numbers and booleans under credential-named keys are masked and numbers under other keys stay", leavesScalarScenario},
+	{"values of unknown types go through JSON before the leaf and key rules apply", leavesUnknownTypeScenario},
 }
 
-func Test마스커_시나리오는_실제_엔진에서_전부_통과한다(t *testing.T) {
+func TestMaskerScenariosAllPassOnTheRealEngine(t *testing.T) {
 	ran := 0
 	for _, s := range scenarios {
 		t.Run(s.name, func(t *testing.T) {
@@ -41,13 +41,13 @@ func Test마스커_시나리오는_실제_엔진에서_전부_통과한다(t *te
 		})
 	}
 	if ran == 0 || ran != len(scenarios) {
-		t.Fatalf("시나리오 실행 %d건, 등록 %d건", ran, len(scenarios))
+		t.Fatalf("ran %d scenarios, registered %d", ran, len(scenarios))
 	}
 }
 
 func expectEqual(label, got, want string) []string {
 	if got != want {
-		return []string{fmt.Sprintf("%s: 결과 %q, 기대 %q", label, got, want)}
+		return []string{fmt.Sprintf("%s: got %q, want %q", label, got, want)}
 	}
 	return nil
 }
@@ -61,7 +61,7 @@ func truncate(s string, max int) string {
 
 func summarizeOrderScenario(e engine) []string {
 	var f []string
-	text := strings.Repeat("가", 10) + planted + " 뒤 문장"
+	text := strings.Repeat("가", 10) + planted + " trailing text"
 	fragment := planted[:5]
 	for _, mode := range []Mode{Hub, Runner} {
 		m, err := e.build(Options{Mode: mode, Known: []string{planted}})
@@ -70,10 +70,10 @@ func summarizeOrderScenario(e engine) []string {
 		}
 		got := e.summarize(m, text, 15)
 		if strings.Contains(got, fragment) || !strings.Contains(got, marker) {
-			f = append(f, fmt.Sprintf("모드 %d: 요약 %q 에 원문 조각이 남았거나 표식이 없다", mode, got))
+			f = append(f, fmt.Sprintf("mode %d: summary %q keeps a raw fragment or lacks the marker", mode, got))
 		}
 		if cut := m.Mask(truncate(text, 15)); !strings.Contains(cut, fragment) {
-			f = append(f, fmt.Sprintf("모드 %d: 자른 뒤 가린 대조군 %q 에 조각이 없다", mode, cut))
+			f = append(f, fmt.Sprintf("mode %d: truncate-then-mask control %q lacks the fragment", mode, cut))
 		}
 	}
 	return f
@@ -89,16 +89,16 @@ func modeBoundsScenario(e engine) []string {
 		return []string{err.Error()}
 	}
 	return append(append(append(
-		expectEqual("허브 7자", e.mask(hub, "x abc1234 y"), "x abc1234 y"),
-		expectEqual("허브 8자", e.mask(hub, "x abcd1234 y"), "x ****1234 y")...),
-		expectEqual("러너 5자", e.mask(runner, "x ab123 y"), "x ab123 y")...),
-		expectEqual("러너 6자", e.mask(runner, "x ab1234 y"), "x **** y")...)
+		expectEqual("hub 7 chars", e.mask(hub, "x abc1234 y"), "x abc1234 y"),
+		expectEqual("hub 8 chars", e.mask(hub, "x abcd1234 y"), "x ****1234 y")...),
+		expectEqual("runner 5 chars", e.mask(runner, "x ab123 y"), "x ab123 y")...),
+		expectEqual("runner 6 chars", e.mask(runner, "x ab1234 y"), "x **** y")...)
 }
 
 func invalidPatternScenario(e engine) []string {
 	_, err := e.build(Options{Mode: Hub, Patterns: []string{`ok_[a-z]{8,}`, `(?<![A-Za-z])sk_`}})
-	if err == nil || !strings.Contains(err.Error(), "선언 패턴 1 ") {
-		return []string{fmt.Sprintf("오류 %v 가 둘째 패턴을 짚지 않는다", err)}
+	if err == nil || !strings.Contains(err.Error(), "declared pattern 1 ") {
+		return []string{fmt.Sprintf("error %v does not point at the second pattern", err)}
 	}
 	return nil
 }
@@ -111,6 +111,6 @@ func withKnownScenario(e engine) []string {
 	next := e.withKnown(base, []string{planted})
 	line := "v " + planted + " k pk_abcdefgh12"
 	return append(
-		expectEqual("바꾼 마스커", e.mask(next, line), "v ****3a9c k pk_****gh12"),
-		expectEqual("원래 마스커", e.mask(base, line), "v "+planted+" k pk_****gh12")...)
+		expectEqual("new masker", e.mask(next, line), "v ****3a9c k pk_****gh12"),
+		expectEqual("original masker", e.mask(base, line), "v "+planted+" k pk_****gh12")...)
 }

@@ -91,12 +91,12 @@ func loadCorpus(t testing.TB) corpusFile {
 	dec.DisallowUnknownFields()
 	var c corpusFile
 	if err := dec.Decode(&c); err != nil {
-		t.Fatalf("코퍼스를 읽지 못했다: %v", err)
+		t.Fatalf("cannot read corpus: %v", err)
 	}
 	return c
 }
 
-func Test코퍼스_사례는_전부_기대와_같고_출처별_실행_건수가_표와_같다(t *testing.T) {
+func TestCorpusCasesAllMeetExpectationsAndRunCountsPerOriginMatchTheTable(t *testing.T) {
 	c := loadCorpus(t)
 	ran := map[string]int{}
 	for _, k := range c.Cases {
@@ -108,22 +108,22 @@ func Test코퍼스_사례는_전부_기대와_같고_출처별_실행_건수가_
 		})
 	}
 	if !maps.Equal(ran, corpusCounts) {
-		t.Fatalf("출처별 실행 건수 %v, 표 %v", ran, corpusCounts)
+		t.Fatalf("runs per origin %v, table %v", ran, corpusCounts)
 	}
 }
 
-func Test코퍼스_사례는_이름이_겹치지_않고_검사와_단계마다_단정이_하나_이상_있다(t *testing.T) {
+func TestCorpusCaseNamesAreUniqueAndEveryCheckAndStepHasAnAssertion(t *testing.T) {
 	c := loadCorpus(t)
 	seen := map[string]bool{}
 	asserted := 0
 	for _, k := range c.Cases {
 		if seen[k.Name] {
-			t.Errorf("이름이 겹친다: %s", k.Name)
+			t.Errorf("duplicate name: %s", k.Name)
 		}
 		seen[k.Name] = true
 		for i, ch := range k.Checks {
 			if ch.Expect == nil && len(ch.Contains) == 0 && len(ch.NotContains) == 0 && !ch.Idempotent {
-				t.Errorf("%s: 검사 %d 에 단정이 없다", k.Name, i)
+				t.Errorf("%s: check %d asserts nothing", k.Name, i)
 			}
 			asserted++
 		}
@@ -137,12 +137,12 @@ func Test코퍼스_사례는_이름이_겹치지_않고_검사와_단계마다_�
 			}
 		}
 		if k.Kind == "run" && steps == 0 {
-			t.Errorf("%s: 단정하는 단계가 없다", k.Name)
+			t.Errorf("%s: no step asserts anything", k.Name)
 		}
 		asserted += steps
 	}
 	if asserted == 0 {
-		t.Fatal("단정 0건")
+		t.Fatal("zero assertions")
 	}
 }
 
@@ -156,7 +156,7 @@ func asserts(s step) bool {
 	return false
 }
 
-func Test코퍼스의_모든_입력은_두_모드에서_한_번_가린_결과를_다시_가려도_같다(t *testing.T) {
+func TestEveryCorpusInputMaskedOnceIsUnchangedByMaskingAgainInBothModes(t *testing.T) {
 	c := loadCorpus(t)
 	want, got := 0, 0
 	for _, k := range c.Cases {
@@ -169,14 +169,14 @@ func Test코퍼스의_모든_입력은_두_모드에서_한_번_가린_결과를
 				}
 				once := m.Mask(ch.Input)
 				if twice := m.Mask(once); twice != once {
-					t.Errorf("%s (모드 %d): 두 번 가린 결과가 다르다\n한 번 %q\n두 번 %q", k.Name, mode, clip(once), clip(twice))
+					t.Errorf("%s (mode %d): masking twice changes the result\nonce %q\ntwice %q", k.Name, mode, clip(once), clip(twice))
 				}
 				got++
 			}
 		}
 	}
 	if got == 0 || got != want {
-		t.Fatalf("실행 %d건, 기대 %d건", got, want)
+		t.Fatalf("ran %d, want %d", got, want)
 	}
 }
 

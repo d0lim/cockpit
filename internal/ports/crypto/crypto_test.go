@@ -24,10 +24,10 @@ const (
 )
 
 var cryptoMutations = []porttest.Mutation{
-	{"RSASSA-PKCS1-v1_5 서명이 Bun 과 같음", "SignPKCS1v15 가 PSS 로 서명한다", "빨강: 고정 벡터가 Bun 서명과 다르다", "Test고정_키와_입력의_RS512_서명이_Bun_러너의_결과와_같다"},
-	{"공개키·모르는 키로 서명 거부", "Sign 의 키 종류 검사를 지운다", "빨강: 공개키 참조로 서명이 만들어진다", "Test생성한_키쌍의_개인키로만_서명되고_공개키와_모르는_참조는_거부된다"},
-	{"난수 길이 상한", "RandomBytes 의 상한을 지운다", "빨강: 65537 바이트 요청이 통과한다", "Test난수는_v4_UUID_꼴이고_바이트_요청은_상한_안에서만_채워진다"},
-	{"서명 오류 문장 마스킹", "거부 문장을 mask 없이 만든다", "빨강: 키 id 에 심은 값이 문장에 보인다", "Test생성한_키쌍의_개인키로만_서명되고_공개키와_모르는_참조는_거부된다"},
+	{"RSASSA-PKCS1-v1_5 signature matches Bun", "SignPKCS1v15 signs with PSS", "red: the fixed vector differs from the Bun signature", "TestRS512SignatureOfFixedKeyAndInputMatchesBunRunner"},
+	{"signing with a public or unknown key is rejected", "remove the key type check in Sign", "red: a public key reference produces a signature", "TestOnlyGeneratedPrivateKeySignsWhilePublicKeyAndUnknownRefAreRejected"},
+	{"random byte length limit", "remove the limit in RandomBytes", "red: a 65537-byte request passes", "TestRandomUUIDIsV4AndRandomBytesAreFilledOnlyWithinTheLimit"},
+	{"signing error messages are masked", "build the rejection message without mask", "red: the value planted in the key id shows in the message", "TestOnlyGeneratedPrivateKeySignsWhilePublicKeyAndUnknownRefAreRejected"},
 }
 
 func vectorKey(t *testing.T) *rsa.PrivateKey {
@@ -52,17 +52,17 @@ func codeOf(err error) engine.PortCode {
 	return ""
 }
 
-func Test고정_키와_입력의_RS512_서명이_Bun_러너의_결과와_같다(t *testing.T) {
+func TestRS512SignatureOfFixedKeyAndInputMatchesBunRunner(t *testing.T) {
 	sig, err := SignPKCS1v15(vectorKey(t), crypto.SHA512, []byte(vectorInput))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := base64.StdEncoding.EncodeToString(sig); got != vectorBun {
-		t.Fatalf("Go 서명이 Bun 과 다르다\n%s\n%s", got, vectorBun)
+		t.Fatalf("Go signature differs from Bun\n%s\n%s", got, vectorBun)
 	}
 }
 
-func Test생성한_키쌍의_개인키로만_서명되고_공개키와_모르는_참조는_거부된다(t *testing.T) {
+func TestOnlyGeneratedPrivateKeySignsWhilePublicKeyAndUnknownRefAreRejected(t *testing.T) {
 	planted := "PLANTED-key-ref-7f3a9c"
 	keys := NewKeys(func(s string) string {
 		if s == "" {
@@ -85,24 +85,24 @@ func Test생성한_키쌍의_개인키로만_서명되고_공개키와_모르는
 	}
 	digest := sha512.Sum512(data)
 	if err := rsa.VerifyPKCS1v15(pub, crypto.SHA512, digest[:], sig); err != nil {
-		t.Fatalf("검증: %v", err)
+		t.Fatalf("verify: %v", err)
 	}
 	if _, err := keys.Sign(pair.PublicKey.ID, data); codeOf(err) != engine.PortDenied {
-		t.Fatalf("공개키 서명: %v", err)
+		t.Fatalf("public key sign: %v", err)
 	}
 	_, err = keys.Sign(planted, data)
 	if codeOf(err) != engine.PortBadArgs || regexp.MustCompile(regexp.QuoteMeta(planted)).MatchString(err.Error()) {
-		t.Fatalf("모르는 참조: %v", err)
+		t.Fatalf("unknown reference: %v", err)
 	}
 	if _, err := keys.Generate(context.Background(), 1024, "SHA-256"); codeOf(err) != engine.PortBadArgs {
-		t.Fatalf("짧은 키: %v", err)
+		t.Fatalf("short key: %v", err)
 	}
 	if _, err := keys.Generate(context.Background(), 2048, "MD5"); codeOf(err) != engine.PortBadArgs {
-		t.Fatalf("모르는 해시: %v", err)
+		t.Fatalf("unknown hash: %v", err)
 	}
 }
 
-func Test난수는_v4_UUID_꼴이고_바이트_요청은_상한_안에서만_채워진다(t *testing.T) {
+func TestRandomUUIDIsV4AndRandomBytesAreFilledOnlyWithinTheLimit(t *testing.T) {
 	v4 := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	seen := map[string]bool{}
 	for range 64 {
@@ -124,6 +124,6 @@ func Test난수는_v4_UUID_꼴이고_바이트_요청은_상한_안에서만_채
 	}
 }
 
-func Test암호_변이_기록표는_이_파일의_시험과_양방향으로_같다(t *testing.T) {
+func TestCryptoMutationRecordMatchesTestsInThisFile(t *testing.T) {
 	porttest.AssertMutationRecord(t, "crypto_test.go", cryptoMutations)
 }

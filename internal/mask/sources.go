@@ -60,7 +60,7 @@ func Refresh(src Sources) (Values, error) {
 func refresh(src Sources, read reader) (Values, error) {
 	root, err := os.OpenRoot(src.Dir)
 	if err != nil {
-		return Values{}, fmt.Errorf("런 디렉토리를 열지 못했다: %w", err)
+		return Values{}, fmt.Errorf("cannot open run directory: %w", err)
 	}
 	defer root.Close()
 	var v Values
@@ -98,13 +98,13 @@ func parse(s Source, text string) ([]entry, error) {
 	case JSON:
 		var doc any
 		if json.Unmarshal([]byte(text), &doc) != nil {
-			return nil, fmt.Errorf("런 자격 파일을 JSON 으로 읽지 못했다: %s", s.Path)
+			return nil, fmt.Errorf("cannot parse run credential file as JSON: %s", s.Path)
 		}
 		return jsonEntries(doc, "", ""), nil
 	case PEM:
 		return pemEntries(text), nil
 	}
-	return nil, fmt.Errorf("모르는 원천 종류다: %q (%s)", s.Kind, s.Path)
+	return nil, fmt.Errorf("unknown source kind: %q (%s)", s.Kind, s.Path)
 }
 
 func dotenvEntries(text string) []entry {
@@ -181,7 +181,7 @@ func pemEntries(text string) []entry {
 
 func readRunFile(root *os.Root, rel string, max int64) (string, error) {
 	if !filepath.IsLocal(rel) {
-		return "", fmt.Errorf("런 디렉토리 안 상대 경로가 아니다: %s", rel)
+		return "", fmt.Errorf("not a relative path inside the run directory: %s", rel)
 	}
 	rel = filepath.Clean(rel)
 	info, err := root.Lstat(rel)
@@ -189,7 +189,7 @@ func readRunFile(root *os.Root, rel string, max int64) (string, error) {
 		return "", sourceError(rel, err)
 	}
 	if !info.Mode().IsRegular() {
-		return "", fmt.Errorf("일반 파일이 아니다: %s", rel)
+		return "", fmt.Errorf("not a regular file: %s", rel)
 	}
 	f, err := openNoFollow(root, rel)
 	if err != nil {
@@ -199,9 +199,9 @@ func readRunFile(root *os.Root, rel string, max int64) (string, error) {
 	raw, err := io.ReadAll(io.LimitReader(f, max+1))
 	switch {
 	case err != nil:
-		return "", fmt.Errorf("런 자격 파일을 읽지 못했다: %s", rel)
+		return "", fmt.Errorf("cannot read run credential file: %s", rel)
 	case int64(len(raw)) > max:
-		return "", fmt.Errorf("크기 상한(%s)을 넘는다: %s", sizeText(max), rel)
+		return "", fmt.Errorf("exceeds the size limit (%s): %s", sizeText(max), rel)
 	}
 	return string(raw), nil
 }
@@ -210,13 +210,13 @@ func sourceError(rel string, err error) error {
 	var errno syscall.Errno
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return fmt.Errorf("런 자격 파일이 없다: %s", rel)
+		return fmt.Errorf("run credential file not found: %s", rel)
 	case errors.Is(err, errNotRegular), errors.Is(err, syscall.ELOOP):
-		return fmt.Errorf("일반 파일이 아니다: %s", rel)
+		return fmt.Errorf("not a regular file: %s", rel)
 	case errors.As(err, &errno):
-		return fmt.Errorf("런 자격 파일을 읽지 못했다: %s: %w", rel, errno)
+		return fmt.Errorf("cannot read run credential file: %s: %w", rel, errno)
 	}
-	return fmt.Errorf("실경로가 런 디렉토리 밖이다: %s", rel)
+	return fmt.Errorf("resolved path is outside the run directory: %s", rel)
 }
 
 func sizeText(n int64) string {
@@ -224,7 +224,7 @@ func sizeText(n int64) string {
 	if n%mib == 0 {
 		return fmt.Sprintf("%d MiB", n/mib)
 	}
-	return fmt.Sprintf("%d바이트", n)
+	return fmt.Sprintf("%d bytes", n)
 }
 
 func isJSSpace(r rune) bool {

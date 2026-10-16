@@ -16,9 +16,9 @@ export default function (): void {
 			return `${this.service}@${this.url}`;
 		},
 	};
-	check("단축 속성", body.url === url && body.service === "ws-1");
-	check("따옴표 키", body["idempotency-key"] === "k-1");
-	check("계산된 키", body.verificationUuid === "u-1");
-	check("메서드 단축과 this", body.describe() === "ws-1@http://hook/in");
-	check("JSON 에 메서드가 빠진다", JSON.stringify(body).includes(`"events":["A","B"]`) && !JSON.stringify(body).includes("describe"));
+	check("shorthand property", body.url === url && body.service === "ws-1");
+	check("quoted key", body["idempotency-key"] === "k-1");
+	check("computed key", body.verificationUuid === "u-1");
+	check("method shorthand and this", body.describe() === "ws-1@http://hook/in");
+	check("JSON omits methods", JSON.stringify(body).includes(`"events":["A","B"]`) && !JSON.stringify(body).includes("describe"));
 }

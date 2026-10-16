@@ -17,30 +17,30 @@ async function releasing(body: () => Promise<string>, release: () => Promise<voi
 }
 
 export default async function (): Promise<void> {
-	const error = new Error("상태 409");
-	check("message·name·instanceof", error.message === "상태 409" && error.name === "Error" && error instanceof Error);
-	check("TypeError 도 Error 다", new TypeError("t") instanceof Error);
+	const error = new Error("status 409");
+	check("message, name and instanceof", error.message === "status 409" && error.name === "Error" && error instanceof Error);
+	check("TypeError is also an Error", new TypeError("t") instanceof Error);
 	let thrown: unknown;
 	try {
 		throw "plain";
 	} catch (caught) {
 		thrown = caught;
 	}
-	check("Error 가 아닌 값도 던질 수 있다", thrown === "plain");
-	const wrapped = `${(error as Error).message} · 증거`;
-	check("메시지를 이어 붙인다", wrapped === "상태 409 · 증거");
+	check("a non-Error value can be thrown", thrown === "plain");
+	const wrapped = `${(error as Error).message} · evidence`;
+	check("concatenates messages", wrapped === "status 409 · evidence");
 	const ok = await releasing(async () => "body", async () => {});
-	check("finally 의 await 뒤에 값이 남는다", ok === "body");
+	check("value survives the await in finally", ok === "body");
 	let kept = "";
 	await releasing(
 		async () => {
-			throw new Error("본문 실패");
+			throw new Error("body failed");
 		},
 		async () => {
-			throw new Error("해제 실패");
+			throw new Error("release failed");
 		},
 	).catch((caught: Error) => {
 		kept = caught.message;
 	});
-	check("해제 실패가 원래 실패를 덮지 않는다", kept === "본문 실패");
+	check("release failure does not mask the original failure", kept === "body failed");
 }

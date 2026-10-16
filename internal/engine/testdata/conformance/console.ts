@@ -10,5 +10,5 @@ export default function (): void {
 		console.error("error"),
 		console.debug("debug"),
 	];
-	check("console 메서드는 undefined 를 돌려준다", results.every((r) => r === undefined) && results.length === 5);
+	check("console methods return undefined", results.every((r) => r === undefined) && results.length === 5);
 }

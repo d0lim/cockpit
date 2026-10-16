@@ -7,7 +7,7 @@ export default function (): void {
 	const inherited = Object.create({ limit: 99 }) as { limit?: number };
 	const bare = Object.create(null) as Record<string, unknown>;
 	bare.key = 1;
-	check("자기 속성은 참이다", Object.hasOwn(own, "limit"));
-	check("상속된 속성은 거짓이다", !Object.hasOwn(inherited, "limit") && inherited.limit === 99);
-	check("프로토타입 없는 객체에도 쓴다", Object.hasOwn(bare, "key") && !Object.hasOwn(bare, "toString"));
+	check("own property is true", Object.hasOwn(own, "limit"));
+	check("inherited property is false", !Object.hasOwn(inherited, "limit") && inherited.limit === 99);
+	check("works on an object without a prototype", Object.hasOwn(bare, "key") && !Object.hasOwn(bare, "toString"));
 }

@@ -19,7 +19,7 @@ var ensureImage = func(ctx context.Context, pins runnerbin.Pins) (runnerbin.Imag
 func runnerImage(ctx context.Context, getenv func(string) string, stdout, stderr io.Writer) int {
 	dir, err := home.Dir(getenv)
 	if err != nil {
-		fmt.Fprintln(stderr, "상태 디렉토리를 정하지 못했다: "+err.Error())
+		fmt.Fprintln(stderr, "cannot resolve the state directory: "+err.Error())
 		return 2
 	}
 	img, err := ensureImage(ctx, runnerbin.FilePins{Path: filepath.Join(dir, pinsFile)})

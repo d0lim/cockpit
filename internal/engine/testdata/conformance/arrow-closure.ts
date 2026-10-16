@@ -20,14 +20,14 @@ const counter = (): (() => number) => {
 };
 
 export default function (): void {
-	check("화살표 콜백의 this 는 바깥 this 다", new Store(["a", "b"]).list().join(",") === "A:2,B:2");
+	check("this in an arrow callback is the outer this", new Store(["a", "b"]).list().join(",") === "A:2,B:2");
 	const next = counter();
 	next();
-	check("클로저가 상태를 붙든다", next() === 2 && counter()() === 1);
+	check("closure keeps its state", next() === 2 && counter()() === 1);
 	const pair = (id: string) => ({ id, ok: true });
-	check("객체 리터럴을 돌려주는 화살표", pair("x").id === "x" && pair("x").ok);
+	check("arrow returning an object literal", pair("x").id === "x" && pair("x").ok);
 	const result = ((n: number) => n * 2)(21);
-	check("즉시 부르는 화살표", result === 42);
+	check("immediately invoked arrow", result === 42);
 	const pick = (name: string) => (row: { name: string }) => row.name === name;
-	check("화살표를 돌려주는 화살표", [{ name: "a" }, { name: "b" }].filter(pick("b")).length === 1);
+	check("arrow returning an arrow", [{ name: "a" }, { name: "b" }].filter(pick("b")).length === 1);
 }

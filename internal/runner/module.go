@@ -24,15 +24,15 @@ const flowModuleJS = `(function (frames, runner, ctx) {
 	const suite = (def) => def;
 	const stage = (def) => def;
 	const step = (def) => {
-		if (!KINDS.includes(def.kind)) throw new Error("단계 " + def.id + " 의 종류 \"" + def.kind + "\" 가 " + KINDS.join("·") + " 가운데 하나가 아니다");
+		if (!KINDS.includes(def.kind)) throw new Error("step " + def.id + " has kind \"" + def.kind + "\", which is not one of " + KINDS.join(", "));
 		stepFrames.set(def, here());
 		return def;
 	};
 	const flow = (def) => {
-		if (!FLOW_ID.test(def.id)) throw new Error("플로우 id \"" + def.id + "\" 가 " + FLOW_ID + " 꼴이 아니다");
+		if (!FLOW_ID.test(def.id)) throw new Error("flow id \"" + def.id + "\" does not match " + FLOW_ID);
 		const seen = new Set();
 		for (const s of def.steps) {
-			if (seen.has(s.id)) throw new Error("플로우 " + def.id + " 에 단계 id \"" + s.id + "\" 가 겹친다");
+			if (seen.has(s.id)) throw new Error("flow " + def.id + " declares step id \"" + s.id + "\" twice");
 			seen.add(s.id);
 		}
 		const source = here()[0];
@@ -61,7 +61,7 @@ const flowModuleJS = `(function (frames, runner, ctx) {
 	const __drive = async (mod) => {
 		const def = mod && typeof mod === "object" ? (mod.default ?? mod.suite) : undefined;
 		if (!def || typeof def !== "object" || !Array.isArray(def.stages) || !Array.isArray(def.flows)) {
-			throw new Error("스위트 모듈이 { name, stages, flows } 를 내보내지 않는다");
+			throw new Error("the suite module does not export { name, stages, flows }");
 		}
 		const runs = new Map();
 		runner.begin(describe(def, runs));
@@ -71,7 +71,7 @@ const flowModuleJS = `(function (frames, runner, ctx) {
 			const run = runs.get(next.flow + "\u0000" + next.step);
 			let failure = null;
 			try {
-				if (typeof run !== "function") throw new Error("단계 " + next.flow + " › " + next.step + " 에 run 이 없다");
+				if (typeof run !== "function") throw new Error("step " + next.flow + " › " + next.step + " has no run function");
 				await run(ctx);
 			} catch (e) {
 				failure = e instanceof Error ? e.message : String(e);
@@ -95,7 +95,7 @@ func Module(d *Driver, ctxDeps *runnerctx.Deps) engine.ModuleBuilder {
 		}
 		call, ok := goja.AssertFunction(factory)
 		if !ok {
-			return nil, errors.New("cockpit:flow 모듈 스크립트가 함수로 평가되지 않았다")
+			return nil, errors.New("the cockpit:flow module script did not evaluate to a function")
 		}
 		b := &binder{h: h, d: d}
 		runnerObj := rt.NewObject()
@@ -167,7 +167,7 @@ func (b *binder) finish(call goja.FunctionCall) goja.Value {
 func portError(err error) error {
 	var rej *Rejection
 	if errors.As(err, &rej) {
-		return &engine.PortError{Code: engine.PortDenied, Message: "거절: " + rej.Reason}
+		return &engine.PortError{Code: engine.PortDenied, Message: rejected + rej.Reason}
 	}
 	var pe *engine.PortError
 	if errors.As(err, &pe) {

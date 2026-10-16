@@ -56,7 +56,7 @@ func NormalizeArch(raw string) (string, error) {
 	case "amd64", "x86_64":
 		return "amd64", nil
 	}
-	return "", fmt.Errorf("지원하지 않는 데몬 아키텍처 %q", strings.TrimSpace(raw))
+	return "", fmt.Errorf("unsupported daemon architecture %q", strings.TrimSpace(raw))
 }
 
 func Tag(bin []byte) string {
@@ -67,7 +67,7 @@ func Tag(bin []byte) string {
 func Ensure(ctx context.Context, d Docker, lookup func(goarch string) ([]byte, error), pins Pins) (Image, error) {
 	raw, err := d.Run(ctx, nil, "version", "--format", "{{.Server.Arch}}")
 	if err != nil {
-		return Image{}, fmt.Errorf("docker 데몬에 닿지 못했다: %w", err)
+		return Image{}, fmt.Errorf("cannot reach the docker daemon: %w", err)
 	}
 	arch, err := NormalizeArch(raw)
 	if err != nil {
@@ -75,14 +75,14 @@ func Ensure(ctx context.Context, d Docker, lookup func(goarch string) ([]byte, e
 	}
 	gz, err := lookup(arch)
 	if errors.Is(err, ErrNotEmbedded) {
-		return Image{}, fmt.Errorf("러너 미내장 — 이 cockpit 은 릴리즈 빌드(scripts/build-runners.sh)가 아니다: %w", err)
+		return Image{}, fmt.Errorf("this cockpit is not a release build (scripts/build-runners.sh): %w", err)
 	}
 	if err != nil {
 		return Image{}, err
 	}
 	bin, err := gunzip(gz)
 	if err != nil {
-		return Image{}, fmt.Errorf("내장 러너를 풀지 못했다: %w", err)
+		return Image{}, fmt.Errorf("cannot decompress the embedded runner: %w", err)
 	}
 	tag := Tag(bin)
 	if pinned, ok := pins.Pinned(tag); ok {
@@ -96,7 +96,7 @@ func Ensure(ctx context.Context, d Docker, lookup func(goarch string) ([]byte, e
 	}
 	img := Image{Tag: tag, ID: id, Arch: arch}
 	if err := pins.Pin(img); err != nil {
-		return Image{}, fmt.Errorf("러너 이미지 핀을 적지 못했다: %w", err)
+		return Image{}, fmt.Errorf("cannot write the runner image pin: %w", err)
 	}
 	return img, nil
 }
@@ -109,11 +109,11 @@ func importImage(ctx context.Context, d Docker, bin []byte, tag, arch string) (s
 	out, err := d.Run(ctx, bytes.NewReader(archive), "import", "--platform", "linux/"+arch,
 		"--change", `ENTRYPOINT ["/cockpit-runner"]`, "--change", "USER "+runnerUser, "-", tag)
 	if err != nil {
-		return "", fmt.Errorf("러너 이미지를 만들지 못했다: %w", err)
+		return "", fmt.Errorf("cannot create the runner image: %w", err)
 	}
 	id := strings.TrimSpace(out)
 	if !strings.HasPrefix(id, "sha256:") {
-		return "", fmt.Errorf("docker import 가 이미지 ID 를 돌려주지 않았다: %q", id)
+		return "", fmt.Errorf("docker import did not return an image ID: %q", id)
 	}
 	return id, nil
 }

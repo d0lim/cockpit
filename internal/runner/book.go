@@ -28,7 +28,7 @@ func newBook(suite string, flows []FlowDecl, startedAt string, write func(any) e
 func (b *Book) step(flow, id string) *contract.ResultStep {
 	i, ok := b.index[flow+"\x00"+id]
 	if !ok {
-		panic(fmt.Sprintf("결과에 없는 단계 %s › %s", flow, id))
+		panic(fmt.Sprintf("step %s › %s is not in the result", flow, id))
 	}
 	return &b.result.Steps[i]
 }

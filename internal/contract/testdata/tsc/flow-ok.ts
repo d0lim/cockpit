@@ -2,13 +2,13 @@ import { type Ctx, type FlowDef, flow, stage, step, suite } from "cockpit:flow";
 
 const ping = step({
 	id: "ping",
-	title: "앱이 응답한다",
+	title: "App responds",
 	kind: "request",
 	async run(ctx: Ctx) {
 		const base = new URL(String(ctx.env.appBase));
 		const query = new URLSearchParams({ from: new Date(ctx.clock()).toISOString() });
 		const res = await ctx.http.send("GET", `${base.origin}/health?${query}`, { headers: { accept: "application/json" } });
-		if (res.status !== 200 || res.headers["content-type"] === undefined) throw new Error(`상태 ${res.status}`);
+		if (res.status !== 200 || res.headers["content-type"] === undefined) throw new Error(`status ${res.status}`);
 		ctx.capture("requestId", ctx.crypto.randomUUID(), { persist: true });
 		const seed = ctx.readSource("fixtures", "seed.json");
 		const names = ctx.listSource("fixtures", ".");
@@ -22,6 +22,6 @@ const ping = step({
 	},
 });
 
-const smoke: FlowDef = flow({ id: "smoke", title: "스모크", stage: "basic", once: false, requires: [], steps: [ping] });
+const smoke: FlowDef = flow({ id: "smoke", title: "Smoke", stage: "basic", once: false, requires: [], steps: [ping] });
 
-export default suite({ name: "smoke", stages: [stage({ id: "basic", title: "기본" })], flows: [smoke] });
+export default suite({ name: "smoke", stages: [stage({ id: "basic", title: "Basic" })], flows: [smoke] });

@@ -48,7 +48,7 @@ func build(opts Options, rules []*rule) (*Masker, error) {
 	for i, p := range opts.Patterns {
 		r, err := declaredRule(p)
 		if err != nil {
-			return nil, fmt.Errorf("선언 패턴 %d 을 RE2 로 읽지 못했다: %w", i, err)
+			return nil, fmt.Errorf("cannot compile declared pattern %d as RE2: %w", i, err)
 		}
 		m.declared = append(m.declared, r)
 	}

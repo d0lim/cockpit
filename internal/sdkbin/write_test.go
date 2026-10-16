@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func Test쓴_파일_수와_이름과_내용이_내장한_sdk_와_같다(t *testing.T) {
+func TestWrittenFilesMatchEmbeddedSdkInCountNamesAndContent(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "sdk")
 	written, err := Write(dir)
 	if err != nil {
@@ -36,11 +36,11 @@ func Test쓴_파일_수와_이름과_내용이_내장한_sdk_와_같다(t *testi
 			t.Fatal(err)
 		}
 		if !bytes.Equal(got, want) {
-			t.Fatalf("%s 의 내용이 저장소의 sdk/ 와 다르다", name)
+			t.Fatalf("%s differs from sdk/ in the repository", name)
 		}
 	}
 	if _, err := Write(dir); err != nil {
-		t.Fatalf("다시 쓰기: %v", err)
+		t.Fatalf("rewrite: %v", err)
 	}
 }
 
@@ -48,7 +48,7 @@ func runTsc(t *testing.T, sdkDir string, sample string) (bool, string, int) {
 	t.Helper()
 	bunx, err := exec.LookPath("bunx")
 	if err != nil {
-		t.Fatalf("bunx 를 찾지 못했다 — mise exec 아래에서 돌린다: %v", err)
+		t.Fatalf("bunx not found; run under mise exec: %v", err)
 	}
 	dir := t.TempDir()
 	data, err := os.ReadFile(filepath.Join("..", "contract", "testdata", "tsc", sample))
@@ -79,21 +79,21 @@ func runTsc(t *testing.T, sdkDir string, sample string) (bool, string, int) {
 		if declarations > 0 || attempt == 3 {
 			return err == nil, string(out), declarations
 		}
-		t.Logf("tsc 가 선언을 하나도 나열하지 않았다(bunx 기동 실패로 본다) — 재시도 %d\n%s", attempt, out)
+		t.Logf("tsc listed no declarations, treated as a bunx startup failure; retry %d\n%s", attempt, out)
 	}
 }
 
-func Test쓴_디렉토리로_tsc_가_올바른_플로우를_통과시키고_sql_을_부르는_플로우를_거부한다(t *testing.T) {
+func TestTscOnWrittenSdkAcceptsValidFlowAndRejectsFlowCallingSql(t *testing.T) {
 	sdkDir := filepath.Join(t.TempDir(), "sdk")
 	if _, err := Write(sdkDir); err != nil {
 		t.Fatal(err)
 	}
 	ok, out, decls := runTsc(t, sdkDir, "flow-ok.ts")
 	if !ok || decls != 3 {
-		t.Fatalf("올바른 샘플: ok=%v decls=%d\n%s", ok, decls, out)
+		t.Fatalf("valid sample: ok=%v decls=%d\n%s", ok, decls, out)
 	}
 	ok, out, decls = runTsc(t, sdkDir, "flow-uses-sql.ts")
 	if ok || decls != 3 || !strings.Contains(out, "TS2339") {
-		t.Fatalf("틀린 샘플: ok=%v decls=%d\n%s", ok, decls, out)
+		t.Fatalf("invalid sample: ok=%v decls=%d\n%s", ok, decls, out)
 	}
 }

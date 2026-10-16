@@ -46,7 +46,7 @@ export function makeFlow(spec: Spec, fail: string[]) {
 	const requires = spec.requires ?? [];
 	return flow({
 		id: spec.id,
-		title: spec.id + " 플로우",
+		title: spec.id + " flow",
 		stage: spec.stage ?? "use",
 		once: spec.once ?? false,
 		requires,
@@ -64,7 +64,7 @@ export function makeFlow(spec: Spec, fail: string[]) {
 					const body = JSON.parse(res.body) as { token: string; id: string };
 					ctx.capture(spec.id + "." + id + ".token", body.token);
 					ctx.capture(spec.id + ".id", body.id, { persist: true });
-					if (fail.includes(spec.id + "/" + id)) throw new Error("기대와 다르다 — token=" + body.token + " cred=" + ctx.priv.credential + " 단계=" + id);
+					if (fail.includes(spec.id + "/" + id)) throw new Error("unexpected response: token=" + body.token + " cred=" + ctx.priv.credential + " step=" + id);
 				},
 			}),
 		),
@@ -106,7 +106,7 @@ func newWorld(t *testing.T, specs []flowSpec, fail []string) *world {
 	failJSON, _ := json.Marshal(append([]string{}, fail...))
 	suite := "import { stage, suite } from \"cockpit:flow\";\nimport { makeFlow, type Spec } from \"../flows/fake.ts\";\n" +
 		"const FAIL: string[] = " + string(failJSON) + ";\nconst SPECS: Spec[] = " + string(specJSON) + ";\n" +
-		"export default suite({\n\tname: \"fake\",\n\tstages: [stage({ id: \"boot\", title: \"부트스트랩\" }), stage({ id: \"inbound\", title: \"유입\", notProven: \"대역이 아직 없다\" }), stage({ id: \"use\", title: \"쓰기\" })],\n\tflows: SPECS.map((s) => makeFlow(s, FAIL)),\n});\n"
+		"export default suite({\n\tname: \"fake\",\n\tstages: [stage({ id: \"boot\", title: \"Bootstrap\" }), stage({ id: \"inbound\", title: \"Inbound\", notProven: \"no stand-in yet\" }), stage({ id: \"use\", title: \"Use\" })],\n\tflows: SPECS.map((s) => makeFlow(s, FAIL)),\n});\n"
 	must(os.WriteFile(filepath.Join(w.scripts, "suites", "fake.ts"), []byte(suite), 0o644))
 	n := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {

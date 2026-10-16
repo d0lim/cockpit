@@ -2,14 +2,14 @@ import { flow, step } from "cockpit:flow";
 
 export default flow({
 	id: "leaky",
-	title: "러너 자리에서 fetch 를 부른다",
+	title: "Calls fetch in the runner",
 	stage: "basic",
 	once: false,
 	requires: [],
 	steps: [
 		step({
 			id: "call",
-			title: "밖으로 나간다",
+			title: "Reaches outside",
 			kind: "request",
 			async run() {
 				await fetch("http://example.com");

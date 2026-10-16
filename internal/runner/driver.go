@@ -74,11 +74,11 @@ func (d *Driver) ExitCode() int {
 
 func (d *Driver) Begin(decl SuiteDecl) error {
 	if d.begun {
-		return errors.New("스위트는 한 번만 시작한다")
+		return errors.New("the suite can begin only once")
 	}
 	d.begun = true
 	if decl.Name != d.deps.Suite {
-		return fmt.Errorf("스위트 파일 %s 의 이름이 %q 이다 — 파일 이름과 같아야 한다", d.deps.Suite, decl.Name)
+		return fmt.Errorf("suite file %s declares the name %q, which must match the file name", d.deps.Suite, decl.Name)
 	}
 	ordered, err := Order(decl)
 	if err != nil {
@@ -101,10 +101,10 @@ func (d *Driver) Begin(decl SuiteDecl) error {
 
 func (d *Driver) Next() (*StepRef, error) {
 	if !d.begun {
-		return nil, errors.New("begin 전에 next 를 불렀다")
+		return nil, errors.New("next was called before begin")
 	}
 	if d.current != nil {
-		return nil, fmt.Errorf("단계 %s › %s 가 아직 끝나지 않았다", d.current.Flow, d.current.Step)
+		return nil, fmt.Errorf("step %s › %s has not finished yet", d.current.Flow, d.current.Step)
 	}
 	for !d.done {
 		if d.plan == nil {
@@ -156,7 +156,7 @@ func (d *Driver) Next() (*StepRef, error) {
 
 func (d *Driver) Finish(ref StepRef, failure *string) error {
 	if d.current == nil || *d.current != ref {
-		return fmt.Errorf("단계 %s › %s 는 돌고 있는 단계가 아니다", ref.Flow, ref.Step)
+		return fmt.Errorf("step %s › %s is not the running step", ref.Flow, ref.Step)
 	}
 	flow := &d.plan.Flows[d.flowIdx]
 	rec := d.book.step(ref.Flow, ref.Step)
@@ -203,7 +203,7 @@ func (d *Driver) openPlan() error {
 	write := func(v any) error { return WriteJSON(filepath.Join(d.deps.Dir, fileResult), v) }
 	if p.Target != "" {
 		if d.deps.ExecOut == nil {
-			return errors.New("exec 결과 경로가 없다")
+			return errors.New("there is no exec result path")
 		}
 		path := d.deps.ExecOut(p.Target)
 		write = func(v any) error { return WriteJSON(path, v) }

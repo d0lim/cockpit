@@ -14,11 +14,11 @@ import (
 )
 
 var sourceMutations = []porttest.Mutation{
-	{"선언 밖 이름 거부", "Read 의 roots 조회 실패를 빈 루트로 대신한다", "빨강: 모르는 이름이 PORT_DENIED 가 아니다", "Test선언_안_파일은_읽히고_밖_이름과_탈출_경로와_링크는_거부된다"},
-	{"경로 탈출 거부", "IsLocal 검사를 지운다", "빨강: ../ 경로가 루트 밖 파일을 읽는다", "Test선언_안_파일은_읽히고_밖_이름과_탈출_경로와_링크는_거부된다"},
-	{"심볼릭 링크 거부", "Lstat 을 Stat 으로 바꾼다", "빨강: 링크가 가리키는 파일 내용이 돌아온다", "Test선언_안_파일은_읽히고_밖_이름과_탈출_경로와_링크는_거부된다"},
-	{"크기 상한", "maxBytes 검사를 지운다", "빨강: 상한을 넘는 파일이 잘리지 않고 읽힌다", "Test크기_상한을_넘는_파일은_PORT_LIMIT_이고_상한_안은_그대로다"},
-	{"나열은 일반 파일만", "ReadDir 결과를 거르지 않는다", "빨강: 하위 디렉토리와 링크 이름이 목록에 든다", "Test나열은_바로_아래_일반_파일_이름만_정렬해_돌려주고_없는_디렉토리는_빈_목록이다"},
+	{"undeclared source names are rejected", "Read falls back to an empty root when the roots lookup fails", "red: an unknown name is not PORT_DENIED", "TestDeclaredFilesAreReadWhileUndeclaredNamesEscapingPathsAndLinksAreDenied"},
+	{"path escapes are rejected", "remove the IsLocal check", "red: a ../ path reads a file outside the root", "TestDeclaredFilesAreReadWhileUndeclaredNamesEscapingPathsAndLinksAreDenied"},
+	{"symbolic links are rejected", "replace Lstat with Stat", "red: the content of the link target comes back", "TestDeclaredFilesAreReadWhileUndeclaredNamesEscapingPathsAndLinksAreDenied"},
+	{"size limit", "remove the maxBytes check", "red: a file over the limit is read without truncation", "TestFileOverTheSizeLimitIsPortLimitAndFileWithinItIsReadAsIs"},
+	{"listing returns regular files only", "do not filter the ReadDir result", "red: subdirectory and link names appear in the list", "TestListReturnsSortedRegularFileNamesDirectlyBelowAndEmptyForMissingDir"},
 }
 
 func fixture(t *testing.T) (*Reader, string) {
@@ -52,11 +52,11 @@ func codeOf(err error) engine.PortCode {
 	return ""
 }
 
-func Test선언_안_파일은_읽히고_밖_이름과_탈출_경로와_링크는_거부된다(t *testing.T) {
+func TestDeclaredFilesAreReadWhileUndeclaredNamesEscapingPathsAndLinksAreDenied(t *testing.T) {
 	r, _ := fixture(t)
 	got, err := r.Read("fixtures", "modules/a.json")
 	if err != nil || got != `{"a":1}` {
-		t.Fatalf("허용 읽기: %q %v", got, err)
+		t.Fatalf("allowed read: %q %v", got, err)
 	}
 	denied := []struct{ name, rel string }{
 		{"other", "modules/a.json"},
@@ -71,39 +71,39 @@ func Test선언_안_파일은_읽히고_밖_이름과_탈출_경로와_링크는
 		}
 	}
 	if len(denied) != 4 {
-		t.Fatal("거부 사례 수")
+		t.Fatal("number of denied cases")
 	}
 }
 
-func Test크기_상한을_넘는_파일은_PORT_LIMIT_이고_상한_안은_그대로다(t *testing.T) {
+func TestFileOverTheSizeLimitIsPortLimitAndFileWithinItIsReadAsIs(t *testing.T) {
 	r, _ := fixture(t)
 	if _, err := r.Read("fixtures", "big.json"); codeOf(err) != engine.PortLimit {
-		t.Fatalf("상한 초과: %v", err)
+		t.Fatalf("over the limit: %v", err)
 	}
 	got, err := r.Read("fixtures", "modules/b.json")
 	if err != nil || got != `{"b":1}` {
-		t.Fatalf("상한 안: %q %v", got, err)
+		t.Fatalf("within the limit: %q %v", got, err)
 	}
 }
 
-func Test나열은_바로_아래_일반_파일_이름만_정렬해_돌려주고_없는_디렉토리는_빈_목록이다(t *testing.T) {
+func TestListReturnsSortedRegularFileNamesDirectlyBelowAndEmptyForMissingDir(t *testing.T) {
 	r, _ := fixture(t)
 	names, err := r.List("fixtures", "modules")
 	if err != nil || !slices.Equal(names, []string{".hidden.json", "a.json", "b.json"}) {
-		t.Fatalf("나열: %q %v", names, err)
+		t.Fatalf("list: %q %v", names, err)
 	}
 	empty, err := r.List("fixtures", "vectors")
 	if err != nil || len(empty) != 0 {
-		t.Fatalf("없는 디렉토리: %q %v", empty, err)
+		t.Fatalf("missing directory: %q %v", empty, err)
 	}
 	if _, err := r.List("fixtures", "../"); codeOf(err) != engine.PortDenied {
-		t.Fatalf("탈출 나열: %v", err)
+		t.Fatalf("escaping list: %v", err)
 	}
 	if _, err := r.List("other", "modules"); codeOf(err) != engine.PortDenied {
-		t.Fatalf("모르는 이름 나열: %v", err)
+		t.Fatalf("list of an unknown name: %v", err)
 	}
 }
 
-func Test소스_변이_기록표는_이_파일의_시험과_양방향으로_같다(t *testing.T) {
+func TestSourceMutationRecordMatchesTestsInThisFile(t *testing.T) {
 	porttest.AssertMutationRecord(t, "source_test.go", sourceMutations)
 }

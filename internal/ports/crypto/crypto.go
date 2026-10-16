@@ -50,17 +50,17 @@ func NewKeys(mask ports.Mask) *Keys {
 func (k *Keys) Generate(ctx context.Context, bits int, hashName string) (KeyPair, error) {
 	hash, ok := hashes[hashName]
 	if !ok {
-		return KeyPair{}, ports.BadArgs(k.mask, "지원하지 않는 해시 "+hashName)
+		return KeyPair{}, ports.BadArgs(k.mask, "unsupported hash "+hashName)
 	}
 	if bits < 2048 || bits > 4096 {
-		return KeyPair{}, ports.BadArgs(k.mask, fmt.Sprintf("키 길이 %d 는 2048~4096 비트 밖이다", bits))
+		return KeyPair{}, ports.BadArgs(k.mask, fmt.Sprintf("key length %d is outside 2048-4096 bits", bits))
 	}
 	key, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
-		return KeyPair{}, ports.Unavailable(k.mask, "키를 만들지 못했다")
+		return KeyPair{}, ports.Unavailable(k.mask, "failed to generate the key")
 	}
 	if err := ctx.Err(); err != nil {
-		return KeyPair{}, ports.Unavailable(k.mask, "키 생성이 취소됐다")
+		return KeyPair{}, ports.Unavailable(k.mask, "key generation was cancelled")
 	}
 	pair := KeyPair{PublicKey: KeyRef{Type: "public", ID: newID()}, PrivateKey: KeyRef{Type: "private", ID: newID()}}
 	k.mu.Lock()
@@ -75,7 +75,7 @@ func (k *Keys) lookup(id string) (entry, error) {
 	defer k.mu.Unlock()
 	e, ok := k.entries[id]
 	if !ok {
-		return entry{}, ports.BadArgs(k.mask, "모르는 키 참조 "+id)
+		return entry{}, ports.BadArgs(k.mask, "unknown key reference "+id)
 	}
 	return e, nil
 }
@@ -86,11 +86,11 @@ func (k *Keys) Sign(id string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 	if !e.private {
-		return nil, ports.Denied(k.mask, "공개키로는 서명할 수 없다")
+		return nil, ports.Denied(k.mask, "cannot sign with a public key")
 	}
 	sig, err := SignPKCS1v15(e.key, e.hash, data)
 	if err != nil {
-		return nil, ports.Unavailable(k.mask, "서명을 만들지 못했다")
+		return nil, ports.Unavailable(k.mask, "failed to create the signature")
 	}
 	return sig, nil
 }
@@ -121,14 +121,14 @@ func RandomUUID() string {
 
 func RandomBytes(mask ports.Mask, n int) ([]byte, error) {
 	if n < 0 {
-		return nil, ports.BadArgs(mask, "난수 길이가 음수다")
+		return nil, ports.BadArgs(mask, "random byte length is negative")
 	}
 	if n > maxRandomBytes {
-		return nil, ports.Limit(mask, fmt.Sprintf("난수 길이 %d 는 상한 %d 를 넘는다", n, maxRandomBytes))
+		return nil, ports.Limit(mask, fmt.Sprintf("random byte length %d exceeds the limit %d", n, maxRandomBytes))
 	}
 	out := make([]byte, n)
 	if _, err := rand.Read(out); err != nil {
-		return nil, ports.Unavailable(mask, "난수를 만들지 못했다")
+		return nil, ports.Unavailable(mask, "failed to generate random bytes")
 	}
 	return out, nil
 }

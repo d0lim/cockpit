@@ -18,33 +18,33 @@ var mutations = []struct {
 	red      int
 	rootless bool
 }{
-	{"값 치환 단계", "마스커의 값 치환기를 비운다", dropValues, 22, false},
-	{"값의 인코딩 변형", "알려진 값 원문만 등록한다", plainValues, 2, false},
-	{"코어 패턴", "PEM 과 코어 규칙을 비운다", dropCore, 29, false},
-	{"선언 패턴", "선언 패턴을 버리고 마스커를 만든다", dropDeclared, 7, false},
-	{"속성 키 이름 규칙", "키 규칙을 비운다", dropKeys, 3, false},
-	{"가린 뒤 자르기", "자른 뒤 가린다", cutFirst, 2, false},
-	{"키 패턴 값 길이", "값 자리 +? 를 {1,1000}? 로 되돌린다", boundedValue, 1, false},
-	{"고정점 반복", "한 번만 지난다", singlePass, 1, false},
-	{"재스캔의 링크 거부", "링크를 따라 읽는 재스캔으로 바꾼다", followRescan, 1, false},
-	{"재스캔의 읽기 실패 처리", "읽지 못한 파일을 깨끗한 것으로 센다", lenientRescan, 1, true},
-	{"값 원천 읽기의 링크·크기·경로 거부", "os.ReadFile 로 읽는다", followRead, 6, false},
-	{"마스커 전체(양성 대조)", "모든 단계를 비운 항등 마스커를 끼운다", identity, 54, false},
+	{"value replacement stage", "empty the masker's value replacer", dropValues, 22, false},
+	{"encoded variants of values", "register only the raw known values", plainValues, 2, false},
+	{"core patterns", "empty the PEM rule and the core rules", dropCore, 29, false},
+	{"declared patterns", "build the masker without the declared patterns", dropDeclared, 7, false},
+	{"attribute key name rule", "empty the key rule", dropKeys, 3, false},
+	{"mask before truncate", "truncate before masking", cutFirst, 2, false},
+	{"key pattern value length", "revert the value slot +? to {1,1000}?", boundedValue, 1, false},
+	{"fixed-point iteration", "run a single pass", singlePass, 1, false},
+	{"rescan refuses links", "swap in a rescan that follows links", followRescan, 1, false},
+	{"rescan read failure handling", "count unreadable files as clean", lenientRescan, 1, true},
+	{"value source reads refuse links, oversize files and escaping paths", "read with os.ReadFile", followRead, 6, false},
+	{"whole masker (positive control)", "swap in an identity masker with every stage emptied", identity, 54, false},
 }
 
-func Test변이_기록표의_변이마다_코퍼스와_시나리오가_기록한_건수만큼_빨개진다(t *testing.T) {
+func TestMutationRecordEachMutationTurnsTheRecordedNumberOfCasesAndScenariosRed(t *testing.T) {
 	c := loadCorpus(t)
 	if red := redCases(c, realEngine); len(red) != 0 {
-		t.Fatalf("변이 없는 엔진이 빨갛다:\n%s", strings.Join(red, "\n"))
+		t.Fatalf("the unmutated engine is red:\n%s", strings.Join(red, "\n"))
 	}
 	for _, mu := range mutations {
 		t.Run(mu.target, func(t *testing.T) {
 			if mu.rootless && os.Geteuid() == 0 {
-				t.Skip("root 는 권한 000 파일도 읽어 읽기 실패를 만들 수 없다")
+				t.Skip("root reads mode 000 files too, so no read failure can be produced")
 			}
 			red := redCases(c, mu.mutate(realEngine))
 			if len(red) == 0 || len(red) != mu.red {
-				t.Errorf("%s: 빨간 사례 %d건, 기록 %d건\n%s", mu.method, len(red), mu.red, strings.Join(red, "\n"))
+				t.Errorf("%s: %d red cases, recorded %d\n%s", mu.method, len(red), mu.red, strings.Join(red, "\n"))
 			}
 		})
 	}
@@ -54,12 +54,12 @@ func redCases(c corpusFile, e engine) []string {
 	var red []string
 	for _, k := range c.Cases {
 		if len(runCase(c, k, e)) > 0 {
-			red = append(red, "코퍼스: "+k.Name)
+			red = append(red, "corpus: "+k.Name)
 		}
 	}
 	for _, s := range scenarios {
 		if len(s.run(e)) > 0 {
-			red = append(red, "시나리오: "+s.name)
+			red = append(red, "scenario: "+s.name)
 		}
 	}
 	return red

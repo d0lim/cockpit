@@ -1,3 +1,3 @@
-# 판정
+# Verdict
 
-판정 규칙 15개와 리포트 요약 형식, 통과로 세지 않는 것의 목록 규칙을 적는 자리다. 허브의 판정·리포트 번들을 만들 때 채운다.
+This page is the place for the 15 verdict rules, the report summary format, and the rules for the list of what is not counted as passed. It is filled in when the hub's verdict and report bundle are built.

@@ -144,7 +144,7 @@ func mustBundle(t *testing.T, root, entry string, site Site) Bundle {
 	t.Helper()
 	b, err := bundleAt(t, root, entry, site)
 	if err != nil {
-		t.Fatalf("번들 %s: %v", entry, err)
+		t.Fatalf("bundle %s: %v", entry, err)
 	}
 	return b
 }
@@ -174,7 +174,7 @@ func failureOf(t *testing.T, err error, kind FailureKind) *Failure {
 	t.Helper()
 	var f *Failure
 	if !errors.As(err, &f) || f.Kind != kind {
-		t.Fatalf("실패 종류 %s 를 기대했는데 %v", kind, err)
+		t.Fatalf("want failure kind %s, got %v", kind, err)
 	}
 	return f
 }
@@ -195,26 +195,26 @@ func assertMutationRecord(t *testing.T, file string, record []mutation) {
 	tests := map[string]bool{}
 	for _, decl := range parsed.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
-		if ok && fn.Recv == nil && strings.HasPrefix(fn.Name.Name, "Test") && !strings.Contains(fn.Name.Name, "변이_기록표") {
+		if ok && fn.Recv == nil && strings.HasPrefix(fn.Name.Name, "Test") && !strings.Contains(fn.Name.Name, "MutationRecord") {
 			tests[fn.Name.Name] = true
 		}
 	}
 	if len(tests) == 0 || len(record) == 0 {
-		t.Fatalf("%s: 시험 %d 개, 기록 %d 줄", file, len(tests), len(record))
+		t.Fatalf("%s: %d tests, %d record rows", file, len(tests), len(record))
 	}
 	listed := map[string]bool{}
 	for _, m := range record {
 		listed[m.test] = true
 		if !tests[m.test] {
-			t.Errorf("기록표의 %s 가 %s 에 없다", m.test, file)
+			t.Errorf("record row names %s, which is not a test in %s", m.test, file)
 		}
-		if m.target == "" || m.disable == "" || !strings.HasPrefix(m.result, "빨강") {
-			t.Errorf("기록이 비었거나 변이가 살아남았다: %+v", m)
+		if m.target == "" || m.disable == "" || !strings.HasPrefix(m.result, "red:") {
+			t.Errorf("record row is empty or its mutation survived: %+v", m)
 		}
 	}
 	for name := range tests {
 		if !listed[name] {
-			t.Errorf("%s 의 %s 가 기록표에 없다", file, name)
+			t.Errorf("%s: %s is missing from the mutation record", file, name)
 		}
 	}
 }
@@ -231,7 +231,7 @@ func plant(t *testing.T, name, content string) (abs, rel string) {
 	}
 	rel, err = filepath.Rel(wd, abs)
 	if err != nil || !strings.HasPrefix(rel, "..") {
-		t.Fatalf("상대 경로 %q %v", rel, err)
+		t.Fatalf("relative path %q %v", rel, err)
 	}
 	return abs, rel
 }

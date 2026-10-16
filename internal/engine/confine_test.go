@@ -10,9 +10,9 @@ import (
 )
 
 var confineMutations = []mutation{
-	{"전역 허용 목록", "setup 이 confineGlobals 를 건너뛴다", "빨강: GoError·require·setInterval·setImmediate·clear* 가 남는다", "Test전역_객체의_이름은_허용_목록과_양방향으로_같다"},
-	{"주요 프로토타입 동결", "setup 이 freezePrototypes 를 건너뛴다", "빨강: Object 부터 URLSearchParams 까지 얼지 않은 프로토타입이 나열된다", "Test전역_생성자의_프로토타입은_모두_얼어_있다"},
-	{"디스크를 읽지 않는 require 로더", "WithLoader 에 require.DefaultSourceLoader 를 준다", "빨강: 절대·상대·확장자 없는 경로가 모두 PLANTED_REGISTRY 를 돌려준다", "Test레지스트리는_심은_파일을_디스크에서_읽지_않는다"},
+	{"global allowlist", "make setup skip confineGlobals", "red: GoError, require, setInterval, setImmediate and clear* remain", "TestGlobalObjectNamesAndTheAllowListMatchBothWays"},
+	{"core prototype freeze", "make setup skip freezePrototypes", "red: unfrozen prototypes from Object to URLSearchParams are listed", "TestEveryGlobalConstructorPrototypeIsFrozen"},
+	{"require loader that never reads the disk", "pass require.DefaultSourceLoader to WithLoader", "red: absolute, relative and extensionless paths all return PLANTED_REGISTRY", "TestRegistryDoesNotReadPlantedFilesFromDisk"},
 }
 
 var wantGlobals = []string{
@@ -36,7 +36,7 @@ func difference(a, b []string) []string {
 	return out
 }
 
-func Test전역_객체의_이름은_허용_목록과_양방향으로_같다(t *testing.T) {
+func TestGlobalObjectNamesAndTheAllowListMatchBothWays(t *testing.T) {
 	p := newProbe(SiteRunner)
 	if err := runSource(t, SiteRunner, p, `import { record } from "cockpit:flow";
 
@@ -48,15 +48,15 @@ export default function (): void {
 	}
 	got := strings.Split(p.records[0], ",")
 	if missing, extra := difference(wantGlobals, got), difference(got, wantGlobals); len(missing)+len(extra) > 0 || len(got) == 0 {
-		t.Fatalf("빠진 전역 %q, 남은 전역 %q", missing, extra)
+		t.Fatalf("missing globals %q, extra globals %q", missing, extra)
 	}
 	table := append(slices.Clone(languageGlobals), hostGlobals...)
 	if missing, extra := difference(wantGlobals, table), difference(table, wantGlobals); len(missing)+len(extra) > 0 {
-		t.Fatalf("엔진의 허용 표와 어긋난다: 빠짐 %q, 더함 %q", missing, extra)
+		t.Fatalf("engine allow table differs: missing %q, extra %q", missing, extra)
 	}
 }
 
-func Test전역_생성자의_프로토타입은_모두_얼어_있다(t *testing.T) {
+func TestEveryGlobalConstructorPrototypeIsFrozen(t *testing.T) {
 	p := newProbe(SiteRunner)
 	if err := runSource(t, SiteRunner, p, `import { record } from "cockpit:flow";
 
@@ -72,14 +72,14 @@ export default function (): void {
 	}
 	checked, err := strconv.Atoi(p.records[0])
 	if err != nil || checked < 9 {
-		t.Fatalf("검사한 프로토타입 %q", p.records[0])
+		t.Fatalf("checked prototypes %q", p.records[0])
 	}
 	if p.records[1] != "" || p.records[2] != "true,true,true,true,true,true,true,true,true" {
-		t.Fatalf("얼지 않은 프로토타입 %q / 주요 %q", p.records[1], p.records[2])
+		t.Fatalf("unfrozen prototypes %q, core prototypes frozen %q", p.records[1], p.records[2])
 	}
 }
 
-func Test레지스트리는_심은_파일을_디스크에서_읽지_않는다(t *testing.T) {
+func TestRegistryDoesNotReadPlantedFilesFromDisk(t *testing.T) {
 	abs, rel := plant(t, "planted.json", `{"secret":"PLANTED_REGISTRY"}`)
 	reg := newRegistry()
 	reg.RegisterNativeModule("canary", func(rt *goja.Runtime, m *goja.Object) {
@@ -88,19 +88,19 @@ func Test레지스트리는_심은_파일을_디스크에서_읽지_않는다(t 
 	rm := reg.Enable(goja.New())
 	canary, err := rm.Require("canary")
 	if err != nil || canary.ToObject(nil).Get("ok").ToBoolean() != true {
-		t.Fatalf("네이티브 모듈이 풀리지 않았다(카나리): %v", err)
+		t.Fatalf("native module did not resolve (canary): %v", err)
 	}
 	specs := []string{abs, rel, strings.TrimSuffix(rel, ".json")}
 	for _, spec := range specs {
 		v, err := rm.Require(spec)
 		if err == nil {
-			t.Errorf("%s 가 풀렸다: %v", spec, v.Export())
+			t.Errorf("%s resolved: %v", spec, v.Export())
 		} else if strings.Contains(err.Error(), "PLANTED") || !strings.Contains(err.Error(), "Invalid module") {
 			t.Errorf("%s: %v", spec, err)
 		}
 	}
 }
 
-func Test가두기_변이_기록표는_이_파일의_시험과_양방향으로_같다(t *testing.T) {
+func TestConfineMutationRecordAndTestsInThisFileMatchBothWays(t *testing.T) {
 	assertMutationRecord(t, "confine_test.go", confineMutations)
 }

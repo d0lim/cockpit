@@ -73,11 +73,11 @@ func New(opts Options) (*Client, error) {
 	for _, origin := range opts.Allowed {
 		u, err := url.Parse(origin)
 		if err != nil {
-			return nil, fmt.Errorf("허용 오리진 %q 을 읽지 못했다", origin)
+			return nil, fmt.Errorf("failed to parse allowed origin %q", origin)
 		}
 		key, err := originKey(u)
 		if err != nil {
-			return nil, fmt.Errorf("허용 오리진 %q: %w", origin, err)
+			return nil, fmt.Errorf("allowed origin %q: %w", origin, err)
 		}
 		c.allowed[key] = true
 	}
@@ -96,10 +96,10 @@ func originKey(u *url.URL) (string, error) {
 	scheme := strings.ToLower(u.Scheme)
 	host := strings.ToLower(u.Hostname())
 	if scheme == "" || host == "" {
-		return "", errors.New("스킴과 호스트가 있는 절대 URL 이 아니다")
+		return "", errors.New("not an absolute URL with a scheme and host")
 	}
 	if net.ParseIP(host) != nil {
-		return "", errors.New("IP 주소는 서비스 이름이 아니다")
+		return "", errors.New("an IP address is not a service name")
 	}
 	port := u.Port()
 	if port == "" {
@@ -145,11 +145,11 @@ func (c *Client) status(code int) {
 func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 	u, err := url.Parse(req.URL)
 	if err != nil || !u.IsAbs() || u.Host == "" {
-		return Response{}, ports.Denied(c.mask, "절대 URL 이 아니다 — "+req.Method)
+		return Response{}, ports.Denied(c.mask, "not an absolute URL — "+req.Method)
 	}
 	key, err := originKey(u)
 	if err != nil || !c.allowed[key] {
-		return Response{}, ports.Denied(c.mask, "허용되지 않은 주소 — "+target(req.Method, u))
+		return Response{}, ports.Denied(c.mask, "address not allowed — "+target(req.Method, u))
 	}
 	timeout := c.timeout
 	if req.TimeoutMs > 0 {
@@ -164,7 +164,7 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 	case req.JSON != nil:
 		data, err := json.Marshal(req.JSON)
 		if err != nil {
-			return Response{}, ports.BadArgs(c.mask, "json 옵션을 직렬화하지 못했다 — "+target(req.Method, u))
+			return Response{}, ports.BadArgs(c.mask, "failed to serialize the json option — "+target(req.Method, u))
 		}
 		body = bytes.NewReader(data)
 		if headers.Get("Content-Type") == "" {
@@ -177,7 +177,7 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 	defer cancel()
 	hreq, err := http.NewRequestWithContext(hctx, req.Method, u.String(), body)
 	if err != nil {
-		return Response{}, ports.BadArgs(c.mask, "요청을 만들지 못했다 — "+target(req.Method, u))
+		return Response{}, ports.BadArgs(c.mask, "failed to build the request — "+target(req.Method, u))
 	}
 	hreq.Header = headers
 	c.sent()
@@ -188,14 +188,14 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 	defer res.Body.Close()
 	c.status(res.StatusCode)
 	if res.StatusCode >= 300 && res.StatusCode < 400 && res.Header.Get("Location") != "" {
-		return Response{}, ports.Denied(c.mask, fmt.Sprintf("리다이렉트 응답(%d)을 받았다 — %s", res.StatusCode, target(req.Method, u)))
+		return Response{}, ports.Denied(c.mask, fmt.Sprintf("got a redirect response (%d) — %s", res.StatusCode, target(req.Method, u)))
 	}
 	data, err := io.ReadAll(io.LimitReader(res.Body, c.maxBody+1))
 	if err != nil {
 		return Response{}, c.failure(hctx, err, timeout, target(req.Method, u))
 	}
 	if int64(len(data)) > c.maxBody {
-		return Response{}, ports.Limit(c.mask, "응답 본문이 상한을 넘는다 — "+target(req.Method, u))
+		return Response{}, ports.Limit(c.mask, "response body exceeds the limit — "+target(req.Method, u))
 	}
 	hdrs := map[string]string{}
 	for name, values := range res.Header {
@@ -206,7 +206,7 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 
 func (c *Client) failure(ctx context.Context, err error, timeout time.Duration, at string) error {
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return ports.Timeout(c.mask, fmt.Sprintf("요청 시간 상한 %dms 를 넘겼다 — %s", timeout.Milliseconds(), at))
+		return ports.Timeout(c.mask, fmt.Sprintf("request exceeded the %dms time limit — %s", timeout.Milliseconds(), at))
 	}
-	return ports.Unavailable(c.mask, "요청을 보내지 못했다 — "+at)
+	return ports.Unavailable(c.mask, "failed to send the request — "+at)
 }

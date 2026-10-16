@@ -1,2 +1,2 @@
-scripts/build-runners.sh 가 cockpit-runner-linux-arm64.gz 와 cockpit-runner-linux-amd64.gz 를 이 디렉토리에 둔다.
-gz 파일은 커밋하지 않는다. 이 파일은 embed 패턴이 빈 디렉토리에서도 컴파일되게 하는 자리표시다.
+scripts/build-runners.sh writes cockpit-runner-linux-arm64.gz and cockpit-runner-linux-amd64.gz to this directory.
+Do not commit the gz files. This file is a placeholder so the embed pattern compiles even when the directory has no runners.

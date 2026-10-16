@@ -42,16 +42,16 @@ func loadSettings(getenv func(string) string) settings {
 func declaredHostAPI(path string) (int, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return 0, fmt.Errorf("선언 %s 을 읽지 못했다: %w", path, err)
+		return 0, fmt.Errorf("could not read declaration %s: %w", path, err)
 	}
 	var doc struct {
 		HostAPI *int `yaml:"hostApi"`
 	}
 	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return 0, fmt.Errorf("선언 %s 을 YAML 로 읽지 못했다: %w", path, err)
+		return 0, fmt.Errorf("could not parse declaration %s as YAML: %w", path, err)
 	}
 	if doc.HostAPI == nil {
-		return 0, fmt.Errorf("선언 %s 에 hostApi 가 없다", path)
+		return 0, fmt.Errorf("declaration %s has no hostApi", path)
 	}
 	return *doc.HostAPI, nil
 }
@@ -59,11 +59,11 @@ func declaredHostAPI(path string) (int, error) {
 func loadPublicEnv(path string) (map[string]any, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("공개 env %s 을 읽지 못했다: %w", path, err)
+		return nil, fmt.Errorf("could not read public env %s: %w", path, err)
 	}
 	var env map[string]any
 	if err := json.Unmarshal(raw, &env); err != nil {
-		return nil, fmt.Errorf("공개 env %s 이 JSON 객체가 아니다: %w", path, err)
+		return nil, fmt.Errorf("public env %s is not a JSON object: %w", path, err)
 	}
 	if env == nil {
 		env = map[string]any{}
@@ -109,7 +109,7 @@ func sourceRoots(dir string) (source.Roots, error) {
 		return roots, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("소스 디렉토리 %s 을 읽지 못했다: %w", dir, err)
+		return nil, fmt.Errorf("could not read source directory %s: %w", dir, err)
 	}
 	for _, e := range entries {
 		if e.IsDir() {

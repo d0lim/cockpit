@@ -13,7 +13,7 @@ export default collector({
 			ctx.signal.event({ attrs: { table: "orders", status: String(row[1]), tone: tones[0], label: keys.join(",") }, body: JSON.stringify(row) });
 		}
 		ctx.signal.metric({ name: "orders.rows", value: result.rows.length, attrs: { table: "orders", truncated: result.truncated } });
-		ctx.signal.span({ id: "s-1", traceId: "t-1", name: "주문", start: "2026-10-15T00:00:00.000Z", status: states[2] ?? "ok", tsSource: "container" });
+		ctx.signal.span({ id: "s-1", traceId: "t-1", name: "order", start: "2026-10-15T00:00:00.000Z", status: states[2] ?? "ok", tsSource: "container" });
 		const logs = await ctx.docker.logs("app", { tail: 10 });
 		const out = await ctx.docker.exec("cache", ["valkey-cli", "GET", "k"]);
 		const services = await ctx.docker.ps();

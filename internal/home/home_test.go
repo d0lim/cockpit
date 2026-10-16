@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test상태_디렉토리는_COCKPIT_HOME_XDG_STATE_HOME_기본_순서로_정한다(t *testing.T) {
+func TestStateDirComesFromCockpitHomeThenXdgStateHomeThenDefault(t *testing.T) {
 	env := func(m map[string]string) func(string) string {
 		return func(k string) string { return m[k] }
 	}

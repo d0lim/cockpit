@@ -15,7 +15,7 @@ import (
 	"github.com/d0lim/cockpit/internal/ports/totp"
 )
 
-func Test환경과_자격은_읽히고_얼어_있으며_saveSeed_뒤_priv_가_새_값을_본다(t *testing.T) {
+func TestEnvAndPrivAreReadableAndFrozenAndPrivSeesTheNewSeedAfterSaveSeed(t *testing.T) {
 	w := newWorld(t)
 	w.mustRun(`export default async () => {
 	must(ctx.env.appBase === "http://app:8080" && ctx.env.flag === true && ctx.env.nested.n === 1, "env");
@@ -43,7 +43,7 @@ func Test환경과_자격은_읽히고_얼어_있으며_saveSeed_뒤_priv_가_�
 	}
 }
 
-func Test허용_주소의_send_는_응답을_돌려주고_거부와_리다이렉트는_code_가_붙은_오류로_거절되며_문장은_가려진다(t *testing.T) {
+func TestSendResolvesForAllowedURLAndRejectsDeniedOrRedirectedWithCodeAndMaskedMessage(t *testing.T) {
 	w := newWorld(t)
 	w.mustRun(`export default async () => {
 	const res = await ctx.http.send("POST", ctx.env.appBase + "/echo?q=1", { headers: { authorization: "Bearer t" }, json: { a: 1 } });
@@ -57,14 +57,14 @@ func Test허용_주소의_send_는_응답을_돌려주고_거부와_리다이렉
 	record(String(Object.isFrozen(res)));
 }`)
 	if n := w.deps.HTTP.Counter(); n.Sent != 2 || n.LastStatus != 302 {
-		t.Fatalf("카운터: %+v", n)
+		t.Fatalf("counter: %+v", n)
 	}
 	if len(w.records) != 1 {
 		t.Fatalf("records: %v", w.records)
 	}
 }
 
-func Test캡처는_get_으로_돌아오고_persist_만_context_json_에_남으며_없는_캡처는_이름을_말하며_거부된다(t *testing.T) {
+func TestCapturesComeBackViaGetOnlyPersistedReachContextJSONAndMissingOnesAreRejectedByName(t *testing.T) {
 	w := newWorld(t)
 	w.mustRun(`export default async () => {
 	ctx.capture("session", ctx.priv.adminPassword);
@@ -85,7 +85,7 @@ func Test캡처는_get_으로_돌아오고_persist_만_context_json_에_남으�
 	}
 }
 
-func Test2팩터_코드는_시드_키_표의_계정만_발급되고_스텝이_context_json_에_남는다(t *testing.T) {
+func TestTOTPIsIssuedOnlyForAccountsInSeedKeyTableAndStepIsStoredInContextJSON(t *testing.T) {
 	w := newWorld(t)
 	w.mustRun(`export default async () => {
 	const a = await ctx.totp("admin-1");
@@ -104,7 +104,7 @@ func Test2팩터_코드는_시드_키_표의_계정만_발급되고_스텝이_co
 	}
 }
 
-func Test암호_포트는_v4_UUID와_난수와_키쌍을_내고_개인키로만_서명하며_Go_공개키로_검증된다(t *testing.T) {
+func TestCryptoGivesV4UUIDRandomBytesAndKeyPairsAndSignsOnlyWithPrivateKeyVerifiableInGo(t *testing.T) {
 	w := newWorld(t)
 	w.mustRun(`export default async () => {
 	const id = ctx.crypto.randomUUID();
@@ -139,11 +139,11 @@ func Test암호_포트는_v4_UUID와_난수와_키쌍을_내고_개인키로만_
 	sig, _ := base64.StdEncoding.DecodeString(rec.Sig)
 	digest := sha512.Sum512([]byte(rec.Input))
 	if err := rsa.VerifyPKCS1v15(pub, crypto.SHA512, digest[:], sig); err != nil {
-		t.Fatalf("검증: %v", err)
+		t.Fatalf("verify: %v", err)
 	}
 }
 
-func Test소스는_선언된_이름의_파일만_읽고_나열하며_그_밖은_code_가_붙은_오류로_거부한다(t *testing.T) {
+func TestSourceReadsAndListsOnlyDeclaredNamesAndRejectsOthersWithAPortCode(t *testing.T) {
 	w := newWorld(t)
 	w.mustRun(`export default async () => {
 	must(ctx.readSource("fixtures", "modules/a.json") === '{"a":1}', "read");
@@ -157,7 +157,7 @@ func Test소스는_선언된_이름의_파일만_읽고_나열하며_그_밖은_
 }`)
 }
 
-func Test시계는_밀리초를_주고_sleep_은_그만큼_뒤에_푼다(t *testing.T) {
+func TestClockGivesMillisAndSleepResolvesAfterTheGivenDelay(t *testing.T) {
 	w := newWorld(t)
 	w.mustRun(`export default async () => {
 	const t0 = ctx.clock();
@@ -169,6 +169,6 @@ func Test시계는_밀리초를_주고_sleep_은_그만큼_뒤에_푼다(t *test
 }`)
 }
 
-func Test러너_ctx_변이_기록표는_이_파일의_시험과_양방향으로_같다(t *testing.T) {
+func TestRunnerCtxMutationRecordMatchesTestsInThisFile(t *testing.T) {
 	porttest.AssertMutationRecord(t, "runnerctx_test.go", ctxMutations)
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func Test밀리초_시계와_취소되는_sleep(t *testing.T) {
+func TestClockReportsMillisAndSleepWaitsUnlessCancelledOrNegative(t *testing.T) {
 	fixed := time.UnixMilli(1_700_000_000_123)
 	c := Clock{Now: func() time.Time { return fixed }}
 	if c.Millis() != 1_700_000_000_123 {
@@ -20,9 +20,9 @@ func Test밀리초_시계와_취소되는_sleep(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := System().Sleep(ctx, 10_000); !errors.Is(err, context.Canceled) {
-		t.Fatalf("취소: %v", err)
+		t.Fatalf("cancelled: %v", err)
 	}
 	if err := System().Sleep(context.Background(), -5); err != nil {
-		t.Fatalf("음수: %v", err)
+		t.Fatalf("negative: %v", err)
 	}
 }

@@ -15,12 +15,12 @@ type Report struct {
 	Scanned int
 }
 
-var errNotRegular = errors.New("일반 파일이 아니다")
+var errNotRegular = errors.New("not a regular file")
 
 func Rescan(dir string, mask func(string) string) (Report, error) {
 	root, err := os.OpenRoot(dir)
 	if err != nil {
-		return Report{}, fmt.Errorf("재스캔할 디렉토리를 열지 못했다: %w", err)
+		return Report{}, fmt.Errorf("cannot open directory to rescan: %w", err)
 	}
 	defer root.Close()
 	var r Report
@@ -41,7 +41,7 @@ func Rescan(dir string, mask func(string) string) (Report, error) {
 		return nil
 	})
 	if err != nil {
-		return Report{}, fmt.Errorf("재스캔하지 못했다: %w", err)
+		return Report{}, fmt.Errorf("rescan failed: %w", err)
 	}
 	slices.Sort(r.Left)
 	r.Left = slices.Compact(r.Left)

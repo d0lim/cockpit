@@ -7,7 +7,7 @@ import (
 
 func expectDeep(label string, got, want any) []string {
 	if !reflect.DeepEqual(got, want) {
-		return []string{fmt.Sprintf("%s: 결과 %#v, 기대 %#v", label, got, want)}
+		return []string{fmt.Sprintf("%s: got %#v, want %#v", label, got, want)}
 	}
 	return nil
 }
@@ -19,15 +19,15 @@ func leavesPlantedScenario(e engine) []string {
 	}
 	in := map[string]any{
 		"name":       "step-1",
-		"attributes": map[string]any{"message": "실패 " + planted, "status": 401.0},
-		"events":     []any{"재시도 " + planted},
+		"attributes": map[string]any{"message": "failed " + planted, "status": 401.0},
+		"events":     []any{"retry " + planted},
 	}
 	want := map[string]any{
 		"name":       "step-1",
-		"attributes": map[string]any{"message": "실패 ****3a9c", "status": 401.0},
-		"events":     []any{"재시도 ****3a9c"},
+		"attributes": map[string]any{"message": "failed ****3a9c", "status": 401.0},
+		"events":     []any{"retry ****3a9c"},
 	}
-	return expectDeep("신호", m.Leaves(in), want)
+	return expectDeep("signal", m.Leaves(in), want)
 }
 
 func leavesArrayScenario(e engine) []string {
@@ -45,11 +45,11 @@ func leavesArrayScenario(e engine) []string {
 		"Accept":           {"text/plain"},
 	}
 	return append(
-		expectDeep("JSON 으로 푼 헤더", m.Leaves(decoded), map[string]any{
+		expectDeep("JSON-decoded headers", m.Leaves(decoded), map[string]any{
 			"http.request.header.x-webhook-secret": []any{marker, marker},
 			"http.request.header.content-type":     []any{"application/json"},
 		}),
-		expectDeep("타입 있는 헤더", m.Leaves(typed), map[string][]string{
+		expectDeep("typed headers", m.Leaves(typed), map[string][]string{
 			"X-Webhook-Secret": {marker},
 			"Authorization":    {marker},
 			"Accept":           {"text/plain"},
@@ -62,7 +62,7 @@ func leavesScalarScenario(e engine) []string {
 		return []string{err.Error()}
 	}
 	in := map[string]any{"pin": 1234.0, "password": 12345678.0, "otp_token": true, "retries": 3}
-	return expectDeep("스칼라", m.Leaves(in), map[string]any{"pin": 1234.0, "password": marker, "otp_token": marker, "retries": 3})
+	return expectDeep("scalars", m.Leaves(in), map[string]any{"pin": 1234.0, "password": marker, "otp_token": marker, "retries": 3})
 }
 
 type unknownSignal struct {
@@ -76,6 +76,6 @@ func leavesUnknownTypeScenario(e engine) []string {
 	if err != nil {
 		return []string{err.Error()}
 	}
-	got := m.Leaves(unknownSignal{Note: "값 " + planted, Token: "t-1", Count: 2})
-	return expectDeep("구조체", got, map[string]any{"note": "값 ****3a9c", "token": marker, "count": 2.0})
+	got := m.Leaves(unknownSignal{Note: "value " + planted, Token: "t-1", Count: 2})
+	return expectDeep("struct", got, map[string]any{"note": "value ****3a9c", "token": marker, "count": 2.0})
 }

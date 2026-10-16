@@ -19,13 +19,13 @@ import (
 )
 
 var imageMutations = []porttest.Mutation{
-	{"태그는 바이너리 해시", "Tag 가 고정 문자열을 돌려준다", "빨강: 태그가 sha256 앞 12자가 아니다", "Test첫_호출은_import_하고_태그는_바이너리_sha256_앞_12자이며_tar_에는_0755_러너_하나와_tmp_뿐이다"},
-	{"비 root·entrypoint 변경", "import 인자에서 --change 둘을 지운다", "빨강: USER 65532 와 ENTRYPOINT 단정이 깨진다", "Test첫_호출은_import_하고_태그는_바이너리_sha256_앞_12자이며_tar_에는_0755_러너_하나와_tmp_뿐이다"},
-	{"핀과 같으면 import 안 함", "Ensure 가 항상 import 한다", "빨강: 둘째 호출의 import 횟수가 0 이 아니다", "Test핀이_태그를_가리키면_import_하지_않고_다른_ID_를_가리키거나_핀이_없으면_다시_import_한다"},
-	{"핀과 다르면 다시 import", "inspect 결과를 보지 않고 핀만 믿는다", "빨강: 다른 ID 에서 import 0회", "Test핀이_태그를_가리키면_import_하지_않고_다른_ID_를_가리키거나_핀이_없으면_다시_import_한다"},
-	{"아키텍처 정규화", "NormalizeArch 가 입력을 그대로 돌려준다", "빨강: aarch64 가 arm64 가 아니다", "Test데몬_아키텍처_aarch64_와_x86_64_는_arm64_amd64_로_정규화되고_모르는_값은_거부된다"},
-	{"러너 미내장 거부", "ErrNotEmbedded 를 빈 바이너리로 대신한다", "빨강: 오류 없이 빈 이미지를 만든다", "Test러너_자리표시만_있는_트리에서는_러너_미내장으로_끝나고_데몬에_닿지_못해도_오류다"},
-	{"핀 파일 왕복", "Pin 이 쓰지 않는다", "빨강: 다시 읽은 핀이 없다", "Test핀_파일은_없으면_비어_있고_태그별로_남아_다시_읽힌다"},
+	{"tag is the binary hash", "Tag returns a fixed string", "red: the tag is not the first 12 chars of the sha256", "TestFirstCallImportsImageTaggedBy12CharSha256WithOnlyRunnerAndTmpInTar"},
+	{"non-root user and entrypoint change", "drop both --change flags from the import args", "red: the USER 65532 and ENTRYPOINT assertions fail", "TestFirstCallImportsImageTaggedBy12CharSha256WithOnlyRunnerAndTmpInTar"},
+	{"no import when the pin matches", "Ensure always imports", "red: the second call's import count is not 0", "TestMatchingPinSkipsImportAndStaleOrMissingPinImportsAgain"},
+	{"re-import when the pin differs", "trust the pin without checking the inspect result", "red: zero imports for a different ID", "TestMatchingPinSkipsImportAndStaleOrMissingPinImportsAgain"},
+	{"architecture normalization", "NormalizeArch returns its input unchanged", "red: aarch64 does not become arm64", "TestDaemonArchAliasesNormalizeToArm64OrAmd64AndUnknownArchIsRejected"},
+	{"reject a runner that is not embedded", "replace ErrNotEmbedded with an empty binary", "red: an empty image is built without error", "TestPlaceholderOnlyTreeFailsWithRunnerNotEmbeddedAndUnreachableDaemonErrors"},
+	{"pin file round trip", "Pin does not write", "red: the reread pin is missing", "TestPinFileIsEmptyWhenMissingAndKeepsEachTagAcrossReads"},
 }
 
 type fakeDocker struct {
@@ -88,7 +88,7 @@ func fakeRunner(t *testing.T, body string) (func(string) ([]byte, error), []byte
 	}, []byte(body)
 }
 
-func Test첫_호출은_import_하고_태그는_바이너리_sha256_앞_12자이며_tar_에는_0755_러너_하나와_tmp_뿐이다(t *testing.T) {
+func TestFirstCallImportsImageTaggedBy12CharSha256WithOnlyRunnerAndTmpInTar(t *testing.T) {
 	lookup, bin := fakeRunner(t, "ELF-fake-runner")
 	d := &fakeDocker{arch: "arm64", inspect: map[string]string{}}
 	pins := &memPins{byTag: map[string]Image{}}
@@ -104,7 +104,7 @@ func Test첫_호출은_import_하고_태그는_바이너리_sha256_앞_12자이�
 	joined := strings.Join(last, " ")
 	for _, want := range []string{"import", "--platform linux/arm64", `--change ENTRYPOINT ["/cockpit-runner"]`, "--change USER 65532:65532", "- " + img.Tag} {
 		if !strings.Contains(joined, want) {
-			t.Fatalf("import 인자에 %q 가 없다: %q", want, joined)
+			t.Fatalf("import args lack %q: %q", want, joined)
 		}
 	}
 	tr := tar.NewReader(bytes.NewReader(d.archives[0]))
@@ -121,19 +121,19 @@ func Test첫_호출은_import_하고_태그는_바이너리_sha256_앞_12자이�
 		if h.Name == "cockpit-runner" {
 			data, _ := io.ReadAll(tr)
 			if h.Mode != 0o755 || !bytes.Equal(data, bin) || h.Typeflag != tar.TypeReg {
-				t.Fatalf("러너 항목 mode=%o type=%v", h.Mode, h.Typeflag)
+				t.Fatalf("runner entry mode=%o type=%v", h.Mode, h.Typeflag)
 			}
 		}
 	}
 	if !slices.Equal(names, []string{"tmp/", "cockpit-runner"}) {
-		t.Fatalf("tar 항목 %v", names)
+		t.Fatalf("tar entries %v", names)
 	}
 	if pinned, ok := pins.Pinned(img.Tag); !ok || pinned != img.ID {
-		t.Fatalf("핀 %q %v", pinned, ok)
+		t.Fatalf("pin %q %v", pinned, ok)
 	}
 }
 
-func Test핀이_태그를_가리키면_import_하지_않고_다른_ID_를_가리키거나_핀이_없으면_다시_import_한다(t *testing.T) {
+func TestMatchingPinSkipsImportAndStaleOrMissingPinImportsAgain(t *testing.T) {
 	lookup, _ := fakeRunner(t, "ELF-fake-runner")
 	d := &fakeDocker{arch: "arm64", inspect: map[string]string{}}
 	pins := &memPins{byTag: map[string]Image{}}
@@ -143,24 +143,24 @@ func Test핀이_태그를_가리키면_import_하지_않고_다른_ID_를_가리
 	}
 	second, err := Ensure(context.Background(), d, lookup, pins)
 	if err != nil || second != first || d.imports != 1 {
-		t.Fatalf("둘째 호출: %+v %v imports=%d", second, err, d.imports)
+		t.Fatalf("second call: %+v %v imports=%d", second, err, d.imports)
 	}
 	d.inspect[first.Tag] = "sha256:other"
 	third, err := Ensure(context.Background(), d, lookup, pins)
 	if err != nil || d.imports != 2 || third.ID == first.ID || third.Tag != first.Tag {
-		t.Fatalf("다른 ID: %+v %v imports=%d", third, err, d.imports)
+		t.Fatalf("different ID: %+v %v imports=%d", third, err, d.imports)
 	}
 	if pinned, _ := pins.Pinned(first.Tag); pinned != third.ID {
-		t.Fatalf("핀 갱신 %q", pinned)
+		t.Fatalf("pin update %q", pinned)
 	}
 	fresh := &memPins{byTag: map[string]Image{}}
 	fourth, err := Ensure(context.Background(), d, lookup, fresh)
 	if err != nil || d.imports != 3 || fourth.ID == third.ID {
-		t.Fatalf("핀 없음: %+v %v imports=%d", fourth, err, d.imports)
+		t.Fatalf("no pin: %+v %v imports=%d", fourth, err, d.imports)
 	}
 }
 
-func Test데몬_아키텍처_aarch64_와_x86_64_는_arm64_amd64_로_정규화되고_모르는_값은_거부된다(t *testing.T) {
+func TestDaemonArchAliasesNormalizeToArm64OrAmd64AndUnknownArchIsRejected(t *testing.T) {
 	for raw, want := range map[string]string{"aarch64": "arm64", "arm64\n": "arm64", "x86_64": "amd64", "amd64": "amd64"} {
 		if got, err := NormalizeArch(raw); err != nil || got != want {
 			t.Fatalf("%q → %q %v", raw, got, err)
@@ -168,7 +168,7 @@ func Test데몬_아키텍처_aarch64_와_x86_64_는_arm64_amd64_로_정규화되
 	}
 	for _, bad := range []string{"", "riscv64", "arm"} {
 		if _, err := NormalizeArch(bad); err == nil {
-			t.Fatalf("%q 가 통과했다", bad)
+			t.Fatalf("%q was accepted", bad)
 		}
 	}
 	lookup, _ := fakeRunner(t, "x")
@@ -178,11 +178,11 @@ func Test데몬_아키텍처_aarch64_와_x86_64_는_arm64_amd64_로_정규화되
 	}
 }
 
-func Test러너_자리표시만_있는_트리에서는_러너_미내장으로_끝나고_데몬에_닿지_못해도_오류다(t *testing.T) {
+func TestPlaceholderOnlyTreeFailsWithRunnerNotEmbeddedAndUnreachableDaemonErrors(t *testing.T) {
 	d := &fakeDocker{arch: "amd64", inspect: map[string]string{}}
 	placeholderOnly := func(arch string) ([]byte, error) { return nil, fmt.Errorf("%w: linux/%s", ErrNotEmbedded, arch) }
 	_, err := Ensure(context.Background(), d, placeholderOnly, &memPins{byTag: map[string]Image{}})
-	if err == nil || !errors.Is(err, ErrNotEmbedded) || !strings.Contains(err.Error(), "러너 미내장") || d.imports != 0 {
+	if err == nil || !errors.Is(err, ErrNotEmbedded) || !strings.Contains(err.Error(), "not a release build") || d.imports != 0 {
 		t.Fatalf("%v imports=%d", err, d.imports)
 	}
 	lookup, _ := fakeRunner(t, "x")
@@ -192,7 +192,7 @@ func Test러너_자리표시만_있는_트리에서는_러너_미내장으로_�
 	}
 }
 
-func Test핀_파일은_없으면_비어_있고_태그별로_남아_다시_읽힌다(t *testing.T) {
+func TestPinFileIsEmptyWhenMissingAndKeepsEachTagAcrossReads(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "state", "runner-images.json")
 	pins := FilePins{Path: path}
 	if id, ok := pins.Pinned("cockpit-runner:abc"); ok || id != "" {
@@ -213,6 +213,6 @@ func Test핀_파일은_없으면_비어_있고_태그별로_남아_다시_읽힌
 	}
 }
 
-func Test이미지_변이_기록표는_이_파일의_시험과_양방향으로_같다(t *testing.T) {
+func TestImageMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 	porttest.AssertMutationRecord(t, "image_test.go", imageMutations)
 }

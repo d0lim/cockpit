@@ -21,17 +21,17 @@ type Route struct {
 func ParseRoute(spec string) (Route, error) {
 	port, upstream, ok := strings.Cut(spec, "=")
 	if !ok {
-		return Route{}, fmt.Errorf("엣지 항목 %q 은 <포트>=<호스트>:<포트> 꼴이어야 한다", spec)
+		return Route{}, fmt.Errorf("edge entry %q must have the form <port>=<host>:<port>", spec)
 	}
 	if _, err := validPort(port); err != nil {
-		return Route{}, fmt.Errorf("엣지 항목 %q 의 듣는 포트: %w", spec, err)
+		return Route{}, fmt.Errorf("edge entry %q has a bad listen port: %w", spec, err)
 	}
 	host, uport, err := net.SplitHostPort(upstream)
 	if err != nil || host == "" {
-		return Route{}, fmt.Errorf("엣지 항목 %q 의 업스트림은 <호스트>:<포트> 여야 한다", spec)
+		return Route{}, fmt.Errorf("edge entry %q must name its upstream as <host>:<port>", spec)
 	}
 	if _, err := validPort(uport); err != nil {
-		return Route{}, fmt.Errorf("엣지 항목 %q 의 업스트림 포트: %w", spec, err)
+		return Route{}, fmt.Errorf("edge entry %q has a bad upstream port: %w", spec, err)
 	}
 	return Route{Listen: ":" + port, Upstream: upstream}, nil
 }
@@ -39,7 +39,7 @@ func ParseRoute(spec string) (Route, error) {
 func validPort(s string) (int, error) {
 	n, err := strconv.Atoi(s)
 	if err != nil || n < 1 || n > 65535 {
-		return 0, errors.New("1~65535 사이의 정수가 아니다")
+		return 0, errors.New("not an integer between 1 and 65535")
 	}
 	return n, nil
 }
@@ -59,7 +59,7 @@ func ListenAll(routes []Route) ([]*Proxy, error) {
 			for _, p := range proxies {
 				p.ln.Close()
 			}
-			return nil, fmt.Errorf("%s 를 듣지 못했다: %w", r.Listen, err)
+			return nil, fmt.Errorf("could not listen on %s: %w", r.Listen, err)
 		}
 		proxies = append(proxies, &Proxy{ln: ln, upstream: r.Upstream})
 	}

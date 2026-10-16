@@ -12,16 +12,16 @@ func decl(flows ...FlowDecl) SuiteDecl {
 	return SuiteDecl{
 		Name: "fake",
 		Stages: []contract.ManifestStage{
-			{ID: "boot", Title: "부트스트랩"},
-			{ID: "inbound", Title: "유입", NotProven: "대역이 아직 없다"},
-			{ID: "use", Title: "쓰기"},
+			{ID: "boot", Title: "Bootstrap"},
+			{ID: "inbound", Title: "Inbound", NotProven: "no stand-in yet"},
+			{ID: "use", Title: "Use"},
 		},
 		Flows: flows,
 	}
 }
 
 func fd(id, stage string, once bool, requires []string, steps ...string) FlowDecl {
-	f := FlowDecl{ID: id, Title: id + " 플로우", Stage: stage, Once: once, Requires: requires, Source: &contract.ManifestSource{File: "flows/fake.ts", Line: 7}}
+	f := FlowDecl{ID: id, Title: id + " flow", Stage: stage, Once: once, Requires: requires, Source: &contract.ManifestSource{File: "flows/fake.ts", Line: 7}}
 	if f.Requires == nil {
 		f.Requires = []string{}
 	}
@@ -57,7 +57,7 @@ func ids(plans []ExecPlan) [][]string {
 	return out
 }
 
-func Test매니페스트는_스테이지_순서대로_플로우를_놓고_단계_종류_once_전제를_그대로_적는다(t *testing.T) {
+func TestManifestOrdersFlowsByStageAndCopiesStepKindOnceAndRequires(t *testing.T) {
 	s := decl(fd("late", "use", false, nil, "u1"), fd("early", "boot", true, nil, "e1", "e2"))
 	ordered, err := Order(s)
 	if err != nil {
@@ -67,11 +67,11 @@ func Test매니페스트는_스테이지_순서대로_플로우를_놓고_단계
 	if m.SchemaVersion != 2 || m.Suite != "fake" || m.Runner == nil || m.Runner.Image != "img" {
 		t.Fatalf("%+v", m)
 	}
-	if len(m.Stages) != 3 || m.Stages[1].NotProven != "대역이 아직 없다" || m.Flows[0].ID != "early" || m.Flows[1].ID != "late" {
+	if len(m.Stages) != 3 || m.Stages[1].NotProven != "no stand-in yet" || m.Flows[0].ID != "early" || m.Flows[1].ID != "late" {
 		t.Fatalf("%+v", m)
 	}
 	early := m.Flows[0]
-	if early.Title != "early 플로우" || early.Stage != "boot" || !early.Once || len(early.Requires) != 0 || early.Source == nil || early.Source.File != "flows/fake.ts" {
+	if early.Title != "early flow" || early.Stage != "boot" || !early.Once || len(early.Requires) != 0 || early.Source == nil || early.Source.File != "flows/fake.ts" {
 		t.Fatalf("%+v", early)
 	}
 	if len(early.Steps) != 2 {
@@ -89,7 +89,7 @@ func Test매니페스트는_스테이지_순서대로_플로우를_놓고_단계
 	}
 }
 
-func Test잘못_선언한_스위트는_거절한다_모르는_스테이지_모르는_전제_뒤에서_도는_전제_겹친_id_나쁜_꼴(t *testing.T) {
+func TestOrderRejectsUnknownStageUnknownOrLaterRequireDuplicateIDAndBadShape(t *testing.T) {
 	bad := []struct {
 		flows []FlowDecl
 		word  string
@@ -99,7 +99,7 @@ func Test잘못_선언한_스위트는_거절한다_모르는_스테이지_모�
 		{[]FlowDecl{fd("x1", "boot", false, []string{"x2"}, "s"), fd("x2", "use", false, nil, "s")}, "x2"},
 		{[]FlowDecl{fd("x1", "use", false, nil, "s"), fd("x1", "use", false, nil, "t")}, "x1"},
 		{[]FlowDecl{fd("Bad", "use", false, nil, "s")}, "Bad"},
-		{[]FlowDecl{fd("x1", "use", false, nil, "s", "s")}, "s"},
+		{[]FlowDecl{fd("x1", "use", false, nil, "s", "s")}, `"s"`},
 		{[]FlowDecl{{ID: "x1", Title: "t", Stage: "use", Requires: []string{}, Steps: []StepDecl{{ID: "s", Title: "s", Kind: "fly"}}}}, "fly"},
 	}
 	for _, b := range bad {
@@ -110,7 +110,7 @@ func Test잘못_선언한_스위트는_거절한다_모르는_스테이지_모�
 	}
 }
 
-func TestAE4_반복_가능_전제는_다시_돌고_once_전제_passed_에서_멈춘다(t *testing.T) {
+func TestAE4PlanRerunsRepeatableRequiresAndStopsAtPassedOnceRequire(t *testing.T) {
 	flows, _ := Order(coreDecl)
 	plans, err := PlanExec(flows, []string{"gamma"}, ledgerOf(map[string]contract.FlowStatus{"alpha": "passed", "beta": "passed", "gamma": "passed"}))
 	if err != nil || !slices.Equal(ids(plans)[0], []string{"beta", "gamma"}) {
@@ -122,7 +122,7 @@ func TestAE4_반복_가능_전제는_다시_돌고_once_전제_passed_에서_멈
 	}
 }
 
-func TestAE4_AE3_once_전제_미통과와_이미_돈_once_대상은_거절하고_미시작_once_는_허용한다(t *testing.T) {
+func TestAE4AE3PlanRejectsUnpassedOnceRequireAndRanOnceTargetButAllowsUnstartedOnce(t *testing.T) {
 	flows, _ := Order(coreDecl)
 	for _, l := range []contract.Ledger{ledgerOf(nil), ledgerOf(map[string]contract.FlowStatus{"alpha": "failed"}), ledgerOf(map[string]contract.FlowStatus{"alpha": "started"})} {
 		if _, err := PlanExec(flows, []string{"gamma"}, l); err == nil || !strings.Contains(err.Error(), "alpha") {
@@ -130,7 +130,7 @@ func TestAE4_AE3_once_전제_미통과와_이미_돈_once_대상은_거절하고
 		}
 	}
 	for _, s := range []contract.FlowStatus{"started", "passed", "failed"} {
-		if _, err := PlanExec(flows, []string{"alpha"}, ledgerOf(map[string]contract.FlowStatus{"alpha": s})); err == nil || !strings.Contains(err.Error(), "이미 돌았다") {
+		if _, err := PlanExec(flows, []string{"alpha"}, ledgerOf(map[string]contract.FlowStatus{"alpha": s})); err == nil || !strings.Contains(err.Error(), "already ran") {
 			t.Fatalf("%s: %v", s, err)
 		}
 	}
@@ -147,11 +147,11 @@ func TestAE4_AE3_once_전제_미통과와_이미_돈_once_대상은_거절하고
 		t.Fatalf("%v %v", ids(plans), err)
 	}
 	if _, err := PlanExec(flows, []string{"alpha", "alpha"}, ledgerOf(nil)); err == nil {
-		t.Fatal("같은 once 대상 둘")
+		t.Fatal("the same once target was accepted twice")
 	}
 }
 
-func Test요약_줄은_플로우_단계_상태_소요_HTTP_상태만_싣는다(t *testing.T) {
+func TestSummaryLineCarriesOnlyFlowStepStatusDurationAndHTTPStatus(t *testing.T) {
 	ms := int64(1000)
 	status := 201
 	if got := SummaryLine(contract.ResultStep{Flow: "a", ID: "s", Status: "passed", DurationMs: &ms, HTTPStatus: &status, Message: "PLANTED"}); got != "a › s passed 1000ms [201]" {

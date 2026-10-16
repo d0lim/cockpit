@@ -42,14 +42,14 @@ func Order(s SuiteDecl) ([]FlowDecl, error) {
 	seen := map[string]bool{}
 	for _, f := range s.Flows {
 		if !flowIDPattern.MatchString(f.ID) {
-			return nil, fmt.Errorf("플로우 id %q 가 %s 꼴이 아니다", f.ID, flowIDPattern)
+			return nil, fmt.Errorf("flow id %q does not match %s", f.ID, flowIDPattern)
 		}
 		if seen[f.ID] {
-			return nil, fmt.Errorf("플로우 id %q 가 겹친다", f.ID)
+			return nil, fmt.Errorf("flow id %q is declared twice", f.ID)
 		}
 		seen[f.ID] = true
 		if _, ok := stageIndex[f.Stage]; !ok {
-			return nil, fmt.Errorf("플로우 %s 의 스테이지 %q 가 스위트에 없다", f.ID, f.Stage)
+			return nil, fmt.Errorf("flow %s names stage %q, which is not in the suite", f.ID, f.Stage)
 		}
 		if err := checkSteps(f); err != nil {
 			return nil, err
@@ -61,10 +61,10 @@ func Order(s SuiteDecl) ([]FlowDecl, error) {
 	for _, f := range ordered {
 		for _, r := range f.Requires {
 			if !seen[r] {
-				return nil, fmt.Errorf("플로우 %s 의 전제 %q 가 스위트에 없다", f.ID, r)
+				return nil, fmt.Errorf("flow %s requires %q, which is not in the suite", f.ID, r)
 			}
 			if !before[r] {
-				return nil, fmt.Errorf("플로우 %s 의 전제 %q 가 그보다 뒤에서 돈다", f.ID, r)
+				return nil, fmt.Errorf("flow %s requires %q, which runs after it", f.ID, r)
 			}
 		}
 		before[f.ID] = true
@@ -76,16 +76,16 @@ func checkSteps(f FlowDecl) error {
 	seen := map[string]bool{}
 	for _, s := range f.Steps {
 		if s.ID == "" {
-			return fmt.Errorf("플로우 %s 에 id 없는 단계가 있다", f.ID)
+			return fmt.Errorf("flow %s has a step without an id", f.ID)
 		}
 		if seen[s.ID] {
-			return fmt.Errorf("플로우 %s 에 단계 id %q 가 겹친다", f.ID, s.ID)
+			return fmt.Errorf("flow %s declares step id %q twice", f.ID, s.ID)
 		}
 		seen[s.ID] = true
 		switch s.Kind {
 		case contract.StepKindRequest, contract.StepKindWait, contract.StepKindCapture:
 		default:
-			return fmt.Errorf("단계 %s 의 종류 %q 가 request·wait·capture 가운데 하나가 아니다", s.ID, s.Kind)
+			return fmt.Errorf("step %s has kind %q, which is not one of request, wait, capture", s.ID, s.Kind)
 		}
 	}
 	return nil

@@ -1,3 +1,3 @@
-# 봉인
+# Sealing
 
-봉인 다섯(새 상태·세션 간 격리·커밋 고정·호스트 도구 무관·런타임 외부 통신 0)과 정적 단정 표, 봉인 망 프로브의 규칙을 적는 자리다. 허브의 compose 실행·봉인 검사를 만들 때 채운다.
+This page is the place for the five seals (fresh state, isolation between sessions, pinned commit, independence from host tools, zero external communication at runtime), the static assertion table, and the rules of the sealed-network probe. It is filled in when the hub's compose execution and seal check are built.

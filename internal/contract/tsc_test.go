@@ -48,7 +48,7 @@ func runTsc(t *testing.T, samples ...string) tscRun {
 	t.Helper()
 	bunx, err := exec.LookPath("bunx")
 	if err != nil {
-		t.Fatalf("bunx 를 찾지 못했다 — mise exec 아래에서 돌린다: %v", err)
+		t.Fatalf("bunx not found; run under mise exec: %v", err)
 	}
 	dir := t.TempDir()
 	for _, name := range samples {
@@ -91,23 +91,23 @@ func runTsc(t *testing.T, samples ...string) tscRun {
 	return run
 }
 
-func Test생성한_선언으로_올바른_플로우와_수집_스크립트가_tsc를_지난다(t *testing.T) {
+func TestValidFlowAndCollectScriptsPassTscWithTheGeneratedDeclarations(t *testing.T) {
 	run := runTsc(t, "flow-ok.ts", "collect-ok.ts")
 	if run.err != nil || len(run.errors) > 0 {
-		t.Fatalf("tsc 실패: %v\n%s", run.err, run.output)
+		t.Fatalf("tsc failed: %v\n%s", run.err, run.output)
 	}
 	if len(run.samples) != 2 || len(run.sdk) != 3 {
-		t.Fatalf("검사한 샘플 %v, 선언 %v\n%s", run.samples, run.sdk, run.output)
+		t.Fatalf("checked samples %v, declarations %v\n%s", run.samples, run.sdk, run.output)
 	}
 }
 
-func Test러너_자리에서_ctx_sql을_부르거나_예약_값을_어긴_스크립트는_tsc에서_걸린다(t *testing.T) {
+func TestTscRejectsRunnerScriptsThatCallCtxSqlOrFetchOrBreakReservedValues(t *testing.T) {
 	run := runTsc(t, "flow-uses-sql.ts", "collect-bad-values.ts", "flow-uses-fetch.ts")
 	if run.err == nil {
-		t.Fatalf("tsc 가 통과했다\n%s", run.output)
+		t.Fatalf("tsc passed\n%s", run.output)
 	}
 	if len(run.samples) != 3 || len(run.sdk) != 3 {
-		t.Fatalf("검사한 샘플 %v, 선언 %v\n%s", run.samples, run.sdk, run.output)
+		t.Fatalf("checked samples %v, declarations %v\n%s", run.samples, run.sdk, run.output)
 	}
 	want := []tscError{
 		{"flow-uses-sql.ts", "TS2339", "Property 'sql' does not exist on type 'Ctx'"},
@@ -116,7 +116,7 @@ func Test러너_자리에서_ctx_sql을_부르거나_예약_값을_어긴_스크
 		{"collect-bad-values.ts", "TS2322", `"done"`},
 	}
 	if len(run.errors) != len(want) {
-		t.Fatalf("오류 %d 건, 기대 %d 건\n%s", len(run.errors), len(want), run.output)
+		t.Fatalf("%d errors, want %d\n%s", len(run.errors), len(want), run.output)
 	}
 	for _, w := range want {
 		found := false
@@ -124,7 +124,7 @@ func Test러너_자리에서_ctx_sql을_부르거나_예약_값을_어긴_스크
 			found = found || (e.file == w.file && e.code == w.code && strings.Contains(e.message, w.message))
 		}
 		if !found {
-			t.Fatalf("기대한 오류가 없다: %+v\n%s", w, run.output)
+			t.Fatalf("missing expected error: %+v\n%s", w, run.output)
 		}
 	}
 }

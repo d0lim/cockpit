@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-func Test내장된_아키텍처는_gz_바이트를_주고_없는_아키텍처는_ErrNotEmbedded(t *testing.T) {
+func TestLookupReturnsGzForEmbeddedArchAndErrNotEmbeddedOtherwise(t *testing.T) {
 	for _, arch := range []string{"arm64", "amd64"} {
 		_, statErr := os.Stat("bin/cockpit-runner-linux-" + arch + ".gz")
 		b, err := Lookup(arch)
 		if statErr == nil {
 			if err != nil || len(b) == 0 {
-				t.Fatalf("%s: 내장됐는데 %v / %d bytes", arch, err, len(b))
+				t.Fatalf("%s: embedded but got %v / %d bytes", arch, err, len(b))
 			}
 			continue
 		}

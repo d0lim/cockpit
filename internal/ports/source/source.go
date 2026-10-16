@@ -26,7 +26,7 @@ func Open(roots Roots, maxBytes int64, mask ports.Mask) (*Reader, error) {
 		root, err := os.OpenRoot(dir)
 		if err != nil {
 			r.Close()
-			return nil, ports.Unavailable(mask, "소스 "+name+" 을 열지 못했다")
+			return nil, ports.Unavailable(mask, "failed to open source "+name)
 		}
 		r.roots[name] = root
 	}
@@ -42,10 +42,10 @@ func (r *Reader) Close() {
 func (r *Reader) locate(name, rel string) (*os.Root, error) {
 	root, ok := r.roots[name]
 	if !ok {
-		return nil, ports.Denied(r.mask, "선언에 없는 소스 "+name)
+		return nil, ports.Denied(r.mask, "source "+name+" is not declared")
 	}
 	if !filepath.IsLocal(rel) {
-		return nil, ports.Denied(r.mask, "소스 "+name+" 밖 경로 "+rel)
+		return nil, ports.Denied(r.mask, "path "+rel+" is outside source "+name)
 	}
 	return root, nil
 }
@@ -57,25 +57,25 @@ func (r *Reader) Read(name, rel string) (string, error) {
 	}
 	info, err := root.Lstat(rel)
 	if err != nil {
-		return "", ports.Unavailable(r.mask, "소스 "+name+" 에 "+rel+" 이 없다")
+		return "", ports.Unavailable(r.mask, "source "+name+" has no "+rel)
 	}
 	if !info.Mode().IsRegular() {
-		return "", ports.Denied(r.mask, "소스 "+name+" 의 "+rel+" 은 일반 파일이 아니다")
+		return "", ports.Denied(r.mask, "source "+name+": "+rel+" is not a regular file")
 	}
 	if info.Size() > r.maxBytes {
-		return "", ports.Limit(r.mask, "소스 "+name+" 의 "+rel+" 이 크기 상한을 넘는다")
+		return "", ports.Limit(r.mask, "source "+name+": "+rel+" exceeds the size limit")
 	}
 	f, err := root.OpenFile(rel, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
-		return "", ports.Denied(r.mask, "소스 "+name+" 의 "+rel+" 을 열지 못했다")
+		return "", ports.Denied(r.mask, "source "+name+": failed to open "+rel)
 	}
 	defer f.Close()
 	data, err := io.ReadAll(io.LimitReader(f, r.maxBytes+1))
 	if err != nil {
-		return "", ports.Unavailable(r.mask, "소스 "+name+" 의 "+rel+" 을 읽지 못했다")
+		return "", ports.Unavailable(r.mask, "source "+name+": failed to read "+rel)
 	}
 	if int64(len(data)) > r.maxBytes {
-		return "", ports.Limit(r.mask, "소스 "+name+" 의 "+rel+" 이 크기 상한을 넘는다")
+		return "", ports.Limit(r.mask, "source "+name+": "+rel+" exceeds the size limit")
 	}
 	return string(data), nil
 }
@@ -90,12 +90,12 @@ func (r *Reader) List(name, rel string) ([]string, error) {
 		return []string{}, nil
 	}
 	if err != nil {
-		return nil, ports.Unavailable(r.mask, "소스 "+name+" 의 "+rel+" 을 열지 못했다")
+		return nil, ports.Unavailable(r.mask, "source "+name+": failed to open "+rel)
 	}
 	defer dir.Close()
 	entries, err := dir.ReadDir(-1)
 	if err != nil {
-		return nil, ports.Unavailable(r.mask, "소스 "+name+" 의 "+rel+" 은 디렉토리가 아니다")
+		return nil, ports.Unavailable(r.mask, "source "+name+": "+rel+" is not a directory")
 	}
 	names := []string{}
 	for _, e := range entries {

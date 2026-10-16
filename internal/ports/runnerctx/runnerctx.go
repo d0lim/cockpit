@@ -176,7 +176,7 @@ func (b *binder) priv(goja.FunctionCall) goja.Value {
 	}
 	frozen, err := b.deepFreeze(goja.Undefined(), snapshot)
 	if err != nil {
-		return b.throw(ports.Unavailable(b.d.Mask, "private env 스냅샷을 만들지 못했다"))
+		return b.throw(ports.Unavailable(b.d.Mask, "failed to snapshot private env"))
 	}
 	return frozen
 }
@@ -184,7 +184,7 @@ func (b *binder) priv(goja.FunctionCall) goja.Value {
 func (b *binder) str(call goja.FunctionCall, i int, name string) string {
 	s, ok := call.Argument(i).Export().(string)
 	if !ok {
-		panic(b.h.Error(ports.BadArgs(b.d.Mask, name+" 은 문자열이어야 한다")))
+		panic(b.h.Error(ports.BadArgs(b.d.Mask, name+" must be a string")))
 	}
 	return s
 }

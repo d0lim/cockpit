@@ -34,7 +34,7 @@ func (b *binder) capture(call goja.FunctionCall) goja.Value {
 	b.d.Context.Captures.Set(name, value, opts.Persist)
 	if opts.Persist {
 		if err := b.d.Context.Save(); err != nil {
-			return b.throw(ports.Unavailable(b.d.Mask, "캡처 "+name+" 을 context.json 에 적지 못했다"))
+			return b.throw(ports.Unavailable(b.d.Mask, "failed to write capture "+name+" to context.json"))
 		}
 	}
 	b.d.changed()
@@ -59,14 +59,14 @@ func (b *binder) saveSeed(call goja.FunctionCall) goja.Value {
 	login, secret := b.str(call, 0, "loginId"), b.str(call, 1, "secret")
 	key, ok := b.d.SeedKeys[login]
 	if !ok {
-		return b.throw(ports.BadArgs(b.d.Mask, login+" 는 시드 키 표에 없는 계정이다"))
+		return b.throw(ports.BadArgs(b.d.Mask, login+" is not an account in the seed key table"))
 	}
 	if b.d.PrivPath == "" {
-		return b.throw(ports.Unavailable(b.d.Mask, "private env 경로가 없어 시드를 저장할 수 없다"))
+		return b.throw(ports.Unavailable(b.d.Mask, "cannot save the seed: no private env path"))
 	}
 	local, err := totp.SeedFile{Path: b.d.PrivPath}.Save(key, secret)
 	if err != nil {
-		return b.throw(ports.Unavailable(b.d.Mask, login+" 의 시드를 private env 에 적지 못했다"))
+		return b.throw(ports.Unavailable(b.d.Mask, "failed to write the seed for "+login+" to private env"))
 	}
 	b.d.replacePriv(local)
 	b.d.changed()
@@ -80,7 +80,7 @@ func (b *binder) randomUUID(goja.FunctionCall) goja.Value {
 func (b *binder) getRandomValues(call goja.FunctionCall) goja.Value {
 	arr, ok := call.Argument(0).(*goja.Object)
 	if !ok || goja.IsUndefined(arr.Get("byteLength")) {
-		return b.throw(ports.BadArgs(b.d.Mask, "getRandomValues 는 typed array 를 받는다"))
+		return b.throw(ports.BadArgs(b.d.Mask, "getRandomValues takes a typed array"))
 	}
 	bytes, err := cryptoport.RandomBytes(b.d.Mask, int(arr.Get("byteLength").ToInteger()))
 	if err != nil {
@@ -88,7 +88,7 @@ func (b *binder) getRandomValues(call goja.FunctionCall) goja.Value {
 	}
 	filled, err := b.fill(goja.Undefined(), arr, b.rt.ToValue(b.rt.NewArrayBuffer(bytes)))
 	if err != nil {
-		return b.throw(ports.BadArgs(b.d.Mask, "getRandomValues 는 typed array 를 받는다"))
+		return b.throw(ports.BadArgs(b.d.Mask, "getRandomValues takes a typed array"))
 	}
 	return filled
 }
@@ -105,7 +105,7 @@ func (b *binder) generateKey(call goja.FunctionCall) goja.Value {
 			return nil, decodeErr
 		}
 		if alg.Name != rsaPKCS1 {
-			return nil, ports.BadArgs(b.d.Mask, "지원하지 않는 알고리즘 "+alg.Name)
+			return nil, ports.BadArgs(b.d.Mask, "unsupported algorithm "+alg.Name)
 		}
 		return b.d.Keys.Generate(ctx, alg.ModulusLength, alg.Hash)
 	})
@@ -126,7 +126,7 @@ func (b *binder) sign(call goja.FunctionCall) goja.Value {
 		return fail(err)
 	}
 	if alg.Name != rsaPKCS1 {
-		return fail(ports.BadArgs(b.d.Mask, "지원하지 않는 알고리즘 "+alg.Name))
+		return fail(ports.BadArgs(b.d.Mask, "unsupported algorithm "+alg.Name))
 	}
 	var key cryptoport.KeyRef
 	if err := b.h.DecodeArgs(call.Argument(1), &key); err != nil {
@@ -134,11 +134,11 @@ func (b *binder) sign(call goja.FunctionCall) goja.Value {
 	}
 	raw, err := b.bytesOf(goja.Undefined(), call.Argument(2))
 	if err != nil {
-		return fail(ports.BadArgs(b.d.Mask, "sign 의 데이터는 ArrayBuffer 나 typed array 다"))
+		return fail(ports.BadArgs(b.d.Mask, "sign data must be an ArrayBuffer or a typed array"))
 	}
 	buf, ok := raw.Export().(goja.ArrayBuffer)
 	if !ok {
-		return fail(ports.BadArgs(b.d.Mask, "sign 의 데이터는 ArrayBuffer 나 typed array 다"))
+		return fail(ports.BadArgs(b.d.Mask, "sign data must be an ArrayBuffer or a typed array"))
 	}
 	sig, err := b.d.Keys.Sign(key.ID, buf.Bytes())
 	if err != nil {
@@ -151,7 +151,7 @@ func (b *binder) sign(call goja.FunctionCall) goja.Value {
 func (b *binder) readSource(call goja.FunctionCall) goja.Value {
 	name, rel := b.str(call, 0, "source"), b.str(call, 1, "path")
 	if b.d.Source == nil {
-		return b.throw(ports.Denied(b.d.Mask, "선언된 소스가 없다"))
+		return b.throw(ports.Denied(b.d.Mask, "no source is declared"))
 	}
 	text, err := b.d.Source.Read(name, rel)
 	if err != nil {
@@ -163,7 +163,7 @@ func (b *binder) readSource(call goja.FunctionCall) goja.Value {
 func (b *binder) listSource(call goja.FunctionCall) goja.Value {
 	name, rel := b.str(call, 0, "source"), b.str(call, 1, "dir")
 	if b.d.Source == nil {
-		return b.throw(ports.Denied(b.d.Mask, "선언된 소스가 없다"))
+		return b.throw(ports.Denied(b.d.Mask, "no source is declared"))
 	}
 	names, err := b.d.Source.List(name, rel)
 	if err != nil {

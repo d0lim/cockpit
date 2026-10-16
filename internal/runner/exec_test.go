@@ -29,7 +29,7 @@ func (w *world) readExec(name string) contract.ExecResult {
 	return r
 }
 
-func TestAE3_원장에_돈_기록이_있는_once_플로우는_돌지_않고_종료_2_와_이유_줄을_낸다(t *testing.T) {
+func TestAE3OnceFlowWithLedgerRecordDoesNotRunAndExitsTwoWithReason(t *testing.T) {
 	w := newWorld(t, core, nil)
 	w.seed(map[string]contract.FlowStatus{"alpha": "passed"}, map[string]string{"alpha.id": "id-a"})
 	out := w.execOut("t-alpha.json")
@@ -38,15 +38,15 @@ func TestAE3_원장에_돈_기록이_있는_once_플로우는_돌지_않고_종�
 		t.Fatalf("exit %d calls %v stdout %v", got.code, w.paths(), got.stdout)
 	}
 	joined := strings.Join(got.stderr, "\n")
-	if !strings.Contains(joined, "alpha") || !strings.Contains(joined, "이미 돌았다") {
+	if !strings.Contains(joined, "alpha") || !strings.Contains(joined, "already ran") {
 		t.Fatalf("stderr %q", joined)
 	}
 	if _, err := os.Stat(out); err == nil {
-		t.Fatal("exec 파일이 생겼다")
+		t.Fatal("the exec file was created")
 	}
 }
 
-func Test허용_시작한_적_없는_once_플로우는_exec_로_돌고_원장이_passed_가_된다(t *testing.T) {
+func TestNeverStartedOnceFlowRunsViaExecAndLedgerBecomesPassed(t *testing.T) {
 	w := newWorld(t, core, nil)
 	out := w.execOut("t-alpha.json")
 	if got := w.run(map[string]string{"E2E_EXEC_OUT": out}, execArgs("alpha")...); got.code != 0 {
@@ -60,7 +60,7 @@ func Test허용_시작한_적_없는_once_플로우는_exec_로_돌고_원장이
 	}
 }
 
-func TestAE4_반복_가능_전제는_다시_돌고_once_전제는_원장_passed_와_컨텍스트_캡처로_만족한다_두_번_불러도_같다(t *testing.T) {
+func TestAE4ExecRerunsRepeatableRequiresAndReusesPassedOnceRequireOnEveryCall(t *testing.T) {
 	w := newWorld(t, core, nil)
 	w.seed(map[string]contract.FlowStatus{"alpha": "passed", "beta": "passed", "gamma": "passed"}, map[string]string{"alpha.id": "id-a"})
 	for round := 1; round <= 2; round++ {
@@ -80,11 +80,11 @@ func TestAE4_반복_가능_전제는_다시_돌고_once_전제는_원장_passed_
 		}
 	}
 	if w.exists("result.json") || w.exists("manifest.json") {
-		t.Fatal("exec 가 전체 실행의 파일을 건드렸다")
+		t.Fatal("exec touched the full-run files")
 	}
 }
 
-func TestOnce_전제의_캡처가_컨텍스트에_없으면_이어_받지_못해_그_단계가_실패한다(t *testing.T) {
+func TestOnceRequireCaptureMissingFromContextFailsTheStepThatReadsIt(t *testing.T) {
 	w := newWorld(t, core, nil)
 	w.seed(map[string]contract.FlowStatus{"alpha": "passed"}, nil)
 	if got := w.run(map[string]string{"E2E_EXEC_OUT": w.execOut("x.json")}, execArgs("beta")...); got.code != 1 {
@@ -95,7 +95,7 @@ func TestOnce_전제의_캡처가_컨텍스트에_없으면_이어_받지_못해
 	}
 }
 
-func TestAE4_once_전제가_원장에_passed_가_아니면_종료_2_이고_아무것도_보내지_않는다(t *testing.T) {
+func TestAE4OnceRequireNotPassedInLedgerExitsTwoAndSendsNothing(t *testing.T) {
 	w := newWorld(t, core, nil)
 	w.seed(map[string]contract.FlowStatus{"alpha": "failed"}, nil)
 	got := w.run(map[string]string{"E2E_EXEC_OUT": w.execOut("x.json")}, execArgs("gamma")...)
@@ -104,7 +104,7 @@ func TestAE4_once_전제가_원장에_passed_가_아니면_종료_2_이고_아�
 	}
 }
 
-func Test전제가_once_passed_뿐인_대상은_대상_하나만_돈다(t *testing.T) {
+func TestTargetWhoseOnlyRequireIsPassedOnceFlowRunsAlone(t *testing.T) {
 	w := newWorld(t, core, nil)
 	w.seed(map[string]contract.FlowStatus{"alpha": "passed"}, map[string]string{"alpha.id": "id-a"})
 	got := w.run(map[string]string{"E2E_EXEC_OUT": w.execOut("x.json")}, execArgs("beta")...)
@@ -113,7 +113,7 @@ func Test전제가_once_passed_뿐인_대상은_대상_하나만_돈다(t *testi
 	}
 }
 
-func Test대상_셋은_앞에서_뒤로_돌고_둘째가_실패하면_셋째는_skipped_exec_파일이_셋_생긴다(t *testing.T) {
+func TestThreeTargetsRunInOrderAndSecondFailureSkipsThirdWithThreeExecFiles(t *testing.T) {
 	specs := []flowSpec{
 		{ID: "alpha", Stage: "boot", Once: true, Steps: []string{"a1"}},
 		{ID: "one", Requires: []string{"alpha"}, Steps: []string{"o1"}},
@@ -149,7 +149,7 @@ func Test대상_셋은_앞에서_뒤로_돌고_둘째가_실패하면_셋째는_
 	}
 }
 
-func Test건너뜀은_앞서_돈_기록을_덮지_않는다_시작하지_않았다는_기록일_뿐이다(t *testing.T) {
+func TestSkipDoesNotOverwriteEarlierLedgerRecordSinceItOnlyMeansNotStarted(t *testing.T) {
 	specs := []flowSpec{
 		{ID: "alpha", Stage: "boot", Once: true, Steps: []string{"a1"}},
 		{ID: "one", Requires: []string{"alpha"}, Steps: []string{"o1"}},
@@ -163,7 +163,7 @@ func Test건너뜀은_앞서_돈_기록을_덮지_않는다_시작하지_않았�
 	}
 }
 
-func TestE2E_EXEC_OUT_이_없으면_exec_시각_플로우_json_에_쓴다(t *testing.T) {
+func TestExecWithoutE2EExecOutWritesTimestampedFlowFileUnderExecDir(t *testing.T) {
 	w := newWorld(t, core, nil)
 	w.seed(map[string]contract.FlowStatus{"alpha": "passed"}, map[string]string{"alpha.id": "id-a"})
 	if got := w.run(nil, execArgs("beta")...); got.code != 0 {

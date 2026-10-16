@@ -21,7 +21,7 @@ func (m Mutation) Test() string { return m[3] }
 func AssertMutationRecord(t *testing.T, file string, record []Mutation) {
 	t.Helper()
 	if len(record) == 0 {
-		t.Fatal("변이 기록표가 비어 있다")
+		t.Fatal("the mutation record is empty")
 	}
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, file, nil, 0)
@@ -38,16 +38,16 @@ func AssertMutationRecord(t *testing.T, file string, record []Mutation) {
 	covered := map[string]bool{}
 	for _, m := range record {
 		if !tests[m.Test()] {
-			t.Errorf("기록표의 시험 %q 이 %s 에 없다", m.Test(), file)
+			t.Errorf("recorded test %q is not in %s", m.Test(), file)
 		}
-		if m.Control() == "" || m.Disable() == "" || !strings.HasPrefix(m.Result(), "빨강") {
-			t.Errorf("기록표 행 %q 은 확인 대상·무력화 방법·빨강 결과를 전부 가져야 한다", m.Control())
+		if m.Control() == "" || m.Disable() == "" || !strings.HasPrefix(m.Result(), "red") {
+			t.Errorf("record row %q must name the control, how to disable it, and a red result", m.Control())
 		}
 		covered[m.Test()] = true
 	}
 	for name := range tests {
-		if !covered[name] && !strings.Contains(name, "기록표") {
-			t.Errorf("시험 %q 이 변이 기록표에 없다", name)
+		if !covered[name] && !strings.Contains(name, "MutationRecord") {
+			t.Errorf("test %q is not in the mutation record", name)
 		}
 	}
 }

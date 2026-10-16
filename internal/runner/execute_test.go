@@ -10,7 +10,7 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-func TestAE1_전부_통과하면_매니페스트와_결과의_단계_집합이_같고_complete_이며_종료_0_원장_셋이_passed(t *testing.T) {
+func TestAE1AllPassingSuiteWritesMatchingStepsCompleteResultPassedLedgerAndExitsZero(t *testing.T) {
 	w := newWorld(t, core, nil)
 	got := w.run(nil)
 	if got.code != 0 {
@@ -69,7 +69,7 @@ func TestAE1_전부_통과하면_매니페스트와_결과의_단계_집합이_�
 	}
 }
 
-func TestAE2_둘째_플로우의_둘째_단계가_실패하면_남은_단계와_그것을_전제하는_플로우가_skipped_종료_1(t *testing.T) {
+func TestAE2FailingStepSkipsRemainingStepsAndDependentFlowsAndExitsOne(t *testing.T) {
 	w := newWorld(t, core, []string{"beta/b2"})
 	got := w.run(nil)
 	if got.code != 1 {
@@ -94,7 +94,7 @@ func TestAE2_둘째_플로우의_둘째_단계가_실패하면_남은_단계와_
 	}
 }
 
-func Test건너뜀은_전제를_따라_이어진다_실패한_플로우의_손자도_시작하지_않는다(t *testing.T) {
+func TestSkipFollowsRequiresSoGrandchildOfFailedFlowNeverStarts(t *testing.T) {
 	specs := append(slices.Clone(core), flowSpec{ID: "delta", Requires: []string{"gamma"}, Steps: []string{"d1"}})
 	w := newWorld(t, specs, []string{"alpha/a1"})
 	if got := w.run(nil); got.code != 1 {
@@ -110,7 +110,7 @@ func Test건너뜀은_전제를_따라_이어진다_실패한_플로우의_손�
 	}
 }
 
-func TestAE7_단계가_도는_중의_result_json_은_온전한_JSON_이고_complete_false_에_그_단계가_running_이며_원장은_started_다(t *testing.T) {
+func TestAE7MidStepResultIsValidJSONIncompleteWithRunningStepAndStartedLedger(t *testing.T) {
 	w := newWorld(t, core, nil)
 	type snapshot struct {
 		result contract.Result
@@ -135,7 +135,7 @@ func TestAE7_단계가_도는_중의_result_json_은_온전한_JSON_이고_compl
 		t.Fatalf("exit %d stderr %v", got.code, got.stderr)
 	}
 	if len(seen) != 1 {
-		t.Fatalf("중간 시점 %d", len(seen))
+		t.Fatalf("mid-step snapshots %d", len(seen))
 	}
 	mid := seen[0]
 	if mid.result.Complete || !slices.Equal(statuses(mid.result.Steps), []string{"passed", "passed", "running", "notRun", "notRun"}) {
@@ -145,16 +145,16 @@ func TestAE7_단계가_도는_중의_result_json_은_온전한_JSON_이고_compl
 		t.Fatalf("ledger %+v", mid.ledger)
 	}
 	if _, ok := mid.ledger.Flows["gamma"]; ok {
-		t.Fatalf("gamma 가 원장에 먼저 적혔다")
+		t.Fatalf("gamma was written to the ledger too early")
 	}
 	for _, name := range mid.files {
 		if strings.HasSuffix(name, ".tmp") {
-			t.Fatalf("임시 파일이 남아 있다: %v", mid.files)
+			t.Fatalf("a temporary file is left behind: %v", mid.files)
 		}
 	}
 }
 
-func Test표준_출력_결과_원장_컨텍스트_stderr_에_심은_토큰과_private_값의_원문이_없고_실패_문장은_가린_채_남는다(t *testing.T) {
+func TestStdoutStderrAndFilesHidePlantedSecretsAndKeepMaskedFailureMessage(t *testing.T) {
 	specs := append(slices.Clone(core), flowSpec{ID: "delta", Requires: []string{"alpha"}, Steps: []string{"log1"}})
 	w := newWorld(t, specs, []string{"beta/b2"})
 	got := w.run(nil)
@@ -168,12 +168,12 @@ func Test표준_출력_결과_원장_컨텍스트_stderr_에_심은_토큰과_pr
 	}
 	for _, text := range texts {
 		if strings.Contains(text, planted) || strings.Contains(text, privSecret) {
-			t.Fatalf("원문이 보인다: %q", text)
+			t.Fatalf("a raw value is visible: %q", text)
 		}
 	}
 	var result contract.Result
 	w.read("result.json", &result)
-	if result.Steps[2].Message != "기대와 다르다 — token=**** cred=**** 단계=b2" {
+	if result.Steps[2].Message != "unexpected response: token=**** cred=**** step=b2" {
 		t.Fatalf("message %q", result.Steps[2].Message)
 	}
 	if len(got.stderr) != 1 || !strings.Contains(got.stderr[0], "cred=****") {
@@ -181,7 +181,7 @@ func Test표준_출력_결과_원장_컨텍스트_stderr_에_심은_토큰과_pr
 	}
 }
 
-func Test실패_문장은_가린_뒤에_자른다_긴_문장의_끝에_걸친_값도_원문_조각을_남기지_않는다(t *testing.T) {
+func TestFailureMessageIsMaskedBeforeTruncationSoNoSecretFragmentSurvives(t *testing.T) {
 	w := newWorld(t, []flowSpec{{ID: "alpha", Steps: []string{"long1"}}}, nil)
 	w.run(nil)
 	var result contract.Result
@@ -192,7 +192,7 @@ func Test실패_문장은_가린_뒤에_자른다_긴_문장의_끝에_걸친_�
 	}
 }
 
-func Test단계가_요청을_보내지_않으면_requests_0_이고_httpStatus_가_없다(t *testing.T) {
+func TestStepWithoutRequestsRecordsZeroRequestsAndNoHTTPStatus(t *testing.T) {
 	w := newWorld(t, []flowSpec{{ID: "alpha", Steps: []string{"a1", "noop2"}}}, nil)
 	if got := w.run(nil); got.code != 0 {
 		t.Fatalf("exit %d stderr %v", got.code, got.stderr)

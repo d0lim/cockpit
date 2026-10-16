@@ -39,10 +39,10 @@ func PlanExec(ordered []FlowDecl, targets []string, ledger contract.Ledger) ([]E
 	for _, target := range targets {
 		flow, ok := byID[target]
 		if !ok {
-			return nil, &Rejection{Reason: fmt.Sprintf("플로우 %s 가 스위트에 없다", target)}
+			return nil, &Rejection{Reason: fmt.Sprintf("flow %s is not in the suite", target)}
 		}
 		if flow.Once && ran[target] {
-			return nil, &Rejection{Reason: target + " 는 환경당 한 번인 플로우이고 이 환경에서 이미 돌았다"}
+			return nil, &Rejection{Reason: target + " is a once-per-environment flow and already ran in this environment"}
 		}
 		rerun := map[string]bool{}
 		stack := slices.Clone(flow.Requires)
@@ -52,7 +52,7 @@ func PlanExec(ordered []FlowDecl, targets []string, ledger contract.Ledger) ([]E
 			pre := byID[id]
 			if pre.Once {
 				if !passed[id] {
-					return nil, &Rejection{Reason: fmt.Sprintf("%s 의 전제 %s 가 이 환경에서 통과한 적 없다", target, id)}
+					return nil, &Rejection{Reason: fmt.Sprintf("%s requires %s, which has never passed in this environment", target, id)}
 				}
 				continue
 			}

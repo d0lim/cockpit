@@ -83,13 +83,13 @@ func at(t *testing.T, doc any, path ...any) any {
 		case string:
 			obj, ok := cur.(map[string]any)
 			if !ok {
-				t.Fatalf("%v: %q 앞이 객체가 아니다", path, key)
+				t.Fatalf("%v: value before %q is not an object", path, key)
 			}
 			cur = obj[key]
 		case int:
 			list, ok := cur.([]any)
 			if !ok || key >= len(list) {
-				t.Fatalf("%v: %d 앞이 배열이 아니거나 짧다", path, key)
+				t.Fatalf("%v: value before %d is not an array or is too short", path, key)
 			}
 			cur = list[key]
 		}

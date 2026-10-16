@@ -3,7 +3,7 @@
   "fixtures": {
     "run": {
       "files": {
-        "src/backend/portal/.env": "# 로컬 개발용 .env — 시험 픽스처\nCOMPOSE_PROJECT_NAME=run-20261012-143000-abc1234\nORDERS_DB_USERNAME=orders_user_01\nPORTAL_ADMIN_ENABLED=enabled-for-test\nORDERS_PORTAL_RECOVERY_DELAY_SECONDS=86400000\nORDERS_PORTAL_MAX_PRE_SUBMISSION_ATTEMPTS=12345678\nORDERS_PORTAL_EXECUTION_LOCK_AT_MOST_FOR=PT10M30S\nPORTAL_ADMIN_CONSOLE_ALLOWED_ORIGINS=http://run-20261012-143000-abc1234.localhost:21073,http://run-20261012-143000-abc1234.localhost:21074\nVITE_API_BASE_URL=http://run-20261012-143000-abc1234.localhost:21000\nRUN_SRC=/tmp/cockpit/runs/run-20261012-143000-abc1234/src\nMYSQL_ROOT_PASSWORD=WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT\nMOCK_CONTROL_TOKEN=0b03996107a5accb2c2ae3362b840bcb9096e15d5b5036b97c6bd32a492c5b45\nPORTAL_ORDERS_CREDENTIAL_HASH=bdaa0910fd9b91d71639225ef5e1645240019a1c4b6e32a6d09c28bd1d43c385\nPORTAL_CALLBACK_RESPONSE_SIGNING_KEY_PEM=-----BEGIN PRIVATE KEY-----\\nuLswhNp+91kzP3nXqKFHfL05OhMoNPGBHlv494dAUYURHuuyBuTYpxV9YxfG0eMw\\nk7pG1boFXeqYeY6dwNSyKWVO03hY33LI+CMk4zGVvr44xGCHhm16dj6j32oS3n0g\\n-----END PRIVATE KEY-----\\n\nSHORT_SECRET=2VhkyiN\nPORTAL_ORDERS_BASE_URL=",
+        "src/backend/portal/.env": "# local development .env, test fixture\nCOMPOSE_PROJECT_NAME=run-20261012-143000-abc1234\nORDERS_DB_USERNAME=orders_user_01\nPORTAL_ADMIN_ENABLED=enabled-for-test\nORDERS_PORTAL_RECOVERY_DELAY_SECONDS=86400000\nORDERS_PORTAL_MAX_PRE_SUBMISSION_ATTEMPTS=12345678\nORDERS_PORTAL_EXECUTION_LOCK_AT_MOST_FOR=PT10M30S\nPORTAL_ADMIN_CONSOLE_ALLOWED_ORIGINS=http://run-20261012-143000-abc1234.localhost:21073,http://run-20261012-143000-abc1234.localhost:21074\nVITE_API_BASE_URL=http://run-20261012-143000-abc1234.localhost:21000\nRUN_SRC=/tmp/cockpit/runs/run-20261012-143000-abc1234/src\nMYSQL_ROOT_PASSWORD=WggRlTSTsGORkArZzhGu6ePLJv3VHzRBYuk9zSGyLhT\nMOCK_CONTROL_TOKEN=0b03996107a5accb2c2ae3362b840bcb9096e15d5b5036b97c6bd32a492c5b45\nPORTAL_ORDERS_CREDENTIAL_HASH=bdaa0910fd9b91d71639225ef5e1645240019a1c4b6e32a6d09c28bd1d43c385\nPORTAL_CALLBACK_RESPONSE_SIGNING_KEY_PEM=-----BEGIN PRIVATE KEY-----\\nuLswhNp+91kzP3nXqKFHfL05OhMoNPGBHlv494dAUYURHuuyBuTYpxV9YxfG0eMw\\nk7pG1boFXeqYeY6dwNSyKWVO03hY33LI+CMk4zGVvr44xGCHhm16dj6j32oS3n0g\\n-----END PRIVATE KEY-----\\n\nSHORT_SECRET=2VhkyiN\nPORTAL_ORDERS_BASE_URL=",
         "work/e2e/e2e.private.env.json": "{\n  \"local\": {\n    \"rootCredential\": \"RQeZv6HFSiPFYl6ZwnO9EhWvhqQ0ec6KaVvj14xtKKq\",\n    \"adminPassword\": \"8O6NXNEEwrmEP8hyUjvc5nFQ18DwAW8TDHJYtv9n3dM\",\n    \"ordersApiKey\": \"wk_-_lw_fV1cgQDu1O0ch9b761_HldN0rpGIuAbr775-wM\"\n  }\n}",
         "src/backend/orders/.secrets/secrets.yml": "vendor:\n  api-key: 00000000-0000-0000-0000-000000000000\n  secret-key: |\n    -----BEGIN PRIVATE KEY-----\n    PSavgmPWhuBVy+GUGqx5ECxoK91mNEbWgBYMdkNUal9s8N0YIF5++Ekno6TSisRS\n    7f9uW7SZgizyxePVy6X3qrayOIEmn8Qc10mXVmxiPDGDRBrKxHwtEkwFrxKQ4uDZ\n    2txx\n    -----END PRIVATE KEY-----\n"
       },
@@ -72,7 +72,7 @@
   },
   "cases": [
     {
-      "name": "단어 경계 없이 부분 문자열로 가린다 — 낱말에 붙어 있어도, JSON 문자열 안에서도",
+      "name": "masks values as plain substrings with no word boundary, even glued to a word or inside a JSON string",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -95,7 +95,7 @@
       ]
     },
     {
-      "name": "긴 값부터 가린다 — 짧은 값이 긴 값의 접두여도 긴 값의 나머지가 남지 않는다",
+      "name": "masks longer values first so a shorter value that prefixes a longer one leaves no remainder",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -115,7 +115,7 @@
       ]
     },
     {
-      "name": "빈 값은 가림 대상이 아니다 — 글자 사이마다 끼어들어 출력이 부푼다",
+      "name": "never masks an empty value, which would match between every character and bloat the output",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -134,7 +134,7 @@
       ]
     },
     {
-      "name": "구분자 \" 로 싼 credential 값을 가린다",
+      "name": "masks a credential value wrapped in \" delimiters",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -151,7 +151,7 @@
       ]
     },
     {
-      "name": "구분자 \\\" 로 싼 credential 값을 가린다",
+      "name": "masks a credential value wrapped in \\\" delimiters",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -168,7 +168,7 @@
       ]
     },
     {
-      "name": "구분자 \\\\\\\" 로 싼 credential 값을 가린다",
+      "name": "masks a credential value wrapped in \\\\\\\" delimiters",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -185,7 +185,7 @@
       ]
     },
     {
-      "name": "구분자 &quot; 로 싼 credential 값을 가린다",
+      "name": "masks a credential value wrapped in &quot; delimiters",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -202,7 +202,7 @@
       ]
     },
     {
-      "name": "구분자 &#34; 로 싼 credential 값을 가린다",
+      "name": "masks a credential value wrapped in &#34; delimiters",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -219,7 +219,7 @@
       ]
     },
     {
-      "name": "구분자 &#x22; 로 싼 credential 값을 가린다",
+      "name": "masks a credential value wrapped in &#x22; delimiters",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -236,7 +236,7 @@
       ]
     },
     {
-      "name": "구분자 %22 로 싼 credential 값을 가린다",
+      "name": "masks a credential value wrapped in %22 delimiters",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -253,7 +253,7 @@
       ]
     },
     {
-      "name": "구분자가 섞이고 콜론이 %3A 여도 가린다",
+      "name": "masks a credential value when delimiters are mixed and the colon is %3A",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -274,7 +274,7 @@
       ]
     },
     {
-      "name": "이름이 Token·Secret 으로 끝나는 키의 값을 가린다 — enrollmentToken·totpSecret·token",
+      "name": "masks values of keys ending in Token or Secret such as enrollmentToken, totpSecret and token",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -291,7 +291,7 @@
       ]
     },
     {
-      "name": "이름 끝이 자격이 아닌 키는 그대로 둔다 — tokenId·signingAuthorizationId·enrollmentTokenExpiresAt",
+      "name": "leaves keys not ending in a credential word such as tokenId, signingAuthorizationId and enrollmentTokenExpiresAt",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -308,7 +308,7 @@
       ]
     },
     {
-      "name": "URL 쿼리의 credential=·secret= 값을 가리고 & 뒤 인자는 남긴다",
+      "name": "masks credential= and secret= values in a URL query and keeps the parameters after &",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -329,7 +329,7 @@
       ]
     },
     {
-      "name": "세션 쿠키 portal_admin_session= 의 값을 가린다",
+      "name": "masks the value of the portal_admin_session= session cookie",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -346,7 +346,7 @@
       ]
     },
     {
-      "name": "Authorization: 헤더 값을 가린다 — 스킴은 남긴다",
+      "name": "masks the Authorization: header value and keeps the scheme",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -367,7 +367,7 @@
       ]
     },
     {
-      "name": "앞 8자에 - 와 _ 가 낀 wk_ 키를 가린다 — %22 뒤에서도",
+      "name": "masks a wk_ key with - and _ in its first 8 characters, also after %22",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -388,7 +388,7 @@
       ]
     },
     {
-      "name": "기존 Bearer·sk_ 접두 패턴을 유지한다 — sk_ 는 %22 뒤에서도 건다",
+      "name": "keeps the existing Bearer and sk_ prefix patterns and matches sk_ after %22 too",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -409,7 +409,7 @@
       ]
     },
     {
-      "name": "글자에 붙은 접두는 식별자로 보고 그대로 둔다 — risk_category·task_scheduler",
+      "name": "treats a prefix glued to letters as part of an identifier and leaves risk_category and task_scheduler alone",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -426,7 +426,7 @@
       ]
     },
     {
-      "name": "XML 속성에 &quot; 로 이스케이프되어 실린 응답 본문을 XML 구조를 깨지 않고 가린다",
+      "name": "masks a response body escaped with &quot; inside an XML attribute without breaking the XML",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -443,7 +443,7 @@
       ]
     },
     {
-      "name": "가린 결과를 다시 가려도 바뀌지 않는다 — 재스캔이 기대는 성질",
+      "name": "masking an already masked result changes nothing, which the rescan relies on",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -462,7 +462,7 @@
       ]
     },
     {
-      "name": "값 목록과 패턴으로 가리면 심은 값이 하나도 남지 않는다(allow)",
+      "name": "masking with the value list and patterns leaves no planted value (allow)",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -492,7 +492,7 @@
       ]
     },
     {
-      "name": "값 목록을 비우고 패턴을 끄면 심은 값이 전부 보인다(deny)",
+      "name": "with an empty value list and patterns off every planted value shows (deny)",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -516,7 +516,7 @@
       ]
     },
     {
-      "name": "값 목록만 비우면 자격 모양이 아닌 자리의 env 값이 남는다 — 패턴만으로는 모자란다(deny)",
+      "name": "with only the value list emptied an env value in a non-credential spot survives, so patterns alone are not enough (deny)",
       "origin": "ts/mask",
       "kind": "mask",
       "mode": "hub",
@@ -541,7 +541,7 @@
       ]
     },
     {
-      "name": ".env 는 허용목록 이름만 빼고 8자 이상 값 전부, private env 는 모든 문자열 값, secrets.yml 은 PEM 본문 줄",
+      "name": ".env gives every value of 8 or more characters except allowlisted names, private env every string value, secrets.yml the PEM body lines",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -571,7 +571,7 @@
       ]
     },
     {
-      "name": "허용목록 이름의 값은 가리지 않는다 — 런 id 와 런 주소가 로그에 남는다",
+      "name": "leaves values of allowlisted names unmasked so the run id and run address stay in logs",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -592,7 +592,7 @@
       ]
     },
     {
-      "name": "refresh() 는 그 시점의 파일을 다시 읽는다 — 묶음 뒤 생긴 시드 totpSecret1 이 값 목록에 든다",
+      "name": "refresh() rereads the files at call time, so a totpSecret1 seed written later joins the value list",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -626,7 +626,7 @@
       ]
     },
     {
-      "name": "refresh 전에도 패턴은 건다 — 값 목록이 생기기 전인 런 시작부터 라이브 스트림을 가린다",
+      "name": "patterns apply before refresh, masking the live stream from run start before any value list exists",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -644,7 +644,7 @@
       ]
     },
     {
-      "name": "그 파일의 값은 가린다(allow)",
+      "name": "masks values from that file (allow)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -665,7 +665,7 @@
       ]
     },
     {
-      "name": "선언되지 않은 자리(work 의 portal http 디렉토리)의 private env 는 원천이 아니다(deny)",
+      "name": "a private env in an undeclared place such as the portal http directory under work is not a source (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -691,7 +691,7 @@
       ]
     },
     {
-      "name": "private env 가 런 밖 파일을 가리키는 링크면 던지고, 이전 값 목록은 그대로 둔다(deny)",
+      "name": "refresh fails when the private env is a link to a file outside the run and keeps the previous value list (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -722,7 +722,7 @@
         },
         {
           "do": "refresh",
-          "errorContains": "일반 파일이 아니다: work/e2e/e2e.private.env.json"
+          "errorContains": "not a regular file: work/e2e/e2e.private.env.json"
         },
         {
           "do": "mask",
@@ -732,7 +732,7 @@
       ]
     },
     {
-      "name": "런 안을 가리키는 링크도 던진다 — 마지막 경로 성분은 일반 파일이어야 한다(deny)",
+      "name": "refresh also fails on a link into the run because the last path element must be a regular file (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -759,12 +759,12 @@
         },
         {
           "do": "refresh",
-          "errorContains": "일반 파일이 아니다: work/e2e/e2e.private.env.json"
+          "errorContains": "not a regular file: work/e2e/e2e.private.env.json"
         }
       ]
     },
     {
-      "name": "중간 디렉토리가 런 밖을 가리키는 링크면 던진다(deny)",
+      "name": "refresh fails when an intermediate directory is a link outside the run (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -792,12 +792,12 @@
         },
         {
           "do": "refresh",
-          "errorContains": "실경로가 런 디렉토리 밖이다: work/e2e/e2e.private.env.json"
+          "errorContains": "resolved path is outside the run directory: work/e2e/e2e.private.env.json"
         }
       ]
     },
     {
-      "name": "상한(1 MiB)을 넘는 파일은 던진다(deny)",
+      "name": "refresh fails on a file over the 1 MiB limit (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -815,12 +815,12 @@
         },
         {
           "do": "refresh",
-          "errorContains": "상한(1 MiB)을 넘는다: src/backend/orders/.secrets/secrets.yml"
+          "errorContains": "exceeds the size limit (1 MiB): src/backend/orders/.secrets/secrets.yml"
         }
       ]
     },
     {
-      "name": "파일이 없으면 던진다 — 값 목록이 조용히 비지 않는다(deny)",
+      "name": "refresh fails on a missing file instead of silently emptying the value list (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -836,12 +836,12 @@
         },
         {
           "do": "refresh",
-          "errorContains": "없다: src/backend/orders/.secrets/secrets.yml"
+          "errorContains": "not found: src/backend/orders/.secrets/secrets.yml"
         }
       ]
     },
     {
-      "name": "private env 가 JSON 이 아니면 던지되 메시지에 파일 내용을 싣지 않는다(deny)",
+      "name": "refresh fails when the private env is not JSON and keeps the file content out of the message (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -858,7 +858,7 @@
         },
         {
           "do": "refresh",
-          "errorEquals": "런 자격 파일을 JSON 으로 읽지 못했다: work/e2e/e2e.private.env.json",
+          "errorEquals": "cannot parse run credential file as JSON: work/e2e/e2e.private.env.json",
           "errorNotContains": [
             "FAKEf9QxOU9FkEruwaWHfnyI45dfNoqV3cjp6Pan2td"
           ]
@@ -866,7 +866,7 @@
       ]
     },
     {
-      "name": "런 마스커로 쓴 번들에는 남은 곳이 없고, 파일 어디에도 심은 값이 없다(allow)",
+      "name": "a bundle written through the run masker has nothing left and no planted value in any file (allow)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -906,7 +906,7 @@
       ]
     },
     {
-      "name": "마스커를 끄고 쓴 번들은 세 파일 전부를 돌려준다(deny)",
+      "name": "a bundle written with the masker off reports all three files (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -939,7 +939,7 @@
       ]
     },
     {
-      "name": "이스케이프 구분자를 뺀 패턴으로 가린 JUnit 은 돌려준다 — 값 목록에 없는 런 중 발급 자격(deny)",
+      "name": "JUnit masked by patterns without escaped delimiters is reported because credentials issued mid-run are not in the value list (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -970,7 +970,7 @@
       ]
     },
     {
-      "name": "일반 파일이 아닌 항목(링크)은 확인할 수 없으니 돌려준다(deny)",
+      "name": "an entry that is not a regular file, such as a link, cannot be checked and is reported (deny)",
       "origin": "ts/redact",
       "kind": "run",
       "mode": "hub",
@@ -1007,7 +1007,7 @@
       ]
     },
     {
-      "name": "시드·세션을 담은 실패 문장이 가려져 원문이 없고 **** 표시가 있다",
+      "name": "a failure message with a seed and a session is masked, keeping no raw value and showing ****",
       "origin": "ts/secrets",
       "kind": "summarize",
       "mode": "runner",
@@ -1019,20 +1019,20 @@
       "max": 500,
       "checks": [
         {
-          "input": "단정 실패: 시드 JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP 로 만든 코드가 세션 sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a 에서 401",
+          "input": "assertion failed: code made from seed JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP got 401 in session sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a",
           "notContains": [
             "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
             "sess_4f9c2a7e81b34d0f9a6e5c3b2d1f0e9a"
           ],
           "contains": [
             "****",
-            "단정 실패"
+            "assertion failed"
           ]
         }
       ]
     },
     {
-      "name": "가린 뒤 자른다 — 자르기 경계에 걸친 시드의 앞부분도 남지 않는다",
+      "name": "masks before truncating so no leading part of a seed across the cut survives",
       "origin": "ts/secrets",
       "kind": "summarize",
       "mode": "runner",
@@ -1044,7 +1044,7 @@
       "max": 60,
       "checks": [
         {
-          "input": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP 뒤 문장",
+          "input": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP trailing text",
           "notContains": [
             "JBSWY3DP"
           ],
@@ -1056,7 +1056,7 @@
       ]
     },
     {
-      "name": "길이 상한을 넘으면 자르고 잘렸다는 표시를 붙인다",
+      "name": "text over the length limit is cut and marked as truncated",
       "origin": "ts/secrets",
       "kind": "summarize",
       "mode": "runner",
@@ -1074,7 +1074,7 @@
       ]
     },
     {
-      "name": "닫는 따옴표 없이 잘린 JSON 조각의 자격 값도 가린다",
+      "name": "masks the credential value in a JSON fragment cut off before its closing quote",
       "origin": "ts/secrets",
       "kind": "mask",
       "mode": "runner",
@@ -1085,16 +1085,16 @@
       ],
       "checks": [
         {
-          "input": "응답 일부 {\"credential\":\"abcUNKNOWNsecretvalue",
+          "input": "partial response {\"credential\":\"abcUNKNOWNsecretvalue",
           "notContains": [
             "abcUNKNOWNsecretvalue"
           ],
-          "expect": "응답 일부 {\"credential\":\"****"
+          "expect": "partial response {\"credential\":\"****"
         }
       ]
     },
     {
-      "name": "JSON 키 패턴: 자격 키의 값은 가리고 식별자 키(tokenId)의 값은 둔다",
+      "name": "the JSON key pattern masks credential keys and leaves identifier keys such as tokenId",
       "origin": "ts/secrets",
       "kind": "mask",
       "mode": "runner",
@@ -1117,7 +1117,7 @@
       ]
     },
     {
-      "name": "이스케이프된 JSON 안의 자격 값도 가린다",
+      "name": "masks credential values inside escaped JSON",
       "origin": "ts/secrets",
       "kind": "mask",
       "mode": "runner",
@@ -1136,7 +1136,7 @@
       ]
     },
     {
-      "name": "나중에 캡처한 값도 가린다(값 목록을 매번 다시 본다)",
+      "name": "masks a value captured later because the value list is read again each time",
       "origin": "ts/secrets",
       "kind": "mask",
       "mode": "runner",
@@ -1146,13 +1146,13 @@
           "knownNow": [
             "late-session-value-91"
           ],
-          "input": "세션 late-session-value-91",
-          "expect": "세션 ****"
+          "input": "session late-session-value-91",
+          "expect": "session ****"
         }
       ]
     },
     {
-      "name": "짧은 캡처 값(번들 버전 \"1\"·순번 \"0\"·\"null\")은 가리지 않아 진단 문장의 숫자가 남는다",
+      "name": "short captured values like bundle version \"1\", sequence \"0\" and \"null\" stay unmasked so diagnostic numbers survive",
       "origin": "ts/secrets",
       "kind": "summarize",
       "mode": "runner",
@@ -1165,13 +1165,13 @@
       "max": 500,
       "checks": [
         {
-          "input": "상태 201 을 기대했는데 401, 워크스페이스 ws-0001",
-          "expect": "상태 201 을 기대했는데 401, 워크스페이스 ****"
+          "input": "expected status 201 but got 401, workspace ws-0001",
+          "expect": "expected status 201 but got 401, workspace ****"
         }
       ]
     },
     {
-      "name": "가리지 않는 문장은 그대로다",
+      "name": "text with nothing to mask stays the same",
       "origin": "ts/secrets",
       "kind": "mask",
       "mode": "runner",
@@ -1182,13 +1182,13 @@
       ],
       "checks": [
         {
-          "input": "상태 200 을 기대했는데 403",
-          "expect": "상태 200 을 기대했는데 403"
+          "input": "expected status 200 but got 403",
+          "expect": "expected status 200 but got 403"
         }
       ]
     },
     {
-      "name": "중첩된 모든 문자열 값을 모은다",
+      "name": "collects every nested string value",
       "origin": "ts/secrets",
       "kind": "values",
       "json": {
@@ -1210,7 +1210,7 @@
       ]
     },
     {
-      "name": "16384자를 넘는 JSON 문자열 값도 키 패턴이 끝까지 가린다",
+      "name": "the key pattern masks a JSON string value longer than 16384 characters to the end",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1227,7 +1227,7 @@
       ]
     },
     {
-      "name": "sk_ 가 겹친 입력은 두 키를 다 가리고 한 번 가린 결과와 두 번 가린 결과가 같다",
+      "name": "input with overlapping sk_ keys masks both and masking twice equals masking once",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1248,7 +1248,7 @@
       ]
     },
     {
-      "name": "값이 배열인 자격 키(헤더)의 원소를 전부 가리고 다른 키의 배열은 둔다",
+      "name": "masks every element of an array under a credential key such as a header and leaves arrays under other keys",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1273,7 +1273,7 @@
       ]
     },
     {
-      "name": "여러 줄 PEM 블록은 통째로, 그 본문 줄 조각은 값 목록으로 가린다",
+      "name": "masks a multiline PEM block whole and its body line fragments through the value list",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1288,20 +1288,20 @@
       "checks": [
         {
           "input": "key:\n-----BEGIN PRIVATE KEY-----\nOV0mQlD12DXaFXigtl1j6Bp7OVunxyx3Sow6Sjf2rCCdl4LZ1iXd0vrkNHEfH/9M\n2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt\n-----END PRIVATE KEY-----\nnext",
-          "expect": "key:\n[PEM 가림]\nnext"
+          "expect": "key:\n[PEM redacted]\nnext"
         },
         {
           "input": "a: |\n    -----BEGIN PRIVATE KEY-----\n    OV0mQlD12DXaFXigtl1j6Bp7OVunxyx3Sow6Sjf2rCCdl4LZ1iXd0vrkNHEfH/9M\n    2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt\n    -----END PRIVATE KEY-----\nb: 1",
-          "expect": "a: |\n    [PEM 가림]\nb: 1"
+          "expect": "a: |\n    [PEM redacted]\nb: 1"
         },
         {
-          "input": "조각 2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt 끝",
-          "expect": "조각 ****jhSt 끝"
+          "input": "fragment 2zefMcu5SZVZ+D8gCLFynuNuLOc6C1K7ItOCodmnnRNycrUo8K6AmcOvetFzjhSt end",
+          "expect": "fragment ****jhSt end"
         }
       ]
     },
     {
-      "name": "따옴표나 &·< 가 든 알려진 값은 JSON·HTML·URL 이스케이프와 base64 로 실려도 가린다",
+      "name": "masks known values containing quotes, & or < even when JSON-, HTML- or URL-escaped or base64-encoded",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1315,59 +1315,59 @@
       ],
       "checks": [
         {
-          "input": "값=Rk8&Tz<4Wq 끝",
-          "expect": "값=****<4Wq 끝"
+          "input": "value=Rk8&Tz<4Wq end",
+          "expect": "value=****<4Wq end"
         },
         {
-          "input": "값=Rk8&amp;Tz&lt;4Wq 끝",
-          "expect": "값=****;4Wq 끝"
+          "input": "value=Rk8&amp;Tz&lt;4Wq end",
+          "expect": "value=****;4Wq end"
         },
         {
-          "input": "값=Qx7\\&quot;Lp2Mn9w 끝",
-          "expect": "값=****Mn9w 끝"
+          "input": "value=Qx7\\&quot;Lp2Mn9w end",
+          "expect": "value=****Mn9w end"
         },
         {
-          "input": "값=Qx7\"Lp2Mn9w 끝",
-          "expect": "값=****Mn9w 끝"
+          "input": "value=Qx7\"Lp2Mn9w end",
+          "expect": "value=****Mn9w end"
         },
         {
-          "input": "값=Qx7\\\"Lp2Mn9w 끝",
-          "expect": "값=****Mn9w 끝",
+          "input": "value=Qx7\\\"Lp2Mn9w end",
+          "expect": "value=****Mn9w end",
           "notContains": [
             "Qx7\\\"Lp2Mn9w"
           ]
         },
         {
-          "input": "값=Qx7&quot;Lp2Mn9w 끝",
-          "expect": "값=****Mn9w 끝",
+          "input": "value=Qx7&quot;Lp2Mn9w end",
+          "expect": "value=****Mn9w end",
           "notContains": [
             "Qx7&quot;Lp2Mn9w"
           ]
         },
         {
-          "input": "값=Qx7&#34;Lp2Mn9w 끝",
-          "expect": "값=****Mn9w 끝",
+          "input": "value=Qx7&#34;Lp2Mn9w end",
+          "expect": "value=****Mn9w end",
           "notContains": [
             "Qx7&#34;Lp2Mn9w"
           ]
         },
         {
-          "input": "값=Qx7&#x22;Lp2Mn9w 끝",
-          "expect": "값=****Mn9w 끝",
+          "input": "value=Qx7&#x22;Lp2Mn9w end",
+          "expect": "value=****Mn9w end",
           "notContains": [
             "Qx7&#x22;Lp2Mn9w"
           ]
         },
         {
-          "input": "값=Qx7%22Lp2Mn9w 끝",
-          "expect": "값=****Mn9w 끝",
+          "input": "value=Qx7%22Lp2Mn9w end",
+          "expect": "value=****Mn9w end",
           "notContains": [
             "Qx7%22Lp2Mn9w"
           ]
         },
         {
-          "input": "b64 UXg3IkxwMk1uOXc= 끝",
-          "expect": "b64 ****OXc= 끝"
+          "input": "b64 UXg3IkxwMk1uOXc= end",
+          "expect": "b64 ****OXc= end"
         },
         {
           "input": "\"{\\\"v\\\":\\\"Qx7\\\\\\\"Lp2Mn9w\\\"}\"",
@@ -1376,7 +1376,7 @@
       ]
     },
     {
-      "name": "러너 모드는 이스케이프 변형으로 실린 값도 끝자리 없이 가린다",
+      "name": "runner mode masks escaped variants of a value without a visible tail",
       "origin": "go",
       "kind": "mask",
       "mode": "runner",
@@ -1385,29 +1385,29 @@
       ],
       "checks": [
         {
-          "input": "값=Qx7\\\"Lp2Mn9w 끝",
-          "expect": "값=**** 끝"
+          "input": "value=Qx7\\\"Lp2Mn9w end",
+          "expect": "value=**** end"
         },
         {
-          "input": "값=Qx7&quot;Lp2Mn9w 끝",
-          "expect": "값=**** 끝"
+          "input": "value=Qx7&quot;Lp2Mn9w end",
+          "expect": "value=**** end"
         },
         {
-          "input": "값=Qx7&#34;Lp2Mn9w 끝",
-          "expect": "값=**** 끝"
+          "input": "value=Qx7&#34;Lp2Mn9w end",
+          "expect": "value=**** end"
         },
         {
-          "input": "값=Qx7&#x22;Lp2Mn9w 끝",
-          "expect": "값=**** 끝"
+          "input": "value=Qx7&#x22;Lp2Mn9w end",
+          "expect": "value=**** end"
         },
         {
-          "input": "값=Qx7%22Lp2Mn9w 끝",
-          "expect": "값=**** 끝"
+          "input": "value=Qx7%22Lp2Mn9w end",
+          "expect": "value=**** end"
         }
       ]
     },
     {
-      "name": "JWT 꼴 토큰은 값 목록 없이 가리고 eyJ 로 시작할 뿐인 낱말은 둔다",
+      "name": "masks JWT-shaped tokens without a value list and leaves words that only start with eyJ",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1428,7 +1428,7 @@
       ]
     },
     {
-      "name": "선언 패턴이 잡은 비밀이 8자보다 짧으면 끝자리를 남기지 않는다",
+      "name": "a secret caught by a declared pattern keeps no visible tail when shorter than 8 characters",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1448,7 +1448,7 @@
       ]
     },
     {
-      "name": "선언 패턴에 secret 이름 그룹이 없으면 일치 전체를 가린다",
+      "name": "a declared pattern without a secret named group masks the whole match",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1464,7 +1464,7 @@
       ]
     },
     {
-      "name": "NBSP 같은 유니코드 공백이 낀 키-값과 JSON 키도 TS 와 같은 자리에서 가린다",
+      "name": "masks key-value pairs and JSON keys with Unicode spaces such as NBSP at the same spots as TS",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1485,7 +1485,7 @@
       ]
     },
     {
-      "name": "허브 모드도 닫는 따옴표 없이 잘린 JSON 조각의 자격 값을 가린다",
+      "name": "hub mode also masks the credential value in a JSON fragment cut off before its closing quote",
       "origin": "go",
       "kind": "mask",
       "mode": "hub",
@@ -1496,12 +1496,12 @@
       ],
       "checks": [
         {
-          "input": "응답 {\"credential\":\"abcUNKNOWNsecretvalue",
-          "expect": "응답 {\"credential\":\"****"
+          "input": "response {\"credential\":\"abcUNKNOWNsecretvalue",
+          "expect": "response {\"credential\":\"****"
         },
         {
-          "input": "줄 {\"token\":\"abcUNKNOWN\n다음 줄",
-          "expect": "줄 {\"token\":\"****\n다음 줄"
+          "input": "line {\"token\":\"abcUNKNOWN\nnext line",
+          "expect": "line {\"token\":\"****\nnext line"
         }
       ]
     }

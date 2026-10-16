@@ -12,27 +12,27 @@ import (
 	"time"
 )
 
-const adversarialRun = "Test적대적_스크립트는_표에_적힌_단계와_사유로_모두_거부된다"
+const adversarialRun = "TestAdversarialScriptsAreRejectedAtTheStageAndReasonListedInTheTable"
 
 var adversarialMutations = []mutation{
-	{"적대적 표와 디렉토리의 양방향 대조", "표에서 busy-loop.ts 행을 지운다", "빨강: 디렉토리의 busy-loop.ts 가 표에 없다", "Test적대적_코퍼스의_파일과_표가_양방향으로_같다"},
-	{"번들 경계 어휘 검사", "boundary.resolve 의 within 검사를 false 로 바꾼다", "빨강: escape-commit.ts 가 경계 거부 대신 Could not resolve 로 떨어진다", adversarialRun},
-	{"bare specifier 거부", "boundary.resolve 의 bare 분기가 빈 결과를 돌려준다", "빨강: node-builtin.ts·bare-specifier.ts 가 bare 거부 없이 Could not resolve 로 떨어진다", adversarialRun},
-	{"동적 import 거부", "ResolveJSDynamicImport 분기를 false 로 바꾼다", "빨강: dynamic-import.ts:2 거부가 사라지고 node-builtin.ts:1 거부로 옮겨 간다", adversarialRun},
-	{"엔진 파싱 검사", "BuildBundle 이 parseProblems 결과를 버린다", "빨강: dynamic-import-variable.ts 가 번들을 통과한다", adversarialRun},
-	{"자리별 cockpit 모듈 번들 검사", "boundary.resolve 의 site.allows 검사를 false 로 바꾼다", "빨강: 러너 자리 foreign-module.ts 가 번들을 통과한다", adversarialRun},
-	{"require 허용목록 관문", "Host.require 의 allowed 검사를 false 로 바꾼다", "빨강: buffer·node:buffer 가 풀리고 eval-require.ts 의 문장이 바뀐다", adversarialRun},
-	{"eval 소스맵 디스크 읽기 차단", "런타임 파서 옵션의 로더를 nil 로 바꾼다", "빨강: eval 스택에 PLANTED_MAP_SOURCE.ts 가 나타난다", adversarialRun},
-	{"주요 프로토타입 동결", "setup 이 freezePrototypes 를 건너뛴다", "빨강: pollute true·inherited 1000000000 이 기록된다", adversarialRun},
-	{"포트 객체 깊은 동결", "loadModule 이 freezeDeep 을 건너뛴다", "빨강: overwrite true 이고 7 이 포트에 닿지 않는다", adversarialRun},
-	{"포트 옵션 own property 읽기", "DecodeArgs 가 프로토타입 체인을 타는 Get 으로 maxRows 를 읽는다", "빨강: 포트가 읽은 maxRows 가 [0 1000000000 5 7] 이다", adversarialRun},
-	{"기한의 인터럽트", "기한 타이머를 1시간으로 늘린다", "빨강: busy-loop.ts 가 끝나지 않아 20초 시험 기한에 걸린다", adversarialRun},
-	{"호출 스택 상한", "기본 상한을 1<<30 으로 바꾼다", "빨강: deep-recursion.ts 가 stack_overflow 대신 deadline 으로 끝난다", adversarialRun},
-	{"기다리지 않은 거부 추적", "SetPromiseRejectionTracker 에 nil 을 준다", "빨강: unhandled-rejection.ts 가 성공으로 끝난다", adversarialRun},
-	{"settle 되지 않은 플로우 판정", "after 의 pending==0 분기를 false 로 바꾼다", "빨강: never-settles.ts 가 unsettled 대신 deadline 으로 끝난다", adversarialRun},
-	{"심볼릭 링크 실경로 경계", "boundary.load 의 within 검사를 지운다", "빨강: 밖을 가리키는 링크가 번들을 통과한다", "Test경계_안의_심볼릭_링크가_경계_밖을_가리키면_번들이_거부되고_안을_가리키면_통과한다"},
-	{"경계 안 패키지의 bare specifier 거부", "boundary.resolve 의 bare 분기가 빈 결과를 돌려준다", "빨강: node_modules/left-pad 가 bare import 로 번들에 들어간다", "Test경계_안에_패키지가_있어도_bare_specifier는_거부되고_같은_파일의_상대_경로는_통과한다"},
-	{"경계 밖 tsconfig 차단", "TsconfigRaw 를 비운다", "빨강: 상위 tsconfig 가 읽혀 setter 1·assign 이 기록된다", "Test번들은_경계_밖_상위_디렉토리의_tsconfig를_읽지_않는다"},
+	{"two-way match of the adversarial table and directory", "delete the busy-loop.ts row from the table", "red: busy-loop.ts is in the directory but not in the table", "TestAdversarialCorpusFilesAndCaseTableMatchBothWays"},
+	{"lexical bundle boundary check", "replace the within check in boundary.resolve with false", "red: escape-commit.ts fails with Could not resolve instead of the boundary rejection", adversarialRun},
+	{"bare specifier rejection", "make the bare branch in boundary.resolve return an empty result", "red: node-builtin.ts and bare-specifier.ts fail with Could not resolve instead of the bare rejection", adversarialRun},
+	{"dynamic import rejection", "replace the ResolveJSDynamicImport branch with false", "red: the dynamic-import.ts:2 rejection disappears and moves to node-builtin.ts:1", adversarialRun},
+	{"engine parse check", "make BuildBundle discard the parseProblems result", "red: dynamic-import-variable.ts passes the bundle step", adversarialRun},
+	{"per-site cockpit module bundle check", "replace the site.allows check in boundary.resolve with false", "red: foreign-module.ts at the runner site passes the bundle step", adversarialRun},
+	{"require allowlist gate", "replace the allowed check in Host.require with false", "red: buffer and node:buffer load and the eval-require.ts message changes", adversarialRun},
+	{"blocking disk reads of eval source maps", "set the loader in the runtime parser options to nil", "red: PLANTED_MAP_SOURCE.ts appears in the eval stack", adversarialRun},
+	{"core prototype freeze", "make setup skip freezePrototypes", "red: pollute true and inherited 1000000000 are recorded", adversarialRun},
+	{"deep freeze of the port object", "make loadModule skip freezeDeep", "red: overwrite true is recorded and 7 never reaches the port", adversarialRun},
+	{"own-property reads of port options", "make DecodeArgs read maxRows with a Get that walks the prototype chain", "red: the port reads maxRows as [0 1000000000 5 7]", adversarialRun},
+	{"deadline interrupt", "raise the deadline timer to one hour", "red: busy-loop.ts never ends and hits the 20 second test deadline", adversarialRun},
+	{"call stack limit", "change the default limit to 1<<30", "red: deep-recursion.ts ends with deadline instead of stack_overflow", adversarialRun},
+	{"tracking unawaited rejections", "pass nil to SetPromiseRejectionTracker", "red: unhandled-rejection.ts ends in success", adversarialRun},
+	{"verdict for a flow that never settles", "replace the pending==0 branch in after with false", "red: never-settles.ts ends with deadline instead of unsettled", adversarialRun},
+	{"real-path boundary for symbolic links", "delete the within check in boundary.load", "red: a link pointing outside passes the bundle step", "TestSymlinkPointingOutsideTheBoundaryIsRejectedAndOnePointingInsidePasses"},
+	{"bare specifier rejection for a package inside the boundary", "make the bare branch in boundary.resolve return an empty result", "red: node_modules/left-pad enters the bundle through a bare import", "TestBareSpecifierToAPackageInsideTheBoundaryIsRejectedButARelativePathToItPasses"},
+	{"blocking tsconfig outside the boundary", "empty TsconfigRaw", "red: the parent tsconfig is read and setter 1 and assign are recorded", "TestBundleIgnoresTsconfigInAParentDirectoryOutsideTheBoundary"},
 }
 
 type stage string
@@ -87,7 +87,7 @@ func (c adversarialCase) entry() string {
 func recordsAre(want ...string) func(*testing.T, *probe) {
 	return func(t *testing.T, p *probe) {
 		if !slices.Equal(p.records, want) {
-			t.Fatalf("기록 %q, 기대 %q", p.records, want)
+			t.Fatalf("records %q, want %q", p.records, want)
 		}
 	}
 }
@@ -95,11 +95,11 @@ func recordsAre(want ...string) func(*testing.T, *probe) {
 func everyRequireDenied(t *testing.T, p *probe) {
 	targets := []string{p.planted["absolute"], p.planted["relativeJson"], "buffer", "node:buffer", "left-pad", "process", p.foreign()}
 	if len(p.records) != len(targets) {
-		t.Fatalf("시도 %d 건, 기대 %d 건: %q", len(p.records), len(targets), p.records)
+		t.Fatalf("%d attempts, want %d: %q", len(p.records), len(targets), p.records)
 	}
 	for i, r := range p.records {
 		if !strings.HasPrefix(r, `denied Invalid module "`+targets[i]+`"`) || strings.Contains(r, "PLANTED") {
-			t.Errorf("%s 이 막히지 않았다: %q", targets[i], r)
+			t.Errorf("%s was not denied: %q", targets[i], r)
 		}
 	}
 }
@@ -107,19 +107,19 @@ func everyRequireDenied(t *testing.T, p *probe) {
 func pollutionIgnored(t *testing.T, p *probe) {
 	recordsAre("pollute false", "inherited undefined", "overwrite false", "frozen true true true true true")(t, p)
 	if !slices.Equal(p.rows, []int{0, 0, 5, 7}) {
-		t.Fatalf("포트가 읽은 maxRows %v, 기대 [0 0 5 7]", p.rows)
+		t.Fatalf("port read maxRows %v, want [0 0 5 7]", p.rows)
 	}
 }
 
 func diskMapIgnored(t *testing.T, p *probe) {
 	if len(p.records) != 2 {
-		t.Fatalf("기록 %q", p.records)
+		t.Fatalf("records %q", p.records)
 	}
 	if !strings.Contains(p.records[0], "Error: disk") || strings.Contains(p.records[0], "PLANTED_MAP_SOURCE") {
-		t.Errorf("eval 이 디스크의 소스맵을 읽었다: %q", p.records[0])
+		t.Errorf("eval read the source map from disk: %q", p.records[0])
 	}
 	if !strings.Contains(p.records[1], "INLINE_CANARY.ts") {
-		t.Errorf("eval 안의 인라인 소스맵이 적용되지 않았다(카나리): %q", p.records[1])
+		t.Errorf("inline source map inside eval was not applied (canary): %q", p.records[1])
 	}
 }
 
@@ -133,10 +133,10 @@ func plantAll(t *testing.T, p *probe) {
 	p.planted["inlineMap"] = "data:application/json;base64," + base64.StdEncoding.EncodeToString([]byte(inline))
 }
 
-func Test적대적_코퍼스의_파일과_표가_양방향으로_같다(t *testing.T) {
+func TestAdversarialCorpusFilesAndCaseTableMatchBothWays(t *testing.T) {
 	paths, err := filepath.Glob(filepath.Join(scriptRoot, "*.ts"))
 	if err != nil || len(paths) == 0 {
-		t.Fatalf("코퍼스 파일 %d 개, %v", len(paths), err)
+		t.Fatalf("%d corpus files, %v", len(paths), err)
 	}
 	inDir := map[string]bool{}
 	for _, path := range paths {
@@ -146,17 +146,17 @@ func Test적대적_코퍼스의_파일과_표가_양방향으로_같다(t *testi
 	for _, c := range adversarialCases {
 		inTable[c.file] = true
 		if !inDir[c.file] {
-			t.Errorf("표의 %s 가 디렉토리에 없다", c.file)
+			t.Errorf("%s is in the table but not in the directory", c.file)
 		}
 	}
 	for name := range inDir {
 		if !inTable[name] {
-			t.Errorf("디렉토리의 %s 가 표에 없다", name)
+			t.Errorf("%s is in the directory but not in the table", name)
 		}
 	}
 }
 
-func Test적대적_스크립트는_표에_적힌_단계와_사유로_모두_거부된다(t *testing.T) {
+func TestAdversarialScriptsAreRejectedAtTheStageAndReasonListedInTheTable(t *testing.T) {
 	ran := 0
 	for _, c := range adversarialCases {
 		t.Run(c.site.String()+"/"+c.file, func(t *testing.T) {
@@ -166,11 +166,11 @@ func Test적대적_스크립트는_표에_적힌_단계와_사유로_모두_거�
 				assertProblem(t, err, filepath.ToSlash(c.entry()), c.line, c.text)
 			case passAtBundle:
 				if err != nil || !strings.Contains(b.Code, "sourceMappingURL=data:") {
-					t.Fatalf("번들이 통과해야 한다: %v", err)
+					t.Fatalf("bundle should pass: %v", err)
 				}
 			case execute:
 				if err != nil {
-					t.Fatalf("번들: %v", err)
+					t.Fatalf("bundle: %v", err)
 				}
 				assertExecution(t, c, b)
 			}
@@ -178,7 +178,7 @@ func Test적대적_스크립트는_표에_적힌_단계와_사유로_모두_거�
 		})
 	}
 	if ran != len(adversarialCases) || ran == 0 {
-		t.Fatalf("실행 %d 건, 표 %d 건", ran, len(adversarialCases))
+		t.Fatalf("ran %d cases, table has %d", ran, len(adversarialCases))
 	}
 }
 
@@ -186,14 +186,14 @@ func assertProblem(t *testing.T, err error, file string, line int, text string) 
 	t.Helper()
 	var be *BundleError
 	if !errors.As(err, &be) || len(be.Problems) == 0 {
-		t.Fatalf("번들 거부를 기대했는데 %v", err)
+		t.Fatalf("want a bundle rejection, got %v", err)
 	}
 	for _, p := range be.Problems {
 		if p.File == file && p.Line == line && strings.Contains(p.Text, text) {
 			return
 		}
 	}
-	t.Fatalf("%s:%d 의 %q 거부가 없다: %+v", file, line, text, be.Problems)
+	t.Fatalf("no rejection at %s:%d containing %q: %+v", file, line, text, be.Problems)
 }
 
 func assertExecution(t *testing.T, c adversarialCase, b Bundle) {
@@ -207,19 +207,19 @@ func assertExecution(t *testing.T, c adversarialCase, b Bundle) {
 	err := newEngine(t, c.site, p, deadline).Run(context.Background(), b, "default")
 	if c.kind == "" {
 		if err != nil {
-			t.Fatalf("실행이 끝까지 가야 한다: %v", err)
+			t.Fatalf("run should complete: %v", err)
 		}
 	} else if f := failureOf(t, err, c.kind); !strings.Contains(f.Message, c.text) {
-		t.Fatalf("실패 문장 %q 에 %q 가 없다", f.Message, c.text)
+		t.Fatalf("failure message %q does not contain %q", f.Message, c.text)
 	} else if c.stack != "" && (!strings.Contains(f.Stack, c.stack) || strings.Count(f.Stack, "\n") >= overflowFrames) {
-		t.Fatalf("스택이 %q 를 가리키지 않거나 %d 프레임을 넘는다: %q", c.stack, overflowFrames, f.Stack)
+		t.Fatalf("stack does not point at %q or exceeds %d frames: %q", c.stack, overflowFrames, f.Stack)
 	}
 	if c.check != nil {
 		c.check(t, p)
 	}
 }
 
-func Test경계_안의_심볼릭_링크가_경계_밖을_가리키면_번들이_거부되고_안을_가리키면_통과한다(t *testing.T) {
+func TestSymlinkPointingOutsideTheBoundaryIsRejectedAndOnePointingInsidePasses(t *testing.T) {
 	outside := writeTree(t, map[string]string{"secret.ts": "export const secret = \"PLANTED_OUTSIDE\";\n"})
 	root := writeTree(t, map[string]string{
 		"inside.ts": "export const value = \"INSIDE_VALUE\";\n",
@@ -235,15 +235,15 @@ func Test경계_안의_심볼릭_링크가_경계_밖을_가리키면_번들이_
 	b, err := bundleAt(t, root, "escape.ts", SiteHub)
 	var be *BundleError
 	if !errors.As(err, &be) || !strings.Contains(be.Error(), "outside the boundary") || strings.Contains(b.Code+be.Error(), "PLANTED_OUTSIDE") {
-		t.Fatalf("밖을 가리키는 링크가 거부되지 않았다: %v", err)
+		t.Fatalf("link pointing outside was not rejected: %v", err)
 	}
 	stay, err := bundleAt(t, root, "stay.ts", SiteHub)
 	if err != nil || !strings.Contains(stay.Code, "INSIDE_VALUE") {
-		t.Fatalf("안을 가리키는 링크는 통과해야 한다: %v", err)
+		t.Fatalf("link pointing inside should pass: %v", err)
 	}
 }
 
-func Test경계_안에_패키지가_있어도_bare_specifier는_거부되고_같은_파일의_상대_경로는_통과한다(t *testing.T) {
+func TestBareSpecifierToAPackageInsideTheBoundaryIsRejectedButARelativePathToItPasses(t *testing.T) {
 	root := writeTree(t, map[string]string{
 		"node_modules/left-pad/package.json": `{"name":"left-pad","main":"index.js"}`,
 		"node_modules/left-pad/index.js":     "module.exports = () => \"PADDED_BY_PACKAGE\";\n",
@@ -254,11 +254,11 @@ func Test경계_안에_패키지가_있어도_bare_specifier는_거부되고_같
 	assertProblem(t, err, "bare.ts", 1, `bare specifier "left-pad" is not allowed`)
 	b, err := bundleAt(t, root, "relative.ts", SiteHub)
 	if err != nil || !strings.Contains(b.Code, "PADDED_BY_PACKAGE") {
-		t.Fatalf("경계 안의 상대 경로는 통과해야 한다: %v", err)
+		t.Fatalf("relative path inside the boundary should pass: %v", err)
 	}
 }
 
-func Test번들은_경계_밖_상위_디렉토리의_tsconfig를_읽지_않는다(t *testing.T) {
+func TestBundleIgnoresTsconfigInAParentDirectoryOutsideTheBoundary(t *testing.T) {
 	parent := writeTree(t, map[string]string{
 		"tsconfig.json": `{"compilerOptions":{"useDefineForClassFields":false}}`,
 		"scripts/entry.ts": `import { record } from "cockpit:flow";
@@ -286,6 +286,6 @@ export default function (): void {
 	recordsAre("define")(t, p)
 }
 
-func Test적대적_코퍼스_변이_기록표는_이_파일의_시험과_양방향으로_같다(t *testing.T) {
+func TestAdversarialMutationRecordAndTestsInThisFileMatchBothWays(t *testing.T) {
 	assertMutationRecord(t, "adversarial_test.go", adversarialMutations)
 }
