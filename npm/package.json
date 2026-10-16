@@ -1,0 +1,23 @@
+{
+  "name": "@d0lim/cockpit-sdk",
+  "version": "0.0.0",
+  "description": "Type declarations for cockpit flow and collector scripts (cockpit:flow, cockpit:collect, engine globals) and the tsconfig base they are checked with.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/d0lim/cockpit.git",
+    "directory": "npm"
+  },
+  "types": "./index.d.ts",
+  "files": [
+    "index.d.ts",
+    "cockpit-flow.d.ts",
+    "cockpit-collect.d.ts",
+    "cockpit-globals.d.ts",
+    "tsconfig.base.json"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

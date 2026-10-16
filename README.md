@@ -4,7 +4,21 @@ cockpit is a run hub that takes one commit of a service that starts with compose
 
 ## Status
 
-The runner host is under construction. The hub commands are `sdk write <dir>` (writes the type declarations and the tsconfig base into the consumer repository), `runner-image` (ensures the `cockpit-runner:<hash>` image from the embedded runner and prints its tag) and `--version`. The runner commands are `run <suite> [--flow <id>]...`, `probe <canary-port>` and `edge <port>=<host>:<port>...`.
+The runner host is under construction. The hub commands are `sdk write <dir>` (writes the type declarations and the tsconfig base into the consumer repository), `runner-image` (ensures the `cockpit-runner:<hash>` image from the embedded runner and prints its tag) and `--version`. The runner commands are `run <suite> [--flow <id>]...`, `probe <canary-port>` and `edge <port>=<host>:<port>...`. The `cockpit:flow` module exports `suite`, `stage`, `flow` and `step` plus the helpers `target`, `expectStatus`, `json` and `poll`, so flows need no helper code of their own.
+
+## SDK types
+
+Flows and collectors are type-checked against declarations that cockpit generates. A consumer repository takes them from npm and pins the same version as the `cockpit` binary it runs:
+
+```sh
+bun add -d @d0lim/cockpit-sdk@<version>
+```
+
+```json
+{ "extends": "@d0lim/cockpit-sdk/tsconfig.base.json", "include": ["suites/*.ts"] }
+```
+
+`hostApi` in `.cockpit/project.yaml` stays the compatibility key. Without a registry, `cockpit sdk write <dir>` writes the same files from the binary. The release workflow publishes the package from the same tag as the binaries.
 
 ## Development
 

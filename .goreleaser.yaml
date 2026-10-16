@@ -34,4 +34,4 @@ snapshot:
   version_template: "{{ incpatch .Version }}-snapshot-{{ .ShortCommit }}"
 
 release:
-  disable: true
+  disable: false

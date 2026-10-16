@@ -32,6 +32,10 @@ var runnerMutations = []porttest.Mutation{
 	{"argument checks", "parseArgs skips the pattern checks", "red: a malformed id is accepted", "TestBadArgumentsExitTwoWithReason"},
 	{"suite load failure exits 2", "swallow the bundle error and exit 0", "red: exit 0", "TestMissingOrBrokenSuiteFileExitsTwoWithoutManifest"},
 	{"suite name mismatch is refused", "delete the name check in Begin", "red: a suite with another name runs", "TestMissingOrBrokenSuiteFileExitsTwoWithoutManifest"},
+	{"flow helpers are exported by cockpit:flow", "drop target, expectStatus, json and poll from the module exports", "red: the alpha step fails on an undefined function", "TestFlowHelpersExpectStatusJsonTargetAndPollWorkInsideAStep"},
+	{"expectStatus keeps the query and the body out of its message", "append res.url or res.body to the thrown message", "red: the beta message carries the query or the body", "TestExpectStatusFailureNamesMethodAndPathOnly"},
+	{"json keeps the body out of its message", "append res.body to the thrown message", "red: the gamma message carries the body", "TestJsonFailureOnANonJSONBodyKeepsTheBodyOut"},
+	{"poll stops at the deadline", "skip the deadline check after a failed attempt", "red: the delta step never finishes or reports another attempt count", "TestPollGivesUpAtTheDeadlineAndReportsTheAttemptCount"},
 }
 
 func TestHostAPIMismatchExitsTwoBeforeManifestAndNamesBothValues(t *testing.T) {
@@ -106,5 +110,5 @@ func TestMissingOrBrokenSuiteFileExitsTwoWithoutManifest(t *testing.T) {
 }
 
 func TestRunnerMutationRecordMatchesTestFilesBothWays(t *testing.T) {
-	porttest.AssertMutationRecordAcross(t, []string{"main_test.go", "execute_test.go", "exec_test.go"}, runnerMutations)
+	porttest.AssertMutationRecordAcross(t, []string{"main_test.go", "execute_test.go", "exec_test.go", "helpers_test.go"}, runnerMutations)
 }

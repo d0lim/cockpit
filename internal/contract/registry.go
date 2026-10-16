@@ -101,6 +101,18 @@ export function stage(def: StageDef): StageDef;
 export function flow(def: FlowDef): FlowDef;
 export function step(def: StepDef): StepDef;`
 
+const flowHelpersTS = `export interface PollOptions {
+	what: string;
+	deadlineMs: number;
+	intervalMs: number;
+	now: () => number;
+	sleep: (ms: number) => Promise<void>;
+}
+export function target(method: string, url: string): string;
+export function expectStatus(res: HttpResponse, ...expected: number[]): void;
+export function json<T = any>(res: HttpResponse): T;
+export function poll<T>(attempt: () => Promise<T>, done: (value: T) => boolean, opts: PollOptions): Promise<{ value: T; attempts: number }>;`
+
 func flowModule() Module {
 	return Module{
 		Name:  "cockpit:flow",
@@ -108,7 +120,7 @@ func flowModule() Module {
 		Place: PlaceRunner,
 		Ctx:   "Ctx",
 		Types: []string{"StepKind", "ManifestSource"},
-		Decls: []string{httpResponseTS, flowHTTPTS, cryptoTS, flowDefsTS},
+		Decls: []string{httpResponseTS, flowHTTPTS, cryptoTS, flowDefsTS, flowHelpersTS},
 		Members: []Member{
 			{"env", "readonly env: Readonly<Record<string, unknown>>;"},
 			{"priv", "readonly priv: Readonly<Record<string, string>>;"},

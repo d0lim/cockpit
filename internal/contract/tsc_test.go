@@ -101,17 +101,18 @@ func TestValidFlowAndCollectScriptsPassTscWithTheGeneratedDeclarations(t *testin
 	}
 }
 
-func TestTscRejectsRunnerScriptsThatCallCtxSqlOrFetchOrBreakReservedValues(t *testing.T) {
-	run := runTsc(t, "flow-uses-sql.ts", "collect-bad-values.ts", "flow-uses-fetch.ts")
+func TestTscRejectsScriptsThatCallCtxSqlOrFetchMistypeAHelperArgumentOrBreakReservedValues(t *testing.T) {
+	run := runTsc(t, "flow-uses-sql.ts", "collect-bad-values.ts", "flow-uses-fetch.ts", "flow-bad-helper.ts")
 	if run.err == nil {
 		t.Fatalf("tsc passed\n%s", run.output)
 	}
-	if len(run.samples) != 3 || len(run.sdk) != 3 {
+	if len(run.samples) != 4 || len(run.sdk) != 3 {
 		t.Fatalf("checked samples %v, declarations %v\n%s", run.samples, run.sdk, run.output)
 	}
 	want := []tscError{
 		{"flow-uses-sql.ts", "TS2339", "Property 'sql' does not exist on type 'Ctx'"},
 		{"flow-uses-fetch.ts", "TS2304", "Cannot find name 'fetch'"},
+		{"flow-bad-helper.ts", "TS2345", "not assignable to parameter of type 'number'"},
 		{"collect-bad-values.ts", "TS2322", `"purple"`},
 		{"collect-bad-values.ts", "TS2322", `"done"`},
 	}

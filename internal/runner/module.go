@@ -42,6 +42,37 @@ const flowModuleJS = `(function (frames, runner, ctx) {
 		});
 		return { ...def, ...(source ? { source } : {}), steps };
 	};
+	const target = (method, url) => {
+		try {
+			return method + " " + new URL(url).pathname;
+		} catch (e) {
+			return method;
+		}
+	};
+	const expectStatus = (res, ...expected) => {
+		if (expected.includes(res.status)) return;
+		throw new Error(target(res.method, res.url) + " — expected status " + expected.join(" or ") + " but got " + res.status);
+	};
+	const json = (res) => {
+		try {
+			return JSON.parse(res.body);
+		} catch (e) {
+			throw new Error(target(res.method, res.url) + " — the response body is not JSON (status " + res.status + ")");
+		}
+	};
+	const poll = async (attempt, done, opts) => {
+		const deadline = opts.now() + opts.deadlineMs;
+		let attempts = 0;
+		for (;;) {
+			attempts++;
+			const value = await attempt();
+			if (done(value)) return { value, attempts };
+			if (opts.now() + opts.intervalMs > deadline) {
+				throw new Error(opts.what + " — not satisfied within " + opts.deadlineMs + "ms (" + attempts + " attempts)");
+			}
+			await opts.sleep(opts.intervalMs);
+		}
+	};
 	const describe = (def, runs) => ({
 		name: def.name,
 		stages: def.stages.map((s) => ({ id: s.id, title: s.title, ...(s.notProven ? { notProven: s.notProven } : {}) })),
@@ -79,7 +110,7 @@ const flowModuleJS = `(function (frames, runner, ctx) {
 			runner.finish(next.flow, next.step, failure);
 		}
 	};
-	return { suite, stage, flow, step, __drive };
+	return { suite, stage, flow, step, target, expectStatus, json, poll, __drive };
 })`
 
 func Module(d *Driver, ctxDeps *runnerctx.Deps) engine.ModuleBuilder {
