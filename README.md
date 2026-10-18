@@ -1,14 +1,103 @@
 # cockpit
 
-cockpit is a run hub that takes one commit of a service that starts with compose, runs it E2E in a sealed environment, and produces the verdict, observations and report bundle in the same shape. A single hub binary (`cockpit`) owns the sealed compose environment and the run state, and the runner embedded in it (`cockpit-runner`) runs TypeScript flows inside the sealed network. Consumer repositories bring only flows, collector scripts, compose overlays and a project declaration.
+cockpit runs end-to-end flows against a compose stack. You write flows in TypeScript, and the cockpit runner executes them in a container on the stack's network, then writes the results as JSON. One `cockpit` binary carries the runner, so the version you install is the version that runs your flows.
 
-## Status
+The sealed-run hub (one commit, a fresh sealed environment, a verdict and a report bundle) is under construction. Today the binary builds the runner image and writes the type declarations; the runner executes suites against a stack you start yourself.
 
-The runner host is under construction. The hub commands are `sdk write <dir>` (writes the type declarations and the tsconfig base into the consumer repository), `runner-image` (ensures the `cockpit-runner:<hash>` image from the embedded runner and prints its tag) and `--version`. The runner commands are `run <suite> [--flow <id>]...`, `probe <canary-port>` and `edge <port>=<host>:<port>...`. The `cockpit:flow` module exports `suite`, `stage`, `flow` and `step` plus the helpers `target`, `expectStatus`, `json` and `poll`, so flows need no helper code of their own.
+## Install
 
-## SDK types
+```sh
+brew install --cask d0lim/tap/cockpit
+```
 
-Flows and collectors are type-checked against declarations that cockpit generates. A consumer repository takes them from npm and pins the same version as the `cockpit` binary it runs:
+or with [mise](https://mise.jdx.dev), globally or pinned per project:
+
+```sh
+mise use -g github:d0lim/cockpit
+mise use github:d0lim/cockpit@0.1.0
+```
+
+Docker is required: `cockpit runner-image` imports the embedded runner as a local image.
+
+## Quick start
+
+Start from any directory that has a `compose.yaml`. This example uses a single nginx service.
+
+```yaml
+services:
+  web:
+    image: nginx:alpine
+```
+
+Add the project declaration, the public env, an empty private env and a suite:
+
+```sh
+mkdir -p .cockpit e2e/suites .e2e
+printf 'hostApi: 1\n' > .cockpit/project.yaml
+printf '{ "baseUrl": "http://web" }\n' > e2e/env.json
+printf '{ "local": {} }\n' > .e2e/e2e.private.env.json
+```
+
+`e2e/suites/smoke.ts`:
+
+```ts
+import { expectStatus, flow, stage, step, suite } from "cockpit:flow";
+
+const home = flow({
+	id: "home",
+	title: "Home page",
+	stage: "basic",
+	once: false,
+	requires: [],
+	steps: [
+		step({
+			id: "get",
+			title: "GET / answers 200",
+			kind: "request",
+			async run(ctx) {
+				const res = await ctx.http.send("GET", `${ctx.env.baseUrl}/`);
+				expectStatus(res, 200);
+			},
+		}),
+	],
+});
+
+export default suite({ name: "smoke", stages: [stage({ id: "basic", title: "Basic" })], flows: [home] });
+```
+
+Attach the runner with a compose overlay, `compose.cockpit.yaml`:
+
+```yaml
+services:
+  runner:
+    image: ${COCKPIT_RUNNER_IMAGE:?run cockpit runner-image first}
+    pull_policy: never
+    profiles: ["runner"]
+    volumes:
+      - ./e2e:/work/scripts:ro
+      - ./.cockpit/project.yaml:/work/.cockpit/project.yaml:ro
+      - ./.e2e:/work/e2e
+```
+
+Run it:
+
+```sh
+export COCKPIT_RUNNER_IMAGE=$(cockpit runner-image)
+docker compose -f compose.yaml -f compose.cockpit.yaml up -d web
+docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run smoke
+```
+
+```
+home › get passed 3ms [200]
+```
+
+The exit code is 0 when every step passed. `.e2e/` now holds `manifest.json`, `result.json`, `ledger.json` and `context.json`. Add `.e2e/` to `.gitignore`.
+
+The [usage guide](docs/guide.md) covers the rest: the mounts and environment, writing flows, the `ctx` ports, running one flow, the output files, exit codes and type checking.
+
+## Type checking
+
+Flows are checked against declarations that cockpit generates. Take them from npm and pin the same version as the binary:
 
 ```sh
 bun add -d @d0lim/cockpit-sdk@<version>
@@ -18,7 +107,11 @@ bun add -d @d0lim/cockpit-sdk@<version>
 { "extends": "@d0lim/cockpit-sdk/tsconfig.base.json", "include": ["suites/*.ts"] }
 ```
 
-`hostApi` in `.cockpit/project.yaml` stays the compatibility key. Without a registry, `cockpit sdk write <dir>` writes the same files from the binary. The release workflow publishes the package from the same tag as the binaries.
+Without a registry, `cockpit sdk write <dir>` writes the same files from the binary.
+
+## Releases
+
+A `v*` tag publishes the binaries to GitHub Releases, the cask to [d0lim/homebrew-tap](https://github.com/d0lim/homebrew-tap) and the `@d0lim/cockpit-sdk` package to npm, all with the tag's version. `hostApi` in `.cockpit/project.yaml` is the compatibility key: the runner refuses a declaration whose host API differs from its own.
 
 ## Development
 
@@ -27,8 +120,8 @@ mise install
 make verify
 ```
 
-`make verify` runs vet, `go test -race`, the generated-files diff, the license gate, the consumer-name check that requires 0 matches, the build and the binary size measurement in one invocation. The consumer-name check runs only when the environment variable `COCKPIT_CONSUMER_NAMES` holds a regular expression. The rules are in `AGENTS.md`, and the text of the run rules is in `docs/`.
+`make verify` runs vet, `go test -race`, the generated-files diff, the license gate, the consumer-name check, the no-comment check, the build and the binary size measurement. The rules are in `AGENTS.md`, and the text of the run rules is in `docs/`.
 
 ## License
 
-The license is MIT. The full text is in `LICENSE`.
+MIT. The full text is in `LICENSE`.

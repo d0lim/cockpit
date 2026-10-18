@@ -35,3 +35,23 @@ snapshot:
 
 release:
   disable: false
+
+homebrew_casks:
+  - name: cockpit
+    binaries:
+      - cockpit
+    repository:
+      owner: d0lim
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_msg_template: "chore(cockpit): release {{ .Version }}"
+    homepage: https://github.com/d0lim/cockpit
+    description: Run hub that runs one commit of a compose stack end to end in a sealed environment
+    license: MIT
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr",
+                           args: ["-dr", "com.apple.quarantine", "#{staged_path}/cockpit"]
+          end
