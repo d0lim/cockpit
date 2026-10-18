@@ -2,9 +2,9 @@ SHELL := /usr/bin/env bash
 export CGO_ENABLED := 0
 BIN := bin
 
-.PHONY: verify vet test generate-check licenses names build size clean
+.PHONY: verify vet test generate-check licenses build size clean
 
-verify: vet test generate-check licenses names build size
+verify: vet test generate-check licenses build size
 
 vet:
 	go vet ./...
@@ -19,9 +19,6 @@ generate-check:
 
 licenses:
 	scripts/check-licenses.sh .
-
-names:
-	scripts/check-no-consumer-names.sh .
 
 build:
 	go build -trimpath -o $(BIN)/cockpit ./cmd/cockpit

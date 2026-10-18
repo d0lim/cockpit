@@ -120,7 +120,7 @@ mise install
 make verify
 ```
 
-`make verify` runs vet, `go test -race`, the generated-files diff, the license gate, the consumer-name check, the no-comment check, the build and the binary size measurement. The rules are in `AGENTS.md`, and the text of the run rules is in `docs/`.
+`make verify` runs vet, `go test -race`, the generated-files diff, the license gate, the no-comment check, the build and the binary size measurement. The rules are in `AGENTS.md`, and the text of the run rules is in `docs/`.
 
 ## License
 

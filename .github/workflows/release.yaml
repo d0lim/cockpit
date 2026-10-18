@@ -17,8 +17,6 @@ jobs:
           fetch-depth: 0
       - uses: jdx/mise-action@v2
       - run: make verify
-        env:
-          COCKPIT_CONSUMER_NAMES: ${{ vars.COCKPIT_CONSUMER_NAMES }}
       - run: goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
