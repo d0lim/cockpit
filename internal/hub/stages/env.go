@@ -33,23 +33,24 @@ type Failed struct {
 func (f *Failed) Error() string { return f.Message }
 
 type Env struct {
-	RunID      string
-	Repo       compose.Git
-	Loaded     compose.Loaded
-	Layout     compose.Layout
-	Root       *os.Root
-	Base       int
-	Image      string
-	RunnerUser string
-	Docker     compose.Docker
-	Masker     *mask.Masker
-	Project    compose.Project
-	Keys       map[string]string
-	Static     []seal.Result
-	Probes     []seal.Result
-	Limits     Limits
-	Now        func() time.Time
-	Log        func(line string)
+	RunID        string
+	Repo         compose.Git
+	Loaded       compose.Loaded
+	Layout       compose.Layout
+	Root         *os.Root
+	Base         int
+	Image        string
+	RunnerUser   string
+	Docker       compose.Docker
+	Masker       *mask.Masker
+	Project      compose.Project
+	Keys         map[string]string
+	Static       []seal.Result
+	Probes       []seal.Result
+	Limits       Limits
+	ListenCanary CanaryListener
+	Now          func() time.Time
+	Log          func(line string)
 }
 
 func (e *Env) Mask(s string) string {

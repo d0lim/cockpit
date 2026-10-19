@@ -20,6 +20,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/hub/ticker"
 	"github.com/d0lim/cockpit/internal/runnerbin"
+	"github.com/d0lim/cockpit/internal/seal"
 	"github.com/d0lim/cockpit/internal/signal"
 	"github.com/d0lim/cockpit/internal/version"
 )
@@ -57,6 +58,7 @@ type Options struct {
 	Events       func(Event)
 	Log          *slog.Logger
 	ScriptHost   []string
+	ListenCanary stages.CanaryListener
 	Streams      *signal.Registry
 	Collect      collect.Options
 	NoCollection bool
@@ -89,6 +91,9 @@ func New(o Options) (*scheduler.Scheduler, *Hub, error) {
 	if o.BootTime == nil {
 		boot := o.Now()
 		o.BootTime = func() time.Time { return boot }
+	}
+	if o.ListenCanary == nil {
+		o.ListenCanary = seal.ListenCanary
 	}
 	if o.PortProbe == nil {
 		o.PortProbe = lease.ProbeLoopback

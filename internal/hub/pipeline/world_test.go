@@ -21,6 +21,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/runnerbin"
+	"github.com/d0lim/cockpit/internal/seal"
 	"github.com/d0lim/cockpit/internal/version"
 )
 
@@ -101,10 +102,10 @@ func newWorldAs(t *testing.T, runnerUser string, mutate func(*fakedocker.Fake), 
 
 func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.Fake), mutateRepo func(string)) *world {
 	t.Helper()
-	w := &world{t: t, repo: toyRepo(t, mutateRepo), base: freeBlock(t)}
+	w := &world{t: t, repo: toyRepo(t, mutateRepo), base: config.Defaults().PortBase}
 	w.fake = &fakedocker.Fake{
 		ConfigFixture: filepath.Join("..", "..", "seal", "testdata", "config.toy.json"),
-		CanaryPort:    w.base + compose.CanaryOffset,
+		Base:          w.base,
 		Version:       version.String(),
 		RunnerLogs:    "health › health-ok passed\ntoken " + planted + " leaked\n",
 		EnvFiles: map[string]string{
@@ -128,6 +129,13 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 			w.ensures++
 			w.mu.Unlock()
 			return runnerbin.Image{Tag: fakedocker.RunnerTag, ID: fakedocker.PinnedID, Arch: "arm64"}, nil
+		},
+		ListenCanary: func(int) (*seal.Canary, error) {
+			c, err := seal.ListenCanary(0)
+			if err == nil {
+				w.fake.SetCanaryPort(c.Port())
+			}
+			return c, err
 		},
 		Limits: stageLimits, NoCollection: true, PortProbe: func(int) bool { return true }, TickInterval: 20 * time.Millisecond,
 		Events: func(e Event) {

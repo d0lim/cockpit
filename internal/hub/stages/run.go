@@ -26,8 +26,13 @@ func ProbeRunner(p compose.Project) seal.RunProbe {
 	}
 }
 
-func Probe(ctx context.Context, p compose.Project, base int) ([]seal.Result, int, error) {
-	canary, err := seal.ListenCanary(compose.CanaryPort(base))
+type CanaryListener func(port int) (*seal.Canary, error)
+
+func Probe(ctx context.Context, p compose.Project, base int, listen CanaryListener) ([]seal.Result, int, error) {
+	if listen == nil {
+		listen = seal.ListenCanary
+	}
+	canary, err := listen(compose.CanaryPort(base))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -39,7 +44,7 @@ func Probe(ctx context.Context, p compose.Project, base int) ([]seal.Result, int
 func (e *Env) SealProbes(ctx context.Context) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, e.Limits.Call)
 	defer cancel()
-	results, accepted, err := Probe(ctx, e.Project, e.Base)
+	results, accepted, err := Probe(ctx, e.Project, e.Base, e.ListenCanary)
 	if err != nil {
 		return 0, err
 	}

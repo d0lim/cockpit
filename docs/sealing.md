@@ -58,6 +58,8 @@ After the build and before the services start, the hub runs `cockpit-runner prob
 
 A sealed attempt that succeeds, or a canary connection during the sealed run, is a violation. A missing result line or a control that does not succeed makes the seal inconclusive, because a sealed failure could then come from the host being offline.
 
+The hub opens the canary through `pipeline.Options.ListenCanary` (default `seal.ListenCanary` on `<base + 99>`). The fake-docker pipeline tests pass a listener on an OS-chosen port and point the fake probe control at it, so no unit test binds a port of a layout block and parallel test processes or a running hub cannot collide with them. The Docker integration tests keep the real canary on their own block.
+
 ## Verdict and `seal.json`
 
 The seal verdict over all static and probe results is `failed` when any result is a violation, `error` when none is but one is inconclusive or there are no results, and `passed` otherwise. The hub writes `seal.json` at 600 in the run directory with `checkedAt`, `verdict`, `ok`, and one entry per check (`name`, `ok`, `inconclusive`, `command`, `expected`, `actual`). The command and the actual text pass through the run redactor first.

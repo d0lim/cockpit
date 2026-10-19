@@ -79,7 +79,7 @@ func (h *Hub) begin(id string) (*live, error) {
 	}
 	l.env = &stages.Env{
 		RunID: id, Layout: layout, Root: root, Base: h.base(*m.Slot), RunnerUser: h.o.RunnerUser,
-		Masker: masker, Limits: h.o.Limits, Now: h.o.Now, Log: l.remember,
+		Masker: masker, Limits: h.o.Limits, Now: h.o.Now, Log: l.remember, ListenCanary: h.o.ListenCanary,
 	}
 	l.env.Docker = h.o.DockerFor(h.ops.PgidHooks(h.store, id))
 	return l, nil

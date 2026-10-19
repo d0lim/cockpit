@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
@@ -37,7 +38,8 @@ type Fake struct {
 	mu              sync.Mutex
 	calls           []Call
 	ConfigFixture   string
-	CanaryPort      int
+	Base            int
+	canaryPort      atomic.Int64
 	Version         string
 	FailVerb        map[string]bool
 	ProbeLeak       bool
@@ -58,6 +60,8 @@ type Fake struct {
 	ContainerSecret string
 	RunnerDelay     time.Duration
 }
+
+func (f *Fake) SetCanaryPort(port int) { f.canaryPort.Store(int64(port)) }
 
 func (f *Fake) Calls() []Call {
 	f.mu.Lock()
@@ -140,7 +144,7 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 		}
 		return out(probeLines(rc)), nil
 	case "compose run probe-control":
-		if conn, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(f.CanaryPort))); err == nil {
+		if conn, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.FormatInt(f.canaryPort.Load(), 10))); err == nil {
 			conn.Close()
 			time.Sleep(20 * time.Millisecond)
 		}
@@ -239,7 +243,7 @@ func (f *Fake) config(args []string) (compose.Result, error) {
 	project := flag(args, "-p")
 	text := strings.ReplaceAll(string(data), "/fixture/runs/r-toy", filepath.Dir(src))
 	text = strings.ReplaceAll(text, `"r-toy`, `"`+project)
-	portBase := f.CanaryPort - compose.CanaryOffset
+	portBase := f.Base
 	for _, offset := range []int{0, 1, 2, compose.CanaryOffset} {
 		text = strings.ReplaceAll(text, `"`+strconv.Itoa(fixtureBase+offset)+`"`, `"`+strconv.Itoa(portBase+offset)+`"`)
 	}

@@ -77,7 +77,7 @@ func (r *run) unsealCheck(ctx context.Context) (string, error) {
 	unsealed.Name = r.runID + "-unsealed"
 	unsealed.Args = append(slices.Clone(r.env.Project.Args), "-f", r.env.Layout.Root+"/"+unsealFile)
 	unsealed.Args[slices.Index(unsealed.Args, "-p")+1] = unsealed.Name
-	results, accepted, err := hubstages.Probe(ctx, unsealed, r.base)
+	results, accepted, err := hubstages.Probe(ctx, unsealed, r.base, nil)
 	downErr := unsealed.Down(context.WithoutCancel(ctx))
 	if err != nil {
 		return "", err
