@@ -47,8 +47,8 @@ func (p *Port) list(ctx context.Context) ([]container, error) {
 		return nil, p.failure(cctx, err, res, p.timeout, "docker ps")
 	}
 	var out []container
-	for _, line := range strings.Split(strings.TrimSpace(string(res.Stdout)), "\n") {
-		f := strings.Split(line, "\t")
+	for _, line := range strings.Split(string(res.Stdout), "\n") {
+		f := strings.Split(strings.TrimRight(line, "\r"), "\t")
 		if len(f) != 8 || f[4] != p.project || f[6] != p.runID {
 			continue
 		}

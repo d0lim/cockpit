@@ -16,6 +16,7 @@ var findMutations = []porttest.Mutation{
 	{"harness roles are refused by name and by label", "remove the harness map and the role check in target", "red: logs of edge, probe, toolbox or sneaky come back", "TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied"},
 	{"the listing filters by the run labels", "drop the label filters from the ps arguments", "red: the ps call lacks the project or run-id filter", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
 	{"ps hides the harness and other runs", "return every listed container from PS", "red: edge, intruder or stale appear in ps", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
+	{"the last listed container keeps its empty role column", "TrimSpace the ps output before splitting lines", "red: the last target service is missing from ps", "TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept"},
 	{"service names are compose names", "remove the serviceName check", "red: a name with a slash or a flag reaches docker", "TestServiceNamesThatAreNotComposeNamesArePortBadArgs"},
 }
 
@@ -77,6 +78,18 @@ func TestServiceNamesThatAreNotComposeNamesArePortBadArgs(t *testing.T) {
 	}
 	if _, err := p.Logs(context.Background(), LogsRequest{Service: "app.v2-x_1"}); codeOf(err) != engine.PortDenied {
 		t.Fatalf("a valid name reaches the lookup: %v", err)
+	}
+}
+
+func TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept(t *testing.T) {
+	f := &fakeDocker{ps: []string{
+		psLine("c-edge", "edge", "running", "Up", project, runID, compose.RoleEdge),
+		psLine("c-app", "app", "running", "Up", project, runID, ""),
+	}}
+	p, _ := newPort(t, f, Options{})
+	states, err := p.PS(context.Background())
+	if err != nil || len(states) != 1 || states[0].Service != "app" {
+		t.Fatalf("%+v %v", states, err)
 	}
 }
 
