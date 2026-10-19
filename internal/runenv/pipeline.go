@@ -13,9 +13,9 @@ import (
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/hub/config"
+	hubstages "github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/runnerbin"
-	"github.com/d0lim/cockpit/internal/seal"
 )
 
 const (
@@ -37,24 +37,19 @@ type Deps struct {
 }
 
 type run struct {
-	opts    Options
-	deps    Deps
-	st      *stages
-	masker  *mask.Masker
-	sha     string
-	runID   string
-	loaded  compose.Loaded
-	image   runnerbin.Image
-	base    int
-	layout  compose.Layout
-	root    *os.Root
-	project compose.Project
-	static  []seal.Result
-	probes  []seal.Result
-	log     *os.File
+	opts   Options
+	deps   Deps
+	st     *stages
+	sha    string
+	runID  string
+	loaded compose.Loaded
+	image  runnerbin.Image
+	base   int
+	env    *hubstages.Env
+	log    *os.File
 }
 
-func (r *run) mask(s string) string { return r.masker.Mask(s) }
+func (r *run) mask(s string) string { return r.env.Mask(s) }
 
 func Run(ctx context.Context, opts Options, deps Deps) int {
 	if deps.Free == nil {
@@ -68,7 +63,7 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 		fmt.Fprintln(deps.Out, err)
 		return ExitRefused
 	}
-	r := &run{opts: opts, deps: deps, masker: m}
+	r := &run{opts: opts, deps: deps, env: &hubstages.Env{Masker: m, RunnerUser: hubstages.HostRunnerUser(), Docker: deps.Docker, Limits: hubstages.DefaultLimits(), Now: deps.Now}}
 	r.st = &stages{out: deps.Out, mask: r.mask}
 	if !r.prepare(ctx) {
 		r.st.say("\n%s", r.st.summary())
