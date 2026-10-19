@@ -18,6 +18,7 @@ var wiringMutations = []porttest.Mutation{
 	{"hub config limits reach the pool", "return pool.DefaultLimits from ConfigLimits", "red: keptPool 2 and queueCap 4 do not arrive", "TestHubConfigLimitsPortBlocksAndReservedRangesReachThePoolAndTheLayout"},
 	{"reserved ranges and the hub port reach the layout", "drop Reserved or HubPort from ConfigLayout", "red: a block over a reserved range or the hub port validates", "TestHubConfigLimitsPortBlocksAndReservedRangesReachThePoolAndTheLayout"},
 	{"submissions pass the allowed repository, dirty, host API, suite and collector checks", "accept every submission in Accept", "red: an unlisted, dirty, hostApi 2, unknown-suite or runner-collector commit is queued", "TestSubmissionFromAnUnlistedRepositoryADirtyTreeAnUnservedHostAPIAnUnknownSuiteOrAReservedCollectorIsRefused"},
+	{"a refused declaration stops at the submission and never reaches a run directory, tree extraction or docker", "ignore the ReadDeclaration error in Accept", "red: the refusal no longer names project.expectedServices", "TestARefusedDeclarationNeverReachesARunDirectoryTreeExtractionOrDocker"},
 	{"the runner user reaches the generated harness while work/e2e and the private env stay owner-only", "drop RunnerUser from the stage Env", "red: the harness runner has no user", "TestRunnerUserReachesTheHarnessAndTheRunDirectoryStaysOwnerOnly"},
 }
 
@@ -89,6 +90,27 @@ func TestSubmissionFromAnUnlistedRepositoryADirtyTreeAnUnservedHostAPIAnUnknownS
 	common, _ := filepath.EvalSymlinks(filepath.Join(w.repo, ".git"))
 	if m.Suite != "smoke" || m.Repository != common || len(m.SHA) != 40 {
 		t.Fatalf("queued run %+v", m)
+	}
+}
+
+func TestARefusedDeclarationNeverReachesARunDirectoryTreeExtractionOrDocker(t *testing.T) {
+	w := newWorld(t, nil, func(d string) {
+		replaceIn(t, filepath.Join(d, ".cockpit", "project.yaml"), "expectedServices: [app, db, cache, seed]", "expectedServices: [app, db, queue, seed]")
+	})
+	f := refused(t, w, w.repo)
+	if f == nil || f.Code != ticker.CodeRejectedNoHarness || !strings.Contains(f.Reason, "project.expectedServices[2]") {
+		t.Fatalf("refusal %+v", f)
+	}
+	st, err := w.hub.Store().CurrentState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runs, _ := os.ReadDir(filepath.Join(w.hub.Store().Home(), "runs"))
+	if len(st.Queue) != 0 || len(st.Leases) != 0 || len(runs) != 0 {
+		t.Fatalf("queue %v, leases %v, run directories %d", st.Queue, st.Leases, len(runs))
+	}
+	if verbs := w.verbs(); len(verbs) != 0 {
+		t.Fatalf("the refused submission reached docker: %v", verbs)
 	}
 }
 
