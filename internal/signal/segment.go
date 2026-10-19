@@ -2,6 +2,7 @@ package signal
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -107,6 +108,14 @@ func (s *Stream) replay() (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+		if from, to, ok := parseTombstone(line); ok && from > last && to >= from {
+			for seq := from; seq <= to; seq++ {
+				s.ix.markSuperseded(seq)
+			}
+			offset += int64(len(line))
+			last = to
+			continue
+		}
 		var sig contract.Signal
 		if json.Unmarshal(line, &sig) != nil || sig.Seq <= last {
 			if _, peek := r.Peek(1); peek == io.EOF {
@@ -192,24 +201,40 @@ func (s *Stream) RefuseReads(reason string) error {
 }
 
 func (s *Stream) maybeCompact() error {
-	retained := len(s.ix.entries) - s.ix.killed
-	if s.ix.killed < max(s.opts.Caps.CompactMin, 1) || s.ix.killed <= retained {
+	if s.ix.killed < max(s.opts.Caps.CompactMin, 1) || s.ix.killed <= s.ix.live {
 		return nil
 	}
 	var out []byte
 	next := make([]int64, len(s.ix.entries))
+	run := int64(0)
+	flush := func(end int64) {
+		if run > 0 {
+			out = append(out, tombstone(run, end)...)
+			run = 0
+		}
+	}
 	for i, e := range s.ix.entries {
+		seq := s.ix.base + int64(i)
 		next[i] = noEntry
+		if e == supersededEntry {
+			next[i] = supersededEntry
+			if run == 0 {
+				run = seq
+			}
+			continue
+		}
+		flush(seq - 1)
 		if e < 0 {
 			continue
 		}
-		raw, _, err := s.lineAt(s.ix.base + int64(i))
+		raw, _, err := s.lineAt(seq)
 		if err != nil {
 			return err
 		}
 		next[i] = int64(len(out)) | e&^offsetMask
 		out = append(append(out, raw...), '\n')
 	}
+	flush(s.ix.last())
 	if err := writeRootFile(s.root, streamFile, out); err != nil {
 		return err
 	}
@@ -223,4 +248,23 @@ func (s *Stream) maybeCompact() error {
 	s.state.DroppedBase = s.droppedLocked()
 	s.lim.dropped = map[string]int64{}
 	return s.saveState()
+}
+
+const tombstonePrefix = `{"superseded":[`
+
+func tombstone(from, to int64) []byte {
+	return fmt.Appendf(nil, "%s%d,%d]}\n", tombstonePrefix, from, to)
+}
+
+func parseTombstone(line []byte) (int64, int64, bool) {
+	if !bytes.HasPrefix(line, []byte(tombstonePrefix)) {
+		return 0, 0, false
+	}
+	var t struct {
+		Superseded [2]int64 `json:"superseded"`
+	}
+	if json.Unmarshal(line, &t) != nil {
+		return 0, 0, false
+	}
+	return t.Superseded[0], t.Superseded[1], true
 }

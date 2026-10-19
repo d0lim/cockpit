@@ -1,16 +1,18 @@
 package signal
 
 const (
-	offsetBits = 48
-	offsetMask = int64(1)<<offsetBits - 1
-	deadEntry  = int64(-1)
-	noEntry    = int64(-2)
+	offsetBits      = 48
+	offsetMask      = int64(1)<<offsetBits - 1
+	deadEntry       = int64(-1)
+	noEntry         = int64(-2)
+	supersededEntry = int64(-3)
 )
 
 type index struct {
 	base    int64
 	entries []int64
 	killed  int
+	live    int
 }
 
 func (ix *index) slot(seq int64) (int, bool) {
@@ -26,6 +28,7 @@ func (ix *index) put(seq, offset int64, b uint16) {
 		ix.entries = append(ix.entries, noEntry)
 	}
 	ix.entries = append(ix.entries, offset|int64(b)<<offsetBits)
+	ix.live++
 }
 
 func (ix *index) alive(seq int64) bool {
@@ -58,6 +61,32 @@ func (ix *index) kill(seq int64) {
 	if i, ok := ix.slot(seq); ok && ix.entries[i] >= 0 {
 		ix.entries[i] = deadEntry
 		ix.killed++
+		ix.live--
+	}
+}
+
+func (ix *index) superseded(seq int64) bool {
+	i, ok := ix.slot(seq)
+	return ok && ix.entries[i] == supersededEntry
+}
+
+func (ix *index) supersede(seq int64) bool {
+	i, ok := ix.slot(seq)
+	if !ok || ix.entries[i] < 0 {
+		return false
+	}
+	ix.entries[i] = supersededEntry
+	ix.killed++
+	ix.live--
+	return true
+}
+
+func (ix *index) markSuperseded(seq int64) {
+	for ix.base+int64(len(ix.entries)) <= seq {
+		ix.entries = append(ix.entries, noEntry)
+	}
+	if i, ok := ix.slot(seq); ok {
+		ix.entries[i] = supersededEntry
 	}
 }
 

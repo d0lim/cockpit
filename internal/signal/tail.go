@@ -81,12 +81,14 @@ func (s *Stream) Read(req ReadRequest) (ReadResponse, error) {
 	seq := max(req.After+1, s.ix.base)
 	gapEnd := int64(0)
 	for ; seq <= s.ix.last() && !s.ix.alive(seq); seq++ {
-		gapEnd = seq
+		if !s.ix.superseded(seq) {
+			gapEnd = seq
+		}
 	}
 	if gapEnd > 0 && gapEnd <= s.ix.last() {
 		resp.Resync = &Resync{From: max(req.After+1, s.ix.base), To: gapEnd}
-		resp.Next = gapEnd
 	}
+	resp.Next = max(resp.Next, seq-1)
 	for ; seq <= s.ix.last() && len(resp.Signals) < limit; seq++ {
 		raw, ok, err := s.lineAt(seq)
 		if err != nil {

@@ -10,7 +10,7 @@ A run's signals live under `runs/<id>/signals/` in the hub state directory.
 - `segment.json`: whether the stream is frozen, the last frozen `seq`, the next `seq`, the drop counters carried over a compaction, and the read refusal.
 - `kv/<collector>.json`: the state of one collector, written atomically and kept across hub restarts. The collector id must match `^[a-z0-9][a-z0-9-]{0,62}$`, and the state is at most 1 MiB.
 
-The memory index is one 8-byte entry per `seq`: the line offset, the quota bucket, or a mark that the record was dropped.
+The memory index is one 8-byte entry per `seq`: the line offset and the quota bucket, or a mark that the record was dropped or superseded.
 
 ## Redaction
 
@@ -32,13 +32,15 @@ When a limit is exceeded, the oldest retained record of that bucket (or of the t
 
 A read asks for the signals after a `seq`. The response carries whether the stream is frozen, the last frozen `seq`, and the drop counters by reason. When the next `seq` the reader expects was dropped, the response starts with a resync marker naming the dropped range, then continues with the next retained signals.
 
-An event or span with an `id` that is emitted again from the same collector with the same kind is a revision. The highest `rev` wins, and a tie goes to the later `seq`. Reads return only the winning revision, and older revisions stay in the stream file.
+An event or span with an `id` that is emitted again from the same collector with the same kind is a revision. The highest `rev` wins, and a tie goes to the later `seq`. Reads return only the winning revision.
+
+A revision that loses is superseded at once: the earlier winner when a new revision wins, or the new record itself when it arrives with a lower `rev`. A superseded record leaves its quota bucket (and the tail count), so a collector that re-emits the same rows on every tick holds one record per id, not one per tick. It is not data loss: it is not counted in `dropped`, it never starts a resync marker, and the frozen copy holds only the winners at the freeze. A frozen record is never superseded away. When a later revision of a frozen winner arrives, the frozen record stays in the stream file and the frozen copy, and reads return the new winner.
 
 ## Restart and compaction
 
 On start, the index is rebuilt from `stream.jsonl`. An incomplete last line is cut off. A corrupt line before the last one fails the open instead of dropping data. The quotas and the tail cap are replayed in `seq` order, so the same records count as dropped as before the restart.
 
-When more dropped records sit in the file than retained ones (and at least 4096), the file is rewritten with only the retained records. The drop counters move into `segment.json`, and `seq` keeps increasing from where it was.
+When more dropped or superseded records have accumulated since the last rewrite than there are retained records (and at least 4096), the file is rewritten with only the retained records. Each run of consecutive superseded `seq`s is kept as one tombstone line `{"superseded":[from,to]}`, so a restart marks them superseded again instead of reading them as a gap. The drop counters move into `segment.json`, and `seq` keeps increasing from where it was. Replay applies the revision rule in `seq` order, so a restart supersedes the same records as before.
 
 ## Runner spans
 

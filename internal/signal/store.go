@@ -186,7 +186,16 @@ func (s *Stream) record(sig contract.Signal, offset int64) {
 	b := s.lim.bucketFor(sig.Collector, container, sig.Seq)
 	s.ix.put(sig.Seq, offset, b)
 	if sig.ID != "" && sig.Kind != contract.SignalKindMetric {
-		s.revs.note(revKey(sig.Collector, string(sig.Kind), sig.ID), sig.Seq, sig.Rev)
+		key := revKey(sig.Collector, string(sig.Kind), sig.ID)
+		prev, had := s.revs[key]
+		s.revs.note(key, sig.Seq, sig.Rev)
+		if had && s.revs[key].seq != sig.Seq {
+			s.ix.supersede(sig.Seq)
+			return
+		}
+		if had {
+			s.lim.release(&s.ix, prev.seq)
+		}
 	}
 	s.lim.admit(&s.ix, sig.Seq, b)
 }

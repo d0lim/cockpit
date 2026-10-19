@@ -39,6 +39,7 @@ type limiter struct {
 	tailCursor int64
 	tailN      int
 	frozen     bool
+	frozenFrom int64
 	dropped    map[string]int64
 }
 
@@ -64,7 +65,7 @@ func (l *limiter) bucketFor(collector, container string, from int64) uint16 {
 }
 
 func (l *limiter) freeze(from int64) {
-	l.frozen = true
+	l.frozen, l.frozenFrom = true, from
 	l.tailCursor, l.tailN = from, 0
 	for _, b := range l.buckets {
 		b.live, b.cursor = 0, from
@@ -117,4 +118,19 @@ func (l *limiter) drop(ix *index, seq int64, reason string) {
 		l.tailN--
 	}
 	l.dropped[reason]++
+}
+
+func (l *limiter) inFrozenSegment(seq int64) bool {
+	return l.frozen && seq < l.frozenFrom
+}
+
+func (l *limiter) release(ix *index, seq int64) {
+	b, ok := ix.bucketOf(seq)
+	if !ok || l.inFrozenSegment(seq) || !ix.supersede(seq) {
+		return
+	}
+	l.buckets[b].live--
+	if l.frozen {
+		l.tailN--
+	}
 }
