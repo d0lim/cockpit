@@ -19,6 +19,9 @@ import (
 var execMutations = []porttest.Mutation{
 	{"exec refuses flows outside the manifest, repeated once flows, unmet prerequisites and stopped environments", "make Denied return nil", "red: the runner starts for nope, seed, orders and a stopped run", "TestExecRefusesUnknownFlowsRepeatedOnceFlowsUnmetPrerequisitesAndStoppedEnvironments"},
 	{"exec runs the flow with the pinned runner image", "skip VerifyPin in Execer.Run", "red: no tag check precedes compose run runner", "TestExecRunsTheFlowWithThePinnedImageAndReadsOnlyItsOwnResultFile"},
+	{"the exec retag points the pinned ID at the runner tag", "swap the tag arguments in EnsurePinned", "red: the tag call names the tag first", "TestExecRunsTheFlowWithThePinnedImageAndReadsOnlyItsOwnResultFile"},
+	{"exec imports the runner again when the pinned image is gone", "skip VerifyPin in Execer.Run", "red: ensures stays at 1 and the runner starts on the wrong image", "TestExecReimportsAGonePinnedImageBeforeTheRunnerAndRefusesAHubThatEmbedsAnotherRunner"},
+	{"exec refuses a re-import that brings another runner", "drop the tag comparison after Ensure in EnsurePinned", "red: the runner starts although the hub embeds another runner", "TestExecReimportsAGonePinnedImageBeforeTheRunnerAndRefusesAHubThatEmbedsAnotherRunner"},
 }
 
 func TestExecMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -122,10 +125,45 @@ func TestExecRunsTheFlowWithThePinnedImageAndReadsOnlyItsOwnResultFile(t *testin
 	if tagAt < 0 || runAt < tagAt {
 		t.Fatalf("tag at %d, runner at %d", tagAt, runAt)
 	}
+	if tag := w.fake.Calls()[calls+tagAt].Args; !slices.Equal(tag, []string{"tag", fakedocker.PinnedID, fakedocker.RunnerTag}) {
+		t.Fatalf("tag call %q, want the pinned ID pointed back at the runner tag", tag)
+	}
 	if !slices.Equal(run[len(run)-4:], []string{"run", "smoke", "--flow", "health"}) {
 		t.Fatalf("runner args %q", run)
 	}
 	if len(env) != 1 || !strings.HasPrefix(env[0], "E2E_EXEC_OUT=/work/e2e/exec/") || !strings.HasSuffix(env[0], "-health.json") {
 		t.Fatalf("runner env %q", env)
+	}
+}
+
+func TestExecReimportsAGonePinnedImageBeforeTheRunnerAndRefusesAHubThatEmbedsAnotherRunner(t *testing.T) {
+	w := newWorld(t, nil, nil)
+	m := w.submit()
+	w.fake.TagID, w.fake.PinnedGone = fakedocker.OtherID, true
+	calls := len(w.fake.Calls())
+	if r := w.sched.Exec(m.ID, "health", scheduler.Actor{By: "tester"}); r.Fail != nil {
+		t.Fatal(r.Fail)
+	}
+	since := w.fake.Calls()[calls:]
+	runAt := slices.IndexFunc(since, func(c fakedocker.Call) bool { return fakedocker.Verb(c.Args) == "compose run runner" })
+	if w.ensures != 2 || runAt < 0 || w.ensureAt[1] > calls+runAt {
+		t.Fatalf("re-import: ensures %d at %v, runner at %d", w.ensures, w.ensureAt, calls+runAt)
+	}
+	if slices.ContainsFunc(since, func(c fakedocker.Call) bool { return fakedocker.Verb(c.Args) == "tag" }) {
+		t.Fatal("a gone pinned image was retagged instead of imported")
+	}
+	if pin := w.meta(m.ID).RunnerImage; pin == nil || pin.Tag != fakedocker.RunnerTag || pin.ID != fakedocker.PinnedID {
+		t.Fatalf("pin after re-import %+v", pin)
+	}
+	w.mu.Lock()
+	w.ensureTag = "cockpit-runner:ffffffffffff"
+	w.mu.Unlock()
+	before := runnerStarts(w)
+	r := w.sched.Exec(m.ID, "health", scheduler.Actor{By: "tester"})
+	if r.Fail == nil || !strings.Contains(r.Fail.Reason, "this hub embeds cockpit-runner:ffffffffffff instead") {
+		t.Fatalf("exec with another embedded runner: %+v", r)
+	}
+	if runnerStarts(w) != before {
+		t.Fatalf("the runner started on another embedded runner (%d -> %d)", before, runnerStarts(w))
 	}
 }

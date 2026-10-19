@@ -28,17 +28,19 @@ import (
 const planted = "PLANTED-secret-7f3a9c"
 
 type world struct {
-	t       *testing.T
-	fake    *fakedocker.Fake
-	sched   *scheduler.Scheduler
-	hub     *Hub
-	repo    string
-	base    int
-	mu      sync.Mutex
-	events  []string
-	phases  []Event
-	ensures int
-	opts    Options
+	t         *testing.T
+	fake      *fakedocker.Fake
+	sched     *scheduler.Scheduler
+	hub       *Hub
+	repo      string
+	base      int
+	mu        sync.Mutex
+	events    []string
+	phases    []Event
+	ensures   int
+	ensureAt  []int
+	ensureTag string
+	opts      Options
 }
 
 func gitIn(t *testing.T, dir string, args ...string) string {
@@ -127,9 +129,14 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 		Home: t.TempDir(), Config: cfg, HubPort: 7710, DockerFor: w.fake.For, Probe: fakedocker.Reconcile{},
 		Ensure: func(ctx context.Context) (runnerbin.Image, error) {
 			w.mu.Lock()
+			defer w.mu.Unlock()
 			w.ensures++
-			w.mu.Unlock()
-			return runnerbin.Image{Tag: fakedocker.RunnerTag, ID: fakedocker.PinnedID, Arch: "arm64"}, nil
+			w.ensureAt = append(w.ensureAt, len(w.fake.Calls()))
+			tag := fakedocker.RunnerTag
+			if w.ensureTag != "" {
+				tag = w.ensureTag
+			}
+			return runnerbin.Image{Tag: tag, ID: fakedocker.PinnedID, Arch: "arm64"}, nil
 		},
 		ListenCanary: func(int) (*seal.Canary, error) {
 			c, err := seal.ListenCanary(0)
