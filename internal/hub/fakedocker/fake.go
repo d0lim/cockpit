@@ -40,6 +40,8 @@ type Fake struct {
 	ConfigFixture   string
 	Base            int
 	canaryPort      atomic.Int64
+	runnerDone      atomic.Bool
+	ExecHangsLate   bool
 	Version         string
 	FailVerb        map[string]bool
 	FailStderr      string
@@ -168,7 +170,13 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 			return compose.Result{Code: -1}, ctx.Err()
 		case <-time.After(f.RunnerDelay):
 		}
+		f.runnerDone.Store(true)
 		return out(strconv.Itoa(f.RunnerCode)), nil
+	case "exec":
+		if f.ExecHangsLate && f.runnerDone.Load() {
+			<-ctx.Done()
+			return compose.Result{Code: -1}, ctx.Err()
+		}
 	case "logs":
 		if slices.Contains(cmd.Args, "--follow") {
 			return f.containerLogs(ctx, cmd)
