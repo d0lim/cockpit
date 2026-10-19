@@ -10,6 +10,19 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac
       - run: make verify
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac
+      - run: docker version && docker compose version
+      - run: scripts/build-runners.sh
+      - run: go run ./cmd/cockpit runner-image
+      - run: go test -count=1 -timeout 40m ./...
+        env:
+          COCKPIT_INTEGRATION: "1"

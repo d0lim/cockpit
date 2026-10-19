@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,9 @@ const hostIndependentRunningCap = 1000
 func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResumesAndDestroys(t *testing.T) {
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
 		t.Skip("needs COCKPIT_INTEGRATION=1, a Docker daemon and scripts/build-runners.sh")
+	}
+	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" {
+		t.Skip("needs Docker Desktop: the seal probes reach the host canary through host.docker.internal, which Docker on " + runtime.GOOS + " does not provide (docs/sealing.md, Probes)")
 	}
 	home := t.TempDir()
 	pins := runnerbin.FilePins{Path: filepath.Join(home, "runner-images.json")}
