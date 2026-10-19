@@ -144,7 +144,7 @@ func TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer(t 
 		t.Fatal(err)
 	}
 	services := record(fresh["services"])
-	if len(services) != 8 || strings.Contains(string(data), "fixture-password") {
+	if len(services) != 9 || strings.Contains(string(data), "fixture-password") {
 		t.Fatalf("fresh render has %d services or the fixture holds a credential", len(services))
 	}
 	if !reflect.DeepEqual(committed, fresh) {

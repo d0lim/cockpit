@@ -38,7 +38,7 @@
       },
       "entrypoint": null,
       "environment": {},
-      "image": "toy/app:1649b14ce4f7",
+      "image": "toy/app:31539a683853",
       "labels": {
         "io.cockpit.managed": "true",
         "io.cockpit.run-id": "r-toy"
