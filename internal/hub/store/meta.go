@@ -30,6 +30,7 @@ type Meta struct {
 	lifecycle.State
 	ID             string                  `json:"id"`
 	SHA            string                  `json:"sha"`
+	Repository     string                  `json:"repository,omitempty"`
 	Suite          string                  `json:"suite"`
 	HostAPI        int                     `json:"hostApi"`
 	CockpitVersion string                  `json:"cockpitVersion"`

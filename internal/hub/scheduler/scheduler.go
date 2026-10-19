@@ -25,8 +25,10 @@ type SubmitInput struct {
 }
 
 type Accepted struct {
-	SHA     string
-	HostAPI int
+	SHA        string
+	HostAPI    int
+	Repository string
+	Suite      string
 }
 
 type RejectKind string
@@ -111,6 +113,9 @@ func (s *Scheduler) Submit(ctx context.Context, in SubmitInput) SubmitResult {
 	if err != nil {
 		return failed(500, ticker.CodeOpFailed, err.Error())
 	}
+	if accepted.Suite != "" {
+		in.Suite = accepted.Suite
+	}
 	if !in.New {
 		for i, id := range st.Queue {
 			if m := s.find(id); m != nil && m.Phase == lifecycle.Queued && m.SHA == accepted.SHA && m.Suite == in.Suite {
@@ -138,6 +143,7 @@ func (s *Scheduler) Submit(ctx context.Context, in SubmitInput) SubmitResult {
 		State:          created,
 		ID:             store.NewRunID(now, accepted.SHA, existing),
 		SHA:            accepted.SHA,
+		Repository:     accepted.Repository,
 		Suite:          in.Suite,
 		HostAPI:        accepted.HostAPI,
 		CockpitVersion: s.d.CockpitVersion,

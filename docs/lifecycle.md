@@ -137,6 +137,42 @@ The running count is the kept runs that are up or resuming, plus one for the act
 
 The pool size, the queue cap, the running cap and the port block layout are core defaults that the hub configuration replaces.
 
+## Pipeline
+
+A queued run that gets a port block goes through the stages one after another. Each stage ends with one event; an error before the report closes the run with the failed stage, the masked notice and the last 50 masked lines (lines that are only a declared secret file name are left out).
+
+| Stage | Work | Limit |
+| --- | --- | --- |
+| prepare | import the runner image and pin its tag and ID, extract the commit, generate the environment, write the run files, check the static seal | one-shot calls 2 minutes |
+| build | the builder and `compose build` | 60 minutes |
+| seal check | the probes and the positive control | 2 minutes |
+| boot | `compose up` and wait until the expected services run and are healthy | 10 minutes |
+| run | the runner | 20 minutes |
+| report | read the runner files and decide the verdict | none |
+
+- **Acceptance**: a submission must come from an allowed repository, name a commit, have no uncommitted change under `inputs.dirty`, carry a declaration that reads, pin a served host API and name a suite in `scripts.suites` (or there is only one). The run records the repository's git common directory so the pipeline can read the commit again.
+- **Runner call**: `compose run -d -T --no-deps runner run <suite>`, then `docker wait` under the limit, `docker logs`, `docker inspect` for `OOMKilled` and `docker rm`. A runner over its limit, or one whose run is aborted, is force-removed. Every runner line goes through the run redactor before it reaches an event, the tail or an exec answer.
+- **Verdict**: an out-of-memory kill, the time limit, a missing exit code or one outside 0 and 1 closes as `error`. So does a manifest whose runner identity differs from the pin; the notice names both values. A development build whose version carries no revision (`dev`) matches any `dev+<revision>`; two revisions or two releases must be equal.
+- **Settling**: a failure in build or seal check brings the project down. A failure before an environment exists removes `src`, `work`, `env` and `build` and releases the lease. A boot failure stops the environment and keeps it. `build/` is removed after every pipeline.
+
+## Runner image pin
+
+The run pins the runner tag and the image ID that `docker import` returned. Before the runner runs, before resume and before exec, the hub checks that the tag still points at that ID. If the tag points elsewhere and the pinned image still exists, the tag is pointed back. If the pinned image is gone, the hub imports again and pins the new ID; a hub that embeds a different runner refuses instead.
+
+## Process groups
+
+Every docker call runs in its own process group. Cancelling a call sends SIGTERM to the group and SIGKILL after the grace period, so compose children never outlive it. While a call runs, the run record holds its `pgid`; it is cleared when the call ends. After a restart, reconciliation kills a recorded group only when it started in the current boot, and never the hub's own group, init or anything at or below 1.
+
+## Kept environments
+
+- **Stop**: `compose stop`. **Destroy**: `compose down -v --remove-orphans` after removing one-off containers, then `src`, `work`, `env` and `build` go and the lease is released; the record, the report bundle and `seal.json` stay.
+- **Resume**: refuse when a port of the block is taken (the block is not leased again), check the runner pin, then start the resident services in dependency order, waiting for healthy dependencies through one-shot services. When containers or networks are gone, the environment is created again without a build. Readiness is the same as boot. Any failure stops the environment and closes the resume as failed with the reason.
+- **Exec**: refused with 409 unless the run is kept and up and no operation is in progress (a stopped run is told to resume first), with 400 for an id outside `^[a-z][a-z0-9-]{1,40}$`, with 404 for a flow the run's manifest does not have, and with 409 for a once flow that already ran in this environment or a once prerequisite that has not passed. A passing call runs `run <suite> --flow <id>` with the pinned image and `E2E_EXEC_OUT=/work/e2e/exec/<time>-<id>.json`, and reads only that file back.
+
+## Runner files
+
+The hub reads `manifest.json`, `result.json`, `ledger.json` and exec results from `work/e2e` through the run directory root: the path must stay inside, the entry must be a regular file (checked with lstat and opened with `O_NOFOLLOW`), and it must be at most 4 MiB. A missing ledger counts as empty.
+
 ## Docker reconciliation
 
 Reconciliation runs inside the tick: on the first tick after the hub starts and on the first tick after Docker answers again. While Docker does not answer, queued runs wait with `docker-unavailable` and a periodic tick keeps checking. Runs that an operation of this process is working on are skipped.

@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/d0lim/cockpit/internal/compose"
 )
 
 type Runner interface {
@@ -38,15 +40,21 @@ func (c CLI) ComposeLs(ctx context.Context) ([]Project, error) {
 	if err != nil {
 		return nil, err
 	}
-	var rows []struct {
+	raws, err := compose.ParseJSONRows([]byte(out))
+	if err != nil {
+		return nil, fmt.Errorf("docker compose ls returned unreadable output: %w", err)
+	}
+	type row struct {
 		Name   string `json:"Name"`
 		Status string `json:"Status"`
 	}
-	if strings.TrimSpace(out) == "" {
-		return []Project{}, nil
-	}
-	if err := json.Unmarshal([]byte(out), &rows); err != nil {
-		return nil, fmt.Errorf("docker compose ls returned unreadable output: %w", err)
+	rows := make([]row, 0, len(raws))
+	for _, raw := range raws {
+		var r row
+		if err := json.Unmarshal(raw, &r); err != nil {
+			return nil, fmt.Errorf("docker compose ls returned unreadable output: %w", err)
+		}
+		rows = append(rows, r)
 	}
 	projects := make([]Project, 0, len(rows))
 	for _, r := range rows {
