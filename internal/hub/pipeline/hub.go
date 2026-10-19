@@ -24,9 +24,19 @@ import (
 	"github.com/d0lim/cockpit/internal/version"
 )
 
+type EventPhase string
+
+const (
+	PhaseStart EventPhase = "start"
+	PhaseOut   EventPhase = "out"
+	PhaseExit  EventPhase = "exit"
+)
+
 type Event struct {
-	Run  string
-	Line string
+	Run   string
+	Phase EventPhase
+	Line  string
+	Code  *int
 }
 
 type Options struct {

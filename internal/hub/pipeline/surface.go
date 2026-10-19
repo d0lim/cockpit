@@ -42,7 +42,7 @@ func (h *Hub) Services(m store.Meta) []api.ServicePort {
 	base := h.base(*m.Slot)
 	out := make([]api.ServicePort, 0, len(r.Decl.Ports))
 	for _, p := range r.Decl.Ports {
-		out = append(out, api.ServicePort{Name: string(p.Name), Service: string(p.Service), Port: p.Port, HostPort: compose.HostPort(base, p), Label: p.Display})
+		out = append(out, api.ServicePort{Name: string(p.Name), Service: string(p.Service), Port: p.Port, HostPort: compose.HostPort(base, p), Label: p.Display, Open: p.Open})
 	}
 	return out
 }

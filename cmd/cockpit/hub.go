@@ -42,7 +42,7 @@ func pipelineBuilder(getenv func(string) string) server.Builder {
 			Ensure:    func(ctx context.Context) (runnerbin.Image, error) { return ensureImage(ctx, pins) },
 			Limits:    stages.DefaultLimits(), StopOnDone: pool.StopOnDoneFrom(getenv), TickInterval: hubTick,
 			Events: func(e pipeline.Event) {
-				in.Bus.Publish(sse.KindJob, e.Run, jobEvent{JobID: e.Run + "/pipeline", Title: "pipeline", Phase: "out", Text: e.Line})
+				in.Bus.Publish(sse.KindJob, e.Run, jobEvent{JobID: e.Run + "/pipeline", Title: "pipeline", Phase: string(e.Phase), Text: e.Line, Code: e.Code})
 			},
 		})
 		if err != nil {

@@ -46,7 +46,7 @@ func (l *live) remember(line string) {
 	if len(l.lines) > keepLines {
 		l.lines = l.lines[len(l.lines)-keepLines:]
 	}
-	l.h.o.Events(Event{Run: l.id, Line: line})
+	l.h.o.Events(Event{Run: l.id, Phase: PhaseOut, Line: line})
 }
 
 func (l *live) say(line string) { l.remember(l.env.Mask(line)) }
@@ -90,10 +90,16 @@ func (h *Hub) Pipeline(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	h.o.Events(Event{Run: id, Phase: PhaseStart})
 	defer func() {
 		os.RemoveAll(path.Join(l.env.Layout.Root, "build"))
 		l.st.PatchMeta(id, func(m *store.Meta) { m.Pgid = nil })
 		l.env.Root.Close()
+		code := 1
+		if m, err := l.st.MustRead(id); err == nil && m.Verdict == lifecycle.VerdictPassed {
+			code = 0
+		}
+		h.o.Events(Event{Run: id, Phase: PhaseExit, Code: &code})
 	}()
 	for {
 		m, err := l.st.MustRead(id)

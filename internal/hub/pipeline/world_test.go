@@ -35,6 +35,7 @@ type world struct {
 	base    int
 	mu      sync.Mutex
 	events  []string
+	phases  []Event
 	ensures int
 }
 
@@ -129,7 +130,11 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 			return runnerbin.Image{Tag: fakedocker.RunnerTag, ID: fakedocker.PinnedID, Arch: "arm64"}, nil
 		},
 		Limits: stageLimits, NoCollection: true, PortProbe: func(int) bool { return true }, TickInterval: 20 * time.Millisecond,
-		Events: func(e Event) { w.mu.Lock(); w.events = append(w.events, e.Line); w.mu.Unlock() },
+		Events: func(e Event) {
+			w.mu.Lock()
+			w.events, w.phases = append(w.events, e.Line), append(w.phases, e)
+			w.mu.Unlock()
+		},
 	}
 	option(&opts)
 	sched, hub, err := New(opts)
