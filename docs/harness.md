@@ -19,7 +19,7 @@ The hub reads `.cockpit/project.yaml` from the git object of the submitted commi
 
 ## Allowed repositories
 
-`<COCKPIT_HOME>/config.yaml` lists `allowedRepositories` as absolute paths. A submission passes when the real path of its `git rev-parse --git-common-dir` equals that of a listed entry, so linked worktrees and subdirectories of a listed repository pass and a repository nested inside one does not. The same file overrides the core limits: `limits.keptPool` (5), `limits.runningCap` (3), `limits.queueCap` (10), `ports.base` (22000) and `ports.slots` (8). Each must be a positive integer, the port block starts at 1024 or above, and its last port is at most 65535. A missing file means the defaults and no allowed repository.
+`<COCKPIT_HOME>/config.yaml` lists `allowedRepositories` as absolute paths. A submission passes when the real path of its `git rev-parse --git-common-dir` equals that of a listed entry, so linked worktrees and subdirectories of a listed repository pass and a repository nested inside one does not. The same file overrides the core limits: `limits.keptPool` (5), `limits.runningCap` (3), `limits.queueCap` (10), `ports.base` (22000) and `ports.slots` (8). Each must be a positive integer, the port block starts at 1024 or above, and its last port is at most 65535. `reservedPorts` lists port ranges the hub must never lease, each with a unique `name` and the half-open range `[from, to)`: `from` and `to` lie in `1..65535` and `from < to`, so `{ name: old-hub, from: 21000, to: 21800 }` reserves 21000 through 21799. Ports that belong to a consumer project live only here, never in core. A missing file means the defaults, no allowed repository and no reserved range.
 
 ## Git
 

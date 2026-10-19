@@ -31,6 +31,7 @@ type Limits struct {
 type Config struct {
 	AllowedRepositories []string
 	Limits              Limits
+	ReservedPorts       []PortRange
 }
 
 func Defaults() Limits {
@@ -42,7 +43,8 @@ func (l Limits) PortEnd() int {
 }
 
 type file struct {
-	AllowedRepositories []string `yaml:"allowedRepositories"`
+	AllowedRepositories []string        `yaml:"allowedRepositories"`
+	ReservedPorts       []portRangeFile `yaml:"reservedPorts"`
 	Limits              struct {
 		KeptPool   *int `yaml:"keptPool"`
 		RunningCap *int `yaml:"runningCap"`
@@ -58,7 +60,7 @@ func Load(home string) (Config, error) {
 	path := filepath.Join(home, FileName)
 	f, err := os.Open(path)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Config{Limits: Defaults()}, nil
+		return Config{Limits: Defaults(), ReservedPorts: []PortRange{}}, nil
 	}
 	if err != nil {
 		return Config{}, fmt.Errorf("cannot open hub config %s: %w", path, err)
@@ -116,7 +118,11 @@ func Parse(data []byte) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	return Config{AllowedRepositories: repos, Limits: limits}, nil
+	reserved, err := reservedPorts(raw.ReservedPorts)
+	if err != nil {
+		return Config{}, err
+	}
+	return Config{AllowedRepositories: repos, Limits: limits, ReservedPorts: reserved}, nil
 }
 
 func repositories(entries []string) ([]string, error) {
