@@ -48,5 +48,12 @@ func Docs() map[string]string {
 		"Ctx.listSource": "Lists the entries of a directory under /work/source/<source>; an absent directory lists as empty.",
 		"Ctx.clock":      "The current time in milliseconds since the epoch.",
 		"Ctx.sleep":      "Pauses for `ms` milliseconds.",
+		"EdgeHttpPort.send": "Sends one GET or HEAD request to an edge port of this run and resolves with the response. The URL is " +
+			"http://<edge name>/path, where the edge name is an offset name from the project declaration; ports, IP addresses, " +
+			"other hosts and redirect responses are refused.",
+		"SignalPort": "Emits signals into this run's stream under the collector's id. Every string is masked before it is stored. " +
+			"The `runner` time source is reserved for the hub.",
+		"StatePort.get": "Reads a value this collector stored earlier in this run, or `undefined`.",
+		"StatePort.set": "Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts.",
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/d0lim/cockpit/internal/collect/worker"
 	"github.com/d0lim/cockpit/internal/version"
 )
 
@@ -37,6 +38,10 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		}
 	case "run-env":
 		return runEnv(ctx, args[1:], getenv, stdout, stderr)
+	case worker.SubCommand:
+		if len(args) == 1 {
+			return scriptHost(ctx, stdout, stderr)
+		}
 	case "runner-image":
 		if len(args) == 1 {
 			return runnerImage(ctx, getenv, stdout, stderr)

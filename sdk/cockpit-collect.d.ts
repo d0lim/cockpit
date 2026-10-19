@@ -87,15 +87,19 @@ declare module "cockpit:collect" {
 		exec(service: string, argv: string[], opts?: { timeoutMs?: number; maxBytes?: number }): Promise<ExecOutput>;
 	}
 	export interface EdgeHttpPort {
+		/** Sends one GET or HEAD request to an edge port of this run and resolves with the response. The URL is http://<edge name>/path, where the edge name is an offset name from the project declaration; ports, IP addresses, other hosts and redirect responses are refused. */
 		send(method: "GET" | "HEAD", url: string, opts?: { headers?: Record<string, string>; timeoutMs?: number }): Promise<HttpResponse>;
 	}
+	/** Emits signals into this run's stream under the collector's id. Every string is masked before it is stored. The `runner` time source is reserved for the hub. */
 	export interface SignalPort {
 		metric(input: SignalInput & MetricBody): void;
 		event(input: SignalInput & EventBody): void;
 		span(input: SignalInput & SpanBody): void;
 	}
 	export interface StatePort {
+		/** Reads a value this collector stored earlier in this run, or `undefined`. */
 		get(key: string): Promise<string | undefined>;
+		/** Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts. */
 		set(key: string, value: string): Promise<void>;
 	}
 	export interface CollectorDef {
