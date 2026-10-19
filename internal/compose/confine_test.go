@@ -95,6 +95,9 @@ func TestPathsThroughACommittedSymbolicLinkAreRejectedWithTheLinkAndTheField(t *
 		{"env.outputs[1]", "outputs: [.env, e2e.private.env.json]", "outputs: [.env, escape/e2e.private.env.json]"},
 		{"secrets.sources[0].path", "path: .env, format", "path: escape/.env, format"},
 		{"scripts.dir", "dir: scripts", "dir: linked/scripts"},
+		{"inputs.dirty[1]", "dirty: [.cockpit, compose.yaml,", "dirty: [.cockpit, linked/compose.yaml,"},
+		{"scripts.suites", "suites: scripts/suites", "suites: scripts/inner/suites"},
+		{"scripts.collectors", "collectors: scripts/collectors", "collectors: scripts/inner/collectors"},
 		{"compose.projectDirectory", "forbidden: [tunnel, outbound]", "forbidden: [tunnel, outbound]\n  projectDirectory: linked/mock"},
 		{"compose.projectDirectory", "forbidden: [tunnel, outbound]", "forbidden: [tunnel, outbound]\n  projectDirectory: escape"},
 	}
@@ -105,6 +108,9 @@ func TestPathsThroughACommittedSymbolicLinkAreRejectedWithTheLinkAndTheField(t *
 				t.Fatal(err)
 			}
 			if err := os.Symlink(os.TempDir(), filepath.Join(d, "escape")); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(".", filepath.Join(d, "scripts", "inner")); err != nil {
 				t.Fatal(err)
 			}
 			replaceIn(t, filepath.Join(d, DeclarationPath), c.old, c.new)
