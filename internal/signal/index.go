@@ -98,6 +98,7 @@ type revision struct {
 	seq int64
 	rev int
 	n   int
+	sum contentSum
 }
 
 type revisions map[string]revision
@@ -112,15 +113,15 @@ func sigKey(sig contract.Signal) string {
 	return key
 }
 
-func (r revisions) note(key string, seq int64, rev int) {
+func (r revisions) note(key string, seq int64, rev int, sum contentSum) {
 	cur, ok := r[key]
 	if !ok {
-		r[key] = revision{seq: seq, rev: rev, n: 1}
+		r[key] = revision{seq: seq, rev: rev, n: 1, sum: sum}
 		return
 	}
 	cur.n++
 	if rev >= cur.rev {
-		cur.seq, cur.rev = seq, rev
+		cur.seq, cur.rev, cur.sum = seq, rev, sum
 	}
 	r[key] = cur
 }

@@ -171,6 +171,9 @@ func (s *Stream) Append(sig contract.Signal) (int64, error) {
 	if err := json.Unmarshal(line, &stored); err != nil {
 		return 0, err
 	}
+	if seq, ok := s.unchangedWinner(stored); ok {
+		return seq, nil
+	}
 	line = append(line, '\n')
 	if _, err := s.file.Write(line); err != nil {
 		return 0, err
@@ -188,7 +191,7 @@ func (s *Stream) record(sig contract.Signal, offset int64) {
 	if sig.ID != "" && sig.Kind != contract.SignalKindMetric {
 		key := sigKey(sig)
 		prev, had := s.revs[key]
-		s.revs.note(key, sig.Seq, sig.Rev)
+		s.revs.note(key, sig.Seq, sig.Rev, sumOf(sig))
 		if had && s.revs[key].seq != sig.Seq {
 			s.ix.supersede(sig.Seq)
 			return
