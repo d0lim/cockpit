@@ -1,0 +1,14 @@
+{
+  "id": "run-20261012-153001-997a37e",
+  "sha": "997a37e0c1d2b3a4f5e6d7c8b9a0f1e2d3c4b5a6",
+  "suite": "smoke",
+  "harness": 4,
+  "hubCommit": "f837814bc1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+  "submitter": "cli",
+  "keep": false,
+  "createdAt": "2026-10-12T06:30:00.000Z",
+  "phase": "done",
+  "env": "stopped",
+  "verdict": "passed",
+  "slot": 0
+}
