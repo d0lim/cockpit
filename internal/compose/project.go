@@ -73,8 +73,12 @@ func (p Project) Config(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
+	return decodeConfig(res.Stdout)
+}
+
+func decodeConfig(data []byte) (map[string]any, error) {
 	var doc map[string]any
-	if err := json.Unmarshal(res.Stdout, &doc); err != nil {
+	if err := json.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("compose config did not print a JSON object")
 	}
 	return doc, nil
@@ -129,16 +133,10 @@ func ParsePs(data []byte) ([]PsRow, error) {
 }
 
 func (p Project) Down(ctx context.Context) error {
-	listed, err := p.run(ctx, "docker ps", []string{"ps", "-aq", "--filter", "label=com.docker.compose.project=" + p.Name, "--filter", "label=com.docker.compose.oneoff=True"})
-	if err != nil {
+	if _, err := p.RemoveOneOffs(ctx, ""); err != nil {
 		return err
 	}
-	if ids := strings.Fields(string(listed.Stdout)); len(ids) > 0 {
-		if _, err := p.run(ctx, "docker rm", append([]string{"rm", "-f"}, ids...)); err != nil {
-			return err
-		}
-	}
-	_, err = p.ByName(ctx, "compose down", "--profile", "*", "down", "-v", "--remove-orphans")
+	_, err := p.ByName(ctx, "compose down", "--profile", "*", "down", "-v", "--remove-orphans")
 	return err
 }
 

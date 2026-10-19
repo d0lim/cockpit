@@ -32,6 +32,7 @@ type HarnessInput struct {
 	PortBase    int
 	Layout      Layout
 	Loaded      Loaded
+	RunnerUser  string
 }
 
 type tagged struct {
@@ -118,6 +119,9 @@ func Harness(in HarnessInput) ([]byte, error) {
 	runner["tmpfs"] = []string{"/tmp"}
 	runner["volumes"] = runnerBinds(in.Layout, decl.Inputs.RunnerSources)
 	runner["environment"] = map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}"}
+	if in.RunnerUser != "" {
+		runner["user"] = in.RunnerUser
+	}
 	services[RoleRunner] = runner
 	for role, nets := range map[string][]string{RoleProbe: {DefaultNetwork}, RoleProbeControl: {EgressNetwork}} {
 		probe := hardened(image(role))

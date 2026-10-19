@@ -31,7 +31,11 @@ func harnessDoc(t *testing.T, mutate func(dir string)) (map[string]any, yaml.Nod
 	if err != nil {
 		t.Fatal(err)
 	}
-	in := HarnessInput{RunID: runID, RunnerImage: "cockpit-runner:0123456789ab", PortBase: 22100, Layout: testLayout(t), Loaded: loaded}
+	return harnessDocFrom(t, HarnessInput{RunID: runID, RunnerImage: "cockpit-runner:0123456789ab", PortBase: 22100, Layout: testLayout(t), Loaded: loaded})
+}
+
+func harnessDocFrom(t *testing.T, in HarnessInput) (map[string]any, yaml.Node, HarnessInput) {
+	t.Helper()
 	data, err := Harness(in)
 	if err != nil {
 		t.Fatal(err)

@@ -84,6 +84,9 @@ func ReadDeclaration(ctx context.Context, git Git, sha string) (Loaded, error) {
 	if err := confine(decl, tree); err != nil {
 		return Loaded{}, err
 	}
+	if err := checkCollectors(decl, tree); err != nil {
+		return Loaded{}, err
+	}
 	if !slices.Contains(ServedHostAPIs, decl.HostAPI) {
 		return Loaded{}, reject(RejectHostAPI, "hostApi", "the hub does not know host API version %d; this hub (cockpit %s) serves host API %s", decl.HostAPI, version.String(), servedText())
 	}

@@ -11,8 +11,9 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
+
+	"github.com/d0lim/cockpit/internal/hub/procgroup"
 )
 
 const (
@@ -41,7 +42,8 @@ type Docker interface {
 }
 
 type CLI struct {
-	Bin string
+	Bin   string
+	Hooks procgroup.Hooks
 }
 
 func dockerEnv(extra []string) []string {
@@ -60,14 +62,6 @@ func (c CLI) Run(ctx context.Context, in Command) (Result, error) {
 		bin = "docker"
 	}
 	cmd := exec.CommandContext(ctx, bin, in.Args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error {
-		if cmd.Process == nil {
-			return nil
-		}
-		return syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
-	}
-	cmd.WaitDelay = dockerWaitDelay
 	cmd.Env = dockerEnv(in.Env)
 	cmd.Stdin = in.Stdin
 	var stdout bytes.Buffer
@@ -80,7 +74,11 @@ func (c CLI) Run(ctx context.Context, in Command) (Result, error) {
 	if in.Stderr != nil {
 		cmd.Stderr = in.Stderr
 	}
-	err := cmd.Run()
+	hooks := c.Hooks
+	if hooks.Grace <= 0 {
+		hooks.Grace = dockerWaitDelay
+	}
+	err := procgroup.Run(cmd, hooks)
 	res := Result{Stdout: stdout.Bytes(), Stderr: stderr.Bytes()}
 	var exit *exec.ExitError
 	switch {
