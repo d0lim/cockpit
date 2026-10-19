@@ -51,6 +51,14 @@ func Docs() map[string]string {
 		"EdgeHttpPort.send": "Sends one GET or HEAD request to an edge port of this run and resolves with the response. The URL is " +
 			"http://<edge name>/path, where the edge name is an offset name from the project declaration; ports, IP addresses, " +
 			"other hosts and redirect responses are refused.",
+		"SqlPort.query": "Runs one read statement (select, with, show, explain, describe, table, values) against a database of the " +
+			"declaration, in a read-only transaction that is rolled back. A second statement, a write, or a MySQL `INTO OUTFILE` is " +
+			"PORT_DENIED; the refusal never quotes the statement.",
+		"SqlOptions.params": "Values bound to the placeholders of the statement in order: `?` for MySQL, `$1` to `$n` for PostgreSQL. " +
+			"They travel to the driver as parameters, never as SQL text, so ids from earlier steps need no quoting. Only strings, " +
+			"numbers, booleans and null are accepted; `undefined`, holes, objects and arrays are PORT_BAD_ARGS, and so is a count " +
+			"that does not match the placeholders. At most 100 values and 64 KiB, counting the bytes of each string and 8 for any other value (PORT_LIMIT). Pass integers above " +
+			"2^53 as strings.",
 		"SignalPort": "Emits signals into this run's stream under the collector's id. Every string is masked before it is stored. " +
 			"The `runner` time source is reserved for the hub.",
 		"StatePort.get": "Reads a value this collector stored earlier in this run, or `undefined`.",

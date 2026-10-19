@@ -31,6 +31,7 @@ type fakeState struct {
 	queryErr   func(attempt int) error
 	attempts   int
 	statements []string
+	args       [][]any
 	readOnly   []bool
 	rollbacks  int
 	commits    int
@@ -89,9 +90,14 @@ func (c *fakeConn) BeginTx(_ context.Context, opts driver.TxOptions) (driver.Tx,
 	return fakeTx{c.s}, nil
 }
 
-func (c *fakeConn) QueryContext(ctx context.Context, query string, _ []driver.NamedValue) (driver.Rows, error) {
+func (c *fakeConn) QueryContext(ctx context.Context, query string, named []driver.NamedValue) (driver.Rows, error) {
+	values := make([]any, len(named))
+	for i, n := range named {
+		values[i] = n.Value
+	}
 	c.s.mu.Lock()
 	c.s.statements = append(c.s.statements, query)
+	c.s.args = append(c.s.args, values)
 	attempt := c.s.attempts
 	c.s.attempts++
 	block := c.s.block

@@ -50,6 +50,8 @@ declare module "cockpit:collect" {
 		maxRows?: number;
 		maxBytes?: number;
 		timeoutMs?: number;
+		/** Values bound to the placeholders of the statement in order: `?` for MySQL, `$1` to `$n` for PostgreSQL. They travel to the driver as parameters, never as SQL text, so ids from earlier steps need no quoting. Only strings, numbers, booleans and null are accepted; `undefined`, holes, objects and arrays are PORT_BAD_ARGS, and so is a count that does not match the placeholders. At most 100 values and 64 KiB, counting the bytes of each string and 8 for any other value (PORT_LIMIT). Pass integers above 2^53 as strings. */
+		params?: (string | number | boolean | null)[];
 	}
 	export interface SqlResult {
 		columns: string[];
@@ -57,6 +59,7 @@ declare module "cockpit:collect" {
 		truncated: boolean;
 	}
 	export interface SqlPort {
+		/** Runs one read statement (select, with, show, explain, describe, table, values) against a database of the declaration, in a read-only transaction that is rolled back. A second statement, a write, or a MySQL `INTO OUTFILE` is PORT_DENIED; the refusal never quotes the statement. */
 		query(db: string, statement: string, opts?: SqlOptions): Promise<SqlResult>;
 	}
 	export interface ServiceState {

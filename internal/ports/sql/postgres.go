@@ -88,6 +88,9 @@ func (b pgBackend) open(password string) *sql.DB {
 func (b pgBackend) classify(err error) (engine.PortCode, string) {
 	var pe *pgconn.PgError
 	if !errors.As(err, &pe) {
+		if argumentMismatch(err) {
+			return engine.PortBadArgs, "the params do not match the placeholders of the statement"
+		}
 		if pgconn.Timeout(err) {
 			return engine.PortTimeout, "the query exceeded its time limit"
 		}
@@ -97,6 +100,8 @@ func (b pgBackend) classify(err error) (engine.PortCode, string) {
 	switch {
 	case pgDenied[pe.Code]:
 		return engine.PortDenied, "permission denied (" + reason + ")"
+	case pe.Code == "08P01" && argumentMismatch(pe):
+		return engine.PortBadArgs, "the params do not match the placeholders of the statement (" + reason + ")"
 	case pe.Code == "57014":
 		return engine.PortTimeout, "the server time limit stopped the query (" + reason + ")"
 	case strings.HasPrefix(pe.Code, "42"):

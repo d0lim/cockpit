@@ -79,6 +79,9 @@ func (b mysqlBackend) open(password string) *sql.DB {
 func (b mysqlBackend) classify(err error) (engine.PortCode, string) {
 	var me *mysql.MySQLError
 	if !errors.As(err, &me) {
+		if argumentMismatch(err) {
+			return engine.PortBadArgs, "the params do not match the placeholders of the statement"
+		}
 		return engine.PortUnavailable, "failed to reach the database"
 	}
 	reason := fmt.Sprintf("mysql %d: %s", me.Number, me.Message)

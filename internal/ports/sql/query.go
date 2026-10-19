@@ -16,13 +16,13 @@ var binaryTypes = map[string]bool{
 	"BINARY": true, "VARBINARY": true, "BYTEA": true, "BIT": true, "GEOMETRY": true,
 }
 
-func run(ctx context.Context, pool *sql.DB, stmt string, l limits, mask ports.Mask) (Result, error) {
+func run(ctx context.Context, pool *sql.DB, stmt string, params []any, l limits, mask ports.Mask) (Result, error) {
 	tx, err := pool.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return Result{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
-	rows, err := tx.QueryContext(ctx, stmt)
+	rows, err := tx.QueryContext(ctx, stmt, params...)
 	if err != nil {
 		return Result{}, err
 	}

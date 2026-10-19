@@ -32,8 +32,20 @@ const collectModuleJS = `(function (call, callSync, expected) {
 	const sync_ = (port, method) => (...args) => {
 		callSync(port, method, args);
 	};
+	const sqlQuery = async_("sql", "query");
+	const undefinedParam = (opts) => {
+		const params = opts !== null && typeof opts === "object" ? opts.params : undefined;
+		if (!Array.isArray(params)) return -1;
+		for (let i = 0; i < params.length; i++) if (params[i] === undefined) return i;
+		return -1;
+	};
+	const query = (...args) => {
+		const i = undefinedParam(args[2]);
+		if (i < 0) return sqlQuery(...args);
+		return Promise.reject(Object.assign(new Error("params[" + i + "] is undefined; pass null for SQL NULL"), { code: "PORT_BAD_ARGS" }));
+	};
 	const ctx = freeze({
-		sql: { query: async_("sql", "query") },
+		sql: { query },
 		docker: { ps: async_("docker", "ps"), logs: async_("docker", "logs"), stats: async_("docker", "stats"), file: async_("docker", "file"), exec: async_("docker", "exec") },
 		http: { send: async_("http", "send") },
 		signal: { metric: sync_("signal", "metric"), event: sync_("signal", "event"), span: sync_("signal", "span") },

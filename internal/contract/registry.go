@@ -143,6 +143,7 @@ export interface SqlOptions {
 	maxRows?: number;
 	maxBytes?: number;
 	timeoutMs?: number;
+	params?: (string | number | boolean | null)[];
 }
 export interface SqlResult {
 	columns: string[];

@@ -45,6 +45,7 @@ type Request struct {
 	MaxRows   int    `json:"maxRows,omitempty"`
 	MaxBytes  int    `json:"maxBytes,omitempty"`
 	TimeoutMs int64  `json:"timeoutMs,omitempty"`
+	Params    []any  `json:"params,omitempty"`
 }
 
 type Result struct {
@@ -159,6 +160,9 @@ func (p *Port) Query(ctx context.Context, req Request) (Result, error) {
 		}
 		return Result{}, ports.BadArgs(p.mask, serr.reason+" — db "+req.DB)
 	}
+	if err := checkParams(req.Params, p.mask); err != nil {
+		return Result{}, err
+	}
 	l := p.limitsFor(req)
 	qctx, cancel := context.WithTimeout(ctx, l.timeout)
 	defer cancel()
@@ -167,7 +171,7 @@ func (p *Port) Query(ctx context.Context, req Request) (Result, error) {
 		if err != nil {
 			return Result{}, err
 		}
-		res, err := run(qctx, pool, stmt, l, e.scrub(p.mask))
+		res, err := run(qctx, pool, stmt, req.Params, l, e.scrub(p.mask))
 		if err == nil {
 			return res, nil
 		}
