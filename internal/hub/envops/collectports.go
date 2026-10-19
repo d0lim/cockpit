@@ -22,30 +22,16 @@ import (
 	"github.com/d0lim/cockpit/internal/signal"
 )
 
-var defaultDBPort = map[contract.DBDriver]int{contract.DriverPostgres: 5432, contract.DriverMySQL: 3306}
-
-func DatabaseTargets(decl contract.Declaration, runPorts map[string]int) map[string]sqlport.Target {
+func DatabaseTargets(decl contract.Declaration, runPorts map[string]int) (map[string]sqlport.Target, error) {
 	targets := map[string]sqlport.Target{}
-	for _, db := range decl.Databases {
-		host := 0
-		if p, ok := runPorts[string(db.Name)]; ok {
-			host = p
-		} else {
-			var matches []int
-			for _, p := range decl.Ports {
-				if p.Port == defaultDBPort[db.Driver] {
-					matches = append(matches, runPorts[string(p.Name)])
-				}
-			}
-			if len(matches) == 1 {
-				host = matches[0]
-			}
+	for i, db := range decl.Databases {
+		host, ok := runPorts[string(db.Port)]
+		if !ok || host <= 0 {
+			return nil, fmt.Errorf("databases[%d].port names %q, which has no published port in this run", i, db.Port)
 		}
-		if host > 0 {
-			targets[string(db.Name)] = sqlport.Target{Host: "127.0.0.1", Port: host, RootUser: db.RootUser, Database: db.Database}
-		}
+		targets[string(db.Name)] = sqlport.Target{Host: "127.0.0.1", Port: host, RootUser: db.RootUser, Database: db.Database}
 	}
-	return targets
+	return targets, nil
 }
 
 func secretLookup(r *Run) func(string) (string, bool) {
@@ -125,14 +111,11 @@ func (o *Ops) runConfig(id string, r *Run, c *collected, m ports.Mask) (collect.
 	shared := map[string]ports.Handler{ports.PortDocker: dport, ports.PortHTTP: edge}
 	var closers []func() error
 	if len(r.Decl.Databases) > 0 {
-		targets := DatabaseTargets(*r.Decl, runPorts)
-		var dbs []contract.Database
-		for _, db := range r.Decl.Databases {
-			if _, ok := targets[string(db.Name)]; ok {
-				dbs = append(dbs, db)
-			}
+		targets, err := DatabaseTargets(*r.Decl, runPorts)
+		if err != nil {
+			return collect.RunConfig{}, nil, err
 		}
-		sql, err := sqlport.New(sqlport.Options{Databases: dbs, Targets: targets, Secret: secretLookup(r), Mask: m})
+		sql, err := sqlport.New(sqlport.Options{Databases: r.Decl.Databases, Targets: targets, Secret: secretLookup(r), Mask: m})
 		if err != nil {
 			return collect.RunConfig{}, nil, err
 		}
