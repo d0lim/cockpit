@@ -70,6 +70,8 @@ The seal verdict over all static and probe results is `failed` when any result i
 
 `--unseal-check` proves that the probes measure the seal. It starts a second project, `<run>-unsealed`, whose only difference is one extra file setting `networks.default.internal: false`. It runs the same probes there and removes the project. The check passes only when all four sealed attempts turn into violations.
 
+The static assertions are tested against `internal/seal/testdata/config.toy.json`, which the fake Docker of the hub tests also serves as its `compose config`. It is generated, not edited: `make seal-fixture` renders the toy consumer through the real harness and `docker compose config` (run id `r-toy`, run directory `/fixture/runs/r-toy`, port base 22000, runner image `cockpit-runner:0123456789ab`, a fixed `.env`) and writes it with every service `environment` emptied, so no credential value is committed. `TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer` (with `COCKPIT_INTEGRATION=1`) fails when the committed file differs from a fresh render, for example after the toy's compose files or image inputs change. Its output depends on the Compose version's rendering, so a Compose upgrade can also make it drift; regenerate and review the diff.
+
 `make run-env` builds the embedded runners and the hub and runs the headless path on `testdata/toy-project` copied into a fresh git repository. Pass flags with `RUN_ENV_ARGS`, for example `make run-env RUN_ENV_ARGS=--unseal-check`.
 
 The canary listens on the host loopback, and probes reach it through `host.docker.internal`. Docker Desktop provides both. A Linux host needs a canary address on the Docker bridge, which comes with Linux host support.

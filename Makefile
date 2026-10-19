@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 export CGO_ENABLED := 0
 BIN := bin
 
-.PHONY: verify vet test generate-check licenses build size clean run-env
+.PHONY: verify vet test generate-check licenses build size clean run-env seal-fixture
 
 verify: vet test generate-check licenses build size
 
@@ -34,6 +34,9 @@ run-env:
 	scripts/build-runners.sh
 	go build -trimpath -o $(BIN)/cockpit ./cmd/cockpit
 	scripts/run-env.sh $(RUN_ENV_ARGS)
+
+seal-fixture:
+	COCKPIT_INTEGRATION=1 COCKPIT_UPDATE_SEAL_FIXTURE=1 go test -count=1 -run TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer ./internal/seal
 
 clean:
 	rm -rf $(BIN) dist
