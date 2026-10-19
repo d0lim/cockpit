@@ -48,10 +48,7 @@ func TestServiceStatesAreEmittedAsRevisionsOnlyWhenTheyChangeAndGoneServicesBeco
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- obs.Run(ctx) }()
-	deadline := time.Now().Add(2 * time.Second)
-	for src.count() < 6 && time.Now().Before(deadline) {
-		time.Sleep(5 * time.Millisecond)
-	}
+	waitFor(t, "six ps polls", func() bool { return src.count() >= 6 })
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatal(err)

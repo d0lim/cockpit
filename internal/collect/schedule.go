@@ -36,7 +36,7 @@ func (s *Supervisor) loop(ctx context.Context, r *run, c Collector) {
 			wait = b
 		}
 		r.scheduled(c.ID, now.Add(max(wait, 0)))
-		if !sleep(ctx, wait) {
+		if !s.opts.Sleep(ctx, wait) {
 			return
 		}
 	}
@@ -51,7 +51,7 @@ func (s *Supervisor) observe(ctx context.Context, r *run, o Observer) {
 		if err != nil {
 			r.fold(o.Name(), "observer:"+o.Name(), r.cfg.Mask(err.Error()), s.opts.Now())
 		}
-		if !sleep(ctx, observerRetry) {
+		if !s.opts.Sleep(ctx, observerRetry) {
 			return
 		}
 	}
@@ -68,7 +68,7 @@ func (s *Supervisor) heartbeat(g *generation, r *run) {
 	}
 	beat()
 	g.wg.Go(func() {
-		for sleep(g.ctx, s.opts.Heartbeat) {
+		for s.opts.Sleep(g.ctx, s.opts.Heartbeat) {
 			beat()
 		}
 	})

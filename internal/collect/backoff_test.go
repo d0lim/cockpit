@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/collect"
+	"github.com/d0lim/cockpit/internal/collect/collecttest"
 	"github.com/d0lim/cockpit/internal/collect/worker"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
@@ -29,11 +30,10 @@ func failing(reason func(n int64) string) *fakeRunner {
 }
 
 func TestSameReasonFailuresFoldIntoOneCountedRecordAndBackOffAfterTheThreshold(t *testing.T) {
-	f := failing(func(n int64) string {
-		return "boom"
-	})
+	f := failing(func(int64) string { return "boom" })
 	alt := failing(func(n int64) string { return []string{"left", "right"}[n%2] })
-	s := newSupervisor(nil, collect.Options{FailAfter: 3, BackoffMax: 10 * time.Second, Runner: func(ctx context.Context, spec worker.Spec) (worker.Outcome, error) {
+	clock := collecttest.NewClock(epoch)
+	s := newSupervisor(nil, collect.Options{FailAfter: 3, BackoffMax: 10 * time.Second, Now: clock.Now, Sleep: clock.Sleep, Runner: func(ctx context.Context, spec worker.Spec) (worker.Outcome, error) {
 		if spec.Collector == "alt" {
 			return alt.run(ctx, spec)
 		}
@@ -41,48 +41,53 @@ func TestSameReasonFailuresFoldIntoOneCountedRecordAndBackOffAfterTheThreshold(t
 	}})
 	register(t, s, collect.RunConfig{Collectors: []collect.Collector{{ID: "same", Interval: 20 * time.Millisecond}, {ID: "alt", Interval: 20 * time.Millisecond}}})
 	arm(t, s, lifecycle.CauseBooted)
-	time.Sleep(300 * time.Millisecond)
-	_ = s.Drain(context.Background(), supRun, lifecycle.CauseStopping)
-	same, alternating := len(f.records("same")), len(alt.records("alt"))
-	if same < 4 || same > 6 {
-		t.Fatalf("the failing collector ran %d times in 300ms with backoff after 3", same)
+	clock.RunUntil(t, epoch.Add(300*time.Millisecond), 2)
+	if err := s.Drain(context.Background(), supRun, lifecycle.CauseStopping); err != nil {
+		t.Fatal(err)
 	}
-	if alternating < 10 {
-		t.Fatalf("the alternating collector ran only %d times; a changing reason must not back off", alternating)
+	same, alternating := len(f.records("same")), len(alt.records("alt"))
+	if same != 5 {
+		t.Fatalf("the failing collector ran %d times in 300ms; with backoff after 3 it runs at 0, 20, 40, 80 and 160ms", same)
+	}
+	if alternating != 16 {
+		t.Fatalf("the alternating collector ran %d times in 300ms; a changing reason must not back off, so it runs every 20ms", alternating)
 	}
 	var sameRecs, altCount int
 	for _, u := range s.Unread(supRun) {
 		switch u.Collector {
 		case "same":
 			sameRecs++
-			if u.Source != "collector:same" || u.Reason != "error: boom" || (u.Count != same && u.Count != same-1) || u.First == "" || u.Last < u.First {
+			if u.Source != "collector:same" || u.Reason != "error: boom" || u.Count != same || u.First != stampAt(0) || u.Last != stampAt(160) {
 				t.Fatalf("%+v (ran %d)", u, same)
 			}
 		case "alt":
 			altCount += u.Count
 		}
 	}
-	if cut := alternating - altCount; sameRecs != 1 || cut < 0 || cut > 1 {
+	if sameRecs != 1 || altCount != alternating {
 		t.Fatalf("records for same=%d, alt counts=%d of %d runs", sameRecs, altCount, alternating)
 	}
 }
 
 func TestStatusLineOfABackingOffCollectorShowsItsFailuresAndReasonAndSaysStoppedAfterADrain(t *testing.T) {
 	f := failing(func(int64) string { return "token " + supPlanted + " rejected" })
-	s := newSupervisor(f, collect.Options{FailAfter: 2, BackoffMax: time.Minute})
+	clock := collecttest.NewClock(epoch)
+	s := newSupervisor(f, collect.Options{FailAfter: 2, BackoffMax: time.Minute, Now: clock.Now, Sleep: clock.Sleep})
 	register(t, s, collect.RunConfig{Collectors: []collect.Collector{{ID: "toy-db", Interval: 30 * time.Millisecond}, {ID: "once"}}})
 	arm(t, s, lifecycle.CauseBooted)
-	eventually(t, 2*time.Second, "backoff", func() bool { return s.Status(supRun)[0].State == collect.StateBackoff })
+	if steps := clock.RunUntil(t, epoch.Add(30*time.Millisecond), 1); steps != 1 {
+		t.Fatalf("advanced the clock %d times", steps)
+	}
 	st := s.Status(supRun)
 	line := st[0].Line
-	if st[0].Consecutive < 2 || st[0].Failures < 2 || st[0].NextAt == "" || !strings.Contains(line, "consecutive failures") || !strings.Contains(line, "error: token **** rejected") || strings.Contains(line, supPlanted) {
+	if st[0].State != collect.StateBackoff || st[0].Consecutive != 2 || st[0].Failures != 2 || st[0].NextAt == "" || !strings.Contains(line, "consecutive failures") || !strings.Contains(line, "error: token **** rejected") || strings.Contains(line, supPlanted) {
 		t.Fatalf("%+v", st[0])
 	}
 	if st[1].State != collect.StateReportOnly || st[1].Failures != 0 {
 		t.Fatalf("report-only collector: %+v", st[1])
 	}
 	u := s.Unread(supRun)
-	if len(u) != 1 || strings.Contains(u[0].Reason, supPlanted) || !strings.Contains(u[0].Reason, "****") {
+	if len(u) != 1 || u[0].Count != 2 || strings.Contains(u[0].Reason, supPlanted) || !strings.Contains(u[0].Reason, "****") {
 		t.Fatalf("%+v", u)
 	}
 	if err := s.Drain(context.Background(), supRun, lifecycle.CauseStopping); err != nil {

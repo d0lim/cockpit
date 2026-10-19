@@ -71,6 +71,7 @@ type Options struct {
 	BackoffMax   time.Duration
 	Heartbeat    time.Duration
 	Now          func() time.Time
+	Sleep        func(ctx context.Context, d time.Duration) bool
 	Log          *slog.Logger
 }
 
@@ -118,6 +119,9 @@ func New(opts Options) *Supervisor {
 	}
 	if opts.Now == nil {
 		opts.Now = time.Now
+	}
+	if opts.Sleep == nil {
+		opts.Sleep = sleep
 	}
 	if opts.Log == nil {
 		opts.Log = slog.New(slog.DiscardHandler)

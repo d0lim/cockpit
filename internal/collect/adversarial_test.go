@@ -67,17 +67,17 @@ func hubAnswers(t *testing.T, during func()) {
 	answered, failed := 0, 0
 	wg.Go(func() {
 		for {
-			select {
-			case <-stop:
-				return
-			case <-time.After(50 * time.Millisecond):
-			}
 			c := http.Client{Timeout: time.Second}
 			if res, err := c.Get(srv.URL); err == nil && res.StatusCode == 200 {
 				res.Body.Close()
 				answered++
 			} else {
 				failed++
+			}
+			select {
+			case <-stop:
+				return
+			case <-time.After(50 * time.Millisecond):
 			}
 		}
 	})

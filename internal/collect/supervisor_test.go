@@ -20,6 +20,7 @@ var supervisorMutations = []porttest.Mutation{
 	{"drain cancels in-flight calls before compose runs", "drop g.cancel() in Drain", "red: Drain returns only after the drain wait while the call is still running", "TestPeriodicCollectorRunsWhileUpStopsWithoutFalseFailuresAtStopAndRunsAgainAfterResume"},
 	{"canceled runs are not failures", "record the outcome even when the generation is canceled", "red: the canceled run leaves an unread record", "TestPeriodicCollectorRunsWhileUpStopsWithoutFalseFailuresAtStopAndRunsAgainAfterResume"},
 	{"slow ticks do not overlap and merge into one follow-up", "launch the runner in a goroutine without waiting for it", "red: two runs are active at once or missed ticks burst", "TestSlowTickNeverOverlapsAndRunsOnceMoreRightAfterItEnds"},
+	{"the next tick waits for the interval from the run start", "compute the wait from the run end", "red: the capped collector's next tick is 10ms late", "TestSlowTickNeverOverlapsAndRunsOnceMoreRightAfterItEnds"},
 	{"the periodic budget is min(interval, cap)", "pass MaxBudget as the deadline", "red: the deadline is 1m for a 50ms interval", "TestSlowTickNeverOverlapsAndRunsOnceMoreRightAfterItEnds"},
 	{"a hub restart re-arms with one gap event", "skip gap on CauseReconciled", "red: no gap event after the restart", "TestRearmAfterAHubRestartLeavesExactlyOneGapEventAndACleanDrainLeavesNone"},
 	{"a clean drain clears the heartbeat", "skip Alive.Clear in Drain", "red: a reconciled arm after a drain emits a gap", "TestRearmAfterAHubRestartLeavesExactlyOneGapEventAndACleanDrainLeavesNone"},
@@ -30,7 +31,8 @@ var supervisorMutations = []porttest.Mutation{
 
 type gate struct {
 	mu       sync.Mutex
-	entered  chan struct{}
+	hold     int
+	held     chan struct{}
 	exits    []time.Time
 	canceled int
 	calls    int
@@ -39,14 +41,11 @@ type gate struct {
 func (g *gate) Call(ctx context.Context, _ string, _ []json.RawMessage) (any, error) {
 	g.mu.Lock()
 	g.calls++
+	holding := g.calls == g.hold
 	g.mu.Unlock()
-	select {
-	case g.entered <- struct{}{}:
-	default:
-	}
-	select {
-	case <-time.After(150 * time.Millisecond):
-	case <-ctx.Done():
+	if holding {
+		g.held <- struct{}{}
+		<-ctx.Done()
 		g.mu.Lock()
 		g.canceled++
 		g.mu.Unlock()
@@ -64,22 +63,27 @@ func (g *gate) snapshot() (int, int, []time.Time) {
 }
 
 func TestPeriodicCollectorRunsWhileUpStopsWithoutFalseFailuresAtStopAndRunsAgainAfterResume(t *testing.T) {
-	g := &gate{entered: make(chan struct{}, 1)}
+	g := &gate{hold: 2, held: make(chan struct{}, 1)}
 	code := collecttest.Bundle(t, "toy-db", `await ctx.state.get("cursor");`)
-	s := newSupervisor(nil, collect.Options{DrainWait: 3 * time.Second})
+	clock := collecttest.NewClock(epoch)
+	s := newSupervisor(nil, collect.Options{DrainWait: 10 * time.Second, Now: clock.Now, Sleep: clock.Sleep})
 	register(t, s, collect.RunConfig{
-		Collectors: []collect.Collector{{ID: "toy-db", Code: code, Interval: time.Second, Allowed: []string{ports.PortState}}},
+		Collectors: []collect.Collector{{ID: "toy-db", Code: code, Interval: time.Hour, Allowed: []string{ports.PortState}}},
 		Ports:      func(string) map[string]ports.Handler { return map[string]ports.Handler{ports.PortState: g} },
 	})
 	arm(t, s, lifecycle.CauseBooted)
-	eventually(t, 5*time.Second, "two collector runs", func() bool { calls, _, _ := g.snapshot(); return calls >= 2 })
-	<-g.entered
+	clock.AwaitSleepers(t, 1)
+	if calls, _, _ := g.snapshot(); calls != 1 {
+		t.Fatalf("the first tick made %d calls", calls)
+	}
+	clock.Next()
+	<-g.held
 	if err := s.Drain(context.Background(), supRun, lifecycle.CauseStopping); err != nil {
 		t.Fatal(err)
 	}
 	composeStop := time.Now()
 	calls, canceled, exits := g.snapshot()
-	if canceled != 1 || len(exits) != calls || exits[len(exits)-1].After(composeStop) {
+	if calls != 2 || canceled != 1 || len(exits) != calls || exits[len(exits)-1].After(composeStop) {
 		t.Fatalf("calls=%d canceled=%d exits=%v stop=%v", calls, canceled, exits, composeStop)
 	}
 	if u := s.Unread(supRun); len(u) != 0 {
@@ -88,47 +92,71 @@ func TestPeriodicCollectorRunsWhileUpStopsWithoutFalseFailuresAtStopAndRunsAgain
 	if st := s.Status(supRun); st[0].State != collect.StateStopped || st[0].Failures != 0 || st[0].Line != "toy-db: stopped" {
 		t.Fatalf("%+v", st)
 	}
-	time.Sleep(1200 * time.Millisecond)
+	if n := clock.Sleepers(); n != 0 || clock.Next() {
+		t.Fatalf("%d goroutines still wait for a tick after the drain", n)
+	}
 	if after, _, _ := g.snapshot(); after != calls {
 		t.Fatalf("calls continued after the drain: %d then %d", calls, after)
 	}
 	arm(t, s, lifecycle.CauseResumed)
-	eventually(t, 5*time.Second, "a run after resume", func() bool { n, _, _ := g.snapshot(); return n > calls })
-	if st := s.Status(supRun); st[0].State != collect.StateArmed || st[0].LastSuccess == "" {
+	clock.AwaitSleepers(t, 1)
+	if n, _, _ := g.snapshot(); n != calls+1 {
+		t.Fatalf("the resume tick made %d calls in all, want %d", n, calls+1)
+	}
+	if st := s.Status(supRun); st[0].State != collect.StateArmed || st[0].LastSuccess != epoch.Add(time.Hour).Format(time.RFC3339Nano) {
 		t.Fatalf("%+v", st)
 	}
 }
 
 func TestSlowTickNeverOverlapsAndRunsOnceMoreRightAfterItEnds(t *testing.T) {
-	f := &fakeRunner{fn: func(ctx context.Context, _ worker.Spec) (worker.Outcome, error) {
-		return waitOrCancel(ctx, 70*time.Millisecond), nil
-	}}
-	s := newSupervisor(f, collect.Options{})
+	clock := collecttest.NewClock(epoch)
+	held := make(chan struct{}, 1)
+	var n int
+	f := &fakeRunner{now: clock.Now}
+	f.fn = func(ctx context.Context, _ worker.Spec) (worker.Outcome, error) {
+		clock.Advance(70 * time.Millisecond)
+		if n++; n == 5 {
+			held <- struct{}{}
+			<-ctx.Done()
+			return worker.Outcome{Status: worker.StatusKilled, Kill: worker.KillCanceled}, nil
+		}
+		return worker.Outcome{Status: worker.StatusOK}, nil
+	}
+	s := newSupervisor(f, collect.Options{Now: clock.Now, Sleep: clock.Sleep})
 	register(t, s, collect.RunConfig{Collectors: []collect.Collector{{ID: "slow", Interval: 50 * time.Millisecond}}})
 	arm(t, s, lifecycle.CauseBooted)
-	time.Sleep(400 * time.Millisecond)
-	_ = s.Drain(context.Background(), supRun, lifecycle.CauseStopping)
+	<-held
+	if err := s.Drain(context.Background(), supRun, lifecycle.CauseStopping); err != nil {
+		t.Fatal(err)
+	}
 	runs := f.records("slow")
-	if f.peak() != 1 || len(runs) < 4 || len(runs) > 7 {
-		t.Fatalf("peak=%d runs=%d", f.peak(), len(runs))
+	if f.peak() != 1 || len(runs) != 5 || clock.Sleepers() != 0 {
+		t.Fatalf("peak=%d runs=%d sleepers=%d", f.peak(), len(runs), clock.Sleepers())
 	}
 	for i := 1; i < len(runs); i++ {
-		if gap := runs[i].start.Sub(runs[i-1].end); gap < 0 || gap > 25*time.Millisecond {
-			t.Fatalf("run %d started %v after the previous one ended", i, gap)
+		if !runs[i].start.Equal(runs[i-1].end) {
+			t.Fatalf("run %d started %v after the previous one ended", i, runs[i].start.Sub(runs[i-1].end))
 		}
 	}
 	if runs[0].deadline != 50*time.Millisecond {
 		t.Fatalf("deadline %v", runs[0].deadline)
 	}
-	capped := &fakeRunner{fn: f.fn}
-	s2 := newSupervisor(capped, collect.Options{MaxBudget: 30 * time.Millisecond})
+	clock2 := collecttest.NewClock(epoch)
+	capped := &fakeRunner{now: clock2.Now, fn: func(context.Context, worker.Spec) (worker.Outcome, error) {
+		clock2.Advance(10 * time.Millisecond)
+		return worker.Outcome{Status: worker.StatusOK}, nil
+	}}
+	s2 := newSupervisor(capped, collect.Options{MaxBudget: 30 * time.Millisecond, Now: clock2.Now, Sleep: clock2.Sleep})
 	register(t, s2, collect.RunConfig{RunID: "run-2", Collectors: []collect.Collector{{ID: "slow", Interval: time.Second}}})
 	if err := s2.Arm(context.Background(), "run-2", lifecycle.CauseBooted); err != nil {
 		t.Fatal(err)
 	}
-	eventually(t, time.Second, "one capped run", func() bool { return len(capped.records("slow")) == 1 })
-	if d := capped.records("slow")[0].deadline; d != 30*time.Millisecond {
-		t.Fatalf("capped deadline %v", d)
+	clock2.AwaitSleepers(t, 1)
+	if recs := capped.records("slow"); len(recs) != 1 || recs[0].deadline != 30*time.Millisecond {
+		t.Fatalf("capped runs %+v", recs)
+	}
+	if due, _ := clock2.Due(); !due.Equal(epoch.Add(time.Second)) {
+		t.Fatalf("canary: a fast run waits for the interval from its start, next tick at %v", due.Sub(epoch))
 	}
 }
 
@@ -176,10 +204,11 @@ func TestRearmAfterAHubRestartLeavesExactlyOneGapEventAndACleanDrainLeavesNone(t
 }
 
 func TestFireArmsOnArmHooksAndDrainsOnDrainHooks(t *testing.T) {
+	clock := collecttest.NewClock(epoch)
 	quick := &fakeRunner{fn: func(context.Context, worker.Spec) (worker.Outcome, error) {
 		return worker.Outcome{Status: worker.StatusOK}, nil
 	}}
-	s := newSupervisor(quick, collect.Options{})
+	s := newSupervisor(quick, collect.Options{Now: clock.Now, Sleep: clock.Sleep})
 	register(t, s, collect.RunConfig{Collectors: []collect.Collector{{ID: "toy-db", Interval: 10 * time.Millisecond}}})
 	before := &lifecycle.State{Phase: lifecycle.Booting, Env: lifecycle.EnvAbsent}
 	after, err := lifecycle.Transition(before, lifecycle.Booted, lifecycle.Detail{})
@@ -189,7 +218,10 @@ func TestFireArmsOnArmHooksAndDrainsOnDrainHooks(t *testing.T) {
 	if err := collect.Fire(context.Background(), s, supRun, lifecycle.HookFor(before, lifecycle.Booted, lifecycle.Detail{}, after)); err != nil {
 		t.Fatal(err)
 	}
-	eventually(t, time.Second, "runs after the booted hook", func() bool { return len(quick.records("toy-db")) >= 2 })
+	clock.RunUntil(t, epoch.Add(10*time.Millisecond), 1)
+	if n := len(quick.records("toy-db")); n != 2 {
+		t.Fatalf("runs after the booted hook and one interval: %d", n)
+	}
 	next, err := lifecycle.Transition(&after, lifecycle.Tested, lifecycle.Detail{})
 	if err != nil {
 		t.Fatal(err)
@@ -200,10 +232,8 @@ func TestFireArmsOnArmHooksAndDrainsOnDrainHooks(t *testing.T) {
 	if st := s.Status(supRun); st[0].State != collect.StateStopped {
 		t.Fatalf("after the reporting hook: %+v", st)
 	}
-	n := len(quick.records("toy-db"))
-	time.Sleep(50 * time.Millisecond)
-	if len(quick.records("toy-db")) != n {
-		t.Fatal("runs continued after the drain hook")
+	if clock.Sleepers() != 0 || clock.Next() || len(quick.records("toy-db")) != 2 {
+		t.Fatalf("a tick is still scheduled after the drain hook: sleepers=%d runs=%d", clock.Sleepers(), len(quick.records("toy-db")))
 	}
 }
 

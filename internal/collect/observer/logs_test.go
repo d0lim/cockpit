@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -86,6 +87,17 @@ func events(t *testing.T, s *signal.Stream) []contract.Signal {
 	return resp.Signals
 }
 
+func waitFor(t *testing.T, what string, ok func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	for !ok() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
 func stamp(i int) string {
 	return time.Date(2026, 10, 19, 1, 0, i, 0, time.UTC).Format(time.RFC3339Nano)
 }
@@ -122,11 +134,10 @@ func TestContainerLogLinesBecomeMaskedEventsWithPerContainerDropsAndNoHarnessOrF
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- obs.Run(ctx) }()
-	deadline := time.Now().Add(2 * time.Second)
-	for len(events(t, s)) < 8 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	time.Sleep(60 * time.Millisecond)
+	waitFor(t, "every line kept or dropped", func() bool {
+		resp, _ := s.Read(signal.ReadRequest{Limit: 10000})
+		return len(resp.Signals) >= 8 && resp.Dropped[signal.ReasonContainerQuota] >= 8
+	})
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatal(err)
@@ -154,6 +165,10 @@ func TestContainerLogLinesBecomeMaskedEventsWithPerContainerDropsAndNoHarnessOrF
 	resp, _ := s.Read(signal.ReadRequest{})
 	if resp.Dropped[signal.ReasonContainerQuota] != 8 || len(resp.Dropped) != 1 {
 		t.Fatalf("dropped %v", resp.Dropped)
+	}
+	listed, err := dp.Containers(context.Background())
+	if err != nil || len(listed) != 2 || listed[0].ID != "c-app" || listed[1].ID != "c-db" {
+		t.Fatalf("containers to follow %+v (%v)", listed, err)
 	}
 	followed := d.logsFor()
 	if followed["c-app"] == 0 || followed["c-db"] == 0 || followed["c-edge"] != 0 || followed["c-probe"] != 0 || followed["c-intruder"] != 0 {
@@ -187,11 +202,9 @@ func TestReattachedFollowStartsFromTheLastLineWithoutRepeatingIt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- obs.Run(ctx) }()
-	deadline := time.Now().Add(2 * time.Second)
-	for len(events(t, s)) < 2 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	time.Sleep(40 * time.Millisecond)
+	waitFor(t, "the line after the reattach", func() bool {
+		return slices.ContainsFunc(events(t, s), func(sig contract.Signal) bool { return sig.Event != nil && sig.Event.Body == "second" })
+	})
 	cancel()
 	<-done
 	var bodies []string

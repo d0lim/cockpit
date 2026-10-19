@@ -22,6 +22,12 @@ const (
 	supProject = "cockpit-run-1"
 )
 
+var epoch = time.Date(2026, 10, 19, 1, 0, 0, 0, time.UTC)
+
+func stampAt(ms int) string {
+	return epoch.Add(time.Duration(ms) * time.Millisecond).Format(time.RFC3339Nano)
+}
+
 type runRecord struct {
 	collector  string
 	deadline   time.Duration
@@ -33,19 +39,27 @@ type fakeRunner struct {
 	runs      []runRecord
 	active    int
 	maxActive int
+	now       func() time.Time
 	fn        func(ctx context.Context, spec worker.Spec) (worker.Outcome, error)
+}
+
+func (f *fakeRunner) clock() time.Time {
+	if f.now != nil {
+		return f.now()
+	}
+	return time.Now()
 }
 
 func (f *fakeRunner) run(ctx context.Context, spec worker.Spec) (worker.Outcome, error) {
 	f.mu.Lock()
 	f.active++
 	f.maxActive = max(f.maxActive, f.active)
-	rec := runRecord{collector: spec.Collector, deadline: spec.Limits.Deadline, start: time.Now()}
+	rec := runRecord{collector: spec.Collector, deadline: spec.Limits.Deadline, start: f.clock()}
 	f.mu.Unlock()
 	out, err := f.fn(ctx, spec)
 	f.mu.Lock()
 	f.active--
-	rec.end = time.Now()
+	rec.end = f.clock()
 	f.runs = append(f.runs, rec)
 	f.mu.Unlock()
 	return out, err
