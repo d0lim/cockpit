@@ -21,6 +21,7 @@ var collectMutations = []porttest.Mutation{
 	{"stop drains collectors before compose stop", "turn drain hooks into no-ops in Ops.Transition", "red: beat keeps emitting while the environment is stopped", "TestArmedCollectorsAndObserversReachTheBundleAndStopResumeLeavesNoFailures"},
 	{"the report stage feeds collector stages into the summary", "drop Collected from the report input", "red: summary stages have no beat entry", "TestArmedCollectorsAndObserversReachTheBundleAndStopResumeLeavesNoFailures"},
 	{"container log lines are masked before they reach the bundle", "pass ports.Identity to the logs observer and open the stream with an empty masker (either alone stays green: the other layer masks)", "red: the planted container value stays raw and the bundle is discarded", "TestArmedCollectorsAndObserversReachTheBundleAndStopResumeLeavesNoFailures"},
+	{"a kept run that stays up after the report keeps collecting", "drop the reported-with-env-up case from lifecycle.HookFor", "red: no beat is appended after the report and the collector state is stopped", "TestAKeptRunThatStaysUpAfterTheReportKeepsCollecting"},
 }
 
 func TestCollectMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -137,4 +138,31 @@ func fileText(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(data)
+}
+
+func TestAKeptRunThatStaysUpAfterTheReportKeepsCollecting(t *testing.T) {
+	w := collectingWorld(t)
+	m := w.submit()
+	if m.Verdict != lifecycle.VerdictPassed || m.Env != lifecycle.EnvUp {
+		t.Fatalf("state %+v notice %q", m.State, m.Notice)
+	}
+	dir, _ := w.hub.Store().RunDir(m.ID)
+	live := filepath.Join(dir, "signals", "stream.jsonl")
+	reported := strings.Count(fileText(t, live), `"collector":"beat"`)
+	time.Sleep(2500 * time.Millisecond)
+	later := strings.Count(fileText(t, live), `"collector":"beat"`)
+	if later <= reported {
+		t.Fatalf("no beat after the report on a kept run (%d -> %d)", reported, later)
+	}
+	states := w.hub.ops.Collect.Status(m.ID)
+	if len(states) != 1 || states[0].State != collect.StateArmed {
+		t.Fatalf("collector states %+v", states)
+	}
+	assertNoCollectorFailures(t, w.hub, m.ID, "after the report on a kept run")
+	if r := w.sched.Stop(m.ID, scheduler.Actor{By: "tester"}); r.Fail != nil {
+		t.Fatal(r.Fail)
+	}
+	if states := w.hub.ops.Collect.Status(m.ID); states[0].State != collect.StateStopped {
+		t.Fatalf("after stop %+v", states)
+	}
 }

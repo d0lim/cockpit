@@ -68,7 +68,7 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	}
 	m, _ := hub.Store().MustRead(res.ID)
 	if m.Phase != lifecycle.Done || m.Verdict != lifecycle.VerdictPassed || m.Env != lifecycle.EnvUp {
-		t.Fatalf("state %+v failed stage %s notice %q tail %q", m.State, m.FailedStage, m.Notice, m.Tail)
+		t.Fatalf("state %+v stop %s failed stage %s notice %q tail %q", m.State, m.StopReason, m.FailedStage, m.Notice, m.Tail)
 	}
 	t.Logf("passed: %s pinned %s (%s)", m.ID, m.RunnerImage.Tag, m.RunnerImage.ID)
 	dir, _ := hub.Store().RunDir(m.ID)

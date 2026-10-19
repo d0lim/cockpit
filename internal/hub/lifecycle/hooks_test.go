@@ -29,7 +29,7 @@ var expectedHooks = map[string]Hook{
 	"booting booted": {HookArm, CauseBooted}, "booting destroy": {HookDrain, CauseDestroying}, "booting fail": {HookDrain, CauseAbort}, "booting abort": {HookDrain, CauseAbort},
 	"testing tested": {HookDrain, CauseReporting}, "testing fail": {HookDrain, CauseReporting}, "testing abort": {HookDrain, CauseReporting}, "testing destroy": {HookDrain, CauseDestroying},
 	"testing observed/up": {HookDrain, CauseReporting}, "testing observed/stopped": {HookDrain, CauseReporting}, "testing observed/gone": {HookDrain, CauseReporting},
-	"reporting fail": {HookDrain, CauseAbort}, "reporting abort": {HookDrain, CauseAbort}, "reporting destroy": {HookDrain, CauseDestroying},
+	"reporting reported": {HookArm, CauseKept}, "reporting fail": {HookDrain, CauseAbort}, "reporting abort": {HookDrain, CauseAbort}, "reporting destroy": {HookDrain, CauseDestroying},
 	"reporting observed/stopped": {HookDrain, CauseEnvLost}, "reporting observed/gone": {HookDrain, CauseEnvLost},
 	"stopping stopped":     {HookDrain, CauseEnvLost},
 	"resuming resumed":     {HookArm, CauseResumed},
@@ -39,7 +39,7 @@ var expectedHooks = map[string]Hook{
 	"done/stopped destroy": {HookDrain, CauseDestroying}, "done/stopped observed/up": {HookArm, CauseReconciled},
 }
 
-func TestHooksArmWhenTheEnvironmentComesUpAndDrainBeforeReportingStoppingDestroyingOrAbortBothWays(t *testing.T) {
+func TestHooksArmWhenTheEnvironmentComesUpOrStaysUpAfterTheReportAndDrainBeforeReportingStoppingDestroyingOrAbortBothWays(t *testing.T) {
 	got := map[string]Hook{}
 	transitions := 0
 	for key, row := range Transitions {

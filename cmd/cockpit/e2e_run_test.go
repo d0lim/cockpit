@@ -12,7 +12,7 @@ import (
 	"github.com/d0lim/cockpit/internal/runnerbin"
 )
 
-func TestIntegrationHubAndRunsSubmitWaitPassTheToyConsumerWithCollectorsAndNoFalseFailures(t *testing.T) {
+func TestIntegrationHubAndRunsSubmitWaitPassTheToyConsumerKeepCollectingLiveWithNoFalseFailures(t *testing.T) {
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
 		t.Skip("needs COCKPIT_INTEGRATION=1, a Docker daemon and scripts/build-runners.sh")
 	}
@@ -57,7 +57,16 @@ func TestIntegrationHubAndRunsSubmitWaitPassTheToyConsumerWithCollectorsAndNoFal
 		}
 		return r
 	}
-	noFailures("after the report")
+	if code, out, errOut := e.cockpit(e.repo, "runs", "keep", run.ID); code != 0 {
+		t.Fatalf("runs keep: exit %d\n%s%s", code, out, errOut)
+	}
+	reported := noFailures("after the report").count("pulse")
+	time.Sleep(3500 * time.Millisecond)
+	kept := noFailures("on the kept run after the report").count("pulse")
+	t.Logf("pulse signals through the API on the kept run: %d at the report, %d 3.5s later", reported, kept)
+	if kept <= reported {
+		t.Error("the kept run did not keep collecting after the report")
+	}
 	for _, op := range []string{"stop", "resume"} {
 		if code, out, errOut := e.cockpit(e.repo, "runs", op, run.ID); code != 0 {
 			t.Fatalf("runs %s: exit %d\n%s%s", op, code, out, errOut)

@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
-	"strconv"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/api"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
@@ -37,24 +38,17 @@ func TestASignalAppendedByACollectorIsReadThroughTheAPIAndLandsInTheFrozenBundle
 	srv.Config.Handler = api.Handler(api.Deps{Port: port, Store: w.hub.Store(), Scheduler: w.sched, Signals: w.hub.Streams(), Collectors: w.hub.Collectors(), Mask: w.hub.Mask})
 	srv.Start()
 	defer srv.Close()
-	view := readSignals(t, srv.URL, m.ID)
-	seq := lastBeat(view)
+	dir, _ := w.hub.Store().RunDir(m.ID)
+	seq := frozenLastBeat(t, fileText(t, filepath.Join(dir, report.DirReport, "signals", "stream.jsonl")))
 	if seq == 0 {
-		t.Fatalf("the API read holds no beat signal among %d signals", len(view.Signals))
+		t.Fatal("the frozen copy holds no beat signal")
+	}
+	view := readSignals(t, srv.URL, m.ID)
+	if !slices.ContainsFunc(view.Signals, func(sig contract.Signal) bool { return sig.Collector == "beat" && sig.Seq == seq }) {
+		t.Fatalf("the API read lacks the frozen copy's last beat %d among %d signals", seq, len(view.Signals))
 	}
 	if len(view.Collectors) != 1 || view.Collectors[0].ID != "beat" || view.Collectors[0].Failures != 0 {
 		t.Fatalf("collector states %+v", view.Collectors)
-	}
-	dir, _ := w.hub.Store().RunDir(m.ID)
-	frozen := fileText(t, filepath.Join(dir, report.DirReport, "signals", "stream.jsonl"))
-	found := false
-	for _, line := range strings.Split(frozen, "\n") {
-		if strings.Contains(line, `"seq":`+strconv.FormatInt(seq, 10)+`,`) && strings.Contains(line, `"collector":"beat"`) {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("the frozen copy lacks beat signal %d", seq)
 	}
 	actor := scheduler.Actor{By: "tester"}
 	if r := w.sched.Stop(m.ID, actor); r.Fail != nil {
@@ -84,6 +78,21 @@ func readSignals(t *testing.T, base, id string) api.SignalsView {
 		t.Fatalf("status %d: %v", res.StatusCode, err)
 	}
 	return view
+}
+
+func frozenLastBeat(t *testing.T, text string) int64 {
+	t.Helper()
+	var seq int64
+	for _, line := range strings.Split(strings.TrimSpace(text), "\n") {
+		var sig contract.Signal
+		if err := json.Unmarshal([]byte(line), &sig); err != nil {
+			t.Fatalf("frozen line %q: %v", line, err)
+		}
+		if sig.Collector == "beat" {
+			seq = max(seq, sig.Seq)
+		}
+	}
+	return seq
 }
 
 func lastBeat(view api.SignalsView) int64 {

@@ -14,6 +14,7 @@ const (
 	CauseBooted     HookCause = "booted"
 	CauseResumed    HookCause = "resumed"
 	CauseReconciled HookCause = "reconciled"
+	CauseKept       HookCause = "kept"
 	CauseReporting  HookCause = "reporting"
 	CauseStopping   HookCause = "stopping"
 	CauseDestroying HookCause = "destroying"
@@ -39,6 +40,8 @@ func HookFor(before *State, event Event, d Detail, after State) Hook {
 		return Hook{HookArm, CauseBooted}
 	case after.Env == EnvUp && event == Resumed:
 		return Hook{HookArm, CauseResumed}
+	case after.Env == EnvUp && after.Phase == Done && event == Reported:
+		return Hook{HookArm, CauseKept}
 	case after.Env == EnvUp && after.Phase == Done && event == Observed && d.Observation == ObservedUp:
 		return Hook{HookArm, CauseReconciled}
 	case before != nil && before.Env == EnvUp && after.Env != EnvUp:
