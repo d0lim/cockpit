@@ -34,7 +34,11 @@ type Git struct {
 }
 
 func HardenedArgs(dir, hooksDir string, args ...string) []string {
-	return append([]string{"-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + hooksDir, "--no-optional-locks", "-C", dir}, args...)
+	return append([]string{
+		"-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + hooksDir,
+		"-c", "maintenance.auto=false", "-c", "maintenance.autoDetach=false", "-c", "gc.auto=0", "-c", "gc.autoDetach=false",
+		"--no-optional-locks", "-C", dir,
+	}, args...)
 }
 
 func gitEnv() []string {

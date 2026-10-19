@@ -17,6 +17,7 @@ var gitMutations = []porttest.Mutation{
 	{"repository fsmonitor commands do not run", "drop -c core.fsmonitor=false from HardenedArgs", "red: the planted fsmonitor marker appears after Dirty", "TestDirtyCheckDoesNotRunAPlantedFsmonitorCommandThatPlainGitRuns"},
 	{"repository hooks do not run", "drop -c core.hooksPath from HardenedArgs", "red: the planted pre-commit marker appears after a hub commit", "TestHooksPlantedInTheRepositoryDoNotRunUnderTheHubGitAndDoUnderPlainGit"},
 	{"inherited GIT_ variables do not redirect git", "pass os.Environ() unfiltered in gitEnv", "red: GIT_DIR from the hub environment makes the hub read another repository", "TestInheritedGitDirDoesNotRedirectHubGitButRedirectsPlainGit"},
+	{"hub git starts no background maintenance that outlives the call", "drop the maintenance.auto and gc.auto settings from HardenedArgs", "red: the hub commit traces git maintenance run --auto --detach", "TestHubGitAndTestGitStartNoDetachedMaintenanceWhilePlainGitCommitDoes"},
 	{"commit input resolves only to a commit", "drop the ^{commit} suffix in ResolveCommit", "red: HEAD:mock resolves to a tree id and is accepted as a commit", "TestResolveCommitRejectsEmptyAndOptionLikeInputAndResolvesRefsToFullShas"},
 	{"untracked files count as dirty whatever the repository config says", "drop --untracked-files=normal from Dirty", "red: scripts/new.ts is not listed with status.showUntrackedFiles=no", "TestDirtyListsTrackedEditsAndUntrackedFilesUnderDeclaredPathsOnlyEvenWhenUntrackedDisplayIsOff"},
 	{"links in the commit tree are visible to confinement", "make Tree.Link always return false", "red: linked/main.go is not reported as passing through a link", "TestTreeListingKnowsLinksDirectoriesAndFileCounts"},
@@ -78,6 +79,42 @@ func TestHooksPlantedInTheRepositoryDoNotRunUnderTheHubGitAndDoUnderPlainGit(t *
 	}
 	if _, err := (Git{Dir: dir}).Dirty(context.Background(), nil); err != nil || exists(marker) {
 		t.Fatalf("dirty check: err %v, hook ran %v", err, exists(marker))
+	}
+}
+
+func tracedCommit(t *testing.T, dir string, args []string, env []string) string {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Env = append(env, "GIT_TRACE=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+	return string(out)
+}
+
+func spawnsMaintenance(trace string) bool {
+	return strings.Contains(trace, "maintenance run") || strings.Contains(trace, "gc --auto")
+}
+
+func TestHubGitAndTestGitStartNoDetachedMaintenanceWhilePlainGitCommitDoes(t *testing.T) {
+	dir, _ := toyRepo(t, nil)
+	var bare []string
+	for _, kv := range plainGitEnv() {
+		if !strings.HasPrefix(kv, "GIT_CONFIG_COUNT=") && !strings.HasPrefix(kv, "GIT_CONFIG_KEY_") && !strings.HasPrefix(kv, "GIT_CONFIG_VALUE_") {
+			bare = append(bare, kv)
+		}
+	}
+	commit := []string{"commit", "-q", "--allow-empty", "-m", "traced"}
+	plain := tracedCommit(t, dir, append([]string{"-C", dir}, commit...), bare)
+	if !spawnsMaintenance(plain) {
+		t.Fatalf("canary: a plain git commit started no maintenance:\n%s", plain)
+	}
+	if hub := tracedCommit(t, dir, HardenedArgs(dir, t.TempDir(), commit...), bare); spawnsMaintenance(hub) {
+		t.Fatalf("a commit under HardenedArgs started maintenance:\n%s", hub)
+	}
+	if test := tracedCommit(t, dir, append([]string{"-C", dir}, commit...), plainGitEnv()); spawnsMaintenance(test) {
+		t.Fatalf("a commit under the test git environment started maintenance:\n%s", test)
 	}
 }
 

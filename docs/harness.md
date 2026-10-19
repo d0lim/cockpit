@@ -23,7 +23,7 @@ The hub reads `.cockpit/project.yaml` from the git object of the submitted commi
 
 ## Git
 
-Every git call of the hub passes `-c core.fsmonitor=false`, `-c core.hooksPath=<empty temporary directory>` and `--no-optional-locks`, and runs without inherited `GIT_*` variables. Commit input resolves through `<ref>^{commit}` to a full sha before any other call uses it.
+Every git call of the hub passes `-c core.fsmonitor=false`, `-c core.hooksPath=<empty temporary directory>`, `-c maintenance.auto=false`, `-c maintenance.autoDetach=false`, `-c gc.auto=0`, `-c gc.autoDetach=false` and `--no-optional-locks`, and runs without inherited `GIT_*` variables. The maintenance and gc settings matter because git commands such as `commit` start `git maintenance run --auto --detach`, a child that leaves the call and writes `objects/maintenance.lock` into the repository afterwards; the hub must not leave a git process writing into a consumer repository. Tests that build repositories with plain git set the same four settings through `GIT_CONFIG_COUNT`. Commit input resolves through `<ref>^{commit}` to a full sha before any other call uses it.
 
 ## Run directory
 
