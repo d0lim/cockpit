@@ -23,10 +23,10 @@ import (
 )
 
 var integrationMutations = []porttest.Mutation{
-	{"MySQL grants reach only the read schemas", "grant SELECT ON *.* in mysqlProvision", "red: the other schema is readable and the raw INSERT error is not 1142", "TestMySQLReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndFileExport"},
-	{"MySQL sessions are read-only with server limits", "drop the reader Params", "red: transaction_read_only reads 0", "TestMySQLReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndFileExport"},
-	{"PostgreSQL grants reach only the read schemas and owner tables", "drop ALTER DEFAULT PRIVILEGES or grant pg_read_all_data", "red: the later owner table is unreadable or the other schema is readable", "TestPostgresReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndLaterOwnerTablesAreRead"},
-	{"PostgreSQL sessions are read-only with a server time limit", "drop the reader RuntimeParams and the ReadOnly transaction", "red: the data-modifying WITH is not denied with 25006", "TestPostgresReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndLaterOwnerTablesAreRead"},
+	{"MySQL grants reach only the read schemas", "grant SELECT ON *.* in mysqlProvision", "red: the other schema is readable and the raw INSERT error is not 1142", "TestIntegrationMySQLReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndFileExport"},
+	{"MySQL sessions are read-only with server limits", "drop the reader Params", "red: transaction_read_only reads 0", "TestIntegrationMySQLReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndFileExport"},
+	{"PostgreSQL grants reach only the read schemas and owner tables", "drop ALTER DEFAULT PRIVILEGES or grant pg_read_all_data", "red: the later owner table is unreadable or the other schema is readable", "TestIntegrationPostgresReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndLaterOwnerTablesAreRead"},
+	{"PostgreSQL sessions are read-only with a server time limit", "drop the reader RuntimeParams and the ReadOnly transaction", "red: the data-modifying WITH is not denied with 25006", "TestIntegrationPostgresReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndLaterOwnerTablesAreRead"},
 }
 
 type fixture struct {
@@ -70,7 +70,7 @@ func mustExec(ctx context.Context, t *testing.T, db *sql.DB, stmts ...string) {
 	}
 }
 
-func TestMySQLReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndFileExport(t *testing.T) {
+func TestIntegrationMySQLReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndFileExport(t *testing.T) {
 	ctx := integration(t)
 	c, err := tcmysql.Run(ctx, "mysql:8.4", tcmysql.WithUsername("root"), tcmysql.WithPassword(planted), tcmysql.WithDatabase("app"))
 	testcontainers.CleanupContainer(t, c)
@@ -109,7 +109,7 @@ func TestMySQLReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndFileExpor
 	}
 }
 
-func TestPostgresReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndLaterOwnerTablesAreRead(t *testing.T) {
+func TestIntegrationPostgresReaderReadsDeclaredSchemasAndRefusesWritesOtherSchemasAndLaterOwnerTablesAreRead(t *testing.T) {
 	ctx := integration(t)
 	c, err := tcpostgres.Run(ctx, "postgres:16-alpine", tcpostgres.WithDatabase("appdb"), tcpostgres.WithUsername("postgres"), tcpostgres.WithPassword(planted), tcpostgres.BasicWaitStrategies())
 	testcontainers.CleanupContainer(t, c)

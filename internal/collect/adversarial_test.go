@@ -19,13 +19,13 @@ import (
 )
 
 var adversarialMutations = []porttest.Mutation{
-	{"the flow module is refused at the hub site", "let Site.allows accept cockpit:flow", "red: the bundle builds and the runtime require returns exports", "TestRequireOfTheFlowModuleIsRefusedAtBundleTimeAndAtRuntime"},
-	{"memory over the limit kills only the child", "skip watchRSS", "red: the huge string child is not killed", "TestHugeStringKillsOnlyTheChildWhileTheHubKeepsAnswering"},
-	{"the hub deadline kills a child stuck in a builtin", "drop the AfterFunc deadline timer", "red: the backtracking child runs past the test timeout", "TestRegexBacktrackingIsKilledAtTheDeadlineWhileTheHubKeepsAnswering"},
-	{"child output is capped", "copy stderr without the cap", "red: Stderr is larger than the cap and not truncated", "TestHugeConsoleOutputIsTruncated"},
-	{"errors sent to the child pass the hub masker", "send known.Message without Mask in reply", "red: the canary is in the frame sent to the child", "TestCanarySecretIsAbsentFromErrorsTheScriptSees"},
-	{"no global or module exposes the process environment", "set globalThis.process = { env: os.Environ() } in installGlobals", "red: the walker finds the planted value and process is a global", "TestVariablePlantedInTheHubEnvironmentIsInvisibleInEveryGlobalAndModule"},
-	{"a dead child never touches the run lifecycle", "close the active run as error on a killed outcome", "red: the run meta leaves testing", "TestDeadChildDoesNotCloseTheActiveRunAsError"},
+	{"the flow module is refused at the hub site", "let Site.allows accept cockpit:flow", "red: the bundle builds and the runtime require returns exports", "TestAdversarialRequireOfTheFlowModuleIsRefusedAtBundleTimeAndAtRuntime"},
+	{"memory over the limit kills only the child", "skip watchRSS", "red: the huge string child is not killed", "TestAdversarialHugeStringKillsOnlyTheChildWhileTheHubKeepsAnswering"},
+	{"the hub deadline kills a child stuck in a builtin", "drop the AfterFunc deadline timer", "red: the backtracking child runs past the test timeout", "TestAdversarialRegexBacktrackingIsKilledAtTheDeadlineWhileTheHubKeepsAnswering"},
+	{"child output is capped", "copy stderr without the cap", "red: Stderr is larger than the cap and not truncated", "TestAdversarialHugeConsoleOutputIsTruncated"},
+	{"errors sent to the child pass the hub masker", "send known.Message without Mask in reply", "red: the canary is in the frame sent to the child", "TestAdversarialCanarySecretIsAbsentFromErrorsTheScriptSees"},
+	{"no global or module exposes the process environment", "set globalThis.process = { env: os.Environ() } in installGlobals", "red: the walker finds the planted value and process is a global", "TestAdversarialVariablePlantedInTheHubEnvironmentIsInvisibleInEveryGlobalAndModule"},
+	{"a dead child never touches the run lifecycle", "close the active run as error on a killed outcome", "red: the run meta leaves testing", "TestAdversarialDeadChildDoesNotCloseTheActiveRunAsError"},
 }
 
 const canary = "PLANTED-canary-secret-7f3a9c"
@@ -39,7 +39,7 @@ func runChild(t *testing.T, spec worker.Spec) worker.Outcome {
 	return out
 }
 
-func TestRequireOfTheFlowModuleIsRefusedAtBundleTimeAndAtRuntime(t *testing.T) {
+func TestAdversarialRequireOfTheFlowModuleIsRefusedAtBundleTimeAndAtRuntime(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "collector.ts"), `import { suite } from "cockpit:flow";
 import { collector } from "cockpit:collect";
@@ -89,7 +89,7 @@ func hubAnswers(t *testing.T, during func()) {
 	}
 }
 
-func TestHugeStringKillsOnlyTheChildWhileTheHubKeepsAnswering(t *testing.T) {
+func TestAdversarialHugeStringKillsOnlyTheChildWhileTheHubKeepsAnswering(t *testing.T) {
 	bad := collecttest.Spec(collecttest.Bundle(t, "toy-db", `
 		const parts = [];
 		for (let i = 0; i < 16; i++) parts.push("x".repeat(2 ** 29) + i);
@@ -113,7 +113,7 @@ func TestHugeStringKillsOnlyTheChildWhileTheHubKeepsAnswering(t *testing.T) {
 	}
 }
 
-func TestRegexBacktrackingIsKilledAtTheDeadlineWhileTheHubKeepsAnswering(t *testing.T) {
+func TestAdversarialRegexBacktrackingIsKilledAtTheDeadlineWhileTheHubKeepsAnswering(t *testing.T) {
 	spec := collecttest.Spec(collecttest.Bundle(t, "toy-db", `/^(a+)+(?!x)$/.test("a".repeat(40) + "b");`), nil, nil)
 	spec.Limits.Deadline = 500 * time.Millisecond
 	var out worker.Outcome
@@ -127,7 +127,7 @@ func TestRegexBacktrackingIsKilledAtTheDeadlineWhileTheHubKeepsAnswering(t *test
 	}
 }
 
-func TestHugeConsoleOutputIsTruncated(t *testing.T) {
+func TestAdversarialHugeConsoleOutputIsTruncated(t *testing.T) {
 	spec := collecttest.Spec(collecttest.Bundle(t, "toy-db", `for (let i = 0; i < 20; i++) console.log("y".repeat(100000));`), nil, nil)
 	spec.Limits.MaxStderr = 32 << 10
 	out := runChild(t, spec)
@@ -140,7 +140,7 @@ func TestHugeConsoleOutputIsTruncated(t *testing.T) {
 	}
 }
 
-func TestCanarySecretIsAbsentFromErrorsTheScriptSees(t *testing.T) {
+func TestAdversarialCanarySecretIsAbsentFromErrorsTheScriptSees(t *testing.T) {
 	leaky := &collecttest.Recorder{Err: ports.Unavailable(nil, "row 7 holds "+canary)}
 	frames := &collecttest.Frames{}
 	spec := collecttest.Spec(collecttest.Bundle(t, "toy-db", `
@@ -158,7 +158,7 @@ func TestCanarySecretIsAbsentFromErrorsTheScriptSees(t *testing.T) {
 	}
 }
 
-func TestVariablePlantedInTheHubEnvironmentIsInvisibleInEveryGlobalAndModule(t *testing.T) {
+func TestAdversarialVariablePlantedInTheHubEnvironmentIsInvisibleInEveryGlobalAndModule(t *testing.T) {
 	t.Setenv("COCKPIT_PLANTED_TOKEN", canary)
 	code := collecttest.Bundle(t, "toy-db", `
 		const needle = "`+reverse(canary)+`".split("").reverse().join("");
@@ -190,7 +190,7 @@ func TestVariablePlantedInTheHubEnvironmentIsInvisibleInEveryGlobalAndModule(t *
 	}
 }
 
-func TestDeadChildDoesNotCloseTheActiveRunAsError(t *testing.T) {
+func TestAdversarialDeadChildDoesNotCloseTheActiveRunAsError(t *testing.T) {
 	st := store.Open(filepath.Join(t.TempDir(), "home"))
 	id := "run-20261012-153001-997a37e"
 	slot := 0
