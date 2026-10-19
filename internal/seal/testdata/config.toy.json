@@ -1,0 +1,313 @@
+{
+  "name": "r-toy",
+  "networks": {
+    "default": {
+      "internal": true,
+      "ipam": {},
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "name": "r-toy_default"
+    },
+    "egress": {
+      "ipam": {},
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "name": "r-toy_egress"
+    }
+  },
+  "services": {
+    "app": {
+      "build": {
+        "context": "/fixture/runs/r-toy/build/mock",
+        "dockerfile": "Dockerfile.sealed"
+      },
+      "command": null,
+      "depends_on": {
+        "cache": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "environment": {},
+      "image": "toy/app:2d911e593e9a",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "networks": {
+        "default": null
+      },
+      "pull_policy": "never"
+    },
+    "builder": {
+      "command": [
+        "go",
+        "build",
+        "-o",
+        "bin/app",
+        "."
+      ],
+      "entrypoint": null,
+      "environment": {},
+      "image": "docker.io/library/golang:1.27-alpine@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.role": "builder",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "networks": {
+        "egress": null
+      },
+      "profiles": [
+        "build"
+      ],
+      "volumes": [
+        {
+          "bind": {},
+          "source": "/fixture/runs/r-toy/build/mock",
+          "target": "/src",
+          "type": "bind"
+        }
+      ],
+      "working_dir": "/src"
+    },
+    "cache": {
+      "command": null,
+      "entrypoint": null,
+      "healthcheck": {
+        "interval": "2s",
+        "retries": 30,
+        "test": [
+          "CMD",
+          "valkey-cli",
+          "PING"
+        ],
+        "timeout": "3s"
+      },
+      "image": "docker.io/valkey/valkey:8-alpine@sha256:77643d152547b446fc15cbafaff22004545663fcd40c6b28038ad283837baa75",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "networks": {
+        "default": null
+      }
+    },
+    "db": {
+      "command": null,
+      "entrypoint": null,
+      "environment": {},
+      "healthcheck": {
+        "interval": "2s",
+        "retries": 30,
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ],
+        "timeout": "3s"
+      },
+      "image": "docker.io/library/postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "networks": {
+        "default": null
+      },
+      "volumes": [
+        {
+          "source": "db-data",
+          "target": "/var/lib/postgresql/data",
+          "type": "volume",
+          "volume": {}
+        },
+        {
+          "bind": {},
+          "read_only": true,
+          "source": "/fixture/runs/r-toy/src/db/init.sql",
+          "target": "/docker-entrypoint-initdb.d/init.sql",
+          "type": "bind"
+        }
+      ]
+    },
+    "edge": {
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": [
+        "edge",
+        "30000=app:8080",
+        "30001=db:5432",
+        "30002=cache:6379"
+      ],
+      "entrypoint": null,
+      "image": "cockpit-runner:0123456789ab",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.role": "edge",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "mem_limit": "1073741824",
+      "networks": {
+        "default": null,
+        "egress": null
+      },
+      "pids_limit": 512,
+      "ports": [
+        {
+          "host_ip": "127.0.0.1",
+          "mode": "ingress",
+          "protocol": "tcp",
+          "published": "22000",
+          "target": 30000
+        },
+        {
+          "host_ip": "127.0.0.1",
+          "mode": "ingress",
+          "protocol": "tcp",
+          "published": "22001",
+          "target": 30001
+        },
+        {
+          "host_ip": "127.0.0.1",
+          "mode": "ingress",
+          "protocol": "tcp",
+          "published": "22002",
+          "target": 30002
+        }
+      ],
+      "pull_policy": "never",
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ]
+    },
+    "probe": {
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": [
+        "probe",
+        "22099"
+      ],
+      "entrypoint": null,
+      "image": "cockpit-runner:0123456789ab",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.role": "probe",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "mem_limit": "1073741824",
+      "networks": {
+        "default": null
+      },
+      "pids_limit": 512,
+      "profiles": [
+        "probe"
+      ],
+      "pull_policy": "never",
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ]
+    },
+    "probe-control": {
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": [
+        "probe",
+        "22099"
+      ],
+      "entrypoint": null,
+      "image": "cockpit-runner:0123456789ab",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.role": "probe-control",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "mem_limit": "1073741824",
+      "networks": {
+        "egress": null
+      },
+      "pids_limit": 512,
+      "profiles": [
+        "probe"
+      ],
+      "pull_policy": "never",
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ]
+    },
+    "runner": {
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": null,
+      "entrypoint": null,
+      "environment": {},
+      "image": "cockpit-runner:0123456789ab",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.role": "runner",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "mem_limit": "1073741824",
+      "networks": {
+        "default": null
+      },
+      "pids_limit": 512,
+      "profiles": [
+        "runner"
+      ],
+      "pull_policy": "never",
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "tmpfs": [
+        "/tmp"
+      ],
+      "volumes": [
+        {
+          "read_only": true,
+          "source": "/fixture/runs/r-toy/work/scripts",
+          "target": "/work/scripts",
+          "type": "bind"
+        },
+        {
+          "read_only": true,
+          "source": "/fixture/runs/r-toy/work/.cockpit/project.yaml",
+          "target": "/work/.cockpit/project.yaml",
+          "type": "bind"
+        },
+        {
+          "source": "/fixture/runs/r-toy/work/e2e",
+          "target": "/work/e2e",
+          "type": "bind"
+        },
+        {
+          "read_only": true,
+          "source": "/fixture/runs/r-toy/work/source/fixtures",
+          "target": "/work/source/fixtures",
+          "type": "bind"
+        }
+      ]
+    }
+  },
+  "volumes": {
+    "db-data": {
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "name": "r-toy_db-data"
+    }
+  }
+}
