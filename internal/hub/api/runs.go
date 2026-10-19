@@ -77,7 +77,7 @@ func (a *api) list(w http.ResponseWriter, _ *http.Request) error {
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusOK, PublicList(l))
+	writeJSON(a.log(), w, http.StatusOK, PublicList(l))
 	return nil
 }
 
@@ -114,7 +114,7 @@ func (a *api) submit(w http.ResponseWriter, r *http.Request) error {
 	if res.Fail != nil {
 		return fromFailure(res.Fail)
 	}
-	writeJSON(w, http.StatusAccepted, Submitted{ID: res.ID, Phase: res.Phase, Position: res.Position, Merged: res.Merged})
+	writeJSON(a.log(), w, http.StatusAccepted, Submitted{ID: res.ID, Phase: res.Phase, Position: res.Position, Merged: res.Merged})
 	return nil
 }
 
@@ -127,7 +127,7 @@ func (a *api) get(w http.ResponseWriter, r *http.Request) error {
 	if a.d.Services != nil && holdsPorts(v.Meta) {
 		services = a.d.Services(v.Meta)
 	}
-	writeJSON(w, http.StatusOK, Detail(*v, a.d.Scheduler.AllowedEvents(v.Meta), services))
+	writeJSON(a.log(), w, http.StatusOK, Detail(*v, a.d.Scheduler.AllowedEvents(v.Meta), services))
 	return nil
 }
 
@@ -164,7 +164,7 @@ func (a *api) operate(w http.ResponseWriter, r *http.Request) error {
 	if op == "abort" {
 		status = http.StatusAccepted
 	}
-	writeJSON(w, status, OpReply{Run: MetaItem(res.Run)})
+	writeJSON(a.log(), w, status, OpReply{Run: MetaItem(res.Run)})
 	return nil
 }
 
@@ -177,6 +177,6 @@ func (a *api) report(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusOK, reportView(dir, v.Meta))
+	writeJSON(a.log(), w, http.StatusOK, reportView(dir, v.Meta))
 	return nil
 }

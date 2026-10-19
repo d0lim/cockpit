@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 	"slices"
 	"strconv"
@@ -17,8 +18,8 @@ type denial struct {
 	Error   string `json:"error"`
 }
 
-func forbidden(w http.ResponseWriter, reason string) {
-	writeJSON(w, http.StatusForbidden, denial{Code: CodeForbidden, Message: "forbidden:" + reason, Error: "forbidden:" + reason})
+func forbidden(log *slog.Logger, w http.ResponseWriter, reason string) {
+	writeJSON(log, w, http.StatusForbidden, denial{Code: CodeForbidden, Message: "forbidden:" + reason, Error: "forbidden:" + reason})
 }
 
 func LoopbackHosts(port int) []string {
@@ -26,18 +27,18 @@ func LoopbackHosts(port int) []string {
 	return []string{"127.0.0.1:" + p, "localhost:" + p}
 }
 
-func Guard(port int, next http.Handler) http.Handler {
+func Guard(port int, log *slog.Logger, next http.Handler) http.Handler {
 	hosts := LoopbackHosts(port)
 	origins := make([]string, len(hosts))
 	for i, h := range hosts {
 		origins[i] = "http://" + h
 	}
 	cop := http.NewCrossOriginProtection()
-	cop.SetDenyHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { forbidden(w, "cross-origin") }))
+	cop.SetDenyHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { forbidden(log, w, "cross-origin") }))
 	protected := cop.Handler(next)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !slices.Contains(hosts, r.Host) {
-			forbidden(w, "host")
+			forbidden(log, w, "host")
 			return
 		}
 		if r.Method == http.MethodGet || r.Method == http.MethodHead {
@@ -45,11 +46,11 @@ func Guard(port int, next http.Handler) http.Handler {
 			return
 		}
 		if !slices.Contains(origins, r.Header.Get("Origin")) {
-			forbidden(w, "origin")
+			forbidden(log, w, "origin")
 			return
 		}
 		if r.Header.Get(HeaderCockpit) != "1" {
-			forbidden(w, "header")
+			forbidden(log, w, "header")
 			return
 		}
 		protected.ServeHTTP(w, r)

@@ -56,18 +56,18 @@ func fromFailure(f *ticker.Failure) *Problem {
 	return p
 }
 
-func writeJSON(w http.ResponseWriter, status int, body any) {
+func writeJSON(log *slog.Logger, w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		slog.Debug("response write failed", "error", err)
+		log.Debug("response write failed", "error", err)
 	}
 }
 
-func writeProblem(w http.ResponseWriter, err error) {
+func writeProblem(log *slog.Logger, w http.ResponseWriter, err error) {
 	var p *Problem
 	if !errors.As(err, &p) {
 		p = &Problem{Status: http.StatusInternalServerError, Code: CodeInternal, Message: err.Error()}
 	}
-	writeJSON(w, p.Status, p)
+	writeJSON(log, w, p.Status, p)
 }

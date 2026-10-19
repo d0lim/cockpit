@@ -76,7 +76,7 @@ func (a *api) flow(w http.ResponseWriter, r *http.Request) error {
 	for _, f := range flows {
 		if f.ID == id {
 			w.Header().Set(HeaderSource, source)
-			writeJSON(w, http.StatusOK, FlowView{Source: source, Flow: f})
+			writeJSON(a.log(), w, http.StatusOK, FlowView{Source: source, Flow: f})
 			return nil
 		}
 	}
@@ -134,7 +134,7 @@ func (a *api) source(w http.ResponseWriter, r *http.Request) error {
 	view.Text = string(data)
 	view.Lines = strings.Count(view.Text, "\n") + 1
 	w.Header().Set(HeaderSource, view.Source)
-	writeJSON(w, http.StatusOK, view)
+	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil
 }
 
@@ -179,6 +179,6 @@ func (a *api) signals(w http.ResponseWriter, r *http.Request) error {
 			view.Collectors = states
 		}
 	}
-	writeJSON(w, http.StatusOK, view)
+	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil
 }

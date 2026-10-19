@@ -103,7 +103,7 @@ func (o *Ops) register(ctx context.Context, id string) error {
 func (o *Ops) runConfig(id string, r *Run, c *collected, stream *signal.Stream, m ports.Mask) (collect.RunConfig, []func() error, error) {
 	docker := o.DockerFor(procgroup.Hooks{})
 	runPorts := o.RunPorts(r)
-	dport, err := dockerport.New(dockerport.Options{Project: id, RunID: id, Builder: r.Decl.Project.Builder, Docker: docker, Allow: r.Decl.Exec.Allow, Mask: m})
+	dport, err := dockerport.New(dockerport.Options{Project: id, RunID: id, Builder: r.Decl.Project.Builder, Docker: docker, Allow: r.Decl.Exec.Allow, Mask: m, Log: o.log()})
 	if err != nil {
 		return collect.RunConfig{}, nil, err
 	}

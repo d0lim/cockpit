@@ -47,6 +47,7 @@ type Options struct {
 	MaxEntries int
 	Timeout    time.Duration
 	Now        func() time.Time
+	Log        *slog.Logger
 }
 
 type Port struct {
@@ -89,8 +90,12 @@ func New(opts Options) (*Port, error) {
 		p.mask = ports.Identity
 	}
 	if p.audit == nil {
+		log := opts.Log
+		if log == nil {
+			log = slog.Default()
+		}
 		p.audit = func(a ExecAudit) {
-			slog.Info("docker exec", "service", a.Service, "argv", a.Argv, "outcome", a.Outcome, "code", a.Code, "exitCode", a.ExitCode)
+			log.Info("docker exec", "run", p.runID, "service", a.Service, "argv", a.Argv, "outcome", a.Outcome, "code", a.Code, "exitCode", a.ExitCode)
 		}
 	}
 	if p.maxBytes <= 0 {

@@ -63,7 +63,7 @@ func (a *api) exec(w http.ResponseWriter, id string, body map[string]any, actor 
 	if view.Lines == nil {
 		view.Lines = []string{}
 	}
-	writeJSON(w, http.StatusOK, view)
+	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil
 }
 
@@ -121,6 +121,6 @@ func (a *api) kit(w http.ResponseWriter, r *http.Request) error {
 			view.Exec = &KitExec{Command: ExecCommand + v.ID + " -- <flow id>", Flows: repeatableFlows(dir)}
 		}
 	}
-	writeJSON(w, http.StatusOK, view)
+	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil
 }

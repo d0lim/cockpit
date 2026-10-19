@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"io/fs"
+	"log/slog"
 	"net/http"
 
 	"github.com/d0lim/cockpit/internal/collect"
@@ -52,9 +53,17 @@ type Deps struct {
 	Mask       func(runID string) *mask.Masker
 	Changed    func()
 	Screen     fs.FS
+	Log        *slog.Logger
 }
 
 type api struct{ d Deps }
+
+func (a *api) log() *slog.Logger {
+	if a.d.Log == nil {
+		return slog.New(slog.DiscardHandler)
+	}
+	return a.d.Log
+}
 
 type routeSpec struct {
 	Method  string
@@ -104,17 +113,17 @@ func Handler(d Deps) http.Handler {
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			h, ok := methods[r.Method]
 			if !ok {
-				writeProblem(w, notFound("not found"))
+				writeProblem(a.log(), w, notFound("not found"))
 				return
 			}
 			if err := h(w, r); err != nil {
-				writeProblem(w, err)
+				writeProblem(a.log(), w, err)
 			}
 		})
 	}
-	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { writeProblem(w, notFound("not found")) })
-	mux.Handle("/", screen(d.Screen))
-	return Guard(d.Port, mux)
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { writeProblem(a.log(), w, notFound("not found")) })
+	mux.Handle("/", screen(d.Screen, a.log()))
+	return Guard(d.Port, a.log(), mux)
 }
 
 func (a *api) changed() {
@@ -186,6 +195,6 @@ func (a *api) suites(w http.ResponseWriter, r *http.Request) error {
 			view.Suites = append(view.Suites, SuiteName{Name: n})
 		}
 	}
-	writeJSON(w, http.StatusOK, view)
+	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil
 }
