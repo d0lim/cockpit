@@ -70,6 +70,17 @@ func runTsc(t *testing.T, samples ...string) tscRun {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
+	for attempt := 1; ; attempt++ {
+		run := tscOnce(t, ctx, bunx, dir)
+		if len(run.sdk) > 0 || attempt == 3 {
+			return run
+		}
+		t.Logf("tsc listed no declarations, treated as a bunx startup failure; retry %d\n%s", attempt, run.output)
+	}
+}
+
+func tscOnce(t *testing.T, ctx context.Context, bunx, dir string) tscRun {
+	t.Helper()
 	cmd := exec.CommandContext(ctx, bunx, "--bun", "-p", typescriptPackage, "tsc", "--noEmit", "-p", filepath.Join(dir, "tsconfig.json"), "--listFiles", "--pretty", "false")
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
