@@ -20,6 +20,7 @@ import (
 	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/report"
 	"github.com/d0lim/cockpit/internal/runnerbin"
+	"github.com/d0lim/cockpit/internal/signal"
 )
 
 var EnvDirs = []string{"src", "work", "env", "build"}
@@ -52,6 +53,7 @@ type Ops struct {
 	Now       func() time.Time
 	Grace     time.Duration
 	Collect   *collect.Supervisor
+	Streams   *signal.Registry
 	Log       *slog.Logger
 	maskers   sync.Map
 	runs      sync.Map

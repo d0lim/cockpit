@@ -20,6 +20,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/hub/ticker"
 	"github.com/d0lim/cockpit/internal/runnerbin"
+	"github.com/d0lim/cockpit/internal/signal"
 	"github.com/d0lim/cockpit/internal/version"
 )
 
@@ -46,6 +47,7 @@ type Options struct {
 	Events       func(Event)
 	Log          *slog.Logger
 	ScriptHost   []string
+	Streams      *signal.Registry
 	Collect      collect.Options
 	NoCollection bool
 }
@@ -100,6 +102,10 @@ func New(o Options) (*scheduler.Scheduler, *Hub, error) {
 	st := store.Open(o.Home)
 	ops := &envops.Ops{Store: st, DockerFor: o.DockerFor, Ensure: o.Ensure, Layout: layout, Probe: o.PortProbe, Limits: o.Limits, Reporter: o.Reporter, Now: o.Now, Log: o.Log}
 	h := &Hub{o: o, store: st, ops: ops, layout: layout, observe: func() {}}
+	ops.Streams = o.Streams
+	if ops.Streams == nil {
+		ops.Streams = signal.NewRegistry(st, ops.MaskerFor)
+	}
 	if !o.NoCollection {
 		sup, err := supervisor(o)
 		if err != nil {

@@ -77,59 +77,11 @@ func PatternMasker(string) *mask.Masker {
 	return m
 }
 
-type Streams struct {
-	st      *store.Store
-	maskFor func(string) *mask.Masker
-	mu      sync.Mutex
-	open    map[string]*signal.Stream
-}
+type Streams = signal.Registry
 
 func NewStreams(st *store.Store, maskFor func(string) *mask.Masker) *Streams {
 	if maskFor == nil {
 		maskFor = PatternMasker
 	}
-	return &Streams{st: st, maskFor: maskFor, open: map[string]*signal.Stream{}}
-}
-
-func (s *Streams) Get(runID string) (*signal.Stream, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if stream, ok := s.open[runID]; ok {
-		return stream, nil
-	}
-	stream, err := signal.OpenRun(s.st, runID, signal.Options{Masker: func() *mask.Masker { return s.maskFor(runID) }})
-	if err != nil {
-		return nil, err
-	}
-	s.open[runID] = stream
-	return stream, nil
-}
-
-func (s *Streams) Close(runID string) error {
-	s.mu.Lock()
-	stream, ok := s.open[runID]
-	delete(s.open, runID)
-	s.mu.Unlock()
-	if !ok {
-		return nil
-	}
-	return stream.Close()
-}
-
-func (s *Streams) Read(runID string, req signal.ReadRequest) (signal.ReadResponse, error) {
-	stream, err := s.Get(runID)
-	if err != nil {
-		return signal.ReadResponse{}, err
-	}
-	return stream.Read(req)
-}
-
-func (s *Streams) CloseAll() {
-	s.mu.Lock()
-	open := s.open
-	s.open = map[string]*signal.Stream{}
-	s.mu.Unlock()
-	for _, stream := range open {
-		stream.Close()
-	}
+	return signal.NewRegistry(st, maskFor)
 }

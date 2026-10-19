@@ -163,12 +163,7 @@ func (p plantingSignals) Freeze(bundleDir string) (signal.FreezeResult, error) {
 }
 
 func plantInFrozenCopy(ctx context.Context, in envops.ReportInput) (reconcile.ReportOutcome, string, error) {
-	s, err := signal.Open(in.RunDir, signal.Options{Masker: func() *mask.Masker { return in.Masker }})
-	if err != nil {
-		return reconcile.ReportOutcome{}, "", err
-	}
-	defer s.Close()
-	in.Signals = plantingSignals{s}
+	in.Signals = plantingSignals{in.Signals.(*signal.Stream)}
 	return DefaultReport(ctx, in)
 }
 

@@ -17,7 +17,6 @@ import (
 	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/report"
 	"github.com/d0lim/cockpit/internal/seal"
-	"github.com/d0lim/cockpit/internal/signal"
 	"github.com/d0lim/cockpit/internal/version"
 )
 
@@ -106,22 +105,10 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 	}
 	bundle := report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker, Unread: unread,
 		Patch: func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(meta.ID, change); return err }}
-	var streamErr error
 	bundle.Signals = in.Signals
-	if bundle.Signals == nil {
-		var stream *signal.Stream
-		stream, streamErr = signal.Open(in.RunDir, signal.Options{Masker: func() *mask.Masker { return in.Masker }})
-		if streamErr == nil {
-			defer stream.Close()
-			bundle.Signals = stream
-		}
-	}
 	out, err := report.Assemble(bundle)
 	if out.Redaction == nil && err != nil {
 		return reconcile.ReportOutcome{}, "", err
-	}
-	if streamErr != nil {
-		notice = joinNotice(notice, "the signal stream could not be opened: "+in.Masker.Mask(streamErr.Error()))
 	}
 	return reconcile.ReportOutcome{Verdict: lifecycle.Verdict(out.Judgement.Verdict), Redaction: out.Redaction}, joinNotice(notice, reasonsNotice(out.Judgement)), nil
 }

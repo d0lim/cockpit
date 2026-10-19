@@ -2,6 +2,7 @@ package envops
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -78,12 +79,14 @@ func (o *Ops) register(ctx context.Context, id string) error {
 		}
 	}
 	m := func(s string) string { return o.Mask(id, s) }
-	if c.stream == nil {
-		if c.stream, err = signal.Open(r.Layout.Root, signal.Options{Masker: func() *mask.Masker { return o.currentMasker(id) }, Now: o.Now}); err != nil {
-			return err
-		}
+	if o.Streams == nil {
+		return errors.New("the hub has no signal stream registry")
 	}
-	cfg, closers, err := o.runConfig(id, r, c, m)
+	stream, err := o.Streams.Get(id)
+	if err != nil {
+		return err
+	}
+	cfg, closers, err := o.runConfig(id, r, c, stream, m)
 	if err != nil {
 		return err
 	}
@@ -97,7 +100,7 @@ func (o *Ops) register(ctx context.Context, id string) error {
 	return nil
 }
 
-func (o *Ops) runConfig(id string, r *Run, c *collected, m ports.Mask) (collect.RunConfig, []func() error, error) {
+func (o *Ops) runConfig(id string, r *Run, c *collected, stream *signal.Stream, m ports.Mask) (collect.RunConfig, []func() error, error) {
 	docker := o.DockerFor(procgroup.Hooks{})
 	runPorts := o.RunPorts(r)
 	dport, err := dockerport.New(dockerport.Options{Project: id, RunID: id, Builder: r.Decl.Project.Builder, Docker: docker, Allow: r.Decl.Exec.Allow, Mask: m})
@@ -125,7 +128,6 @@ func (o *Ops) runConfig(id string, r *Run, c *collected, m ports.Mask) (collect.
 	for _, d := range c.defs {
 		collectors = append(collectors, collect.Collector{ID: d.ID, Code: d.Code, Interval: d.Interval, Allowed: d.Allowed})
 	}
-	stream := c.stream
 	cfg := collect.RunConfig{
 		RunID: id, Collectors: collectors, Signals: stream, Alive: collect.FileAlive{Dir: r.Layout.Root}, Mask: m,
 		Ports: func(collector string) map[string]ports.Handler {

@@ -19,7 +19,6 @@ var ErrCollectionOff = errors.New("collection is off on this hub")
 type collected struct {
 	mu      sync.Mutex
 	defs    []compose.CollectorDef
-	stream  *signal.Stream
 	closers []func() error
 	live    bool
 }
@@ -31,9 +30,13 @@ func (o *Ops) log() *slog.Logger {
 	return o.Log
 }
 
-func (o *Ops) currentMasker(id string) *mask.Masker {
+func (o *Ops) MaskerFor(id string) *mask.Masker {
 	if cached, ok := o.maskers.Load(id); ok {
 		return cached.(*mask.Masker)
+	}
+	if r, err := o.Open(id); err == nil {
+		r.Close()
+		return r.Masker
 	}
 	m, _ := mask.New(mask.Options{Mode: mask.Hub})
 	return m
@@ -60,14 +63,15 @@ func (o *Ops) Discover(ctx context.Context, id string, decl compose.Loaded, scri
 }
 
 func (o *Ops) Stream(id string) *signal.Stream {
-	v, ok := o.runs.Load(id)
-	if !ok {
+	if o.Streams == nil {
 		return nil
 	}
-	c := v.(*collected)
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.stream
+	s, err := o.Streams.Get(id)
+	if err != nil {
+		o.log().Warn("the signal stream cannot be opened", "run", id, "err", o.Mask(id, err.Error()))
+		return nil
+	}
+	return s
 }
 
 func (o *Ops) Transition(t store.Transition) {
@@ -108,8 +112,8 @@ func (o *Ops) forget(id string) {
 	for _, close := range c.closers {
 		close()
 	}
-	if c.stream != nil {
-		c.stream.Close()
+	if o.Streams != nil {
+		o.Streams.Close(id)
 	}
 }
 
@@ -128,6 +132,9 @@ func (o *Ops) CollectReport(ctx context.Context, id string, env lifecycle.Env) (
 }
 
 func (o *Ops) Close() {
+	if o.Collect == nil {
+		return
+	}
 	o.runs.Range(func(k, _ any) bool {
 		id := k.(string)
 		o.Collect.Drain(context.Background(), id, lifecycle.CauseAbort)
@@ -137,10 +144,9 @@ func (o *Ops) Close() {
 }
 
 func (o *Ops) AddCollected(ctx context.Context, in *ReportInput) {
-	if o.Collect == nil {
-		return
+	if o.Collect != nil {
+		in.Collected, in.CollectErr = o.CollectReport(ctx, in.Meta.ID, in.Meta.Env)
 	}
-	in.Collected, in.CollectErr = o.CollectReport(ctx, in.Meta.ID, in.Meta.Env)
 	if s := o.Stream(in.Meta.ID); s != nil {
 		in.Signals = s
 	}
