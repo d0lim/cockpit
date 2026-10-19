@@ -82,8 +82,9 @@ func (e *e2e) cockpit(dir string, args ...string) (int, string, string) {
 	return code, out.String(), errOut.String()
 }
 
-func (e *e2e) startHub() func() {
+func (e *e2e) startHub() {
 	e.t.Helper()
+	e.t.Cleanup(e.downLeftovers)
 	var logs bytes.Buffer
 	hub := exec.Command(e.bin, "hub")
 	hub.Env, hub.Stderr, hub.Stdout = e.env, &logs, &logs
@@ -101,7 +102,7 @@ func (e *e2e) startHub() func() {
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
-	return func() {
+	e.t.Cleanup(func() {
 		hub.Process.Signal(syscall.SIGINT)
 		done := make(chan error, 1)
 		go func() { done <- hub.Wait() }()
@@ -114,6 +115,42 @@ func (e *e2e) startHub() func() {
 			e.t.Errorf("hub log has errors:\n%s", logs.String())
 		}
 		e.t.Logf("hub log lines: %d", strings.Count(logs.String(), "\n"))
+	})
+	e.t.Cleanup(e.destroyRuns)
+}
+
+func (e *e2e) runIDs() []string {
+	entries, err := os.ReadDir(filepath.Join(e.home, "runs"))
+	if err != nil {
+		return nil
+	}
+	var ids []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			ids = append(ids, entry.Name())
+		}
+	}
+	return ids
+}
+
+func (e *e2e) destroyRuns() {
+	for _, id := range e.runIDs() {
+		if code, out, errOut := e.cockpit(e.repo, "runs", "destroy", id, "--force"); code != 0 {
+			e.t.Logf("runs destroy %s: exit %d\n%s%s", id, code, out, errOut)
+		}
+	}
+}
+
+func (e *e2e) downLeftovers() {
+	for _, id := range e.runIDs() {
+		out, err := exec.Command("docker", "ps", "-aq", "--filter", "label=com.docker.compose.project="+id).Output()
+		if err != nil || len(bytes.Fields(out)) == 0 {
+			continue
+		}
+		e.t.Errorf("run %s left %d containers after the hub stopped; bringing the project down", id, len(bytes.Fields(out)))
+		if down, err := exec.Command("docker", "compose", "-p", id, "down", "-v", "--remove-orphans").CombinedOutput(); err != nil {
+			e.t.Errorf("compose down %s: %v\n%s", id, err, down)
+		}
 	}
 }
 

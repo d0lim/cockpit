@@ -20,8 +20,7 @@ func TestIntegrationHubAndRunsSubmitWaitPassTheToyConsumerKeepCollectingLiveWith
 		t.Skip("the runner is not embedded; run scripts/build-runners.sh first")
 	}
 	e := newE2E(t)
-	stop := e.startHub()
-	defer stop()
+	e.startHub()
 	code, out, errOut := e.cockpit(e.repo, "runs", "submit", "--wait", "--json", "--timeout", "1200")
 	var run struct {
 		ID      string `json:"id"`
@@ -30,7 +29,6 @@ func TestIntegrationHubAndRunsSubmitWaitPassTheToyConsumerKeepCollectingLiveWith
 	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &run); err != nil || code != 0 || run.Verdict != "passed" {
 		t.Fatalf("submit exit %d json err %v\nstdout %s\nstderr %s", code, err, out, errOut)
 	}
-	defer e.cockpit(e.repo, "runs", "destroy", run.ID, "--force")
 	t.Logf("passed: %s", run.ID)
 	dir := filepath.Join(e.home, "runs", run.ID, "report")
 	if _, err := os.Stat(filepath.Join(dir, "summary.json")); err != nil {
