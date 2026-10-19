@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -15,8 +16,11 @@ var credentialMutations = []porttest.Mutation{
 	{"meta refuses credential file paths", "skip the credentialPathAt check in writeMeta", "red: meta.json is written with a .env path", "TestWriteMetaRefusesACredentialFilePathAndNamesTheField"},
 	{"the refusal writes nothing", "write before checking", "red: meta.json exists after the refusal", "TestWriteMetaRefusesACredentialFilePathAndNamesTheField"},
 	{"lines that mention a credential file are kept", "match without the whitespace guard", "red: a log line naming .env is refused", "TestWriteMetaKeepsLogLinesRunEnvAndBundlePaths"},
-	{"credential file name pattern", "CredentialPathOnly returns false", "red: private env and secrets paths are not recognized", "TestCredentialPathOnlyMatchesWholeValueCredentialPathsOnly"},
+	{"credential file name pattern", "CredentialPathOnly returns false", "red: private env and pem paths are not recognized", "TestCredentialPathOnlyMatchesWholeValueCredentialPathsOnly"},
+	{"credential file patterns passed by the caller are refused too", "ignore the Store's credentialFiles in writeMeta", "red: meta.json is written with the passed secrets path", "TestCredentialFilePatternsPassedToTheStoreAreRefusedLikeTheCoreOnes"},
 }
+
+var secretsFile = regexp.MustCompile(`(?:^|/)secrets\.ya?ml$`)
 
 func TestWriteMetaRefusesACredentialFilePathAndNamesTheField(t *testing.T) {
 	cases := []struct {
@@ -26,7 +30,7 @@ func TestWriteMetaRefusesACredentialFilePathAndNamesTheField(t *testing.T) {
 	}{
 		{"notice with a .env path", func(m *Meta) { m.Notice = "/Users/someone/.local/state/cockpit/runs/" + runA + "/src/app/.env" }, "meta.notice"},
 		{"moved-aside .env copy", func(m *Meta) { m.Notice = "src/app/.env.20261012.local" }, "meta.notice"},
-		{"tail with a secrets file", func(m *Meta) { m.Tail = []string{"src/app/.secrets/secrets.yml"} }, "meta.tail[0]"},
+		{"tail with a pem file", func(m *Meta) { m.Tail = []string{"src/app/certs/server.pem"} }, "meta.tail[0]"},
 		{"map value with a kit private env", func(m *Meta) { m.ImageKeys = map[string]string{"KIT": "env/e2e.private.env.json"} }, "meta.imageKeys.KIT"},
 		{"notice with the runner copy of the private env", func(m *Meta) { m.Notice = "work/e2e/e2e.private.env.json" }, "meta.notice"},
 	}
@@ -71,8 +75,8 @@ func TestCredentialPathOnlyMatchesWholeValueCredentialPathsOnly(t *testing.T) {
 		"work/e2e/e2e.private.env.json",
 		"env/e2e.private.env.json",
 		"/Users/x/.local/state/cockpit/runs/r/src/app/.env",
-		"src/app/.secrets/secrets.yml",
 		"src/app/certs/server.pem",
+		"src/app/.env.local",
 	}
 	allow := []string{
 		"work/e2e/manifest.json",
@@ -95,6 +99,23 @@ func TestCredentialPathOnlyMatchesWholeValueCredentialPathsOnly(t *testing.T) {
 	}
 	if len(deny)+len(allow) != 13 || !strings.HasSuffix(deny[0], ".private.env.json") {
 		t.Fatal("case count")
+	}
+}
+
+func TestCredentialFilePatternsPassedToTheStoreAreRefusedLikeTheCoreOnes(t *testing.T) {
+	leak := func(m *Meta) { m.Tail = []string{"src/app/.secrets/secrets.yml"} }
+	guarded := Open(homeFixture(t), secretsFile)
+	if err := guarded.WriteMeta(fixture(runA, leak)); err == nil || err.Error() != "meta does not record credential file paths: meta.tail[0]" {
+		t.Fatalf("err %v", err)
+	}
+	if err := guarded.WriteMeta(fixture(runA, func(m *Meta) { m.Tail = []string{"secrets.yml was not found"} })); err != nil {
+		t.Fatalf("log line refused: %v", err)
+	}
+	if err := Open(homeFixture(t)).WriteMeta(fixture(runA, leak)); err != nil {
+		t.Fatalf("canary: core patterns alone refuse the passed name: %v", err)
+	}
+	if !CredentialPathOnly("a/secrets.yaml", secretsFile) || CredentialPathOnly("a/secrets.yaml") {
+		t.Fatal("extra pattern matching")
 	}
 }
 

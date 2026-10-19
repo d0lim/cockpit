@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/d0lim/cockpit/internal/hub/lock"
 	"github.com/d0lim/cockpit/internal/hub/store"
 )
 
@@ -15,21 +16,9 @@ const (
 	DefaultBase   = 22000
 	DefaultStride = 100
 	DefaultSlots  = 8
-	HubPort       = 7710
 	lowestPort    = 1024
 	ephemeralFrom = 49152
 )
-
-type Layout struct {
-	Base    int
-	Stride  int
-	Slots   int
-	Offsets map[string]int
-}
-
-func DefaultLayout(offsets map[string]int) Layout {
-	return Layout{Base: DefaultBase, Stride: DefaultStride, Slots: DefaultSlots, Offsets: offsets}
-}
 
 type Reserved struct {
 	Name string
@@ -37,17 +26,25 @@ type Reserved struct {
 	To   int
 }
 
-var ManualStackPorts = []int{3306, 4040, 5173, 5174, 7700, 8080, 8081, 8082, 9090, 9091, 9092, 9093, 9094, 9095, 13307, 16379, 18090}
+type Layout struct {
+	Base     int
+	Stride   int
+	Slots    int
+	Offsets  map[string]int
+	HubPort  int
+	Reserved []Reserved
+}
 
-func ReservedPorts() []Reserved {
-	out := []Reserved{
-		{Name: "previous cockpit port block", From: 21000, To: 21800},
-		{Name: "hub listen port", From: HubPort, To: HubPort + 1},
+func DefaultLayout(offsets map[string]int) Layout {
+	return Layout{Base: DefaultBase, Stride: DefaultStride, Slots: DefaultSlots, Offsets: offsets, HubPort: lock.DefaultPort}
+}
+
+func (l Layout) reserved() []Reserved {
+	out := make([]Reserved, 0, len(l.Reserved)+1)
+	if l.HubPort > 0 {
+		out = append(out, Reserved{Name: "hub listen port", From: l.HubPort, To: l.HubPort + 1})
 	}
-	for _, p := range ManualStackPorts {
-		out = append(out, Reserved{Name: "manual stack port", From: p, To: p + 1})
-	}
-	return out
+	return append(out, l.Reserved...)
 }
 
 var ErrNoPortBlock = errors.New("no port block")
@@ -77,7 +74,10 @@ func (l Layout) Validate() error {
 		}
 	}
 	var hits []string
-	for _, r := range ReservedPorts() {
+	for _, r := range l.reserved() {
+		if r.To <= r.From {
+			return fmt.Errorf("reserved range %s %d-%d is empty", r.Name, r.From, r.To-1)
+		}
 		if r.From < end && r.To > l.Base {
 			hits = append(hits, fmt.Sprintf("%s %d-%d", r.Name, r.From, r.To-1))
 		}

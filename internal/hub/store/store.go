@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sync"
 )
@@ -23,11 +24,12 @@ var (
 )
 
 type Store struct {
-	home string
-	mu   *sync.Mutex
+	home            string
+	mu              *sync.Mutex
+	credentialFiles []*regexp.Regexp
 }
 
-func Open(home string) *Store {
+func Open(home string, credentialFiles ...*regexp.Regexp) *Store {
 	abs, err := filepath.Abs(home)
 	if err != nil {
 		abs = filepath.Clean(home)
@@ -39,7 +41,7 @@ func Open(home string) *Store {
 		mu = &sync.Mutex{}
 		registry[abs] = mu
 	}
-	return &Store{home: abs, mu: mu}
+	return &Store{home: abs, mu: mu, credentialFiles: credentialFiles}
 }
 
 func (s *Store) Home() string { return s.home }
@@ -148,7 +150,7 @@ func (s *Store) writeMeta(m Meta) error {
 	if err != nil {
 		return err
 	}
-	if leak := credentialPathAt(m); leak != "" {
+	if leak := credentialPathAt(m, s.credentialFiles); leak != "" {
 		return fmt.Errorf("meta does not record credential file paths: %s", leak)
 	}
 	for _, d := range []string{s.home, filepath.Join(s.home, runsDir), dir} {

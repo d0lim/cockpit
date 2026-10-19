@@ -14,16 +14,16 @@ import (
 )
 
 var leaseMutations = []porttest.Mutation{
-	{"port blocks do not overlap reserved ports", "skip the reserved loop in Validate", "red: a layout over the previous cockpit block or a manual port leases", "TestLayoutsOverlappingReservedPortsAreRefusedBeforeLeasing"},
-	{"the default layout stays clear of reserved ports", "move DefaultBase to 21000", "red: the default layout fails validation", "TestDefaultLayoutLeasesAllEightSlotsInOrder"},
-	{"offsets stay inside the block width", "drop the offset range check", "red: offset 100 with stride 100 is accepted", "TestLayoutsWithBadStrideSlotsOffsetsOrRangeAreRefused"},
+	{"port blocks do not overlap the reserved ranges the caller passes", "skip the Reserved entries in Validate", "red: a layout over a passed range leases", "TestLayoutsOverlappingReservedRangesPassedByTheCallerAreRefusedBeforeLeasing"},
+	{"the hub listen port is reserved", "drop the HubPort entry from reserved", "red: a block holding 7710 or the configured hub port leases", "TestBlocksHoldingTheHubListenPortAreRefusedAndTheConfiguredPortIsUsed"},
+	{"the default layout validates without extra reserved ranges", "move DefaultBase to 7650", "red: the default layout fails validation", "TestDefaultLayoutLeasesAllEightSlotsInOrder"},
+	{"offsets stay inside the block width", "drop the offset range check", "red: offset 100 with stride 100 is accepted", "TestLayoutsWithBadStrideSlotsOffsetsRangeOrReservedEntriesAreRefused"},
 	{"occupied ports skip the block", "ignore the probe in Lease", "red: slot 0 is leased while one of its ports is taken", "TestOccupiedPortInSlotZeroMovesTheLeaseToSlotOne"},
 	{"leased blocks are not handed out again", "ignore existing leases", "red: the stopped run's slot 0 goes to the new run", "TestLeasedBlockIsNotHandedOutEvenWhenItsPortsAreFree"},
 	{"no free block is an error", "return slot 0 when nothing is free", "red: a ninth run gets a slot", "TestNoFreeBlockIsErrNoPortBlock"},
 	{"the probe binds the loopback address", "bind :port instead of 127.0.0.1:port", "red: a port held on 127.0.0.1 probes as free", "TestProbeLoopbackSeesAPortHeldOnLoopbackAndAReleasedPortAsFree"},
 	{"blocks start at the base and step by the stride", "drop the stride multiplication in PortsForSlot", "red: slot 7 lands on the 22000 block", "TestPortsForSlotPlacesOffsetsInBlocksOfOneHundredFrom22000"},
 	{"release frees only the named run", "Release returns its input", "red: the released slot 0 is not handed out again", "TestReleasedBlockIsHandedOutAgainAndInputsAreNotModified"},
-	{"every manual stack port is reserved", "remove a port from ManualStackPorts", "red: the count is 16", "TestManualStackPortsAreSeventeenDistinctPorts"},
 	{"taken ports are reported by name", "BlockedPorts returns nil", "red: the two taken ports are missing", "TestBlockedPortsNamesEachTakenPort"},
 }
 
@@ -131,33 +131,64 @@ func TestNoFreeBlockIsErrNoPortBlock(t *testing.T) {
 	}
 }
 
-func TestLayoutsOverlappingReservedPortsAreRefusedBeforeLeasing(t *testing.T) {
+var synthetic = []Reserved{
+	{Name: "toy api", From: 9190, To: 9191},
+	{Name: "acme single port", From: 9580, To: 9581},
+	{Name: "toy db", From: 5432, To: 5433},
+	{Name: "app block", From: 30000, To: 30800},
+}
+
+func TestLayoutsOverlappingReservedRangesPassedByTheCallerAreRefusedBeforeLeasing(t *testing.T) {
 	cases := []struct {
 		name string
 		base int
-		port string
+		hit  string
 	}{
-		{"mock offsets land on 9090-9094", 9000, "9090"},
-		{"the whole block is checked, offset 80 holds 7700", 7620, "7700"},
-		{"every slot is checked, only the last slot holds 3306", 2600, "3306"},
-		{"a single manual port 9095", 9095, "9095"},
-		{"the previous cockpit block", 21000, "21000-21799"},
-		{"the hub listen port", 7650, "7710"},
+		{"an offset lands on a reserved port", 9100, "toy api 9190-9190"},
+		{"the whole block is checked, offset 80 holds no service", 9500, "acme single port 9580-9580"},
+		{"every slot is checked, only slot 6 holds the port", 4800, "toy db 5432-5432"},
+		{"a range overlapping the blocks", 30500, "app block 30000-30799"},
 	}
 	for _, c := range cases {
 		l := DefaultLayout(offsets)
-		l.Base = c.base
+		l.Base, l.Reserved = c.base, synthetic
 		_, _, _, err := Lease(store.Leases{}, "run-a", allFree, l)
-		if err == nil || !strings.Contains(err.Error(), "overlap reserved ports") || !strings.Contains(err.Error(), c.port) {
+		if err == nil || !strings.Contains(err.Error(), "overlap reserved ports") || !strings.Contains(err.Error(), c.hit) {
 			t.Errorf("%s: err %v", c.name, err)
 		}
+		l.Reserved = nil
+		if err := l.Validate(); err != nil {
+			t.Errorf("canary %s: the same layout without the passed ranges is refused: %v", c.name, err)
+		}
 	}
-	if len(cases) != 6 {
+	if len(cases) != 4 {
 		t.Fatal("case count")
+	}
+	clear := DefaultLayout(offsets)
+	clear.Reserved = synthetic
+	if err := clear.Validate(); err != nil {
+		t.Fatalf("default layout with ranges outside its blocks: %v", err)
 	}
 }
 
-func TestLayoutsWithBadStrideSlotsOffsetsOrRangeAreRefused(t *testing.T) {
+func TestBlocksHoldingTheHubListenPortAreRefusedAndTheConfiguredPortIsUsed(t *testing.T) {
+	l := DefaultLayout(offsets)
+	l.Base = 7650
+	if err := l.Validate(); err == nil || !strings.Contains(err.Error(), "hub listen port 7710-7710") {
+		t.Fatalf("default hub port: %v", err)
+	}
+	configured := DefaultLayout(offsets)
+	configured.HubPort = 22350
+	if err := configured.Validate(); err == nil || !strings.Contains(err.Error(), "hub listen port 22350-22350") {
+		t.Fatalf("configured hub port: %v", err)
+	}
+	l.HubPort = 7000
+	if err := l.Validate(); err != nil {
+		t.Fatalf("canary: hub port moved away, still refused: %v", err)
+	}
+}
+
+func TestLayoutsWithBadStrideSlotsOffsetsRangeOrReservedEntriesAreRefused(t *testing.T) {
 	bad := []Layout{
 		{Base: 22000, Stride: 0, Slots: 8},
 		{Base: 22000, Stride: 100, Slots: 0},
@@ -165,6 +196,7 @@ func TestLayoutsWithBadStrideSlotsOffsetsOrRangeAreRefused(t *testing.T) {
 		{Base: 22000, Stride: 100, Slots: 8, Offsets: map[string]int{"APP": -1}},
 		{Base: 500, Stride: 100, Slots: 2},
 		{Base: 49100, Stride: 100, Slots: 2},
+		{Base: 22000, Stride: 100, Slots: 8, Reserved: []Reserved{{Name: "toy", From: 9000, To: 9000}}},
 	}
 	for _, l := range bad {
 		if err := l.Validate(); err == nil {
@@ -173,16 +205,6 @@ func TestLayoutsWithBadStrideSlotsOffsetsOrRangeAreRefused(t *testing.T) {
 	}
 	if err := (Layout{Base: 22000, Stride: 100, Slots: 8, Offsets: map[string]int{"APP": 99}}).Validate(); err != nil {
 		t.Fatalf("canary: %v", err)
-	}
-}
-
-func TestManualStackPortsAreSeventeenDistinctPorts(t *testing.T) {
-	seen := map[int]bool{}
-	for _, p := range ManualStackPorts {
-		seen[p] = true
-	}
-	if len(ManualStackPorts) != 17 || len(seen) != 17 {
-		t.Fatalf("%d ports, %d distinct", len(ManualStackPorts), len(seen))
 	}
 }
 

@@ -154,16 +154,17 @@ Each run records `cockpitVersion`, `hostApi` and, once the runner image is impor
 
 ## Coexistence with the previous cockpit
 
-The two hubs can run on one host without sharing a lock, ports or reconciliation.
+The two hubs can run on one host without sharing a lock, ports or reconciliation. This hub's own defaults are:
 
-| Item | This hub | Previous hub |
-|---|---|---|
-| Listen address | `127.0.0.1:7710` (`COCKPIT_PORT` changes the port only) | `127.0.0.1:7700` |
-| Labels | `io.cockpit.managed`, `io.cockpit.run-id` | its own label names |
-| Port blocks | 22000-22799, 8 slots of 100 | 21000-21799 |
-| State directory | `~/.local/state/cockpit` (under `XDG_STATE_HOME` when set, `COCKPIT_HOME` overrides) | `~/.cockpit` |
-| Lock file | `hub.lock` in the state directory | `hub.lock` in its own directory |
+| Item | Default |
+|---|---|
+| Listen address | `127.0.0.1:7710` (`COCKPIT_PORT` changes the port only) |
+| Labels | `io.cockpit.managed`, `io.cockpit.run-id` |
+| Port blocks | 22000-22799, 8 slots of 100 |
+| State directory | `~/.local/state/cockpit` (under `XDG_STATE_HOME` when set, `COCKPIT_HOME` overrides) |
+| Lock file | `hub.lock` in the state directory |
 
 - The hub refuses to start when the state directory holds the previous layout: a `state.json` with `schemaVersion: 1`, or a `runs/*/meta.json` with a `harness` field. The message names the directory and says to move it away or to point `COCKPIT_HOME` at an empty directory. This hub writes `schemaVersion: 2` and its run records carry no `harness` field.
-- A port block layout is checked before any lease: it must not overlap the previous hub's block, the hub listen port, or the 17 ports of the manual stack, and every offset must fit inside the block width.
+- A port block layout is checked before any lease. Every offset must fit inside the block width, the blocks must stay within 1024-49151, and the blocks must not hold the hub listen port. Other ports to keep clear (another hub's blocks, a manual stack, any service on the host) are not core knowledge: the hub configuration lists them as reserved ranges (`reservedPorts`), and the layout refuses to overlap any of them.
 - `hub.lock` is created exclusively with mode 600 and holds the owner pid, port and start time. A lock held by a live pid refuses the start with that hub's address. A lock held by a dead pid is taken over. A lock that cannot be read is never taken over; the message names the file to delete.
+- Credential file names that run records must never contain are `.env` (and `.env.*`), `*.private.env.json` (the runner's private env) and `*.pem`. The caller adds further names from the project declaration's secret sources.
