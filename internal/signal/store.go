@@ -186,7 +186,7 @@ func (s *Stream) record(sig contract.Signal, offset int64) {
 	b := s.lim.bucketFor(sig.Collector, container, sig.Seq)
 	s.ix.put(sig.Seq, offset, b)
 	if sig.ID != "" && sig.Kind != contract.SignalKindMetric {
-		key := revKey(sig.Collector, string(sig.Kind), sig.ID)
+		key := sigKey(sig)
 		prev, had := s.revs[key]
 		s.revs.note(key, sig.Seq, sig.Rev)
 		if had && s.revs[key].seq != sig.Seq {

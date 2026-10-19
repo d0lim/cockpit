@@ -6,7 +6,7 @@ export const SERVICES_TABLE = "services";
 export const CONTAINER_ATTR = "container";
 export const RESERVED = ["table", "status", "label", "tone"] as const;
 
-const revKey = (s: Signal) => `${s.collector}\u0000${s.kind}\u0000${s.id}`;
+const revKey = (s: Signal) => `${s.collector}\u0000${s.kind}\u0000${s.id}${s.span ? `\u0000${s.span.traceId}` : ""}`;
 
 export function latestRevisions(signals: readonly Signal[]): Signal[] {
 	const winners = new Map<string, Signal>();

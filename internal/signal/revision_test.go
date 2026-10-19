@@ -51,3 +51,34 @@ func TestSameIDFromAnotherCollectorOrKindIsNotARevision(t *testing.T) {
 		t.Fatalf("%v", seqs(got))
 	}
 }
+
+func traced(trace, id, end string, rev int) contract.Signal {
+	return contract.Signal{
+		TSSource: contract.TimeSourceRunner, Kind: contract.SignalKindSpan, Collector: RunnerSource, ID: id, Rev: rev,
+		Span: &contract.SpanBody{TraceID: trace, Name: id, Start: "2026-10-19T01:00:00.000Z", End: end, Status: contract.SpanStatusOK},
+	}
+}
+
+func TestASpanIDIsARevisionOnlyWithinItsTraceAndReplaysTheSame(t *testing.T) {
+	dir := runDir(t)
+	s := openAt(t, dir, DefaultCaps(), masker(t))
+	mustAppend(t, s, traced("run-1", "flow:health", "2026-10-19T01:00:01.000Z", 0))
+	mustAppend(t, s, traced("run-1/exec/a", "flow:health", "2026-10-19T01:00:02.000Z", 0))
+	mustAppend(t, s, traced("run-1/exec/b", "flow:health", "2026-10-19T01:00:03.000Z", 0))
+	mustAppend(t, s, traced("run-1", "flow:health", "2026-10-19T01:00:04.000Z", 1))
+	ends := func(s *Stream) []string {
+		var out []string
+		for _, sig := range readAll(t, s, 0).Signals {
+			out = append(out, sig.Span.TraceID+" "+sig.Span.End)
+		}
+		return out
+	}
+	want := []string{"run-1/exec/a 2026-10-19T01:00:02.000Z", "run-1/exec/b 2026-10-19T01:00:03.000Z", "run-1 2026-10-19T01:00:04.000Z"}
+	if got := ends(s); !slices.Equal(got, want) {
+		t.Fatalf("live %v", got)
+	}
+	s.Close()
+	if got := ends(openAt(t, dir, DefaultCaps(), masker(t))); !slices.Equal(got, want) {
+		t.Fatalf("replayed %v", got)
+	}
+}

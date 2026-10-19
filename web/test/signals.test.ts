@@ -41,6 +41,17 @@ describe("signal views read only the reserved attributes", () => {
 		expect(latestRevisions([v1, v3, v2, t1, t2, plain]).map((s) => s.attrs.status)).toEqual(["sent", "b", "x"]);
 	});
 
+	test("a span id is a revision only within its trace, so an exec trace keeps the run trace's spans", () => {
+		const runFlow = span("flow:health", "run", 0, 10);
+		const execFlow = span("flow:health", "exec", 20, 30, { span: { ...span("x", undefined, 0, 0).span!, traceId: `${RUN}/exec/one`, parentId: "exec", name: "flow:health" } });
+		const later = span("flow:health", "run", 0, 12, { rev: 1 });
+		const shown = latestRevisions([runFlow, execFlow, later]);
+		expect(shown.map((s) => [s.span?.traceId, s.span?.end])).toEqual([
+			[`${RUN}/exec/one`, execFlow.span?.end],
+			[RUN, later.span?.end],
+		]);
+	});
+
 	test("tables split by the table attribute and their columns are the union of the row attributes", () => {
 		const rows = [event({ table: "jobs", label: "a", status: "ok" }), event({ table: "jobs", label: "b", owner: "x" }), event({ table: "queues", label: "q", depth: 3 }), event({ status: "free" })];
 		const t = tables(rows);

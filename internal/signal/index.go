@@ -1,5 +1,7 @@
 package signal
 
+import "github.com/d0lim/cockpit/internal/contract"
+
 const (
 	offsetBits      = 48
 	offsetMask      = int64(1)<<offsetBits - 1
@@ -101,6 +103,14 @@ type revision struct {
 type revisions map[string]revision
 
 func revKey(collector, kind, id string) string { return collector + "\x00" + kind + "\x00" + id }
+
+func sigKey(sig contract.Signal) string {
+	key := revKey(sig.Collector, string(sig.Kind), sig.ID)
+	if sig.Span != nil {
+		key += "\x00" + sig.Span.TraceID
+	}
+	return key
+}
 
 func (r revisions) note(key string, seq int64, rev int) {
 	cur, ok := r[key]

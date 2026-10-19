@@ -59,7 +59,7 @@ func (s *Stream) superseded(sig contract.Signal) bool {
 	if sig.ID == "" || sig.Kind == contract.SignalKindMetric {
 		return false
 	}
-	r, ok := s.revs[revKey(sig.Collector, string(sig.Kind), sig.ID)]
+	r, ok := s.revs[sigKey(sig)]
 	return ok && r.seq != sig.Seq
 }
 
