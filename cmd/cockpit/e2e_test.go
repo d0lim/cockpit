@@ -18,6 +18,8 @@ import (
 	"github.com/d0lim/cockpit/internal/compose"
 )
 
+const hostIndependentRunningCap = 1000
+
 type e2e struct {
 	t    *testing.T
 	bin  string
@@ -200,7 +202,7 @@ func newE2E(t *testing.T) *e2e {
 		t.Fatal(err)
 	}
 	block := strconv.Itoa(30000 + rand.IntN(150)*100)
-	config := "allowedRepositories:\n  - " + e.repo + "\nports:\n  base: " + block + "\n  slots: 1\n"
+	config := "allowedRepositories:\n  - " + e.repo + "\nlimits:\n  runningCap: " + strconv.Itoa(hostIndependentRunningCap) + "\nports:\n  base: " + block + "\n  slots: 1\n"
 	if err := os.WriteFile(filepath.Join(e.home, "config.yaml"), []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}

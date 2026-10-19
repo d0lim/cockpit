@@ -20,6 +20,8 @@ import (
 	"github.com/d0lim/cockpit/internal/runnerbin"
 )
 
+const hostIndependentRunningCap = 1000
+
 func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResumesAndDestroys(t *testing.T) {
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
 		t.Skip("needs COCKPIT_INTEGRATION=1, a Docker daemon and scripts/build-runners.sh")
@@ -36,7 +38,7 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 		replaceIn(t, filepath.Join(dir, "scripts", "flows", "health.ts"), "if (!value) throw", "console.log(\"token \" + String(ctx.priv.appToken));\n\t\t\t\tif (!value) throw")
 	})
 	limits := config.Defaults()
-	limits.PortBase, limits.Slots = freeBlock(t), 1
+	limits.PortBase, limits.Slots, limits.RunningCap = freeBlock(t), 1, hostIndependentRunningCap
 	cfg := config.Config{AllowedRepositories: []string{repo}, Limits: limits, ReservedPorts: []config.PortRange{}}
 	sched, hub, err := New(Options{
 		Home: home, Config: cfg, HubPort: 7710, Ensure: ensure, Limits: stages.DefaultLimits(), StopOnDone: false,
@@ -71,6 +73,9 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 		t.Fatalf("state %+v stop %s failed stage %s notice %q tail %q", m.State, m.StopReason, m.FailedStage, m.Notice, m.Tail)
 	}
 	t.Logf("passed: %s pinned %s (%s)", m.ID, m.RunnerImage.Tag, m.RunnerImage.ID)
+	if list, err := sched.List(); err == nil {
+		t.Logf("up count %d of cap %d, this hub's runs and every other project on the host", list.Up.Count, list.Up.Cap)
+	}
 	dir, _ := hub.Store().RunDir(m.ID)
 	token := envValue(t, filepath.Join(dir, "src", ".env"), "APP_TOKEN")
 	text := assertBundle(t, dir)
