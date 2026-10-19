@@ -27,6 +27,7 @@ var portMutations = []porttest.Mutation{
 	{"time limit", "remove the WithTimeout around the query", "red: the blocked query never returns", "TestExceedingTheTimeLimitIsPortTimeoutAndQueriesWithinItPass"},
 	{"a target is required for every database", "skip databases without a target", "red: New accepts a database without a target", "TestNewRejectsDatabasesWithoutATargetOrWithUnsafeIdentifiers"},
 	{"schema and owner names are plain identifiers", "remove checkIdentifiers from validate", "red: a schema with a backtick is accepted", "TestNewRejectsDatabasesWithoutATargetOrWithUnsafeIdentifiers"},
+	{"the declared root user and database reach the target", "ignore d.RootUser and d.Database in validate", "red: the target keeps the driver defaults", "TestNewRejectsDatabasesWithoutATargetOrWithUnsafeIdentifiers"},
 }
 
 func TestUndeclaredDatabaseIsPortDeniedAndDeclaredDatabaseReturnsRows(t *testing.T) {
@@ -236,6 +237,19 @@ func TestNewRejectsDatabasesWithoutATargetOrWithUnsafeIdentifiers(t *testing.T) 
 	}
 	if pg := p.dbs["main"].backend.(pgBackend); pg.target.RootUser != "postgres" || pg.target.Database != "postgres" {
 		t.Fatalf("defaults: %+v", pg.target)
+	}
+	declared := good
+	declared.RootUser, declared.Database = "admin", "appdb"
+	p, err = New(Options{Databases: []contract.Database{declared}, Targets: target})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pg := p.dbs["main"].backend.(pgBackend); pg.target.RootUser != "admin" || pg.target.Database != "appdb" {
+		t.Fatalf("declared root user and database: %+v", pg.target)
+	}
+	declared.Database = `app"db`
+	if _, err := New(Options{Databases: []contract.Database{declared}, Targets: target}); err == nil {
+		t.Fatal("a database name that is not a plain identifier was accepted")
 	}
 }
 

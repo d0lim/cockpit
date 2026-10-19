@@ -89,6 +89,8 @@ type Database struct {
 	ReadSchemas []string `json:"readSchemas"`
 	OwnerRole   string   `json:"ownerRole,omitempty"`
 	RootSecret  string   `json:"rootSecret"`
+	RootUser    string   `json:"rootUser,omitempty"`
+	Database    string   `json:"database,omitempty"`
 }
 
 type ExecSection struct {

@@ -1,6 +1,7 @@
 package sqlport
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -132,18 +133,17 @@ func validate(d contract.Database, t *Target) error {
 	if err := checkIdentifiers("read schema", d.ReadSchemas...); err != nil {
 		return err
 	}
-	if d.OwnerRole != "" {
-		if err := checkIdentifiers("owner role", d.OwnerRole); err != nil {
+	for _, named := range [][2]string{{"owner role", d.OwnerRole}, {"root user", d.RootUser}, {"database", d.Database}} {
+		if named[1] == "" {
+			continue
+		}
+		if err := checkIdentifiers(named[0], named[1]); err != nil {
 			return err
 		}
 	}
 	defaults := map[contract.DBDriver][2]string{contract.DriverMySQL: {"root", ""}, contract.DriverPostgres: {"postgres", "postgres"}}[d.Driver]
-	if t.RootUser == "" {
-		t.RootUser = defaults[0]
-	}
-	if t.Database == "" {
-		t.Database = defaults[1]
-	}
+	t.RootUser = cmp.Or(t.RootUser, d.RootUser, defaults[0])
+	t.Database = cmp.Or(t.Database, d.Database, defaults[1])
 	return nil
 }
 

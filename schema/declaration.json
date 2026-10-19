@@ -250,6 +250,12 @@
           },
           "rootSecret": {
             "type": "string"
+          },
+          "rootUser": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
           }
         },
         "required": [
