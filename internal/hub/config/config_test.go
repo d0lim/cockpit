@@ -89,3 +89,11 @@ func TestHubConfigAndComposeAgreeOnThePortBlockWidth(t *testing.T) {
 		t.Fatalf("config width %d, compose width %d", config.PortWidth, compose.PortWidth)
 	}
 }
+
+func TestTheDefaultPortBlockStaysClearOfThePreviousHubsManualStackRange(t *testing.T) {
+	const manualFirst, manualLast = 21000, 21799
+	d := config.Defaults()
+	if d.PortBase <= manualLast && d.PortEnd() >= manualFirst {
+		t.Fatalf("default port block %d-%d intersects the manual stack range %d-%d", d.PortBase, d.PortEnd(), manualFirst, manualLast)
+	}
+}
