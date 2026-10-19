@@ -87,6 +87,7 @@ type SecretsSection struct {
 type Database struct {
 	Name        Name     `json:"name"`
 	Driver      DBDriver `json:"driver"`
+	Port        Name     `json:"port"`
 	ReadSchemas []string `json:"readSchemas"`
 	OwnerRole   string   `json:"ownerRole,omitempty"`
 	RootSecret  string   `json:"rootSecret"`

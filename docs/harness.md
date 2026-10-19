@@ -14,7 +14,7 @@ The hub reads `.cockpit/project.yaml` from the git object of the submitted commi
 | 4 | `confinement` | a path that is not a clean relative path, passes through a committed symbolic link, or is missing where a file or directory is required; a name outside `^[a-z0-9][a-z0-9-]{0,62}$` or used twice; suites or collectors outside `scripts.dir` |
 | 5 | `host-api` | a `hostApi` outside the set this hub serves; the message names the served set and the cockpit version |
 | 6 | `secrets` | an empty `secrets.sources` |
-| 7 | `ports` | an offset outside `0..99`, on the reserved offset 99, or taken twice; a port outside `1..65535`; a port on a service that `compose.files` does not define |
+| 7 | `ports` | an offset outside `0..99`, on the reserved offset 99, or taken twice; a port outside `1..65535`; a port on a service that `compose.files` does not define; a `databases[].port` that names no entry of `ports` |
 | 8 | `compose` | a consumer service whose image uses the `cockpit-runner` repository, a builder or expected service that `compose.files` does not define, or a consumer service named `edge`, `runner`, `probe` or `probe-control`, or a network named `egress` |
 
 ## Allowed repositories
@@ -54,3 +54,7 @@ On Linux the `runner` service runs as the hub's uid:gid so it can write `work/e2
 Collector ids are the `.ts` basenames under `scripts.collectors`. They must match `^[a-z][a-z0-9-]{1,40}$`, and `runner`, `logs`, `services` and `supervisor` are reserved for the hub's own signal sources. The secret sources and env outputs of the declaration are also treated as credential file names in the run record.
 
 Each carries `io.cockpit.role`, and so does the builder (`builder`). Before any seal assertion, the rendered config (`docker compose config --format json` with every profile) must hold exactly one service per role, and every service must carry the labels of the run.
+
+## SQL port
+
+Each entry of `databases` names, in `port`, the offset whose edge port publishes that database. The hub reaches it at `127.0.0.1:<base + offset>` (`sqlport.TargetsFor`), the same loopback port a person would use, so the hub never joins a project network. The connection uses `rootUser` (driver default `root` for MySQL, `postgres` for PostgreSQL) with the secret named by `rootSecret` only to create a reader for this run, then reads as that reader.

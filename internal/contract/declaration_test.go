@@ -30,6 +30,22 @@ func TestDeclarationWithoutSecretsSectionFailsSchemaValidation(t *testing.T) {
 	}
 }
 
+func TestDatabaseWithoutAPortFailsSchemaValidationAndWithOnePasses(t *testing.T) {
+	schema := loadSchema(t, "declaration")
+	doc := declarationSample(t)
+	if err := schema.Validate(doc); err != nil {
+		t.Fatalf("original did not pass: %v", err)
+	}
+	db, ok := doc["databases"].([]any)[0].(map[string]any)
+	if !ok || db["port"] != "db" {
+		t.Fatalf("sample database %v", doc["databases"])
+	}
+	delete(db, "port")
+	if err := schema.Validate(doc); err == nil || !strings.Contains(err.Error(), "port") {
+		t.Fatalf("a database without a port was not rejected: %v", err)
+	}
+}
+
 func TestDeclarationWithStringHostApiFailsSchemaValidation(t *testing.T) {
 	schema := loadSchema(t, "declaration")
 	doc := declarationSample(t)
@@ -106,6 +122,7 @@ func TestDeclarationNameFieldsAcceptOnlyLowercaseDigitsAndHyphensUpTo63Chars(t *
 		{"ports", 0, "name"},
 		{"inputs", "runnerSources", 0, "name"},
 		{"databases", 0, "name"},
+		{"databases", 0, "port"},
 	}
 	var cases []fieldCase
 	for _, p := range paths {

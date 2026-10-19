@@ -96,6 +96,9 @@ func ReadDeclaration(ctx context.Context, git Git, sha string) (Loaded, error) {
 	if err := checkOffsets(decl.Ports); err != nil {
 		return Loaded{}, err
 	}
+	if err := checkDatabasePorts(decl); err != nil {
+		return Loaded{}, err
+	}
 	model, err := LoadModel(ctx, git, tree, decl.Compose.Files)
 	if err != nil {
 		return Loaded{}, err

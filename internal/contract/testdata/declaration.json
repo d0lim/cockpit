@@ -34,7 +34,7 @@
     "patterns": ["tk_[A-Za-z0-9]{16,}"]
   },
   "databases": [
-    { "name": "main", "driver": "postgres", "readSchemas": ["public"], "ownerRole": "app", "rootSecret": "POSTGRES_PASSWORD" }
+    { "name": "main", "driver": "postgres", "port": "db", "readSchemas": ["public"], "ownerRole": "app", "rootSecret": "POSTGRES_PASSWORD" }
   ],
   "exec": {
     "allow": [["valkey-cli", "GET"], ["valkey-cli", "SCAN"]]

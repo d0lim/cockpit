@@ -16,6 +16,7 @@ var declarationMutations = []porttest.Mutation{
 	{"a declaration without secret sources is rejected", "drop the empty secrets.sources check", "red: secrets.sources [] is accepted", "TestToyDeclarationPassesAndHostApi2MissingSecretsMissingFileAndBadYAMLAreRejectedForDifferentReasons"},
 	{"the schema gate runs before decoding", "skip schema.Validate in ParseDeclaration", "red: a declaration without secrets reaches the secrets check instead of the schema", "TestToyDeclarationPassesAndHostApi2MissingSecretsMissingFileAndBadYAMLAreRejectedForDifferentReasons"},
 	{"offsets stay inside the block and off reserved offsets", "drop the range and reserved checks in checkOffsets", "red: offsets 100, -1 and 99 pass", "TestOffsetsOutsideTheBlockOnTheReservedCanaryOrTakenTwiceAreRejectedAndInBlockOffsetsPass"},
+	{"a database names the offset that publishes it", "drop checkDatabasePorts from ReadDeclaration", "red: a database port naming no offset is accepted", "TestDatabasePortNamingNoOffsetIsRejectedAtItsFieldAndANamedOffsetPasses"},
 	{"consumer services cannot use the runner repository", "make usesRunnerRepository return false", "red: a service on cockpit-runner:abc is accepted", "TestConsumerServiceOnTheRunnerRepositoryIsRejectedAndOtherImagesPass"},
 	{"harness names and missing services are rejected", "drop the reserved-name and service checks in Model.check", "red: a consumer edge service or an unknown builder passes", "TestReservedHarnessNamesAndServicesMissingFromComposeAreRejected"},
 }
@@ -93,6 +94,31 @@ func TestOffsetsOutsideTheBlockOnTheReservedCanaryOrTakenTwiceAreRejectedAndInBl
 	})
 	if r := rejection(t, err); r.Kind != RejectPorts || r.Field != "ports[2].offset" {
 		t.Fatalf("declaration with offset 120: %v", r)
+	}
+}
+
+func TestDatabasePortNamingNoOffsetIsRejectedAtItsFieldAndANamedOffsetPasses(t *testing.T) {
+	denied := []string{"queue", "main", "db2"}
+	for _, name := range denied {
+		_, err := loadToy(t, func(d string) {
+			replaceIn(t, filepath.Join(d, DeclarationPath), "port: db, readSchemas", "port: "+name+", readSchemas")
+		})
+		r := rejection(t, err)
+		if r.Kind != RejectPorts || r.Field != "databases[0].port" || !strings.Contains(r.Message, `"`+name+`" names no entry of ports`) {
+			t.Errorf("port %s: %v", name, r)
+		}
+	}
+	allowed := []string{"db", "cache"}
+	for _, name := range allowed {
+		loaded, err := loadToy(t, func(d string) {
+			replaceIn(t, filepath.Join(d, DeclarationPath), "port: db, readSchemas", "port: "+name+", readSchemas")
+		})
+		if err != nil || string(loaded.Declaration.Databases[0].Port) != name {
+			t.Errorf("port %s: %+v %v", name, loaded.Declaration.Databases, err)
+		}
+	}
+	if err := checkDatabasePorts(contract.Declaration{}); err != nil {
+		t.Fatalf("a declaration without databases: %v", err)
 	}
 }
 

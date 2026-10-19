@@ -243,6 +243,10 @@
               "postgres"
             ]
           },
+          "port": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+          },
           "readSchemas": {
             "type": "array",
             "items": {
@@ -265,6 +269,7 @@
         "required": [
           "name",
           "driver",
+          "port",
           "readSchemas",
           "rootSecret"
         ],

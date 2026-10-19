@@ -41,6 +41,24 @@ func checkOffsets(ports []contract.PortOffset) error {
 	return nil
 }
 
+func checkDatabasePorts(d contract.Declaration) error {
+	for i, db := range d.Databases {
+		if _, ok := PortByName(d.Ports, db.Port); !ok {
+			return reject(RejectPorts, fmt.Sprintf("databases[%d].port", i), "%q names no entry of ports; name the offset that publishes database %s", db.Port, db.Name)
+		}
+	}
+	return nil
+}
+
+func PortByName(ports []contract.PortOffset, name contract.Name) (contract.PortOffset, bool) {
+	for _, p := range ports {
+		if p.Name == name {
+			return p, true
+		}
+	}
+	return contract.PortOffset{}, false
+}
+
 func HostPort(base int, p contract.PortOffset) int {
 	return base + p.Offset
 }
