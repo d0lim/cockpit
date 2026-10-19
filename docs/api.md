@@ -51,8 +51,8 @@ The CLI sends `Origin` and `X-Cockpit` on every write.
 The tests check every answer against a JSON Schema generated from the Go struct.
 
 - **`RunItem`**: the run's state and identity fields, `phaseLabel` and `verdictLabel`. It keeps every field the previous hub sent except its harness flag, and adds `hostApi` and `cockpitVersion`.
-- **`RunDetail`**: a `RunItem` plus image keys and digests, the runner image, the tail, `allowedEvents` (`stop`, `resume`, `destroy`, `abort`) and `services`.
-- **`HubList`**: `runs` (`RunItem` rows), `orphans`, `pool`, `up`, `dockerDown` and `tickError`.
+- **`RunDetail`**: a `RunItem` plus image keys and digests, the runner image, the tail, `allowedEvents` (`stop`, `resume`, `destroy`, `abort`) and `services`. Each service is `{name, service, port, hostPort, label, open?}`, where `open` is the declaration's open mode (`browser`, `link` or `copy`).
+- **`HubList`**: `runs` (`RunItem` rows), `orphans`, `pool`, `up`, `dockerDown`, `tickError` and `servedHostApis`, the host API versions this hub serves. The screen hides the signal and report tabs of a run outside that set.
 - **`ReportView`**: one of four statuses.
   - `pending` while the run is queued or active.
   - `redaction-failed` with the bundle paths the rescan caught.
@@ -103,4 +103,8 @@ Rules:
 
 ## Labels
 
-`internal/hub/labels` owns the words the screen and the CLI show: state, stage, wait, stop and destroy labels from `internal/hub/lifecycle`, verdict and collector state labels, and the CLI messages with `{name}` placeholders. `go generate ./internal/hub/labels` writes `web/shared/labels.json`. `make verify` fails when the file drifts, and a test compares it with the Go table.
+`internal/hub/labels` owns the words the screen and the CLI show: state, stage, wait, stop and destroy labels from `internal/hub/lifecycle`, verdict, collector state and flow status labels, and the CLI messages with `{name}` placeholders. `go generate ./internal/hub/labels` writes `web/shared/labels.json`. `make verify` fails when the file drifts, and a test compares it with the Go table.
+
+## Screen types
+
+`go generate ./internal/hub/api` writes `web/shared/api.ts` from the Go response structs with `internal/hub/api/tsgen`. A field with `omitempty` or `omitzero` is optional, a pointer without it is `T | null`, an embedded struct becomes `extends`, and a named string type becomes the union of its typed constants. `lifecycle.Verdict` marshals its zero value as `null`, so it renders without the empty value and every field of that type is `Verdict | null`. Any other type with its own `MarshalJSON` stops the generator until it gets a TypeScript form. A test compares every generated interface with the JSON Schema that `jsonschema.ForType` builds from the same struct, property by property and required field by required field. The screen imports these types through `web/shared/types.ts` and adds only its own: operation names, frame envelopes and the data source badge.

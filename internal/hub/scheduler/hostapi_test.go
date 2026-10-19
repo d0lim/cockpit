@@ -60,7 +60,7 @@ func TestRunPinnedToAnUnservedHostAPIIsListedAndDestroyedButResumeAndExecAreRefu
 		t.Fatalf("docker or runner called: %v", got)
 	}
 	list, _ := s.List()
-	if len(list.Runs) != 2 || read(t, w, rid(1)).Env != lifecycle.EnvStopped {
+	if len(list.Runs) != 2 || read(t, w, rid(1)).Env != lifecycle.EnvStopped || !slices.Equal(list.Served, []int{1}) {
 		t.Fatalf("%+v", list.Runs)
 	}
 	if got := s.AllowedEvents(read(t, w, rid(1))); slices.Contains(got, lifecycle.Resume) || !slices.Contains(got, lifecycle.Destroy) {

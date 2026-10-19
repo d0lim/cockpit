@@ -28,6 +28,7 @@ export const hub = (runs: RunItem[], over: Partial<HubList> = {}): HubList => ({
 	up: { count: 1, cap: 3 },
 	dockerDown: false,
 	tickError: null,
+	servedHostApis: [1],
 	...over,
 });
 

@@ -52,7 +52,7 @@ func writeBundle(t *testing.T, dir string) {
 func TestEveryRouteAnswersWithTheSchemaOfItsResponseShape(t *testing.T) {
 	f := newFixture(t, func(d *Deps) {
 		d.Services = func(store.Meta) []ServicePort {
-			return []ServicePort{{Name: "app", Service: "app", Port: 8080, HostPort: 22101, Label: "App"}}
+			return []ServicePort{{Name: "app", Service: "app", Port: 8080, HostPort: 22101, Label: "App", Open: contract.OpenBrowser}}
 		}
 	})
 	status, raw := f.post("/api/runs", map[string]any{"worktree": "/w", "commit": "c1", "suite": "toy"})
@@ -72,11 +72,11 @@ func TestEveryRouteAnswersWithTheSchemaOfItsResponseShape(t *testing.T) {
 		return validate(t, typ, raw)
 	}
 	list := shape("/api/runs", reflect.TypeFor[HubList]())
-	if runs := list["runs"].([]any); len(runs) != 1 || runs[0].(map[string]any)["phaseLabel"] != "Done (up)" {
+	if runs := list["runs"].([]any); len(runs) != 1 || runs[0].(map[string]any)["phaseLabel"] != "Done (up)" || !reflect.DeepEqual(list["servedHostApis"], []any{float64(1)}) {
 		t.Fatalf("list %v", list)
 	}
 	detail := shape("/api/runs/"+id, reflect.TypeFor[RunDetail]())
-	if detail["verdictLabel"] != "Passed" || len(detail["services"].([]any)) != 1 || !slices.Contains(detail["allowedEvents"].([]any), any("stop")) {
+	if detail["verdictLabel"] != "Passed" || len(detail["services"].([]any)) != 1 || detail["services"].([]any)[0].(map[string]any)["open"] != "browser" || !slices.Contains(detail["allowedEvents"].([]any), any("stop")) {
 		t.Fatalf("detail %v", detail)
 	}
 	if rep := shape("/api/runs/"+id+"/report", reflect.TypeFor[ReportView]()); rep["status"] != ReportMetaOnly {

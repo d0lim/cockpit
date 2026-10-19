@@ -1,4 +1,4 @@
-import type { HubList, JobEvent, Resync, RunsEvent, Signal } from "./shared/types";
+import type { HubList, JobEvent, RefusedFrame, Resync, ResyncFrame, RunsEvent, Signal } from "./shared/types";
 
 export type JobLog = { jobId: string; title: string; lines: string[]; code?: number; running: boolean };
 export type Connection = "connecting" | "open" | "lost";
@@ -74,11 +74,11 @@ function applyFrame(state: Live, f: Frame): Live {
 			return sig.seq > lastSeq(s) ? { ...s, signals: cap([...s.signals, sig], SIGNAL_CAP) } : s;
 		}
 		case "resync": {
-			const hole = f.data as Resync;
+			const hole = f.data as ResyncFrame;
 			return s.holes.some((h) => h.from === hole.from && h.to === hole.to) ? s : { ...s, holes: [...s.holes, { from: hole.from, to: hole.to }] };
 		}
 		case "signal-refused":
-			return { ...s, refused: String((f.data as { reason?: unknown }).reason ?? "signal reads are refused") };
+			return { ...s, refused: (f.data as Partial<RefusedFrame>).reason ?? "signal reads are refused" };
 	}
 	return s;
 }

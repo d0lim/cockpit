@@ -153,6 +153,7 @@ type HubList struct {
 	Up         Count              `json:"up"`
 	DockerDown bool               `json:"dockerDown"`
 	TickError  string             `json:"tickError"`
+	Served     []int              `json:"servedHostApis"`
 }
 
 func positioned(m store.Meta, queue []string) RunView {
@@ -176,7 +177,7 @@ func (s *Scheduler) List() (HubList, error) {
 		return HubList{}, err
 	}
 	view := s.core.View(list.Runs)
-	out := HubList{Orphans: s.core.Orphans(), DockerDown: s.core.DockerDown(), TickError: s.core.TickError()}
+	out := HubList{Orphans: s.core.Orphans(), DockerDown: s.core.DockerDown(), TickError: s.core.TickError(), Served: append([]int{}, s.d.Served...)}
 	for _, m := range list.Runs {
 		out.Runs = append(out.Runs, positioned(m, st.Queue))
 		if pool.InPool(m) {

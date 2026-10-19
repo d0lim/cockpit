@@ -2,7 +2,7 @@ import { label } from "../shared/labels";
 import type { CollectorState, Tone } from "../shared/types";
 import { Badge, stamp } from "../ui";
 
-const TONES: Readonly<Record<string, Tone>> = { armed: "ok", backoff: "warn", stopped: "idle", "report-only": "info" };
+const TONES: Readonly<Record<string, Tone>> = { armed: "ok", backoff: "warn", stopped: "idle" };
 
 export function collectorLine(c: CollectorState): string {
 	const parts = [c.id, label("collectors", c.state), `last success ${stamp(c.lastOkAt)}`, `failures ${c.failures}`];

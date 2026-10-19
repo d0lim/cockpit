@@ -3,7 +3,7 @@ import { fetchSource, usePoll } from "../api";
 import { type CodeTarget, flowRanges, highlightRange, jumpLine, rangeText } from "../shared/flowTable";
 import type { FlowSummary, SourceView } from "../shared/types";
 import { Badge, Panel } from "../ui";
-import { SOURCE_BADGES } from "./sourceBadge";
+import { sourceBadge } from "./sourceBadge";
 
 export const CodeGap = ({ sentence }: { sentence: string }) => <p className="needs">no code · {sentence}</p>;
 
@@ -12,7 +12,7 @@ type Props = { id: string; flow: string; flows: FlowSummary[]; target: CodeTarge
 export function CodeView({ id, flow, flows, target, version }: Props) {
 	const source = usePoll(() => fetchSource(id, target.file), null, [id, target.file, version]);
 	const view = source.data;
-	const badge = view ? SOURCE_BADGES[view.source] : null;
+	const badge = view ? sourceBadge(view.source) : null;
 	return (
 		<Panel title={`Code · ${target.file}`} actions={badge ? <Badge tone={badge.tone}>{badge.label}</Badge> : undefined}>
 			{view === null ? source.error ? <CodeGap sentence={source.error} /> : <p className="muted">Loading</p> : <CodeBody view={view} flow={flow} flows={flows} target={target} />}

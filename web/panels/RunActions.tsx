@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ApiFailure, operate } from "../api";
 import { confirmText, type DangerOp, needsConfirm, needsForce } from "../runs";
 import { keepFrozen } from "../shared/pool";
-import type { Candidate, RunEvent, RunItem, RunOp } from "../shared/types";
+import type { Candidate, Event, RunEvent, RunItem, RunOp } from "../shared/types";
 import { stamp } from "../ui";
 
 const LABEL: Record<RunOp, string> = { keep: "Keep", unkeep: "Release keep", stop: "Stop", resume: "Resume", destroy: "Destroy", abort: "Abort" };
@@ -21,10 +21,10 @@ function failureOf(e: Error): Shown {
 	if (!(e instanceof ApiFailure)) return { ok: false, text: e.message };
 	const text = `${e.code} · ${e.message}`;
 	if (e.code !== "CONFLICT_CAP") return { ok: false, text };
-	return { ok: false, text, candidates: Array.isArray(e.body.candidates) ? (e.body.candidates as Candidate[]) : [] };
+	return { ok: false, text, candidates: Array.isArray(e.body.candidates) ? e.body.candidates : [] };
 }
 
-type Props = { run: RunItem; allowed: readonly RunEvent[] | null; onSelect: (id: string) => void };
+type Props = { run: RunItem; allowed: readonly Event[] | null; onSelect: (id: string) => void };
 
 export function RunActions({ run, allowed, onSelect }: Props) {
 	const [confirm, setConfirm] = useState<DangerOp | null>(null);

@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"testing"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 )
 
@@ -81,5 +83,24 @@ func TestMessagesFillTheirPlaceholdersAndLeaveNoneBehind(t *testing.T) {
 	}
 	if len(vars) < 10 {
 		t.Fatalf("only %d placeholders", len(vars))
+	}
+}
+
+func TestEveryStepStatusAndFlowOutcomeHasAFlowStatusLabel(t *testing.T) {
+	table := Load()
+	checked := 0
+	for _, e := range contract.Enums() {
+		if e.Type != reflect.TypeFor[contract.StepStatus]() && e.Type != reflect.TypeFor[contract.FlowOutcome]() {
+			continue
+		}
+		for _, v := range e.Values {
+			if table.FlowStatus[v.(string)] == "" {
+				t.Errorf("%s %v has no flow status label", e.Type.Name(), v)
+			}
+			checked++
+		}
+	}
+	if checked != 10 || table.FlowStatus[FlowNotProven] == "" || table.FlowStatus["unknown"] != "" {
+		t.Fatalf("checked %d values, not proven %q", checked, table.FlowStatus[FlowNotProven])
 	}
 }

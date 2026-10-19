@@ -4,7 +4,7 @@ import { codeTarget, pickedStep, STATUS_TONES, STEP_KIND_LABELS, statusLabel, st
 import type { FlowSummary, FlowView as View } from "../shared/types";
 import { Badge, Panel } from "../ui";
 import { CodeGap, CodeView } from "./CodeView";
-import { SOURCE_BADGES } from "./sourceBadge";
+import { sourceBadge } from "./sourceBadge";
 
 type Props = { id: string; version: string; flow: string; step: string | null; flows: FlowSummary[]; onPick: (pick: FlowPick) => void };
 
@@ -26,7 +26,7 @@ export function FlowView({ id, version, flow, step, flows, onPick }: Props) {
 	}
 	const active = pickedStep(view.flow, step);
 	const target = codeTarget(view.flow, active);
-	const badge = SOURCE_BADGES[view.source];
+	const badge = sourceBadge(view.source);
 	return (
 		<>
 			<Panel

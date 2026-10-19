@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
-import type { FlowView, HubList, KitView, ReportView, RunDetail, RunItem, RunOp, SignalsView, SourceView } from "./shared/types";
+import type { FlowView, HubList, KitView, OpReply, Problem, ReportView, RunDetail, RunOp, SignalsView, SourceView } from "./shared/types";
 import { type Action, initialLive, type Live, reduce, STREAM_KINDS, type StreamKind } from "./store";
 
 export class ApiFailure extends Error {
@@ -7,7 +7,7 @@ export class ApiFailure extends Error {
 		readonly status: number,
 		readonly code: string,
 		message: string,
-		readonly body: Record<string, unknown>,
+		readonly body: Partial<Problem>,
 	) {
 		super(message);
 		this.name = "ApiFailure";
@@ -20,7 +20,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 	if (res.ok) return body as T;
 	const fields = typeof body === "object" && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
 	const message = typeof fields.message === "string" ? fields.message : `HTTP ${res.status}`;
-	throw new ApiFailure(res.status, typeof fields.code === "string" ? fields.code : `HTTP_${res.status}`, message, fields);
+	throw new ApiFailure(res.status, typeof fields.code === "string" ? fields.code : `HTTP_${res.status}`, message, fields as Partial<Problem>);
 }
 
 export const post = <T,>(path: string, body?: unknown) =>
@@ -39,7 +39,7 @@ export const fetchReport = (id: string) => call<ReportView>(runPath(id, "/report
 export const fetchFlow = (id: string, flow: string) => call<FlowView>(runPath(id, `/flows/${encodeURIComponent(flow)}`));
 export const fetchSource = (id: string, file: string) => call<SourceView>(runPath(id, `/source?file=${encodeURIComponent(file)}`));
 export const fetchSignalMeta = (id: string, after: number) => call<SignalsView>(runPath(id, `/signals?after=${after}&limit=1`));
-export const operate = (id: string, op: RunOp, force: boolean) => post<{ run: RunItem }>(runPath(id, `/${op}${force ? "?force=1" : ""}`));
+export const operate = (id: string, op: RunOp, force: boolean) => post<OpReply>(runPath(id, `/${op}${force ? "?force=1" : ""}`));
 
 export const HUB_TARGET = "hub";
 export const eventsUrl = (target: string | null) => `/api/events?target=${encodeURIComponent(target ?? HUB_TARGET)}`;

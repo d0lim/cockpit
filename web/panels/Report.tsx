@@ -9,7 +9,6 @@ import { FlowView } from "./FlowDetail";
 import { FlowTable } from "./FlowTable";
 
 type Summary = { reasons?: string[]; seal?: string; stages?: Record<string, CollectStage> };
-type Bundle = Extract<ReportView, { status: "bundle" }>;
 type Picking = { pick: FlowPick; onPick: (pick: FlowPick) => void; version: string };
 
 export function Report({ id, run, pick, onPick }: { id: string; run: RunItem | undefined } & Omit<Picking, "version">) {
@@ -46,7 +45,7 @@ export function ReportBody({ id, rep, picking }: { id: string; rep: ReportView; 
 				<Head rep={rep} />
 				<Notice>The redaction rescan discarded the bundle. The files it caught:</Notice>
 				<ul className="files">
-					{rep.files.map((f) => (
+					{(rep.files ?? []).map((f) => (
 						<li key={f}>
 							<code>{f}</code>
 						</li>
@@ -70,7 +69,7 @@ export function ReportBody({ id, rep, picking }: { id: string; rep: ReportView; 
 	return <BundleReport id={id} rep={rep} summary={(rep.summary ?? {}) as Summary} picking={picking} />;
 }
 
-function BundleReport({ id, rep, summary, picking }: { id: string; rep: Bundle; summary: Summary; picking: Picking }) {
+function BundleReport({ id, rep, summary, picking }: { id: string; rep: ReportView; summary: Summary; picking: Picking }) {
 	const { steps, stoppedAt: first } = rep;
 	const flows = rep.flows ?? [];
 	const { pick, onPick, version } = picking;
@@ -122,7 +121,7 @@ function BundleReport({ id, rep, summary, picking }: { id: string; rep: Bundle; 
 			{pick.flow === null ? null : <FlowView key={pick.flow} id={id} version={version} flow={pick.flow} step={pick.step} flows={flows} onPick={onPick} />}
 			<Panel title="Bundle directory">
 				<p>
-					<Copy text={rep.reportDir} />
+					<Copy text={rep.reportDir ?? ""} />
 				</p>
 				<p className="needs">Open the raw files (runner results, signals, sources) in this directory. The hub does not serve raw files.</p>
 			</Panel>

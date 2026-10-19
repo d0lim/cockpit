@@ -1,4 +1,4 @@
-import type { AttrValue, CollectorState, RunItem, Signal } from "../shared/types";
+import type { CollectorState, RunItem, Signal } from "../shared/types";
 
 export const LOG_COLLECTOR = "logs";
 export const SUPERVISOR_COLLECTOR = "supervisor";
@@ -40,7 +40,7 @@ export function droppedLine(dropped: Readonly<Record<string, number>>): string |
 export const holeNotice = (from: number, to: number) =>
 	`Signals ${from}-${to} were dropped before this screen read them; reading continues after them.`;
 
-export const attrText = (v: AttrValue | undefined): string => (v === undefined ? "" : String(v));
+export const attrText = (v: unknown): string => (v === undefined ? "" : String(v));
 
 export type EmptyKind = "before-boot" | "env-off" | "no-collectors" | "no-signals";
 

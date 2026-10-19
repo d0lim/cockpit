@@ -29,8 +29,7 @@ export const isTab = (value: string | null): value is Tab => value !== null && (
 export const isSignalTab = (tab: Tab): boolean => SIGNAL_TABS.has(tab);
 
 export function served(run: Pick<RunItem, "hostApi">, hub: Pick<HubList, "servedHostApis"> | null): boolean {
-	const apis = hub?.servedHostApis;
-	return apis === undefined || apis.includes(run.hostApi);
+	return hub === null || hub.servedHostApis.includes(run.hostApi);
 }
 
 export const UNSERVED_NOTICE = (api: number) =>

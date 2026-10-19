@@ -42,11 +42,12 @@ type RunItem struct {
 }
 
 type ServicePort struct {
-	Name     string `json:"name"`
-	Service  string `json:"service"`
-	Port     int    `json:"port"`
-	HostPort int    `json:"hostPort"`
-	Label    string `json:"label"`
+	Name     string            `json:"name"`
+	Service  string            `json:"service"`
+	Port     int               `json:"port"`
+	HostPort int               `json:"hostPort"`
+	Label    string            `json:"label"`
+	Open     contract.OpenMode `json:"open,omitempty"`
 }
 
 type RunDetail struct {
@@ -66,6 +67,7 @@ type HubList struct {
 	Up         scheduler.Count    `json:"up"`
 	DockerDown bool               `json:"dockerDown"`
 	TickError  *string            `json:"tickError"`
+	Served     []int              `json:"servedHostApis"`
 }
 
 type Submitted struct {
@@ -112,7 +114,7 @@ func Detail(v scheduler.RunView, allowed []lifecycle.Event, services []ServicePo
 }
 
 func PublicList(l scheduler.HubList) HubList {
-	out := HubList{Runs: []RunItem{}, Orphans: l.Orphans, Pool: l.Pool, Up: l.Up, DockerDown: l.DockerDown}
+	out := HubList{Runs: []RunItem{}, Orphans: l.Orphans, Pool: l.Pool, Up: l.Up, DockerDown: l.DockerDown, Served: append([]int{}, l.Served...)}
 	if out.Orphans == nil {
 		out.Orphans = []reconcile.Orphan{}
 	}

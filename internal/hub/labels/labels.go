@@ -7,6 +7,7 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 )
 
@@ -18,6 +19,7 @@ type Table struct {
 	Destroy    map[string]string  `json:"destroy"`
 	Verdicts   map[string]string  `json:"verdicts"`
 	Collectors map[string]string  `json:"collectors"`
+	FlowStatus map[string]string  `json:"flowStatus"`
 	Messages   map[Message]string `json:"messages"`
 }
 
@@ -112,6 +114,18 @@ var verdicts = map[string]string{
 	string(lifecycle.VerdictAborted): "Aborted",
 }
 
+const FlowNotProven = "notProven"
+
+var flowStatus = map[string]string{
+	string(contract.StepStatusNotRun):      "Not run",
+	string(contract.StepStatusRunning):     "Running",
+	string(contract.StepStatusPassed):      "Passed",
+	string(contract.StepStatusFailed):      "Failed",
+	string(contract.StepStatusSkipped):     "Skipped",
+	string(contract.FlowOutcomeIncomplete): "Incomplete",
+	FlowNotProven:                          "Not proven",
+}
+
 var collectors = map[string]string{
 	"armed":   "Armed",
 	"stopped": "Stopped",
@@ -135,6 +149,7 @@ func Load() Table {
 		Destroy:    stringKeys(lifecycle.DestroyLabels),
 		Verdicts:   maps.Clone(verdicts),
 		Collectors: maps.Clone(collectors),
+		FlowStatus: maps.Clone(flowStatus),
 		Messages:   maps.Clone(messages),
 	}
 }

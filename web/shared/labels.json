@@ -53,6 +53,15 @@
     "backoff": "Backing off",
     "stopped": "Stopped"
   },
+  "flowStatus": {
+    "failed": "Failed",
+    "incomplete": "Incomplete",
+    "notProven": "Not proven",
+    "notRun": "Not run",
+    "passed": "Passed",
+    "running": "Running",
+    "skipped": "Skipped"
+  },
   "messages": {
     "allowedEvents": "actions: {events}",
     "bundle": "bundle: {dir}",
