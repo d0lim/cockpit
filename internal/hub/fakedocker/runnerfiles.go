@@ -35,7 +35,7 @@ func (f *Fake) manifest() contract.Manifest {
 }
 
 func (f *Fake) result() contract.Result {
-	return contract.Result{SchemaVersion: contract.RunnerSchemaVersion, Suite: "smoke", Complete: true, StartedAt: startedAt, FinishedAt: startedAt, StoppedAt: f.StoppedAt, Steps: f.Steps}
+	return contract.Result{SchemaVersion: contract.RunnerSchemaVersion, Suite: "smoke", Complete: !f.Incomplete, StartedAt: startedAt, FinishedAt: startedAt, StoppedAt: f.StoppedAt, Steps: f.Steps}
 }
 
 func (f *Fake) writeRunnerFiles(args, env []string) {

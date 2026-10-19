@@ -8,6 +8,7 @@ import (
 
 	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/mask"
@@ -148,6 +149,19 @@ func (o *Ops) AddCollected(ctx context.Context, in *ReportInput) {
 		in.Collected, in.CollectErr = o.CollectReport(ctx, in.Meta.ID, in.Meta.Env)
 	}
 	if s := o.Stream(in.Meta.ID); s != nil {
-		in.Signals = s
+		in.Signals, in.Stream = s, s
+	}
+}
+
+func (o *Ops) AppendSpans(id string, spans []contract.Signal) {
+	s := o.Stream(id)
+	if s == nil {
+		return
+	}
+	for _, sig := range spans {
+		if _, err := s.Append(sig); err != nil {
+			o.log().Warn("a runner span was not recorded", "run", id, "span", sig.ID, "err", o.Mask(id, err.Error()))
+			return
+		}
 	}
 }

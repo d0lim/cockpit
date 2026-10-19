@@ -35,6 +35,8 @@ type ReportInput struct {
 	Boot       *contract.BootVerdict
 	Masker     *mask.Masker
 	Signals    report.Signals
+	Stream     *signal.Stream
+	RunnerExit time.Time
 	Collected  *collect.ReportResult
 	CollectErr error
 	Now        time.Time

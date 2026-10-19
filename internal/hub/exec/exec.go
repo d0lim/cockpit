@@ -17,6 +17,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/hub/ticker"
+	"github.com/d0lim/cockpit/internal/signal"
 )
 
 var FlowID = regexp.MustCompile(`^[a-z][a-z0-9-]{1,40}$`)
@@ -159,6 +160,7 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 	name := OutName(x.Now(), flow)
 	env := []string{"E2E_EXEC_OUT=" + path.Join(runfiles.ContainerE2E, runfiles.ExecDir, name)}
 	res, err := r.Project.RunRunner(ctx, []string{"run", m.Suite, "--flow", flow}, env, x.Ops.Limits.Suite)
+	exited := x.Now()
 	if err != nil {
 		return fail("exec failed: " + r.Mask(err.Error()))
 	}
@@ -179,6 +181,7 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 		view.Reason = "the result file cannot be read: " + r.Mask(err.Error())
 	default:
 		view.Flows = flowsOf(result.Steps, r.Mask)
+		x.Ops.AppendSpans(m.ID, signal.ExecSpans(m.ID, strings.TrimSuffix(name, ".json"), *result, store.Timestamp(exited)))
 	}
 	return scheduler.ExecResponse{Result: view}
 }

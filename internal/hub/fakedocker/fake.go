@@ -56,6 +56,7 @@ type Fake struct {
 	Steps           []contract.ResultStep
 	Flows           []contract.ManifestFlow
 	StoppedAt       *contract.StopPoint
+	Incomplete      bool
 	OnRunner        func(runDir string)
 	ContainerSecret string
 	RunnerDelay     time.Duration

@@ -80,7 +80,7 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 		files[name] = data
 	}
 	stages[stageSource] = sourceStage
-	unread := collectorStages(in, stages)
+	unread := append(collectorStages(in, stages), runSpans(in, collected.Result.Value)...)
 	if data, err := os.ReadFile(filepath.Join(in.RunDir, seal.FileName)); err == nil {
 		files[seal.FileName] = data
 	}

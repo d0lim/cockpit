@@ -147,7 +147,7 @@ func runSuite(ctx context.Context, l *live) (outcome, error) {
 		}
 	}
 	res, err := l.env.RunSuite(ctx, m.Suite)
-	l.runner = &res
+	l.runner, l.exited = &res, l.h.o.Now()
 	refreshErr := l.env.RefreshMasker()
 	for _, line := range res.Lines {
 		l.say(line)
@@ -175,7 +175,7 @@ func reportStage(ctx context.Context, l *live) (outcome, error) {
 	}
 	in := envops.ReportInput{
 		Meta: m, Store: l.st, RunDir: l.env.Layout.Root, Decl: &l.env.Loaded.Declaration, Ports: l.runPorts(),
-		Runner: l.runner, Boot: l.boot, Masker: l.env.Masker, Now: l.h.o.Now(),
+		Runner: l.runner, RunnerExit: l.exited, Boot: l.boot, Masker: l.env.Masker, Now: l.h.o.Now(),
 	}
 	l.h.ops.AddCollected(context.WithoutCancel(ctx), &in)
 	out, notice, err := l.h.o.Reporter(context.WithoutCancel(ctx), in)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
@@ -29,6 +30,7 @@ type live struct {
 	lines  []string
 	stage  lifecycle.Phase
 	runner *compose.RunnerResult
+	exited time.Time
 	boot   *contract.BootVerdict
 	loaded bool
 }

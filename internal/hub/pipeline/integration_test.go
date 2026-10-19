@@ -11,6 +11,7 @@ import (
 
 	"github.com/d0lim/cockpit/internal/collect/collecttest"
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/procgroup"
@@ -89,6 +90,11 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	if doc["verdict"] != "passed" {
 		t.Fatalf("summary verdict %v reasons %v", doc["verdict"], doc["reasons"])
 	}
+	trace := spansOf(frozenSignals(t, hub, m.ID), m.ID)
+	if run, ok := trace["run"]; !ok || run.Span.Status != contract.SpanStatusOK || len(trace) < 3 {
+		t.Fatalf("the frozen copy holds %d run trace spans, run span %+v", len(trace), run.Span)
+	}
+	t.Logf("run trace spans in the frozen copy: %d", len(trace))
 	if strings.Contains(text, token) || !strings.Contains(summary, "token ****") {
 		t.Fatalf("the bundle holds the app token or the runner line is missing:\n%s", summary)
 	}
