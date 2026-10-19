@@ -1,0 +1,44 @@
+# Run {{.RunID}}: kit
+
+This directory belongs to run `{{.RunID}}`. The hub writes it when it prepares the run. It holds no credential values: only file locations, commands, addresses and ports. The directory is 700 and its files are 600.
+
+## Hub commands
+
+Run these from any directory on this host.
+
+```sh
+cockpit runs show {{.RunID}}
+cockpit runs exec {{.RunID}} -- <flow>
+cockpit runs stop {{.RunID}}
+cockpit runs resume {{.RunID}}
+cockpit runs destroy {{.RunID}}
+```
+
+`cockpit runs exec` runs one flow again inside the environment of this run while it is up. Put an id from the last section in place of `<flow>`.
+
+## Ports
+
+The edge publishes each port on `127.0.0.1` only. Port {{.Canary}} is reserved for the seal probe.
+
+| Port | Name | Service | Open |
+|---|---|---|---|
+{{- range .Rows}}
+| {{.Port}} | `{{.Name}}` | {{.Display}} (`{{.Service}}`) | {{.Open}} |
+{{- end}}
+{{- if .Notes}}
+
+## Project notes
+
+{{.Notes}}
+{{- end}}
+
+## Flows you can run again
+
+{{if .FlowsKnown -}}
+These ids go in place of `<flow>`. Flows that run once per environment are left out, because other flows reuse the state they created.
+{{range .Flows}}
+- `{{.}}`
+{{- end}}
+{{- else -}}
+The manifest has not been read yet. The hub rewrites this section after the suite runs for the first time.
+{{- end}}

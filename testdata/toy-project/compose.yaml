@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: ./mock
+    environment:
+      APP_TOKEN: ${APP_TOKEN:?run make-env.sh first}
+      CACHE_ADDR: cache:6379
+    depends_on:
+      cache:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  db:
+    image: docker.io/library/postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?run make-env.sh first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run make-env.sh first}
+      POSTGRES_DB: ${POSTGRES_DB:?run make-env.sh first}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "5432:5432"
+
+  cache:
+    image: docker.io/valkey/valkey:8-alpine@sha256:77643d152547b446fc15cbafaff22004545663fcd40c6b28038ad283837baa75
+    healthcheck:
+      test: ["CMD", "valkey-cli", "PING"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "6379:6379"
+
+volumes:
+  db-data:

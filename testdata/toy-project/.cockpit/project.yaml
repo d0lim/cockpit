@@ -1,0 +1,42 @@
+hostApi: 1
+project:
+  builder: builder
+  expectedServices: [app, db, cache]
+inputs:
+  dirty: [.cockpit, compose.yaml, compose.sealed-app.yaml, db, fixtures, mock, scripts, make-env.sh]
+  runnerSources:
+    - name: fixtures
+      path: fixtures
+compose:
+  files: [compose.yaml, compose.sealed-app.yaml]
+  forbidden: [tunnel, outbound]
+ports:
+  - { name: app, offset: 0, service: app, port: 8080, display: Toy app API, open: browser }
+  - { name: db, offset: 1, service: db, port: 5432, display: Toy PostgreSQL, open: copy }
+  - { name: cache, offset: 2, service: cache, port: 6379, display: Toy Valkey, open: copy }
+images:
+  - { key: IMG_APP, inputs: [mock] }
+env:
+  command: [sh, make-env.sh]
+  image: docker.io/library/alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8
+  outputs: [.env, e2e.private.env.json]
+secrets:
+  sources:
+    - { path: .env, format: dotenv }
+  publicNames: [POSTGRES_USER, POSTGRES_DB]
+  patterns: ["toy_[A-Za-z0-9]{24}"]
+databases:
+  - { name: main, driver: postgres, readSchemas: [public], ownerRole: toy, rootSecret: POSTGRES_PASSWORD }
+exec:
+  allow:
+    - [valkey-cli, DBSIZE]
+    - [valkey-cli, GET]
+    - [valkey-cli, SCAN]
+scripts:
+  dir: scripts
+  suites: scripts/suites
+  collectors: scripts/collectors
+kit:
+  notes: |
+    The app accepts orders only with the bearer token in `e2e.private.env.json` under `local.appToken`.
+    Valkey keys are named `order:<id>`; read them with `valkey-cli GET order:<id>` inside the `cache` container.

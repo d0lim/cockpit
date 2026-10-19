@@ -1,0 +1,4 @@
+{
+  "extends": "@d0lim/cockpit-sdk/tsconfig.base.json",
+  "include": ["**/*.ts"]
+}

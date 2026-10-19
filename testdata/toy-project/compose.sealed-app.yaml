@@ -1,0 +1,19 @@
+services:
+  app:
+    image: toy/app:${IMG_APP:?}
+    pull_policy: never
+    build:
+      context: ${RUN_BUILD:?}/mock
+      dockerfile: Dockerfile.sealed
+
+  builder:
+    image: docker.io/library/golang:1.27-alpine@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d
+    profiles: ["build"]
+    working_dir: /src
+    environment:
+      CGO_ENABLED: "0"
+      GOCACHE: /tmp/go-cache
+      GOFLAGS: -trimpath
+    command: ["go", "build", "-o", "bin/app", "."]
+    volumes:
+      - ${RUN_BUILD:?}/mock:/src
