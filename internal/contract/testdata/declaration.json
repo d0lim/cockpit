@@ -11,7 +11,8 @@
   },
   "compose": {
     "files": ["compose.yaml", "compose.sealed-app.yaml"],
-    "forbidden": ["outbound"]
+    "forbidden": ["outbound"],
+    "projectDirectory": "app"
   },
   "ports": [
     { "name": "app", "offset": 0, "service": "app", "port": 8080, "display": "App API", "open": "browser" },

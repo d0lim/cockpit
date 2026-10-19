@@ -78,6 +78,7 @@ func TestDeclarationPathFieldsRejectPathsOutsideTheCommitRootDotSegmentsAndEmpty
 	reject := []any{"", "/abs", "../x", "./x", "..", ".", "a/..", "a/../b", "a/./b", "a//b", "a/"}
 	paths := [][]any{
 		{"compose", "files", 0},
+		{"compose", "projectDirectory"},
 		{"inputs", "dirty", 0},
 		{"inputs", "runnerSources", 0, "path"},
 		{"images", 0, "inputs", 0},

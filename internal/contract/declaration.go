@@ -48,8 +48,9 @@ type InputsSection struct {
 }
 
 type ComposeSection struct {
-	Files     []RelPath `json:"files"`
-	Forbidden []string  `json:"forbidden,omitempty"`
+	Files            []RelPath `json:"files"`
+	Forbidden        []string  `json:"forbidden,omitempty"`
+	ProjectDirectory RelPath   `json:"projectDirectory,omitempty"`
 }
 
 type PortOffset struct {

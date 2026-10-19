@@ -16,6 +16,7 @@ var confineMutations = []porttest.Mutation{
 	{"names that become path segments match the name pattern", "drop the namePattern check in confine", "red: names with a slash, dots or uppercase pass", "TestNameFieldsWithASlashDotsOrUppercaseAreRejectedAndPatternNamesPass"},
 	{"names are unique within their group", "drop the seen map in confine", "red: two runner sources named fixtures pass", "TestNameFieldsWithASlashDotsOrUppercaseAreRejectedAndPatternNamesPass"},
 	{"suites and collectors stay inside scripts.dir", "drop the scripts.dir prefix check", "red: suites outside scripts.dir pass", "TestSuitesOrCollectorsOutsideTheScriptsDirectoryAreRejected"},
+	{"compose.projectDirectory names a directory of the commit", "add compose.projectDirectory with mustDir false", "red: a file or a missing directory passes as the project directory", "TestProjectDirectoryThatIsAFileOrMissingIsRejectedAndACommittedDirectoryPasses"},
 }
 
 func TestConfineMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -26,6 +27,8 @@ func setPath(d *contract.Declaration, field string, value contract.RelPath) {
 	switch field {
 	case "compose.files[0]":
 		d.Compose.Files[0] = value
+	case "compose.projectDirectory":
+		d.Compose.ProjectDirectory = value
 	case "inputs.dirty[0]":
 		d.Inputs.Dirty[0] = value
 	case "inputs.runnerSources[0].path":
@@ -46,7 +49,7 @@ func setPath(d *contract.Declaration, field string, value contract.RelPath) {
 }
 
 var pathFields = []string{
-	"compose.files[0]", "inputs.dirty[0]", "inputs.runnerSources[0].path", "images[0].inputs[0]",
+	"compose.files[0]", "compose.projectDirectory", "inputs.dirty[0]", "inputs.runnerSources[0].path", "images[0].inputs[0]",
 	"env.outputs[0]", "secrets.sources[0].path", "scripts.dir", "scripts.suites", "scripts.collectors",
 }
 
@@ -92,6 +95,8 @@ func TestPathsThroughACommittedSymbolicLinkAreRejectedWithTheLinkAndTheField(t *
 		{"env.outputs[1]", "outputs: [.env, e2e.private.env.json]", "outputs: [.env, escape/e2e.private.env.json]"},
 		{"secrets.sources[0].path", "path: .env, format", "path: escape/.env, format"},
 		{"scripts.dir", "dir: scripts", "dir: linked/scripts"},
+		{"compose.projectDirectory", "forbidden: [tunnel, outbound]", "forbidden: [tunnel, outbound]\n  projectDirectory: linked/mock"},
+		{"compose.projectDirectory", "forbidden: [tunnel, outbound]", "forbidden: [tunnel, outbound]\n  projectDirectory: escape"},
 	}
 	evaluated := 0
 	for _, c := range cases {
@@ -176,5 +181,32 @@ func TestSuitesOrCollectorsOutsideTheScriptsDirectoryAreRejected(t *testing.T) {
 	d.Scripts.Collectors = ""
 	if err := confine(d, tree); err != nil {
 		t.Fatalf("a declaration without collectors was rejected: %v", err)
+	}
+}
+
+func TestProjectDirectoryThatIsAFileOrMissingIsRejectedAndACommittedDirectoryPasses(t *testing.T) {
+	tree := mustLoadToy(t).Tree
+	bad := []contract.RelPath{"make-env.sh", "compose.yaml", "absent", "mock/absent"}
+	rejected := 0
+	for _, value := range bad {
+		rejected++
+		d := toyDeclaration(t)
+		d.Compose.ProjectDirectory = value
+		r := rejection(t, confine(d, tree))
+		if r.Kind != RejectConfinement || r.Field != "compose.projectDirectory" || !strings.Contains(r.Message, "not a directory") {
+			t.Errorf("%q: %v", value, r)
+		}
+	}
+	accepted := 0
+	for _, value := range []contract.RelPath{"", "mock", "db", "scripts/flows"} {
+		d := toyDeclaration(t)
+		d.Compose.ProjectDirectory = value
+		if err := confine(d, tree); err != nil {
+			t.Errorf("%q was rejected: %v", value, err)
+		}
+		accepted++
+	}
+	if rejected != len(bad) || accepted != 4 {
+		t.Fatalf("evaluated %d rejected and %d accepted directories", rejected, accepted)
 	}
 }

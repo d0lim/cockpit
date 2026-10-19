@@ -32,6 +32,9 @@ func declaredPaths(d contract.Declaration) []declaredPath {
 	for i, p := range d.Compose.Files {
 		add(fmt.Sprintf("compose.files[%d]", i), string(p), false, true)
 	}
+	if d.Compose.ProjectDirectory != "" {
+		add("compose.projectDirectory", string(d.Compose.ProjectDirectory), true, false)
+	}
 	for i, p := range d.Inputs.Dirty {
 		add(fmt.Sprintf("inputs.dirty[%d]", i), string(p), false, false)
 	}

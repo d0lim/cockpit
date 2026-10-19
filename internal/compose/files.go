@@ -3,6 +3,7 @@ package compose
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,7 +14,7 @@ import (
 const (
 	HarnessFile   = "harness.yaml"
 	RunEnvFile    = "env/run.env"
-	rootDotenv    = ".env"
+	dotenvName    = ".env"
 	srcDir        = "src"
 	buildDir      = "build"
 	workDir       = "work"
@@ -75,14 +76,22 @@ func Files(l Layout, decl contract.Declaration) ([]string, error) {
 	return files, nil
 }
 
+func projectDir(l Layout, decl contract.Declaration) string {
+	return filepath.Join(l.Src, filepath.FromSlash(string(decl.Compose.ProjectDirectory)))
+}
+
+func projectDotenv(decl contract.Declaration) contract.RelPath {
+	return contract.RelPath(path.Join(string(decl.Compose.ProjectDirectory), dotenvName))
+}
+
 func ComposeArgs(project string, l Layout, decl contract.Declaration) ([]string, error) {
 	files, err := Files(l, decl)
 	if err != nil {
 		return nil, err
 	}
-	args := []string{"compose", "--ansi", "never", "--progress", "plain", "-p", project, "--project-directory", l.Src}
-	if slices.Contains(decl.Env.Outputs, contract.RelPath(rootDotenv)) {
-		args = append(args, "--env-file", filepath.Join(l.Src, rootDotenv))
+	args := []string{"compose", "--ansi", "never", "--progress", "plain", "-p", project, "--project-directory", projectDir(l, decl)}
+	if dotenv := projectDotenv(decl); slices.Contains(decl.Env.Outputs, dotenv) {
+		args = append(args, "--env-file", filepath.Join(l.Src, filepath.FromSlash(string(dotenv))))
 	}
 	args = append(args, "--env-file", l.RunEnv())
 	for _, f := range files {

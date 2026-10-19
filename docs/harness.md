@@ -34,6 +34,10 @@ The hub opens each run directory with `os.Root`. It holds `src/` and `build/` (t
 - **Image keys**: each key in `images` hashes the sorted git object ids of its inputs plus the declared compose files (sha256, first 12 hex characters). The runner image has no key; it belongs to the cockpit version.
 - **run.env**: `RUN_ID`, `RUN_SRC`, `RUN_BUILD`, `RUN_WORK`, one `RUN_PORT_<NAME>` per port offset and one line per image key.
 
+## Compose calls
+
+Every compose call of a run names the project `-p <run id>` and `--project-directory src/<compose.projectDirectory>`, which is `src/` when the field is omitted. Compose resolves the relative paths of every file in the set (build contexts, bind sources) against that directory, not against the directory of the file that holds them, so a consumer whose compose files live in `backend/app/` declares `projectDirectory: backend/app` to keep `./server` and `../other` meaning what they mean there. The field must name a directory of the commit: confinement rejects an absolute path, a `..` segment, a path through a committed symbolic link, and a file or a missing directory. The env files follow: `src/<compose.projectDirectory>/.env` when that path is one of `env.outputs` (with the field omitted, the root `.env`), then `env/run.env`. Then come `-f` for each of `compose.files` in order and `harness.yaml` last. The harness itself uses only absolute paths, so the project directory does not move it.
+
 ## Generated harness
 
 `harness.yaml` is the last `-f` file after the declared `compose.files`, and the file set is refused when a name contains an entry of `compose.forbidden`. It makes `default` and every non-external consumer network internal, adds `egress`, labels every service, network and volume with `io.cockpit.managed` and `io.cockpit.run-id`, removes consumer `ports` with `!reset`, and moves the builder to `egress` only with `!override`. It adds four services on the runner image, each read-only, without capabilities and with memory and process limits:
