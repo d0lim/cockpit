@@ -110,8 +110,12 @@ func (o *Ops) Resume(ctx context.Context, id string) ticker.Result {
 			err = r.Project.UpRecreate(ctx)
 		}
 	}
+	var config map[string]any
 	if err == nil {
-		err = stages.AwaitBoot(ctx, r.Project, r.Decl.Project.ExpectedServices, o.Limits.Boot, o.Limits.Poll)
+		config, err = r.Project.Config(ctx)
+	}
+	if err == nil {
+		err = stages.AwaitBoot(ctx, r.Project, r.Decl.Project.ExpectedServices, compose.OneShots(config), o.Limits.Boot, o.Limits.Poll)
 	}
 	if err != nil {
 		r.Project.Stop(context.WithoutCancel(ctx))

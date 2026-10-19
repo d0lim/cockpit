@@ -45,6 +45,7 @@ type Env struct {
 	Masker       *mask.Masker
 	Project      compose.Project
 	Keys         map[string]string
+	Config       map[string]any
 	Static       []seal.Result
 	Probes       []seal.Result
 	Limits       Limits
@@ -158,6 +159,7 @@ func (e *Env) SealStatic(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	e.Config = config
 	decl := e.Loaded.Declaration
 	files, err := compose.Files(e.Layout, decl)
 	if err != nil {

@@ -155,7 +155,7 @@ func TestReservedHarnessNamesAndServicesMissingFromComposeAreRejected(t *testing
 		{"consumer edge service", "compose.yaml", "\n  cache:\n    image:", "\n  edge:\n    image: docker.io/library/alpine:3.22\n  cache:\n    image:", RejectCompose, "services.edge"},
 		{"consumer egress network", "compose.yaml", "volumes:\n  db-data:\n", "volumes:\n  db-data:\nnetworks:\n  egress: {}\n", RejectCompose, "networks.egress"},
 		{"unknown builder", DeclarationPath, "builder: builder", "builder: compiler", RejectCompose, "project.builder"},
-		{"unknown expected service", DeclarationPath, "expectedServices: [app, db, cache]", "expectedServices: [app, db, queue]", RejectCompose, "project.expectedServices[2]"},
+		{"unknown expected service", DeclarationPath, "expectedServices: [app, db, cache, seed]", "expectedServices: [app, db, queue, seed]", RejectCompose, "project.expectedServices[2]"},
 		{"port on an unknown service", DeclarationPath, "service: cache,", "service: queue,", RejectPorts, "ports[2].service"},
 	}
 	for _, c := range cases {
@@ -165,7 +165,7 @@ func TestReservedHarnessNamesAndServicesMissingFromComposeAreRejected(t *testing
 		}
 	}
 	loaded := mustLoadToy(t)
-	if got := strings.Join(loaded.Model.ServiceNames(), ","); got != "app,builder,cache,db" {
+	if got := strings.Join(loaded.Model.ServiceNames(), ","); got != "app,builder,cache,db,seed" {
 		t.Fatalf("toy services %s", got)
 	}
 }

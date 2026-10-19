@@ -8,8 +8,17 @@ services:
     depends_on:
       cache:
         condition: service_healthy
+      seed:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
+
+  seed:
+    image: docker.io/valkey/valkey:8-alpine@sha256:77643d152547b446fc15cbafaff22004545663fcd40c6b28038ad283837baa75
+    command: ["valkey-cli", "-h", "cache", "SET", "seed:done", "1"]
+    depends_on:
+      cache:
+        condition: service_healthy
 
   db:
     image: docker.io/library/postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193

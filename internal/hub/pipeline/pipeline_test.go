@@ -16,6 +16,7 @@ var pipelineMutations = []porttest.Mutation{
 	{"a build failure closes as error without an environment", "let build return Built on a build error", "red: the run reaches booting or keeps its src tree", "TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTheDocumentedEnvironment"},
 	{"a seal violation closes as failed", "drop Violation from the probe failure", "red: the leaking run closes as error", "TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTheDocumentedEnvironment"},
 	{"a boot failure stops the environment", "skip StopQuietly in settle", "red: no compose stop after the failed boot", "TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTheDocumentedEnvironment"},
+	{"a one-shot seed that exited 1 fails the boot with its name and code, and an exited restart-policy app fails it with code 0", "read every exited one-shot as completed and every expected service as one-shot", "red: both runs reach testing and the runner runs", "TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTheDocumentedEnvironment"},
 }
 
 func TestPipelineMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -70,10 +71,12 @@ func TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTh
 		verdict lifecycle.Verdict
 		env     lifecycle.Env
 		stage   lifecycle.Phase
+		notice  string
 	}{
-		{"build failure", func(f *fakedocker.Fake) { f.FailVerb = map[string]bool{"compose build": true} }, lifecycle.VerdictError, lifecycle.EnvAbsent, lifecycle.Building},
-		{"seal violation", func(f *fakedocker.Fake) { f.ProbeLeak = true }, lifecycle.VerdictFailed, lifecycle.EnvAbsent, lifecycle.Sealing},
-		{"boot failure", func(f *fakedocker.Fake) { f.AppExited = true }, lifecycle.VerdictError, lifecycle.EnvStopped, lifecycle.Booting},
+		{"build failure", func(f *fakedocker.Fake) { f.FailVerb = map[string]bool{"compose build": true} }, lifecycle.VerdictError, lifecycle.EnvAbsent, lifecycle.Building, ""},
+		{"seal violation", func(f *fakedocker.Fake) { f.ProbeLeak = true }, lifecycle.VerdictFailed, lifecycle.EnvAbsent, lifecycle.Sealing, ""},
+		{"boot failure", func(f *fakedocker.Fake) { f.AppExited = true }, lifecycle.VerdictError, lifecycle.EnvStopped, lifecycle.Booting, "boot failed: app stopped (exited, exit code 0)"},
+		{"one-shot failure", func(f *fakedocker.Fake) { f.SeedExit = 1 }, lifecycle.VerdictError, lifecycle.EnvStopped, lifecycle.Booting, "boot failed: one-shot service seed failed (exited, exit code 1)"},
 	}
 	evaluated := 0
 	for _, c := range cases {
@@ -81,6 +84,9 @@ func TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTh
 		m := w.submit()
 		if m.Phase != lifecycle.Done || m.Verdict != c.verdict || m.Env != c.env || m.FailedStage != c.stage {
 			t.Errorf("%s: state %+v failed stage %s notice %q", c.name, m.State, m.FailedStage, m.Notice)
+		}
+		if !strings.Contains(m.Notice, c.notice) {
+			t.Errorf("%s: notice %q, want it to hold %q", c.name, m.Notice, c.notice)
 		}
 		dir, _ := w.hub.Store().RunDir(m.ID)
 		_, srcErr := os.Stat(filepath.Join(dir, "src"))
@@ -102,7 +108,7 @@ func TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTh
 		}
 		evaluated++
 	}
-	if evaluated != 3 {
+	if evaluated != 4 {
 		t.Fatalf("evaluated %d", evaluated)
 	}
 }

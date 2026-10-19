@@ -1,7 +1,7 @@
 hostApi: 1
 project:
   builder: builder
-  expectedServices: [app, db, cache]
+  expectedServices: [app, db, cache, seed]
 inputs:
   dirty: [.cockpit, compose.yaml, compose.sealed-app.yaml, db, fixtures, mock, scripts, make-env.sh]
   runnerSources:

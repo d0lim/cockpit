@@ -160,7 +160,7 @@ func TestConsumerServicesLoseTheirPortsAndCarryRunLabelsAndTheBuilderItsRole(t *
 		}
 		evaluated++
 	}
-	if evaluated != 4 {
+	if evaluated != 5 {
 		t.Fatalf("evaluated %d consumer services", evaluated)
 	}
 	if role := service(t, doc, "builder")["labels"].(map[string]any)[LabelRole]; role != RoleBuilder {

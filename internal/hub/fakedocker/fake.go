@@ -44,6 +44,7 @@ type Fake struct {
 	FailVerb        map[string]bool
 	ProbeLeak       bool
 	AppExited       bool
+	SeedExit        int
 	RunnerCode      int
 	RunnerOOM       bool
 	RunnerHangs     bool
@@ -218,6 +219,7 @@ func (f *Fake) ps() string {
 		{"Service": "app", "ID": "aaa", "State": appState, "Health": "", "ExitCode": 0},
 		{"Service": "db", "ID": "bbb", "State": "running", "Health": "healthy"},
 		{"Service": "cache", "ID": "ccc", "State": "running", "Health": "healthy"},
+		{"Service": "seed", "ID": "eee", "State": "exited", "Health": "", "ExitCode": f.SeedExit},
 		{"Service": "edge", "ID": "ddd", "State": "running", "Health": ""},
 	}
 	data, _ := json.Marshal(rows)

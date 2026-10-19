@@ -55,7 +55,7 @@ func (e *Env) SealProbes(ctx context.Context) (int, error) {
 	return accepted, sealFailure("the seal", append(append([]seal.Result{}, e.Static...), results...))
 }
 
-func Readiness(rows []compose.PsRow, expected []string) (bool, string, error) {
+func Readiness(rows []compose.PsRow, expected []string, oneShot map[string]bool) (bool, string, error) {
 	var waiting []string
 	for _, name := range expected {
 		var row *compose.PsRow
@@ -67,6 +67,9 @@ func Readiness(rows []compose.PsRow, expected []string) (bool, string, error) {
 		switch {
 		case row == nil:
 			waiting = append(waiting, name+" (no container)")
+		case oneShot[name] && row.State == "exited" && row.ExitCode == 0:
+		case oneShot[name] && (row.State == "exited" || row.State == "dead"):
+			return false, "", fmt.Errorf("one-shot service %s failed (%s, exit code %d)", name, row.State, row.ExitCode)
 		case row.State == "exited" || row.State == "dead":
 			return false, "", fmt.Errorf("%s stopped (%s, exit code %d)", name, row.State, row.ExitCode)
 		case row.State != "running" || (row.Health != "" && row.Health != "healthy"):
@@ -76,14 +79,14 @@ func Readiness(rows []compose.PsRow, expected []string) (bool, string, error) {
 	return len(waiting) == 0, strings.Join(waiting, ", "), nil
 }
 
-func AwaitBoot(ctx context.Context, p compose.Project, expected []string, limit, poll time.Duration) error {
+func AwaitBoot(ctx context.Context, p compose.Project, expected []string, oneShot map[string]bool, limit, poll time.Duration) error {
 	deadline := time.Now().Add(limit)
 	for {
 		rows, err := p.Ps(ctx)
 		if err != nil {
 			return err
 		}
-		ready, waiting, err := Readiness(rows, expected)
+		ready, waiting, err := Readiness(rows, expected, oneShot)
 		if err != nil {
 			return &Failed{Message: "boot failed: " + err.Error()}
 		}
@@ -105,7 +108,14 @@ func (e *Env) Boot(ctx context.Context) error {
 	if err := e.Project.Up(ctx); err != nil {
 		return err
 	}
-	return AwaitBoot(ctx, e.Project, e.Loaded.Declaration.Project.ExpectedServices, e.Limits.Boot, e.Limits.Poll)
+	config := e.Config
+	if config == nil {
+		var err error
+		if config, err = e.Project.Config(ctx); err != nil {
+			return err
+		}
+	}
+	return AwaitBoot(ctx, e.Project, e.Loaded.Declaration.Project.ExpectedServices, compose.OneShots(config), e.Limits.Boot, e.Limits.Poll)
 }
 
 func (e *Env) RunSuite(ctx context.Context, suite string) (compose.RunnerResult, error) {

@@ -30,6 +30,10 @@
         "cache": {
           "condition": "service_healthy",
           "required": true
+        },
+        "seed": {
+          "condition": "service_completed_successfully",
+          "required": true
         }
       },
       "entrypoint": null,
@@ -299,6 +303,31 @@
           "type": "bind"
         }
       ]
+    },
+    "seed": {
+      "command": [
+        "valkey-cli",
+        "-h",
+        "cache",
+        "SET",
+        "seed:done",
+        "1"
+      ],
+      "depends_on": {
+        "cache": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "image": "docker.io/valkey/valkey:8-alpine@sha256:77643d152547b446fc15cbafaff22004545663fcd40c6b28038ad283837baa75",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "networks": {
+        "default": null
+      }
     }
   },
   "volumes": {

@@ -46,10 +46,10 @@ func dependsOn(svc map[string]any) map[string]string {
 
 func ResidentOrder(config map[string]any) ([]StartStep, error) {
 	services, _ := config["services"].(map[string]any)
-	oneShot := map[string]bool{}
+	oneShot := OneShots(config)
 	for name, raw := range services {
 		svc, _ := raw.(map[string]any)
-		if svc["restart"] == "no" || len(asStrings(svc["profiles"])) > 0 {
+		if len(asStrings(svc["profiles"])) > 0 {
 			oneShot[name] = true
 		}
 	}
