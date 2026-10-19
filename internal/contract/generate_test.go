@@ -13,7 +13,8 @@ import (
 func copyRepo(t *testing.T) string {
 	t.Helper()
 	src, dst := repoRoot(t), t.TempDir()
-	skip := map[string]bool{".git": true, "bin": true, "dist": true, "node_modules": true}
+	skip := map[string]bool{".git": true, "node_modules": true}
+	rootOnly := map[string]bool{"bin": true, "dist": true}
 	err := filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -22,7 +23,7 @@ func copyRepo(t *testing.T) string {
 		if err != nil || rel == "." {
 			return err
 		}
-		if skip[d.Name()] {
+		if skip[d.Name()] || rootOnly[rel] {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
