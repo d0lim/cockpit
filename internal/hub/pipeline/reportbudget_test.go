@@ -2,6 +2,8 @@ package pipeline
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,9 +82,7 @@ func TestAReconciledReportWithTheEnvironmentStoppedSkipsTheCollectors(t *testing
 		data, _ := os.ReadFile(filepath.Join(dir, "signals", "stream.jsonl"))
 		return first.meta(res.ID).Phase == lifecycle.Testing && strings.Contains(string(data), `"collector":"beat"`)
 	})
-	if err := os.CopyFS(crashed, os.DirFS(home)); err != nil {
-		t.Fatal(err)
-	}
+	copyLiveHome(t, home, crashed)
 	first.sched.Dispose()
 	first.sched.Idle()
 	first.hub.Close()
@@ -100,5 +100,36 @@ func TestAReconciledReportWithTheEnvironmentStoppedSkipsTheCollectors(t *testing
 	stages, _ := doc["stages"].(map[string]any)
 	if stage, _ := stages["beat"].(map[string]any); stage["status"] != "skipped" || stage["detail"] != "the environment is stopped" {
 		t.Fatalf("beat stage %v", stages["beat"])
+	}
+}
+
+func copyLiveHome(t *testing.T, from, to string) {
+	t.Helper()
+	err := filepath.WalkDir(from, func(path string, d fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) || strings.HasSuffix(path, ".tmp") {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(from, path)
+		target := filepath.Join(to, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o700)
+		}
+		if !d.Type().IsRegular() {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0o600)
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
