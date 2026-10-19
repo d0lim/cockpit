@@ -118,7 +118,7 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsAndPortsOnlyOnTheEdge
 	if err := AssertRoles(r, runID, decl.Project.Builder); err != nil {
 		t.Fatal(err)
 	}
-	if len(r.Services) != 8 || r.Services["app"].Image != "toy/app:"+keys["IMG_APP"] {
+	if want := len(loaded.Model.Services) + len(HarnessServices); want != 9 || len(r.Services) != want || r.Services["app"].Image != "toy/app:"+keys["IMG_APP"] {
 		t.Fatalf("services %d, app image %q", len(r.Services), r.Services["app"].Image)
 	}
 	if !r.Networks[DefaultNetwork].Internal || r.Networks[EgressNetwork].Internal {

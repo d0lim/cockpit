@@ -108,16 +108,6 @@ func renderToy(ctx context.Context, t *testing.T) map[string]any {
 	return normalizeFixture(config)
 }
 
-func normalizeFixture(config map[string]any) map[string]any {
-	for _, raw := range record(config["services"]) {
-		svc := record(raw)
-		if _, ok := svc["environment"]; ok {
-			svc["environment"] = map[string]any{}
-		}
-	}
-	return config
-}
-
 func TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer(t *testing.T) {
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
 		t.Skip("needs COCKPIT_INTEGRATION=1 and docker compose")
@@ -144,7 +134,7 @@ func TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer(t 
 		t.Fatal(err)
 	}
 	services := record(fresh["services"])
-	if len(services) != 9 || strings.Contains(string(data), "fixture-password") {
+	if want := len(record(committed["services"])); want != 9 || len(services) != want || strings.Contains(string(data), "fixture-password") {
 		t.Fatalf("fresh render has %d services or the fixture holds a credential", len(services))
 	}
 	if !reflect.DeepEqual(committed, fresh) {
