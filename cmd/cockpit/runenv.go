@@ -14,6 +14,8 @@ import (
 
 var runEnvDocker compose.Docker = compose.CLI{}
 
+var runEnvRun = runenv.Run
+
 func runEnv(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {
 	opts, err := runenv.Parse(args)
 	if err != nil {
@@ -27,7 +29,7 @@ func runEnv(ctx context.Context, args []string, getenv func(string) string, stdo
 		return runenv.ExitRefused
 	}
 	pins := runnerbin.FilePins{Path: filepath.Join(dir, pinsFile)}
-	return runenv.Run(ctx, opts, runenv.Deps{
+	return runEnvRun(ctx, opts, runenv.Deps{
 		Docker:      runEnvDocker,
 		EnsureImage: func(ctx context.Context) (runnerbin.Image, error) { return ensureImage(ctx, pins) },
 		Home:        dir,
