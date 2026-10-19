@@ -33,7 +33,7 @@ The CLI sends `Origin` and `X-Cockpit` on every write.
 | GET | `/api/runs` | `HubList` |
 | POST | `/api/runs` | 202 `Submitted` |
 | GET | `/api/runs/{id}` | `RunDetail` |
-| POST | `/api/runs/{id}/{op}` | `OpReply` for `keep`, `unkeep`, `stop`, `resume`, `destroy` (200) and `abort` (202); `ExecView` for `exec` |
+| POST | `/api/runs/{id}/{op}` | `OpReply` for `keep`, `unkeep`, `stop`, `resume`, `destroy` (200) and `abort` (202, for the active pipeline or a running exec); `ExecView` for `exec` |
 | GET | `/api/runs/{id}/report` | `ReportView` |
 | GET | `/api/runs/{id}/kit` | `KitView` |
 | GET | `/api/runs/{id}/flows/{flow}` | `FlowView` |
@@ -54,7 +54,7 @@ The tests check every answer against a JSON Schema generated from the Go struct.
 Because that schema follows the struct, it cannot see a field that disappears. `internal/hub/api/testdata/response-fields.json` is the committed baseline of every field path of `RunItem`, `RunDetail`, `HubList`, `ReportView`, `ExecView`, `FlowView`, `SourceView`, `SignalsView`, `KitView` and `Problem`, with its wire type (`string`, `integer|null`, `array of object`, `map of string`, `custom <Go type>` for types with their own JSON encoding) and `, optional` when the field is omitted when empty. `TestEveryResponseFieldInTheBaselineKeepsItsNameAndTypeAndNewFieldsPass` fails when a baseline field disappears, changes type, or becomes optional, and passes when fields are added. After adding a field, record it so it is protected too: `COCKPIT_UPDATE_API_BASELINE=1 go test ./internal/hub/api -run TestEveryResponseFieldInTheBaselineKeepsItsNameAndTypeAndNewFieldsPass`, and commit the diff. A removal or a type change is a breaking change of the API: regenerate the baseline the same way only when the break is deliberate, and say so in the commit message.
 
 - **`RunItem`**: the run's state and identity fields, `phaseLabel` and `verdictLabel`. It keeps every field the previous hub sent except its harness flag, and adds `hostApi` and `cockpitVersion`.
-- **`RunDetail`**: a `RunItem` plus image keys and digests, the runner image, the tail, `allowedEvents` (`stop`, `resume`, `destroy`, `abort`) and `services`. Each service is `{name, service, port, hostPort, label, open?}`, where `open` is the declaration's open mode (`browser`, `link` or `copy`).
+- **`RunDetail`**: a `RunItem` plus image keys and digests, the runner image, the tail, `allowedEvents` (`stop`, `resume`, `destroy`, `abort`; only `abort` while an exec holds the run) and `services`. Each service is `{name, service, port, hostPort, label, open?}`, where `open` is the declaration's open mode (`browser`, `link` or `copy`).
 - **`HubList`**: `runs` (`RunItem` rows), `orphans`, `pool`, `up`, `dockerDown`, `tickError` and `servedHostApis`, the host API versions this hub serves. The screen hides the signal and report tabs of a run outside that set.
 - **`ReportView`**: one of four statuses.
   - `pending` while the run is queued or active.

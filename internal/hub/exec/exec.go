@@ -173,6 +173,10 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 	for _, l := range res.Lines {
 		view.Lines = append(view.Lines, r.Mask(l))
 	}
+	if res.Aborted {
+		view.Reason = "the exec was aborted"
+		return scheduler.ExecResponse{Result: view}
+	}
 	result, err := runfiles.Exec(r.Root, name)
 	switch {
 	case runfiles.IsMissing(err):

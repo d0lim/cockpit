@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
@@ -100,8 +101,12 @@ func (s *Scheduler) Abort(id string, _ Actor) ticker.Result {
 	if m == nil {
 		return notFound(id)
 	}
+	if cancel, ok := s.execs.Load(id); ok {
+		cancel.(context.CancelFunc)()
+		return ticker.Succeeded(*m)
+	}
 	if a := s.core.ActiveRun(); a == nil || a.ID != id {
-		return ticker.Conflict(lifecycle.Label(m.State)+" state is not aborted: only the running run is aborted", m)
+		return ticker.Conflict(lifecycle.Label(m.State)+" state is not aborted: only the running run or a running exec is aborted", m)
 	}
 	if _, err := lifecycle.Transition(&m.State, lifecycle.Abort, lifecycle.Detail{}); err != nil {
 		return ticker.Conflict(err.Error(), m)
@@ -118,14 +123,29 @@ func (s *Scheduler) Exec(id, flow string, _ Actor) ExecResponse {
 	if refused := s.unserved(*m); refused != nil {
 		return ExecResponse{Fail: refused.Fail}
 	}
-	if denied := s.d.Exec.Denied(*m, s.core.Busy(id), flow); denied != nil {
-		return ExecResponse{Fail: denied}
-	}
 	var resp ExecResponse
-	s.core.RunOp(id, func() ticker.Result {
-		resp = s.d.Exec.Run(s.core.Context(), *m, flow)
+	held := s.core.RunOp(id, func() ticker.Result {
+		current := s.find(id)
+		if current == nil {
+			resp = ExecResponse{Fail: notFound(id).Fail}
+			return ticker.Result{}
+		}
+		if denied := s.d.Exec.Denied(*current, false, flow); denied != nil {
+			resp = ExecResponse{Fail: denied}
+			return ticker.Result{}
+		}
+		ctx, cancel := context.WithCancel(s.core.Context())
+		s.execs.Store(id, cancel)
+		defer func() {
+			s.execs.Delete(id)
+			cancel()
+		}()
+		resp = s.d.Exec.Run(ctx, *current, flow)
 		return ticker.Result{}
 	}, false)
+	if held.Fail != nil {
+		return ExecResponse{Fail: held.Fail}
+	}
 	return resp
 }
 
@@ -213,6 +233,9 @@ func (s *Scheduler) CandidatesForResume() []pool.Candidate {
 }
 
 func (s *Scheduler) AllowedEvents(m store.Meta) []lifecycle.Event {
+	if _, running := s.execs.Load(m.ID); running {
+		return []lifecycle.Event{lifecycle.Abort}
+	}
 	return lifecycle.AllowedEvents(&m.State, lifecycle.Serves(s.d.Served, m.HostAPI))
 }
 

@@ -75,6 +75,7 @@ type Scheduler struct {
 	d        Deps
 	core     *ticker.Core
 	submitMu sync.Mutex
+	execs    sync.Map
 }
 
 func New(d Deps) *Scheduler {

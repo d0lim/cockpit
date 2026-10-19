@@ -12,7 +12,7 @@ import (
 
 var opRaceMutations = []porttest.Mutation{
 	{"reconcile skips a run claimed after it starts", "build the reconcile skip set once before reconcile.Run lists the runs", "red: reconcile redoes the stop of a run another operation claimed after the skip set was built", "TestReconcileSkipsAStalledRunThatAnotherOperationClaimsAfterReconcileStarted"},
-	{"overlapping operations on one run keep it busy until the last one ends", "delete the run's mark in Core.release whatever its count", "red: the refused stop clears the busy mark of the destroy still running", "TestAStopRefusedWhileADestroyRunsLeavesTheRunBusyUntilTheDestroyEnds"},
+	{"a command refused on a busy run leaves the first operation busy", "release the run's mark when Operate refuses a claim on a busy run", "red: the refused stop clears the busy mark of the destroy still running", "TestAStopRefusedWhileADestroyRunsLeavesTheRunBusyUntilTheDestroyEnds"},
 	{"an operation is busy before its event lands", "apply the event before Core.Operate claims the run", "red: Busy is false when the event lands and the tick's stalled-operation redo runs the operation a second time", "TestATickLandingAsAStopResumeOrDestroyEventIsAppliedFindsTheOperationBusyAndDoesNotRunItAgain"},
 }
 

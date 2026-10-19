@@ -104,11 +104,22 @@ func (c *Core) goTick() { c.track(c.Tick) }
 
 func (c *Core) Kick() { c.goTick() }
 
-func (c *Core) claim(id string) {
+const ReasonBusy = "an operation is in progress on this run"
+
+func (c *Core) claim(id string) bool {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.ops[id] > 0 {
+		return false
+	}
 	c.ops[id]++
 	c.pending++
-	c.mu.Unlock()
+	return true
+}
+
+func (c *Core) refuseBusy(id string) Result {
+	m, _ := c.d.Store.ReadMeta(id)
+	return Conflict(ReasonBusy, m)
 }
 
 func (c *Core) release(id string, tick bool) {
@@ -125,13 +136,17 @@ func (c *Core) release(id string, tick bool) {
 }
 
 func (c *Core) RunOp(id string, fn func() Result, tick bool) Result {
-	c.claim(id)
+	if !c.claim(id) {
+		return c.refuseBusy(id)
+	}
 	defer c.release(id, tick)
 	return fn()
 }
 
 func (c *Core) Operate(id string, apply func() (store.Meta, error), op func() Result) Result {
-	c.claim(id)
+	if !c.claim(id) {
+		return c.refuseBusy(id)
+	}
 	current, err := apply()
 	if err != nil {
 		c.release(id, false)
