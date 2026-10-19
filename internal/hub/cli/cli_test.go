@@ -131,6 +131,10 @@ func TestWaitPastTheTimeoutIsSixAndThePoolAllKeptQueueIsSeven(t *testing.T) {
 	if got := invoke(t, queued, "wait", id, "--timeout", "0.05"); got.code != ExitTimeout || !strings.Contains(got.stdout, "timed out") {
 		t.Fatalf("timeout: %+v", got)
 	}
+	submitted := hub(t, &canned{status: 202, body: map[string]any{"id": id, "phase": "queued", "position": 2, "merged": false}, byPath: map[string]any{"/api/runs/" + id: item("queued", nil, map[string]any{"position": 2, "waitReason": "active-run"})}})
+	if got := invoke(t, submitted, "submit", "--wait", "--timeout", "0.05", "--json"); got.code != ExitTimeout || !strings.Contains(got.stdout, `"code":"TIMEOUT"`) || !strings.Contains(got.stdout, id) {
+		t.Fatalf("submit --wait timeout: %+v", got)
+	}
 	kept := hub(t, &canned{byPath: map[string]any{"/api/runs/" + id: item("queued", nil, map[string]any{"position": 1, "waitReason": "pool-all-kept"})}})
 	if got := invoke(t, kept, "wait", id, "--json"); got.code != ExitHuman || !strings.Contains(got.stdout, `"code":"WAITING_ON_HUMAN"`) {
 		t.Fatalf("pool-all-kept: %+v", got)

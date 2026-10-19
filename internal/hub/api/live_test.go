@@ -81,7 +81,10 @@ func TestSignalReadsCarryTheFrozenSeqDroppedCountsCollectorStateAndAResyncMarker
 		t.Fatalf("view %s", raw)
 	}
 	collectors := doc["collectors"].([]any)
-	if len(collectors) != 1 || collectors[0].(map[string]any)["failures"] != float64(3) || collectors[0].(map[string]any)["state"] != "backoff" {
+	if len(collectors) != 1 {
+		t.Fatalf("collectors %v", collectors)
+	}
+	if c := collectors[0].(map[string]any); c["failures"] != float64(3) || c["state"] != "backoff" || c["lastOkAt"] != "2026-10-19T01:00:05.000Z" || c["reason"] != "deadline" {
 		t.Fatalf("collectors %v", collectors)
 	}
 	if status, raw := f.get("/api/runs/" + rid(1) + "/signals?after=3"); status != http.StatusOK || strings.Contains(string(raw), "resync") {
