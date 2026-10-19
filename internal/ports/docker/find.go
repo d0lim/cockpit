@@ -110,3 +110,23 @@ func health(status string) string {
 	}
 	return ""
 }
+
+type Container struct {
+	ID      string `json:"id"`
+	Service string `json:"service"`
+	State   string `json:"state"`
+}
+
+func (p *Port) Containers(ctx context.Context) ([]Container, error) {
+	cs, err := p.list(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := []Container{}
+	for _, c := range cs {
+		if p.target(c) {
+			out = append(out, Container{ID: c.id, Service: c.service, State: c.state})
+		}
+	}
+	return out, nil
+}
