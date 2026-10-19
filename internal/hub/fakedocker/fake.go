@@ -46,6 +46,7 @@ type Fake struct {
 	FailVerb        map[string]bool
 	FailStderr      string
 	Unhealthy       bool
+	ImagePresent    func(ref string) bool
 	ProbeLeak       bool
 	AppExited       bool
 	SeedExit        int
@@ -216,6 +217,8 @@ func (f *Fake) inspect(ref string) (compose.Result, error) {
 		return out(PinnedID), nil
 	case ref == tagID:
 		return out(tagID), nil
+	case f.ImagePresent != nil && f.ImagePresent(ref):
+		return out("sha256:" + strings.Repeat("c", 64)), nil
 	}
 	return compose.Result{Code: 1}, nil
 }

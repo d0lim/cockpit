@@ -175,6 +175,19 @@ func (e *Env) SealStatic(ctx context.Context) error {
 	return sealFailure("the static seal", e.Static)
 }
 
+func (e *Env) CachedImages(ctx context.Context) (int, bool) {
+	built := compose.BuiltImages(e.Config)
+	if len(built) == 0 {
+		return 0, false
+	}
+	for _, b := range built {
+		if !compose.KeyedTag(b.Image, e.Keys) || !e.Project.ImagePresent(ctx, b.Image) {
+			return len(built), false
+		}
+	}
+	return len(built), true
+}
+
 func (e *Env) Build(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, e.Limits.Build)
 	defer cancel()

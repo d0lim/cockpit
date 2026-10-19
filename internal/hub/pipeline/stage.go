@@ -93,6 +93,10 @@ func prepare(ctx context.Context, l *live) (outcome, error) {
 }
 
 func build(ctx context.Context, l *live) (outcome, error) {
+	if n, cached := l.env.CachedImages(ctx); cached {
+		l.say(fmt.Sprintf("build skipped: all %d images present", n))
+		return outcome{event: lifecycle.Built}, nil
+	}
 	if err := l.env.Build(ctx); err != nil {
 		return outcome{}, err
 	}

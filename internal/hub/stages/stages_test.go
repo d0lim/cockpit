@@ -1,6 +1,7 @@
 package stages
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 )
 
 var stagesMutations = []porttest.Mutation{
+	{"only keyed and present built images skip the build", "return true from CachedImages when any built image is present", "red: one missing image and an unkeyed tag count as cached", "TestCachedImagesHoldOnlyWhenEveryBuiltImageIsTaggedWithItsKeyAndPresent"},
 	{"boot waits for running and healthy expected services and stops on an exited one", "treat every listed row as ready", "red: a starting or exited service counts as ready", "TestReadinessWaitsForHealthAndFailsOnAStoppedService"},
 	{"an expected one-shot service that exited 0 counts as completed beside running services", "drop the one-shot exit 0 case so every exited row stops the boot", "red: the seed and job that exited 0 fail the boot", "TestReadinessReadsAOneShotThatExitedZeroAsCompletedAndEveryOtherExitAsAFailure"},
 	{"a one-shot service that exited non-zero or died fails the boot with its name and code", "accept any exit of a one-shot service", "red: the seed that exited 1 reads as ready", "TestReadinessReadsAOneShotThatExitedZeroAsCompletedAndEveryOtherExitAsAFailure"},
@@ -101,5 +103,43 @@ func TestReadinessReadsAOneShotThatExitedZeroAsCompletedAndEveryOtherExitAsAFail
 		if ready != c.ready || waiting != c.waiting || got != c.err {
 			t.Errorf("%s: ready %v waiting %q error %q, want %v %q %q", c.name, ready, waiting, got, c.ready, c.waiting, c.err)
 		}
+	}
+}
+
+type presentImages map[string]bool
+
+func (d presentImages) Run(_ context.Context, cmd compose.Command) (compose.Result, error) {
+	if cmd.Args[0] == "image" && d[cmd.Args[len(cmd.Args)-1]] {
+		return compose.Result{Stdout: []byte("sha256:0123\n")}, nil
+	}
+	return compose.Result{Code: 1}, nil
+}
+
+func TestCachedImagesHoldOnlyWhenEveryBuiltImageIsTaggedWithItsKeyAndPresent(t *testing.T) {
+	keys := map[string]string{"IMG_APP": "aaaaaaaaaaaa", "IMG_WORKER": "bbbbbbbbbbbb"}
+	service := func(image string) map[string]any {
+		return map[string]any{"image": image, "build": map[string]any{"context": "."}}
+	}
+	both := map[string]any{"services": map[string]any{"app": service("toy/app:aaaaaaaaaaaa"), "worker": service("toy/worker:bbbbbbbbbbbb"), "db": map[string]any{"image": "postgres:17"}}}
+	cases := []struct {
+		name    string
+		config  map[string]any
+		present presentImages
+		n       int
+		cached  bool
+	}{
+		{"all present", both, presentImages{"toy/app:aaaaaaaaaaaa": true, "toy/worker:bbbbbbbbbbbb": true}, 2, true},
+		{"one missing", both, presentImages{"toy/app:aaaaaaaaaaaa": true}, 2, false},
+		{"present but not keyed", map[string]any{"services": map[string]any{"app": service("toy/app:latest")}}, presentImages{"toy/app:latest": true}, 1, false},
+		{"no built service", map[string]any{"services": map[string]any{"db": map[string]any{"image": "postgres:17"}}}, presentImages{}, 0, false},
+	}
+	for _, c := range cases {
+		e := &Env{Config: c.config, Keys: keys, Project: compose.Project{Docker: c.present}}
+		if n, cached := e.CachedImages(context.Background()); n != c.n || cached != c.cached {
+			t.Errorf("%s: %d %v, want %d %v", c.name, n, cached, c.n, c.cached)
+		}
+	}
+	if len(cases) != 4 {
+		t.Fatal("case count")
 	}
 }
