@@ -91,7 +91,7 @@ func readCapped(root *os.Root, name string) ([]byte, ReadFailure) {
 	}
 	defer f.Close()
 	info, err := f.Stat()
-	if err != nil || !os.SameFile(link, info) || info.Size() > MaxStateBytes {
+	if err != nil || !os.SameFile(link, info) {
 		return nil, ReadUnsafe
 	}
 	data, err := io.ReadAll(io.LimitReader(f, MaxStateBytes+1))

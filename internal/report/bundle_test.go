@@ -21,6 +21,7 @@ var bundleMutations = []porttest.Mutation{
 	{"a rescan hit removes the partial bundle", "skip os.RemoveAll in refuse", "red: report.partial/ is left with the planted value", "TestAPlantedValueLeftAtRescanDiscardsTheBundleRecordsThePathsAndRefusesReads"},
 	{"a rescan hit records redaction failed in the run meta", "skip Patch in refuse", "red: the meta has no redaction", "TestAPlantedValueLeftAtRescanDiscardsTheBundleRecordsThePathsAndRefusesReads"},
 	{"a rescan hit refuses the run's signal reads", "skip RefuseReads in refuse", "red: the real stream still answers reads", "TestARealStreamFrozenWithAnOlderValueListIsDiscardedAndItsReadsAreRefused"},
+	{"the returned judgement is masked", "return the judgement without maskJudgement", "red: the planted seed is in the outcome's second reason", "TestABundleWithPlantedValuesIsMaskedAndRenamedToReportWith700And600"},
 	{"bundle paths stay inside the bundle and off reserved names", "drop the IsLocal and reserved checks in Assemble", "red: ../escape.json is written beside the run", "TestBundlePathsOutsideTheBundleOrOnReservedNamesAreRefusedBeforeAnythingIsWritten"},
 }
 
@@ -62,6 +63,9 @@ func TestABundleWithPlantedValuesIsMaskedAndRenamedToReportWith700And600(t *test
 	}
 	if rep, err := mask.Rescan(report, f.bundle.Mask.Mask); err != nil || len(rep.Left) != 0 || rep.Scanned != 6 {
 		t.Fatalf("rescan %+v %v", rep, err)
+	}
+	if strings.Contains(strings.Join(out.Judgement.Reasons, " "), planted) || !strings.Contains(out.Judgement.Reasons[1], "****") {
+		t.Fatalf("outcome reasons are not masked: %q", out.Judgement.Reasons)
 	}
 	if f.patched != nil || f.signals.refused != "" || f.signals.froze != 1 || len(dirs) != 3 {
 		t.Fatalf("patched %v, refused %q, froze %d, dirs %q", f.patched, f.signals.refused, f.signals.froze, dirs)

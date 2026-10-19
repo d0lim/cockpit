@@ -13,9 +13,9 @@ import (
 )
 
 var sourceMutations = []porttest.Mutation{
-	{"runner files are not followed through symlinks", "drop the Lstat regular-file check in readCapped", "red: a manifest symlink inside the directory is read as ok", "TestRunnerFilesThroughSymlinksOrOverTheSizeLimitAreUnsafeAndNotBundled"},
-	{"runner files have a size limit", "drop the MaxStateBytes checks in readCapped", "red: a 5 MiB result is bundled", "TestRunnerFilesThroughSymlinksOrOverTheSizeLimitAreUnsafeAndNotBundled"},
-	{"suite sources stay inside the suite directory", "drop the IsLocal check in SuiteSources", "red: ../secret.ts is copied into the bundle", "TestSuiteSourcesCopyOnlyLocalFilesTheManifestPointsTo"},
+	{"runner files are not followed through symlinks", "drop both the Lstat regular-file check and the SameFile comparison in readCapped", "red: a manifest symlink inside the directory is read as ok", "TestRunnerFilesThroughSymlinksOrOverTheSizeLimitAreUnsafeAndNotBundled"},
+	{"runner files have a size limit", "drop the len(data) > MaxStateBytes check in readCapped", "red: a result over 4 MiB is read as ok", "TestRunnerFilesThroughSymlinksOrOverTheSizeLimitAreUnsafeAndNotBundled"},
+	{"suite sources stay inside the suite directory", "read by filepath.Join(suiteDir, name) instead of through os.Root and drop IsLocal in SuiteSources", "red: ../secret.ts is copied into the bundle", "TestSuiteSourcesCopyOnlyLocalFilesTheManifestPointsTo"},
 	{"decode errors are told apart as parse or schema", "return ReadSchema for every error in decodeFailure", "red: a truncated result reads as schema", "TestParseAndSchemaFailuresAreToldApart"},
 	{"exec files must match the hub's name pattern", "drop the execName check in readExec", "red: an oddly named exec file is bundled", "TestRunnerFilesAreReadWithAStatusPerFileAndOnlyGoodOnesAreBundled"},
 }

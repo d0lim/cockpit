@@ -82,11 +82,12 @@ func Assemble(b Bundle) (Outcome, error) {
 			out.Frozen, stages[StageSignals] = frozen, contract.CollectStage{Status: contract.CollectStageOK}
 		}
 	}
-	out.Judgement = Settle(Judge(b.Inputs), b.Meta.Verdict)
+	judged := Settle(Judge(b.Inputs), b.Meta.Verdict)
+	out.Judgement = maskJudgement(judged, b.Mask)
 	lines := UnreadLines(unread, out.Frozen.Dropped)
 	s := b.Summary
 	s.Stages = stages
-	summary := Summary(b.Inputs, out.Judgement, s, lines)
+	summary := Summary(b.Inputs, judged, s, lines)
 	files := map[string][]byte{}
 	for name, data := range b.Files {
 		files[name] = data
@@ -114,6 +115,18 @@ func Assemble(b Bundle) (Outcome, error) {
 	}
 	out.Dir = final
 	return out, nil
+}
+
+func maskJudgement(j Judgement, m *mask.Masker) Judgement {
+	masked := func(in []string) []string {
+		out := make([]string, len(in))
+		for i, s := range in {
+			out[i] = m.Mask(s)
+		}
+		return out
+	}
+	j.Reasons, j.Skipped, j.Declared = masked(j.Reasons), masked(j.Skipped), masked(j.Declared)
+	return j
 }
 
 func firstElem(name string) string {
