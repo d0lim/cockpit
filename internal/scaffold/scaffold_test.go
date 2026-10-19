@@ -125,7 +125,7 @@ func TestScaffoldedSuiteFailsTheRunnerWhenTheServiceAnswers500(t *testing.T) {
 	}
 }
 
-func tsc(t *testing.T, suite string) (bool, string) {
+func tsc(t *testing.T, suite string) (bool, string, int) {
 	t.Helper()
 	bunx, err := exec.LookPath("bunx")
 	if err != nil {
@@ -147,21 +147,34 @@ func tsc(t *testing.T, suite string) (bool, string) {
 	if err := os.WriteFile(filepath.Join(pkg, "package.json"), []byte(`{"name":"@d0lim/cockpit-sdk","version":"0.0.0"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(bunx, "--bun", "-p", "typescript@5.9.3", "tsc", "--noEmit", "-p", filepath.Join(dir, "e2e/tsconfig.json"), "--pretty", "false")
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	return err == nil, string(out)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+	for attempt := 1; ; attempt++ {
+		cmd := exec.CommandContext(ctx, bunx, "--bun", "-p", "typescript@5.9.3", "tsc", "--noEmit", "-p", filepath.Join(dir, "e2e/tsconfig.json"), "--listFiles", "--pretty", "false")
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		declarations := 0
+		for _, line := range strings.Split(string(out), "\n") {
+			if strings.Contains(line, "@d0lim/cockpit-sdk/") && strings.HasSuffix(strings.TrimSpace(line), ".d.ts") {
+				declarations++
+			}
+		}
+		if declarations > 0 || attempt == 3 {
+			return err == nil, string(out), declarations
+		}
+		t.Logf("tsc listed no declarations, treated as a bunx startup failure; retry %d\n%s", attempt, out)
+	}
 }
 
 func TestScaffoldedSuiteTypeChecksAgainstTheGeneratedDeclarations(t *testing.T) {
-	if ok, out := tsc(t, ""); !ok {
-		t.Fatalf("tsc failed:\n%s", out)
+	if ok, out, decls := tsc(t, ""); !ok || decls != 3 {
+		t.Fatalf("ok=%v declarations=%d\n%s", ok, decls, out)
 	}
 }
 
 func TestScaffoldedTsconfigRejectsAWrongHelperArgument(t *testing.T) {
-	ok, out := tsc(t, strings.Replace(smokeSuite, "expectStatus(res, 200)", `expectStatus(res, "200")`, 1))
-	if ok || !strings.Contains(out, "TS2345") {
-		t.Fatalf("ok=%v\n%s", ok, out)
+	ok, out, decls := tsc(t, strings.Replace(smokeSuite, "expectStatus(res, 200)", `expectStatus(res, "200")`, 1))
+	if ok || decls != 3 || !strings.Contains(out, "TS2345") {
+		t.Fatalf("ok=%v declarations=%d\n%s", ok, decls, out)
 	}
 }
