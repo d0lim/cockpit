@@ -102,7 +102,7 @@ declare module "cockpit:collect" {
 	export interface StatePort {
 		/** Reads a value this collector stored earlier in this run, or `undefined`. */
 		get(key: string): Promise<string | undefined>;
-		/** Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts. The key and the value pass the run redactor first, so a credential is stored and read back masked. */
+		/** Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts. The key and the value pass the run redactor first, so a credential is stored and read back masked. The redactor's key-name rules also apply inside the value: in `{"nextPageToken":"..."}` or `token=...` the part after a secret-looking name (`*token`, `password`, `secret`, `credential`, `session`, `api_key`) reads back as `****`. The state key itself does not trigger them, so `set("nextPageToken", cursor)` keeps the cursor; inside a stored object, use neutral names such as `cursor`. */
 		set(key: string, value: string): Promise<void>;
 	}
 	export interface CollectorDef {

@@ -23,6 +23,7 @@ var stateMutations = []porttest.Mutation{
 	{"keys are checked", "drop validKey", "red: an empty key and a control-character key are stored", "TestBadKeysOversizedValuesAndUnknownMethodsAreRefused"},
 	{"keys and values pass the run redactor before they are stored", "store key and value without mask", "red: the planted value is in kv/toy-db.json", "TestCredentialsInStateKeysAndValuesAreMaskedBeforeTheyReachTheKVFileAndOtherValuesRoundTrip"},
 	{"ordinary state values are not rewritten by the run redactor", "mask values with a rule that rewrites every 22-character id", "red: the base64url id reads back as ****", "TestOrdinaryStateValuesRoundTripByteIdenticalThroughTheHubRedactorAndARestartWhileAPlantedSecretIsMasked"},
+	{"the redactor's key-name rules apply inside values, not to the state key", "mask the value inside a JSON object under its state key and store what is left", "red: the value under the state key nextPageToken reads back as ****", "TestASecretLookingStateKeyKeepsItsValueButASecretLookingKeyInsideAValueHidesWhatFollowsIt"},
 	{"values have a size limit", "drop the MaxValue check", "red: a 100 KiB value is stored", "TestBadKeysOversizedValuesAndUnknownMethodsAreRefused"},
 }
 
@@ -166,6 +167,34 @@ func TestOrdinaryStateValuesRoundTripByteIdenticalThroughTheHubRedactorAndAResta
 	got, err := again.Call(context.Background(), "get", args("secret"))
 	if s, _ := got.(string); err != nil || strings.Contains(s, planted) || !strings.HasPrefix(s, "****") {
 		t.Fatalf("planted secret read back %q %v", got, err)
+	}
+}
+
+func TestASecretLookingStateKeyKeepsItsValueButASecretLookingKeyInsideAValueHidesWhatFollowsIt(t *testing.T) {
+	m, err := mask.New(mask.Options{Mode: mask.Hub})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := &Port{Collector: "toy-db", Store: open(t, filepath.Join(t.TempDir(), "run")), Mask: m.Mask}
+	cases := []struct {
+		key, value, want string
+	}{
+		{"nextPageToken", "abc123def456", "abc123def456"},
+		{"sessionCursor", "abc123def456", "abc123def456"},
+		{"page", `{"cursor":"abc123def456"}`, `{"cursor":"abc123def456"}`},
+		{"page", `{"nextPageToken":"abc123def456"}`, `{"nextPageToken":"****"}`},
+		{"page", "token=abc123def456", "token=****"},
+	}
+	for _, c := range cases {
+		if _, err := p.Call(context.Background(), "set", args(c.key, c.value)); err != nil {
+			t.Fatal(err)
+		}
+		if got, err := p.Call(context.Background(), "get", args(c.key)); err != nil || got != c.want {
+			t.Errorf("%s = %s: read back %v %v, want %s", c.key, c.value, got, err, c.want)
+		}
+	}
+	if len(cases) != 5 {
+		t.Fatal("case count")
 	}
 }
 
