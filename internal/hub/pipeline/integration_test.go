@@ -35,7 +35,9 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	repo := toyRepo(t, func(dir string) {
 		replaceIn(t, filepath.Join(dir, "scripts", "flows", "health.ts"), "if (!value) throw", "console.log(\"token \" + String(ctx.priv.appToken));\n\t\t\t\tif (!value) throw")
 	})
-	cfg := config.Config{AllowedRepositories: []string{repo}, Limits: config.Defaults(), ReservedPorts: []config.PortRange{}}
+	limits := config.Defaults()
+	limits.PortBase, limits.Slots = freeBlock(t), 1
+	cfg := config.Config{AllowedRepositories: []string{repo}, Limits: limits, ReservedPorts: []config.PortRange{}}
 	sched, hub, err := New(Options{
 		Home: home, Config: cfg, HubPort: 7710, Ensure: ensure, Limits: stages.DefaultLimits(), StopOnDone: false,
 		DockerFor: func(h procgroup.Hooks) compose.Docker { return compose.CLI{Hooks: h} },

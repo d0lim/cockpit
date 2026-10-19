@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"os"
@@ -161,7 +162,9 @@ func newE2E(t *testing.T) *e2e {
 	if err := os.MkdirAll(e.home, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(e.home, "config.yaml"), []byte("allowedRepositories:\n  - "+e.repo+"\n"), 0o600); err != nil {
+	block := strconv.Itoa(30000 + rand.IntN(150)*100)
+	config := "allowedRepositories:\n  - " + e.repo + "\nports:\n  base: " + block + "\n  slots: 1\n"
+	if err := os.WriteFile(filepath.Join(e.home, "config.yaml"), []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	port := strconv.Itoa(freePort(t))
