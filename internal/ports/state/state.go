@@ -47,6 +47,7 @@ func (p *Port) Call(_ context.Context, method string, args []json.RawMessage) (a
 	if !validKey(key) {
 		return nil, ports.BadArgs(mask, "a state key is 1 to 256 characters without control characters")
 	}
+	key = mask(key)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	current, err := p.Store.KVGet(p.Collector)
@@ -67,7 +68,7 @@ func (p *Port) Call(_ context.Context, method string, args []json.RawMessage) (a
 		if len(value) > MaxValue {
 			return nil, ports.Limit(mask, "the state value is larger than the limit")
 		}
-		current[key] = value
+		current[key] = mask(value)
 		if err := p.Store.KVPut(p.Collector, current); err != nil {
 			return nil, ports.Limit(mask, "cannot store the collector state: "+err.Error())
 		}

@@ -8,7 +8,7 @@ A run's signals live under `runs/<id>/signals/` in the hub state directory.
 
 - `stream.jsonl`: one signal per line, append only. `seq` starts at 1 and increases by one per accepted signal inside the run.
 - `segment.json`: whether the stream is frozen, the last frozen `seq`, the next `seq`, the drop counters carried over a compaction, and the read refusal.
-- `kv/<collector>.json`: the state of one collector, written atomically and kept across hub restarts. The collector id must match `^[a-z0-9][a-z0-9-]{0,62}$`, and the state is at most 1 MiB.
+- `kv/<collector>.json`: the state of one collector, written atomically and kept across hub restarts. The collector id must match `^[a-z0-9][a-z0-9-]{0,62}$`, and the state is at most 1 MiB. The state port passes each key and value through the run redactor before it is stored, so a credential a collector stores comes back masked and never reaches the file.
 
 The memory index is one 8-byte entry per `seq`: the line offset and the quota bucket, or a mark that the record was dropped or superseded.
 

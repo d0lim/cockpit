@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ import (
 var stateMutations = []porttest.Mutation{
 	{"state is scoped to the port's collector", "use a fixed collector id in KVGet and KVPut", "red: acme-queue reads the toy-db cursor", "TestStateIsScopedToTheCollectorAndSurvivesARestart"},
 	{"keys are checked", "drop validKey", "red: an empty key and a control-character key are stored", "TestBadKeysOversizedValuesAndUnknownMethodsAreRefused"},
+	{"keys and values pass the run redactor before they are stored", "store key and value without mask", "red: the planted value is in kv/toy-db.json", "TestCredentialsInStateKeysAndValuesAreMaskedBeforeTheyReachTheKVFileAndOtherValuesRoundTrip"},
 	{"values have a size limit", "drop the MaxValue check", "red: a 100 KiB value is stored", "TestBadKeysOversizedValuesAndUnknownMethodsAreRefused"},
 }
 
@@ -85,6 +87,31 @@ func TestBadKeysOversizedValuesAndUnknownMethodsAreRefused(t *testing.T) {
 	}
 	if _, err := p.Call(context.Background(), "set", args(strings.Repeat("k", 256), strings.Repeat("x", 1000))); err != nil {
 		t.Fatalf("canary: %v", err)
+	}
+}
+
+func TestCredentialsInStateKeysAndValuesAreMaskedBeforeTheyReachTheKVFileAndOtherValuesRoundTrip(t *testing.T) {
+	const planted = "PLANTED-state-4d2a"
+	dir := filepath.Join(t.TempDir(), "run")
+	p := &Port{Collector: "toy-db", Store: open(t, dir), Mask: func(s string) string { return strings.ReplaceAll(s, planted, "****") }}
+	if _, err := p.Call(context.Background(), "set", args("tok-"+planted, "seen "+planted)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Call(context.Background(), "set", args("cursor", "42")); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "signals", "kv", "toy-db.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), planted) || !strings.Contains(string(data), `"tok-****":"seen ****"`) {
+		t.Fatalf("kv file %s", data)
+	}
+	if v, err := p.Call(context.Background(), "get", args("tok-"+planted)); err != nil || v != "seen ****" {
+		t.Fatalf("masked key read back %v %v", v, err)
+	}
+	if v, err := p.Call(context.Background(), "get", args("cursor")); err != nil || v != "42" {
+		t.Fatalf("plain value read back %v %v", v, err)
 	}
 }
 

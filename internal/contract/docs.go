@@ -62,6 +62,7 @@ func Docs() map[string]string {
 		"SignalPort": "Emits signals into this run's stream under the collector's id. Every string is masked before it is stored. " +
 			"The `runner` time source is reserved for the hub.",
 		"StatePort.get": "Reads a value this collector stored earlier in this run, or `undefined`.",
-		"StatePort.set": "Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts.",
+		"StatePort.set": "Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts. " +
+			"The key and the value pass the run redactor first, so a credential is stored and read back masked.",
 	}
 }

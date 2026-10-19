@@ -102,7 +102,7 @@ declare module "cockpit:collect" {
 	export interface StatePort {
 		/** Reads a value this collector stored earlier in this run, or `undefined`. */
 		get(key: string): Promise<string | undefined>;
-		/** Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts. */
+		/** Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts. The key and the value pass the run redactor first, so a credential is stored and read back masked. */
 		set(key: string, value: string): Promise<void>;
 	}
 	export interface CollectorDef {
