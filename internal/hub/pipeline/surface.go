@@ -19,7 +19,7 @@ func (c collectorStatus) Status(runID string) []api.CollectorState {
 	statuses := c.h.ops.Collect.Status(runID)
 	out := make([]api.CollectorState, 0, len(statuses))
 	for _, s := range statuses {
-		out = append(out, api.CollectorState{ID: s.ID, State: string(s.State), LastOKAt: s.LastSuccess, Failures: s.Failures, Reason: s.Reason})
+		out = append(out, api.CollectorState{ID: s.ID, State: s.State, LastOKAt: s.LastSuccess, Failures: s.Failures, Reason: s.Reason})
 	}
 	return out
 }
