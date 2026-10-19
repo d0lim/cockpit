@@ -23,9 +23,14 @@ var EnvDirs = []string{"src", "work", "env", "build"}
 
 type ReportInput struct {
 	Meta   store.Meta
-	Root   *os.Root
+	Store  *store.Store
+	RunDir string
+	Decl   *contract.Declaration
+	Ports  map[string]int
 	Runner *compose.RunnerResult
-	Mask   func(string) string
+	Boot   *contract.BootVerdict
+	Masker *mask.Masker
+	Now    time.Time
 }
 
 type Reporter func(ctx context.Context, in ReportInput) (reconcile.ReportOutcome, string, error)

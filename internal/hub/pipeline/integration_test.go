@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,7 +31,9 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	if _, err := ensure(t.Context()); errors.Is(err, runnerbin.ErrNotEmbedded) {
 		t.Skip("the runner is not embedded; run scripts/build-runners.sh first")
 	}
-	repo := toyRepo(t, nil)
+	repo := toyRepo(t, func(dir string) {
+		replaceIn(t, filepath.Join(dir, "scripts", "flows", "health.ts"), "if (!value) throw", "console.log(\"token \" + String(ctx.priv.appToken));\n\t\t\t\tif (!value) throw")
+	})
 	cfg := config.Config{AllowedRepositories: []string{repo}, Limits: config.Defaults(), ReservedPorts: []config.PortRange{}}
 	sched, hub, err := New(Options{
 		Home: home, Config: cfg, HubPort: 7710, Ensure: ensure, Limits: stages.DefaultLimits(), StopOnDone: false,
@@ -64,6 +67,22 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 		t.Fatalf("state %+v failed stage %s notice %q tail %q", m.State, m.FailedStage, m.Notice, m.Tail)
 	}
 	t.Logf("passed: %s pinned %s (%s)", m.ID, m.RunnerImage.Tag, m.RunnerImage.ID)
+	dir, _ := hub.Store().RunDir(m.ID)
+	token := envValue(t, filepath.Join(dir, "src", ".env"), "APP_TOKEN")
+	text := assertBundle(t, dir)
+	doc, summary := readSummary(t, dir)
+	stages, _ := doc["stages"].(map[string]any)
+	for _, name := range []string{"source", "runner.manifest.json", "runner.result.json", "signals"} {
+		if st, _ := stages[name].(map[string]any); st["status"] != "ok" {
+			t.Errorf("stage %s: %v", name, stages[name])
+		}
+	}
+	if doc["verdict"] != "passed" {
+		t.Fatalf("summary verdict %v reasons %v", doc["verdict"], doc["reasons"])
+	}
+	if strings.Contains(text, token) || !strings.Contains(summary, "token ****") {
+		t.Fatalf("the bundle holds the app token or the runner line is missing:\n%s", summary)
+	}
 	actor := scheduler.Actor{By: "tester"}
 	if r := sched.Exec(m.ID, "health", actor); r.Fail != nil {
 		t.Fatalf("exec health: %+v", r.Fail)
@@ -79,4 +98,19 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	if r := sched.Destroy(m.ID, actor); r.Fail != nil || r.Run.Env != lifecycle.EnvDestroyed {
 		t.Fatalf("destroy: %+v", r.Fail)
 	}
+}
+
+func envValue(t *testing.T, path, name string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if v, ok := strings.CutPrefix(line, name+"="); ok && len(v) > 8 {
+			return v
+		}
+	}
+	t.Fatalf("%s has no %s", path, name)
+	return ""
 }

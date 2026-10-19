@@ -9,6 +9,8 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
+const HarnessVersion = 5
+
 const (
 	LabelManaged     = "io.cockpit.managed"
 	LabelRunID       = "io.cockpit.run-id"

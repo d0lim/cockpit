@@ -52,6 +52,8 @@ type Fake struct {
 	OnSpawn       func(pgid int)
 	Steps         []contract.ResultStep
 	Flows         []contract.ManifestFlow
+	StoppedAt     *contract.StopPoint
+	OnRunner      func(runDir string)
 }
 
 func (f *Fake) Calls() []Call {
@@ -223,31 +225,6 @@ func (f *Fake) config(args []string) (compose.Result, error) {
 	text := strings.ReplaceAll(string(data), "/fixture/runs/r-toy", filepath.Dir(src))
 	text = strings.ReplaceAll(text, `"r-toy`, `"`+project)
 	return compose.Result{Stdout: []byte(text)}, nil
-}
-
-func (f *Fake) writeRunnerFiles(args, env []string) {
-	src := flag(args, "--project-directory")
-	e2e := filepath.Join(filepath.Dir(src), "work", "e2e")
-	image := f.ManifestImage
-	if image == "" {
-		image = RunnerTag
-	}
-	version := f.Version
-	manifest := contract.Manifest{SchemaVersion: contract.RunnerSchemaVersion, Suite: "smoke", Flows: f.Flows, Runner: &contract.RunnerIdentity{Version: version, Image: image}}
-	write(filepath.Join(e2e, "manifest.json"), manifest)
-	write(filepath.Join(e2e, "result.json"), contract.Result{SchemaVersion: contract.RunnerSchemaVersion, Steps: f.Steps})
-	for _, kv := range env {
-		if name, ok := strings.CutPrefix(kv, "E2E_EXEC_OUT=/work/e2e/"); ok {
-			target := flag(args, "--flow")
-			write(filepath.Join(e2e, name), contract.ExecResult{Result: contract.Result{SchemaVersion: contract.RunnerSchemaVersion, Steps: f.Steps}, Target: target})
-		}
-	}
-}
-
-func write(path string, v any) {
-	data, _ := json.Marshal(v)
-	os.MkdirAll(filepath.Dir(path), 0o700)
-	os.WriteFile(path, data, 0o600)
 }
 
 type Reconcile struct{}

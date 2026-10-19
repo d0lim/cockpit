@@ -70,8 +70,10 @@ func toyRepo(t *testing.T, mutate func(dir string)) string {
 
 func passingSteps() []contract.ResultStep {
 	return []contract.ResultStep{
-		{Flow: "health", ID: "health-ok", Status: contract.StepStatusPassed},
-		{Flow: "orders", ID: "create", Status: contract.StepStatusPassed},
+		{Flow: "seed", ID: "seed-users", Status: contract.StepStatusPassed, Requests: 1},
+		{Flow: "health", ID: "health-ok", Status: contract.StepStatusPassed, Requests: 1},
+		{Flow: "orders", ID: "create", Status: contract.StepStatusPassed, Requests: 2},
+		{Flow: "facts", ID: "facts-read", Status: contract.StepStatusPassed, Requests: 1},
 	}
 }
 

@@ -152,6 +152,6 @@ func (o *Ops) Report(ctx context.Context, m store.Meta) (reconcile.ReportOutcome
 		return reconcile.ReportOutcome{}, err
 	}
 	defer r.Close()
-	out, _, err := o.Reporter(ctx, ReportInput{Meta: m, Root: r.Root, Mask: r.Mask})
+	out, _, err := o.Reporter(ctx, ReportInput{Meta: m, Store: r.Store, RunDir: r.Layout.Root, Decl: r.Decl, Ports: o.RunPorts(r), Masker: r.Masker, Now: o.Now()})
 	return out, err
 }

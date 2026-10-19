@@ -100,7 +100,7 @@ func TestExecRunsTheFlowWithThePinnedImageAndReadsOnlyItsOwnResultFile(t *testin
 		t.Fatal(r.Fail)
 	}
 	view, ok := r.Result.(exec.View)
-	if !ok || len(view.Flows) != 2 || view.ExitCode == nil || *view.ExitCode != 0 || view.Reason != "" {
+	if !ok || len(view.Flows) != 4 || view.ExitCode == nil || *view.ExitCode != 0 || view.Reason != "" {
 		t.Fatalf("view %+v", r.Result)
 	}
 	for _, line := range view.Lines {

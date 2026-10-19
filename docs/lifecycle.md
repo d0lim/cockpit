@@ -148,11 +148,13 @@ A queued run that gets a port block goes through the stages one after another. E
 | seal check | the probes and the positive control | 2 minutes |
 | boot | `compose up` and wait until the expected services run and are healthy | 10 minutes |
 | run | the runner | 20 minutes |
-| report | read the runner files and decide the verdict | none |
+| report | judge the run and assemble the bundle with `internal/report` | none |
 
 - **Acceptance**: a submission must come from an allowed repository, name a commit, have no uncommitted change under `inputs.dirty`, carry a declaration that reads, pin a served host API and name a suite in `scripts.suites` (or there is only one). The run records the repository's git common directory so the pipeline can read the commit again.
 - **Runner call**: `compose run -d -T --no-deps runner run <suite>`, then `docker wait` under the limit, `docker logs`, `docker inspect` for `OOMKilled` and `docker rm`. A runner over its limit, or one whose run is aborted, is force-removed. Every runner line goes through the run redactor before it reaches an event, the tail or an exec answer.
-- **Verdict**: an out-of-memory kill, the time limit, a missing exit code or one outside 0 and 1 closes as `error`. So does a manifest whose runner identity differs from the pin; the notice names both values. A development build whose version carries no revision (`dev`) matches any `dev+<revision>`; two revisions or two releases must be equal.
+- **Report**: the report stage reads `work/e2e` with `report.ReadRunnerFiles`, the suite sources the manifest points to from `work/scripts`, the seal verdict from `seal.json`, the boot verdict and the runner outcome (exit code, OOM kill, masked lines) of this pipeline, and calls `report.Assemble` with the run masker, the run's signal stream and a meta patch. The verdict comes from the 15 rules in [verdict](verdict.md). A run the hub reports after a restart has no boot verdict or runner outcome; its verdict was set before the report and wins. The summary's `harness` is `compose.HarnessVersion` (5, the generated harness after the previous cockpit's 4) and `hubCommit` is the hub binary's VCS revision, or its version when the build carries none.
+- **Runner identity**: a manifest whose runner identity differs from the pin sets the verdict to `error` before the report, and the notice names both values. A development build whose version carries no revision (`dev`) matches any `dev+<revision>`; two revisions or two releases must be equal.
+- **Discarded bundle**: when the rescan finds a value left in the bundle, `report/` is not created, the meta gets `redaction: failed` with the paths inside the bundle, and the run's signal reads are refused.
 - **Settling**: a failure in build or seal check brings the project down. A failure before an environment exists removes `src`, `work`, `env` and `build` and releases the lease. A boot failure stops the environment and keeps it. `build/` is removed after every pipeline.
 
 ## Runner image pin

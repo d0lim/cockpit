@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/hub/store"
@@ -28,6 +29,7 @@ type live struct {
 	lines  []string
 	stage  lifecycle.Phase
 	runner *compose.RunnerResult
+	boot   *contract.BootVerdict
 	loaded bool
 }
 

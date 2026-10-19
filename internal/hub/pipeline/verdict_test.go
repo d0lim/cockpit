@@ -30,17 +30,24 @@ func TestVerdictMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 }
 
 func TestRunnerOOMTimeLimitAndExitCodesOutsideZeroAndOneCloseAsErrorAndExitOneFails(t *testing.T) {
-	failedSteps := []contract.ResultStep{{Flow: "health", ID: "health-ok", Status: contract.StepStatusFailed}}
+	failedSteps := []contract.ResultStep{
+		{Flow: "seed", ID: "seed-users", Status: contract.StepStatusPassed, Requests: 1},
+		{Flow: "health", ID: "health-ok", Status: contract.StepStatusFailed, Requests: 1, Message: "expected status 200 but got 503"},
+		{Flow: "orders", ID: "create", Status: contract.StepStatusSkipped},
+		{Flow: "facts", ID: "facts-read", Status: contract.StepStatusSkipped},
+	}
 	cases := []struct {
 		name    string
 		mutate  func(*fakedocker.Fake)
 		verdict lifecycle.Verdict
 		says    string
 	}{
-		{"oom", func(f *fakedocker.Fake) { f.RunnerOOM, f.RunnerCode = true, 137 }, lifecycle.VerdictError, "out of memory"},
+		{"oom", func(f *fakedocker.Fake) { f.RunnerOOM, f.RunnerCode = true, 137 }, lifecycle.VerdictError, "lack of memory"},
 		{"time limit", func(f *fakedocker.Fake) { f.RunnerHangs = true }, lifecycle.VerdictError, "limit"},
-		{"exit code 3", func(f *fakedocker.Fake) { f.RunnerCode = 3 }, lifecycle.VerdictError, "outside 0 and 1"},
-		{"exit code 1", func(f *fakedocker.Fake) { f.RunnerCode, f.Steps = 1, failedSteps }, lifecycle.VerdictFailed, "failed"},
+		{"exit code 3", func(f *fakedocker.Fake) { f.RunnerCode = 3 }, lifecycle.VerdictError, "outside the contract"},
+		{"exit code 1", func(f *fakedocker.Fake) {
+			f.RunnerCode, f.Steps, f.StoppedAt = 1, failedSteps, &contract.StopPoint{Flow: "health", Step: "health-ok"}
+		}, lifecycle.VerdictFailed, "failed steps: 1, the first at health › health-ok"},
 	}
 	for _, c := range cases {
 		m := newWorld(t, c.mutate, nil).submit()

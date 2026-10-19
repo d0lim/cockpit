@@ -28,7 +28,7 @@ func stageFor(p lifecycle.Phase) stageFunc {
 	case lifecycle.Testing:
 		return runSuite
 	case lifecycle.Reporting:
-		return report
+		return reportStage
 	}
 	return nil
 }
@@ -95,11 +95,17 @@ func build(ctx context.Context, l *live) (outcome, error) {
 	return outcome{event: lifecycle.Built}, nil
 }
 
-func (l *live) edgePorts() map[string]int {
-	ports := map[string]int{canaryName: compose.CanaryPort(l.env.Base)}
+func (l *live) runPorts() map[string]int {
+	ports := map[string]int{}
 	for _, p := range l.env.Loaded.Declaration.Ports {
 		ports[string(p.Name)] = compose.HostPort(l.env.Base, p)
 	}
+	return ports
+}
+
+func (l *live) edgePorts() map[string]int {
+	ports := l.runPorts()
+	ports[canaryName] = compose.CanaryPort(l.env.Base)
 	return ports
 }
 
@@ -118,6 +124,7 @@ func boot(ctx context.Context, l *live) (outcome, error) {
 	if err := l.env.Boot(ctx); err != nil {
 		return outcome{}, err
 	}
+	l.boot = &contract.BootVerdict{OK: true}
 	return outcome{event: lifecycle.Booted, extra: func(m *store.Meta) { m.LastUpAt = store.Timestamp(l.h.o.Now()) }}, nil
 }
 
@@ -154,7 +161,7 @@ func runSuite(ctx context.Context, l *live) (outcome, error) {
 	return outcome{event: lifecycle.Tested}, nil
 }
 
-func report(ctx context.Context, l *live) (outcome, error) {
+func reportStage(ctx context.Context, l *live) (outcome, error) {
 	if err := l.ensureLoaded(ctx); err != nil {
 		return outcome{}, err
 	}
@@ -162,7 +169,10 @@ func report(ctx context.Context, l *live) (outcome, error) {
 	if err != nil {
 		return outcome{}, err
 	}
-	out, notice, err := l.h.o.Reporter(context.WithoutCancel(ctx), envops.ReportInput{Meta: m, Root: l.env.Root, Runner: l.runner, Mask: l.env.Mask})
+	out, notice, err := l.h.o.Reporter(context.WithoutCancel(ctx), envops.ReportInput{
+		Meta: m, Store: l.st, RunDir: l.env.Layout.Root, Decl: &l.env.Loaded.Declaration, Ports: l.runPorts(),
+		Runner: l.runner, Boot: l.boot, Masker: l.env.Masker, Now: l.h.o.Now(),
+	})
 	if ctx.Err() != nil {
 		if _, aerr := l.st.ApplyEvent(l.id, lifecycle.Abort, lifecycle.Detail{}, nil); aerr != nil {
 			return outcome{}, aerr
