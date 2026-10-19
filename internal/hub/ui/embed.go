@@ -5,7 +5,7 @@ import (
 	"io/fs"
 )
 
-//go:generate sh -c "cd ../../../web && bun install --frozen-lockfile --silent && rm -rf ../internal/hub/ui/dist && bun build ./index.html --outdir ../internal/hub/ui/dist --production"
+//go:generate sh -c "cd ../../../web && bun install --frozen-lockfile --silent && rm -rf ../internal/hub/ui/dist && bun build ./index.html ./live/worker.ts --outdir ../internal/hub/ui/dist --production"
 
 //go:embed dist
 var dist embed.FS

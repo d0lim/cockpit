@@ -66,7 +66,13 @@ The tests check every answer against a JSON Schema generated from the Go struct.
 
 ## Event stream
 
-A tab opens one stream. Its frames are:
+The screen keeps one connection per stream target for the whole browser, because a browser allows only six HTTP/1.1 connections to one origin and every open stream holds one. `web/live` does this in three ways, tried in order:
+
+1. A `SharedWorker` (`/live/worker.js`, name `cockpit-live-<protocol>`) owns one `EventSource` per target that any tab asks for. It sends each new tab the frames it has kept for that target, fans live frames out to every tab that subscribed, and closes a target's stream when the last tab leaves. A tab says `bye` on `pagehide` and pings every 10 seconds; a tab silent for 35 seconds is dropped.
+2. Without a working shared worker, the tabs elect a leader through the Web Locks API and talk over a `BroadcastChannel`. The leader holds the streams and broadcasts frames. When it closes, the next tab takes the lock and opens the streams again.
+3. Without either, each tab opens its own streams, one per target.
+
+Every layer drops a frame whose composite id is not newer than the last one it delivered for that target (bus seq for `runs` and `job`, signal seq for `signal` and `resync`, one `signal-refused` per epoch), so a reconnect or a leader change repeats nothing. A stream's frames are:
 
 - `runs`: the whole `HubList`, sent whenever it changes.
 - `job`: one `sse.JobEvent` from the run's target, `{jobId, title, phase, text?, code?}`. `phase` is `start` (`text` is the command, when there is one), `out` (`text` is one output line) or `exit` (`code` is the exit code, present even when it is 0). The pipeline publishes it with `Bus.PublishJob` and the constructors `JobStarted`, `JobOutput` and `JobExited`.

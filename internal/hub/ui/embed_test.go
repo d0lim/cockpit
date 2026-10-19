@@ -10,7 +10,7 @@ import (
 var (
 	htmlRef     = regexp.MustCompile(`(?i)\b(?:src|href)\s*=\s*"([^"]*)"`)
 	cssRef      = regexp.MustCompile(`(?i)(?:url\(\s*['"]?|@import\s+['"])([a-z][a-z0-9+.-]*:|//)`)
-	jsRemoteRef = regexp.MustCompile(`(?:import\(|from\s*|fetch\(|EventSource\(|WebSocket\(|importScripts\()\s*['"\x60](?:https?:|wss?:|//)`)
+	jsRemoteRef = regexp.MustCompile(`(?:import\(|from\s*|fetch\(|EventSource\(|WebSocket\(|importScripts\(|Worker\()\s*['"\x60](?:https?:|wss?:|//)`)
 )
 
 func TestEmbeddedScreenServesIndexAndEveryAssetItReferences(t *testing.T) {
@@ -75,5 +75,33 @@ func TestBuildOutputLoadsNothingFromAnExternalURL(t *testing.T) {
 		if !hit {
 			t.Fatalf("the check does not catch %q", planted)
 		}
+	}
+}
+
+func TestTheSharedWorkerTheScreenStartsIsEmbeddedAndTheScreenNamesIt(t *testing.T) {
+	files := Files()
+	worker, err := fs.ReadFile(files, "live/worker.js")
+	if err != nil || !strings.Contains(string(worker), "onconnect") {
+		t.Fatalf("live/worker.js is missing or does not accept connections: %v", err)
+	}
+	named := 0
+	entries, err := fs.Glob(files, "index-*.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range entries {
+		raw, err := fs.ReadFile(files, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(raw), `"/live/worker.js"`) {
+			named++
+		}
+	}
+	if len(entries) != 1 || named != 1 {
+		t.Fatalf("%d screen bundles, %d name the worker", len(entries), named)
+	}
+	if !jsRemoteRef.MatchString(`new SharedWorker("https://cdn.example/w.js")`) {
+		t.Fatal("the external URL check does not cover workers")
 	}
 }

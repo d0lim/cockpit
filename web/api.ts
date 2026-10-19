@@ -1,6 +1,9 @@
 import { useEffect, useReducer, useState } from "react";
 import type { FlowView, HubList, KitView, OpReply, Problem, ReportView, RunDetail, RunOp, SignalsView, SourceView } from "./shared/types";
-import { type Action, initialLive, type Live, reduce, STREAM_KINDS, type StreamKind } from "./store";
+import { chooseLive, type Env } from "./live/transport";
+import type { Live } from "./live/router";
+import { HUB_TARGET } from "./live/wire";
+import { type Action, initialLive, type Live as LiveState, reduce } from "./store";
 
 export class ApiFailure extends Error {
 	constructor(
@@ -41,35 +44,24 @@ export const fetchSource = (id: string, file: string) => call<SourceView>(runPat
 export const fetchSignalMeta = (id: string, after: number) => call<SignalsView>(runPath(id, `/signals?after=${after}&limit=1`));
 export const operate = (id: string, op: RunOp, force: boolean) => post<OpReply>(runPath(id, `/${op}${force ? "?force=1" : ""}`));
 
-export const HUB_TARGET = "hub";
-export const eventsUrl = (target: string | null) => `/api/events?target=${encodeURIComponent(target ?? HUB_TARGET)}`;
-
 const FLUSH_MS = 50;
 
-export type Source = {
-	addEventListener(kind: string, fn: (msg: MessageEvent) => void): void;
-	onopen: ((ev: Event) => unknown) | null;
-	onerror: ((ev: Event) => unknown) | null;
-	close(): void;
+const browserEnv = (): Env => ({
+	SharedWorker: typeof SharedWorker === "undefined" ? undefined : SharedWorker,
+	BroadcastChannel: typeof BroadcastChannel === "undefined" ? undefined : BroadcastChannel,
+	locks: typeof navigator === "undefined" ? undefined : navigator.locks,
+	source: (url) => new EventSource(url),
+	onHide: (fn) => addEventListener("pagehide", fn),
+});
+
+let shared: Live | null = null;
+
+export const defaultLive = (): Live => {
+	shared ??= chooseLive(browserEnv()).live;
+	return shared;
 };
 
-export function attach(source: Source, push: (a: Action) => void): void {
-	source.onopen = () => push({ kind: "connection", state: "open" });
-	source.onerror = () => push({ kind: "connection", state: "lost" });
-	for (const event of STREAM_KINDS) {
-		source.addEventListener(event, (msg) => {
-			try {
-				push({ kind: "frame", event: event as StreamKind, id: msg.lastEventId, data: JSON.parse(String(msg.data)) });
-			} catch {
-				return;
-			}
-		});
-	}
-}
-
-const openEventSource = (url: string): Source => new EventSource(url);
-
-export function useLive(target: string | null, open: (url: string) => Source = openEventSource): Live {
+export function useLive(target: string | null, source: Live = defaultLive()): LiveState {
 	const [live, dispatch] = useReducer(reduce, target, initialLive);
 	useEffect(() => {
 		let queue: Action[] = [];
@@ -85,13 +77,12 @@ export function useLive(target: string | null, open: (url: string) => Source = o
 			if (timer === undefined) timer = setTimeout(flush, FLUSH_MS);
 		};
 		dispatch([{ kind: "select", target }]);
-		const source = open(eventsUrl(target));
-		attach(source, push);
+		const off = source.subscribe(target ?? HUB_TARGET, push);
 		return () => {
-			source.close();
+			off();
 			clearTimeout(timer);
 		};
-	}, [target, open]);
+	}, [target, source]);
 	return live;
 }
 
