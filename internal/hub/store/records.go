@@ -39,22 +39,32 @@ func (s *Store) patchMeta(id string, change func(*Meta)) (Meta, error) {
 }
 
 func (s *Store) ApplyEvent(id string, event lifecycle.Event, d lifecycle.Detail, extra func(*Meta)) (Meta, error) {
+	before, after, err := s.applyEvent(id, event, d, extra)
+	if err != nil {
+		return after, err
+	}
+	notify(s.home, Transition{Before: before, Event: event, Detail: d, After: after})
+	return after, nil
+}
+
+func (s *Store) applyEvent(id string, event lifecycle.Event, d lifecycle.Detail, extra func(*Meta)) (lifecycle.State, Meta, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	m, err := s.MustRead(id)
 	if err != nil {
-		return Meta{}, err
+		return lifecycle.State{}, Meta{}, err
 	}
 	next, err := lifecycle.Transition(&m.State, event, d)
 	if err != nil {
-		return m, err
+		return m.State, m, err
 	}
-	return s.patchMeta(id, func(m *Meta) {
+	after, err := s.patchMeta(id, func(m *Meta) {
 		if extra != nil {
 			extra(m)
 		}
 		m.State = next
 	})
+	return m.State, after, err
 }
 
 func HoldsLease(m Meta) bool {

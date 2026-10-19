@@ -157,6 +157,15 @@ A queued run that gets a port block goes through the stages one after another. E
 - **Discarded bundle**: when the rescan finds a value left in the bundle, `report/` is not created, the meta gets `redaction: failed` with the paths inside the bundle, and the run's signal reads are refused.
 - **Settling**: a failure in build or seal check brings the project down. A failure before an environment exists removes `src`, `work`, `env` and `build` and releases the lease. A boot failure stops the environment and keeps it. `build/` is removed after every pipeline.
 
+## Collector supervision
+
+The hub runs the run's collectors and its two observers (`logs` for container log lines, `services` for `docker compose ps` states) under `internal/collect`. Every transition the run store applies reaches the hub's observer after the record is written, and the hub maps it with `lifecycle.HookFor`: it arms after `booted`, `resumed` and a reconciled `up`, and drains on entering `reporting`, `stopping` or `destroying`, on abort or failure, and when the environment is lost. The hook runs before the call that applied the transition returns, so compose stop, down and the report start only after the drain. A run whose environment ends (absent, destroyed or lost) is forgotten and its signal stream closed.
+
+- **Discovery**: at prepare, each `<scripts.collectors>/<id>.ts` in the extracted scripts is bundled with `worker.Bundle`. Its default export is evaluated once in a port-less engine to read `id` and `intervalMs`: the id must equal the file name, and `intervalMs` is absent (collected only at the report) or a whole number from 1000 to 3600000. An error fails the prepare stage. A hub that restarts discovers again when it re-arms.
+- **Ports**: every collector may use `docker`, `signal` and `state`, `http` when the declaration has ports, and `sql` when it has databases. `http` reaches only `http://<port name>/…` on the run's block. A database connects to `127.0.0.1` on the port named like it, otherwise on the one declared port whose container port is the driver's default (5432, 3306); its root password is read from the dotenv secret sources. Collector docker calls do not touch the run's `pgid`.
+- **Report**: the report stage asks the supervisor for a report-time collection (`skipped` when the environment is not up). Each collector becomes a summary stage named by its id, and the supervisor's unread records go to `notProven.unread` and `not-proven.md`. The report and the collectors share one signal stream per run, so the frozen segment holds what the collectors and observers emitted.
+- **Off**: `Options.NoCollection` turns supervision off; collector stages are then absent from the summary.
+
 ## Runner image pin
 
 The run pins the runner tag and the image ID that `docker import` returned. Before the runner runs, before resume and before exec, the hub checks that the tag still points at that ID. If the tag points elsewhere and the pinned image still exists, the tag is pointed back. If the pinned image is gone, the hub imports again and pins the new ID; a hub that embeds a different runner refuses instead.

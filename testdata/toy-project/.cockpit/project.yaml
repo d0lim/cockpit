@@ -26,7 +26,7 @@ secrets:
   publicNames: [POSTGRES_USER, POSTGRES_DB]
   patterns: ["toy_[A-Za-z0-9]{24}"]
 databases:
-  - { name: main, driver: postgres, readSchemas: [public], ownerRole: toy, rootSecret: POSTGRES_PASSWORD }
+  - { name: main, driver: postgres, readSchemas: [public], ownerRole: toy, rootSecret: POSTGRES_PASSWORD, rootUser: toy, database: toy }
 exec:
   allow:
     - [valkey-cli, DBSIZE]

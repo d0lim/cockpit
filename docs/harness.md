@@ -47,6 +47,6 @@ The hub opens each run directory with `os.Root`. It holds `src/` and `build/` (t
 
 On Linux the `runner` service runs as the hub's uid:gid so it can write `work/e2e` (700) and read the private env (600) that the hub owns; a hub running as root keeps the image user `65532:65532`. On Docker Desktop (macOS) the file sharing layer maps ownership, so the image user stays.
 
-Collector ids are the `.ts` basenames under `scripts.collectors`. They must match `^[a-z][a-z0-9-]{1,40}$`, and `runner` and `logs` are reserved for the hub's own signal sources. The secret sources and env outputs of the declaration are also treated as credential file names in the run record.
+Collector ids are the `.ts` basenames under `scripts.collectors`. They must match `^[a-z][a-z0-9-]{1,40}$`, and `runner`, `logs`, `services` and `supervisor` are reserved for the hub's own signal sources. The secret sources and env outputs of the declaration are also treated as credential file names in the run record.
 
 Each carries `io.cockpit.role`, and so does the builder (`builder`). Before any seal assertion, the rendered config (`docker compose config --format json` with every profile) must hold exactly one service per role, and every service must carry the labels of the run.

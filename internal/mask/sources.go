@@ -234,3 +234,11 @@ func isJSSpace(r rune) bool {
 	}
 	return r >= 0x2000 && r <= 0x200a
 }
+
+func DotenvValues(text string) map[string]string {
+	out := map[string]string{}
+	for _, e := range dotenvEntries(text) {
+		out[e.name] = e.value
+	}
+	return out
+}

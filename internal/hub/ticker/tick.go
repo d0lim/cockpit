@@ -150,7 +150,7 @@ func (c *Core) tickOnce() error {
 		if err := c.reconcileAll(ctx); err != nil {
 			return err
 		}
-	} else if err := c.RefreshProjects(ctx); err != nil {
+	} else if err := c.RefreshProjects(ctx); err != nil && ctx.Err() == nil {
 		c.d.Log.Warn("project scan failed", "err", err)
 	}
 	list, err := c.d.Store.ListRuns()

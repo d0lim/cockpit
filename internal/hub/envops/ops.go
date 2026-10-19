@@ -2,12 +2,14 @@ package envops
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"path"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lease"
@@ -23,16 +25,18 @@ import (
 var EnvDirs = []string{"src", "work", "env", "build"}
 
 type ReportInput struct {
-	Meta    store.Meta
-	Store   *store.Store
-	RunDir  string
-	Decl    *contract.Declaration
-	Ports   map[string]int
-	Runner  *compose.RunnerResult
-	Boot    *contract.BootVerdict
-	Masker  *mask.Masker
-	Signals report.Signals
-	Now     time.Time
+	Meta       store.Meta
+	Store      *store.Store
+	RunDir     string
+	Decl       *contract.Declaration
+	Ports      map[string]int
+	Runner     *compose.RunnerResult
+	Boot       *contract.BootVerdict
+	Masker     *mask.Masker
+	Signals    report.Signals
+	Collected  *collect.ReportResult
+	CollectErr error
+	Now        time.Time
 }
 
 type Reporter func(ctx context.Context, in ReportInput) (reconcile.ReportOutcome, string, error)
@@ -47,7 +51,10 @@ type Ops struct {
 	Reporter  Reporter
 	Now       func() time.Time
 	Grace     time.Duration
+	Collect   *collect.Supervisor
+	Log       *slog.Logger
 	maskers   sync.Map
+	runs      sync.Map
 }
 
 type Run struct {

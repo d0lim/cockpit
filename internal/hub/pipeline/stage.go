@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
@@ -76,6 +77,9 @@ func prepare(ctx context.Context, l *live) (outcome, error) {
 		if ctx.Err() != nil {
 			return outcome{}, errAborted
 		}
+	}
+	if err := l.h.ops.Discover(ctx, l.id, l.env.Loaded, filepath.Join(l.env.Layout.Root, "work", "scripts")); err != nil {
+		return outcome{}, err
 	}
 	keys := l.env.Keys
 	if _, err := l.st.PatchMeta(l.id, func(m *store.Meta) { m.ImageKeys = keys }); err != nil {
@@ -169,10 +173,12 @@ func reportStage(ctx context.Context, l *live) (outcome, error) {
 	if err != nil {
 		return outcome{}, err
 	}
-	out, notice, err := l.h.o.Reporter(context.WithoutCancel(ctx), envops.ReportInput{
+	in := envops.ReportInput{
 		Meta: m, Store: l.st, RunDir: l.env.Layout.Root, Decl: &l.env.Loaded.Declaration, Ports: l.runPorts(),
 		Runner: l.runner, Boot: l.boot, Masker: l.env.Masker, Now: l.h.o.Now(),
-	})
+	}
+	l.h.ops.AddCollected(context.WithoutCancel(ctx), &in)
+	out, notice, err := l.h.o.Reporter(context.WithoutCancel(ctx), in)
 	if ctx.Err() != nil {
 		if _, aerr := l.st.ApplyEvent(l.id, lifecycle.Abort, lifecycle.Detail{}, nil); aerr != nil {
 			return outcome{}, aerr

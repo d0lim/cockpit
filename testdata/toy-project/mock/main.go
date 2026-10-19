@@ -39,7 +39,11 @@ func main() {
 		writeJSON(w, http.StatusOK, map[string]int64{"created": s.created.Load(), "rejected": s.rejected.Load()})
 	})
 	slog.Info("toy app listening", "addr", ":8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	logged := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("request", "method", r.Method, "path", r.URL.Path)
+		mux.ServeHTTP(w, r)
+	})
+	if err := http.ListenAndServe(":8080", logged); err != nil {
 		slog.Error("toy app stopped", "err", err)
 		os.Exit(1)
 	}

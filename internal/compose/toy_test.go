@@ -29,7 +29,7 @@ func TestToySuiteBundlesAtTheRunnerSiteAndEachCollectorAtTheHubSite(t *testing.T
 	ctx := context.Background()
 	suites := toyScripts(t, "suites")
 	collectors := toyScripts(t, "collectors")
-	if len(suites) != 1 || len(collectors) != 3 {
+	if len(suites) != 1 || len(collectors) != 4 {
 		t.Fatalf("toy has %d suites and %d collectors", len(suites), len(collectors))
 	}
 	for _, s := range suites {

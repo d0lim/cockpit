@@ -81,6 +81,7 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 		files[name] = data
 	}
 	stages[stageSource] = sourceStage
+	unread := collectorStages(in, stages)
 	if data, err := os.ReadFile(filepath.Join(in.RunDir, seal.FileName)); err == nil {
 		files[seal.FileName] = data
 	}
@@ -103,7 +104,7 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 		ImageKeys: meta.ImageKeys, ImageDigests: meta.ImageDigests, Versions: map[string]string{"cockpit": version.String()},
 		Stages: stages, Runner: runnerOutcome(in.Runner, in.Masker), GeneratedAt: store.Timestamp(in.Now),
 	}
-	bundle := report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker,
+	bundle := report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker, Unread: unread,
 		Patch: func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(meta.ID, change); return err }}
 	var streamErr error
 	bundle.Signals = in.Signals

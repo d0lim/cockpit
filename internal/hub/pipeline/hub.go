@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/d0lim/cockpit/internal/collect"
+	"github.com/d0lim/cockpit/internal/collect/worker"
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	"github.com/d0lim/cockpit/internal/hub/envops"
@@ -43,13 +45,17 @@ type Options struct {
 	RunnerUser   string
 	Events       func(Event)
 	Log          *slog.Logger
+	ScriptHost   []string
+	Collect      collect.Options
+	NoCollection bool
 }
 
 type Hub struct {
-	o      Options
-	store  *store.Store
-	ops    *envops.Ops
-	layout lease.Layout
+	o       Options
+	store   *store.Store
+	ops     *envops.Ops
+	layout  lease.Layout
+	observe func()
 }
 
 func ConfigLimits(cfg config.Config) pool.Limits {
@@ -92,8 +98,16 @@ func New(o Options) (*scheduler.Scheduler, *Hub, error) {
 		return nil, nil, err
 	}
 	st := store.Open(o.Home)
-	ops := &envops.Ops{Store: st, DockerFor: o.DockerFor, Ensure: o.Ensure, Layout: layout, Probe: o.PortProbe, Limits: o.Limits, Reporter: o.Reporter, Now: o.Now}
-	h := &Hub{o: o, store: st, ops: ops, layout: layout}
+	ops := &envops.Ops{Store: st, DockerFor: o.DockerFor, Ensure: o.Ensure, Layout: layout, Probe: o.PortProbe, Limits: o.Limits, Reporter: o.Reporter, Now: o.Now, Log: o.Log}
+	h := &Hub{o: o, store: st, ops: ops, layout: layout, observe: func() {}}
+	if !o.NoCollection {
+		sup, err := supervisor(o)
+		if err != nil {
+			return nil, nil, err
+		}
+		ops.Collect = sup
+		h.observe = store.Observe(o.Home, ops.Transition)
+	}
 	deps := scheduler.Deps{
 		Deps: ticker.Deps{
 			Store: st, Docker: o.Probe, Env: ops, Lease: h.Lease, Pipeline: h.Pipeline,
@@ -104,6 +118,32 @@ func New(o Options) (*scheduler.Scheduler, *Hub, error) {
 		Exec:   &exec.Execer{Ops: ops, Now: o.Now},
 	}
 	return scheduler.New(deps), h, nil
+}
+
+func supervisor(o Options) (*collect.Supervisor, error) {
+	opts := o.Collect
+	opts.Command = o.ScriptHost
+	if len(opts.Command) == 0 {
+		self, err := worker.SelfCommand()
+		if err != nil {
+			return nil, err
+		}
+		opts.Command = self
+	}
+	if opts.Log == nil {
+		opts.Log = o.Log
+	}
+	if opts.Now == nil {
+		opts.Now = o.Now
+	}
+	return collect.New(opts), nil
+}
+
+func (h *Hub) Close() {
+	h.observe()
+	if h.ops.Collect != nil {
+		h.ops.Close()
+	}
 }
 
 func (h *Hub) Ops() *envops.Ops { return h.ops }

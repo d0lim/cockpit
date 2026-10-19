@@ -10,7 +10,7 @@ import (
 )
 
 var collectorMutations = []porttest.Mutation{
-	{"collector ids reserved for the hub are refused", "drop the ReservedCollectorIDs check", "red: collectors named runner and logs pass", "TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersPass"},
+	{"collector ids reserved for the hub are refused", "drop the ReservedCollectorIDs check", "red: collectors named runner, logs, services and supervisor pass", "TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersPass"},
 	{"collector ids are path-safe names", "drop the namePattern check in checkCollectors", "red: a collector file named Bad_Name passes", "TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersPass"},
 	{"secret source names become credential file patterns", "return no patterns from SecretFilePatterns", "red: a meta value naming app/.secrets.json is accepted", "TestSecretSourceAndEnvOutputNamesBecomeCredentialFilePatterns"},
 }
@@ -21,11 +21,11 @@ func TestCollectorMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 
 func TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersPass(t *testing.T) {
 	loaded := mustLoadToy(t)
-	if got := strings.Join(CollectorIDs(loaded.Declaration, loaded.Tree), ","); got != "cache,facts,items" {
+	if got := strings.Join(CollectorIDs(loaded.Declaration, loaded.Tree), ","); got != "cache,facts,items,pulse" {
 		t.Fatalf("toy collector ids %s", got)
 	}
 	evaluated := 0
-	for _, name := range []string{"runner", "logs", "Bad_Name"} {
+	for _, name := range []string{"runner", "logs", "services", "supervisor", "Bad_Name"} {
 		_, err := loadToy(t, func(d string) {
 			writeFile(t, filepath.Join(d, "scripts", "collectors", name+".ts"), "export {};\n")
 		})
@@ -35,7 +35,7 @@ func TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersP
 		}
 		evaluated++
 	}
-	if evaluated != 3 {
+	if evaluated != 5 {
 		t.Fatalf("evaluated %d", evaluated)
 	}
 	if _, err := loadToy(t, func(d string) {

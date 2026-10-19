@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/d0lim/cockpit/internal/collect/collecttest"
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
@@ -38,11 +39,12 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	sched, hub, err := New(Options{
 		Home: home, Config: cfg, HubPort: 7710, Ensure: ensure, Limits: stages.DefaultLimits(), StopOnDone: false,
 		DockerFor: func(h procgroup.Hooks) compose.Docker { return compose.CLI{Hooks: h} },
-		Probe:     reconcile.NewCLI(), TickInterval: 200 * time.Millisecond,
+		Probe:     reconcile.NewCLI(), TickInterval: 200 * time.Millisecond, ScriptHost: collecttest.Command(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer hub.Close()
 	defer sched.Dispose()
 	res := sched.Submit(t.Context(), scheduler.SubmitInput{Worktree: repo, Submitter: "tester"})
 	if res.Fail != nil {
@@ -72,7 +74,7 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	text := assertBundle(t, dir)
 	doc, summary := readSummary(t, dir)
 	stages, _ := doc["stages"].(map[string]any)
-	for _, name := range []string{"source", "runner.manifest.json", "runner.result.json", "signals"} {
+	for _, name := range []string{"source", "runner.manifest.json", "runner.result.json", "signals", "pulse", "items", "cache", "facts"} {
 		if st, _ := stages[name].(map[string]any); st["status"] != "ok" {
 			t.Errorf("stage %s: %v", name, stages[name])
 		}
@@ -89,12 +91,31 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	} else {
 		t.Logf("exec health: %+v", r.Result)
 	}
+	frozen := fileText(t, filepath.Join(dir, "report", "signals", "stream.jsonl"))
+	for _, want := range []string{`"collector":"pulse"`, `"collector":"services"`, `"collector":"logs"`} {
+		if !strings.Contains(frozen, want) {
+			t.Errorf("the bundle stream lacks %s", want)
+		}
+	}
+	assertNoCollectorFailures(t, hub, m.ID, "after the report")
 	if r := sched.Stop(m.ID, actor); r.Fail != nil || r.Run.Env != lifecycle.EnvStopped {
 		t.Fatalf("stop: %+v", r)
 	}
 	if r := sched.Resume(m.ID, actor); r.Fail != nil || r.Run.Env != lifecycle.EnvUp {
 		t.Fatalf("resume: %+v", r.Fail)
 	}
+	live := filepath.Join(dir, "signals", "stream.jsonl")
+	before := strings.Count(fileText(t, live), `"collector":"pulse"`)
+	time.Sleep(3500 * time.Millisecond)
+	if r := sched.Stop(m.ID, actor); r.Fail != nil || r.Run.Env != lifecycle.EnvStopped {
+		t.Fatalf("second stop: %+v", r)
+	}
+	after := strings.Count(fileText(t, live), `"collector":"pulse"`)
+	t.Logf("pulse signals: %d before resume, %d after the second stop", before, after)
+	if after <= before {
+		t.Errorf("pulse did not run after resume")
+	}
+	assertNoCollectorFailures(t, hub, m.ID, "around stop and resume")
 	if r := sched.Destroy(m.ID, actor); r.Fail != nil || r.Run.Env != lifecycle.EnvDestroyed {
 		t.Fatalf("destroy: %+v", r.Fail)
 	}

@@ -91,6 +91,10 @@ func newWorld(t *testing.T, mutate func(*fakedocker.Fake), mutateRepo func(strin
 }
 
 func newWorldAs(t *testing.T, runnerUser string, mutate func(*fakedocker.Fake), mutateRepo func(string)) *world {
+	return newWorldWith(t, func(o *Options) { o.RunnerUser = runnerUser }, mutate, mutateRepo)
+}
+
+func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.Fake), mutateRepo func(string)) *world {
 	t.Helper()
 	w := &world{t: t, repo: toyRepo(t, mutateRepo)}
 	w.fake = &fakedocker.Fake{
@@ -110,7 +114,7 @@ func newWorldAs(t *testing.T, runnerUser string, mutate func(*fakedocker.Fake), 
 	}
 	limits := stages.Limits{Build: time.Minute, Boot: 2 * time.Second, Suite: 300 * time.Millisecond, Call: time.Minute, Poll: 10 * time.Millisecond}
 	cfg := config.Config{AllowedRepositories: []string{w.repo}, Limits: config.Defaults(), ReservedPorts: []config.PortRange{}}
-	sched, hub, err := New(Options{
+	opts := Options{
 		Home: t.TempDir(), Config: cfg, HubPort: 7710, DockerFor: w.fake.For, Probe: fakedocker.Reconcile{},
 		Ensure: func(ctx context.Context) (runnerbin.Image, error) {
 			w.mu.Lock()
@@ -118,13 +122,15 @@ func newWorldAs(t *testing.T, runnerUser string, mutate func(*fakedocker.Fake), 
 			w.mu.Unlock()
 			return runnerbin.Image{Tag: fakedocker.RunnerTag, ID: fakedocker.PinnedID, Arch: "arm64"}, nil
 		},
-		Limits: limits, RunnerUser: runnerUser, PortProbe: func(int) bool { return true }, TickInterval: 20 * time.Millisecond,
+		Limits: limits, NoCollection: true, PortProbe: func(int) bool { return true }, TickInterval: 20 * time.Millisecond,
 		Events: func(e Event) { w.mu.Lock(); w.events = append(w.events, e.Line); w.mu.Unlock() },
-	})
+	}
+	option(&opts)
+	sched, hub, err := New(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(sched.Dispose)
+	t.Cleanup(func() { sched.Dispose(); hub.Close() })
 	w.sched, w.hub = sched, hub
 	return w
 }

@@ -33,27 +33,29 @@ type Call struct {
 }
 
 type Fake struct {
-	mu            sync.Mutex
-	calls         []Call
-	ConfigFixture string
-	CanaryPort    int
-	Version       string
-	FailVerb      map[string]bool
-	ProbeLeak     bool
-	AppExited     bool
-	RunnerCode    int
-	RunnerOOM     bool
-	RunnerHangs   bool
-	RunnerLogs    string
-	ManifestImage string
-	TagID         string
-	PinnedGone    bool
-	EnvFiles      map[string]string
-	OnSpawn       func(pgid int)
-	Steps         []contract.ResultStep
-	Flows         []contract.ManifestFlow
-	StoppedAt     *contract.StopPoint
-	OnRunner      func(runDir string)
+	mu              sync.Mutex
+	calls           []Call
+	ConfigFixture   string
+	CanaryPort      int
+	Version         string
+	FailVerb        map[string]bool
+	ProbeLeak       bool
+	AppExited       bool
+	RunnerCode      int
+	RunnerOOM       bool
+	RunnerHangs     bool
+	RunnerLogs      string
+	ManifestImage   string
+	TagID           string
+	PinnedGone      bool
+	EnvFiles        map[string]string
+	OnSpawn         func(pgid int)
+	Steps           []contract.ResultStep
+	Flows           []contract.ManifestFlow
+	StoppedAt       *contract.StopPoint
+	OnRunner        func(runDir string)
+	ContainerSecret string
+	RunnerDelay     time.Duration
 }
 
 func (f *Fake) Calls() []Call {
@@ -152,9 +154,21 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 			<-ctx.Done()
 			return compose.Result{Code: -1}, ctx.Err()
 		}
+		select {
+		case <-ctx.Done():
+			return compose.Result{Code: -1}, ctx.Err()
+		case <-time.After(f.RunnerDelay):
+		}
 		return out(strconv.Itoa(f.RunnerCode)), nil
 	case "logs":
+		if slices.Contains(cmd.Args, "--follow") {
+			return f.containerLogs(ctx, cmd)
+		}
 		return compose.Result{Stdout: []byte(f.RunnerLogs)}, nil
+	case "ps":
+		if slices.Contains(cmd.Args, "--format") {
+			return out(containerTable(cmd.Args)), nil
+		}
 	case "inspect":
 		return out(strconv.FormatBool(f.RunnerOOM)), nil
 	case "image inspect":
