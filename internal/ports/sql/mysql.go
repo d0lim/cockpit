@@ -42,6 +42,7 @@ func (b mysqlBackend) config(user, password string) *mysql.Config {
 
 func (b mysqlBackend) readerConfig(password string) *mysql.Config {
 	cfg := b.config(ReaderUser, password)
+	cfg.DBName = b.target.Database
 	cfg.Params = map[string]string{
 		"transaction_read_only": "1",
 		"max_execution_time":    strconv.FormatInt(b.max.timeout.Milliseconds(), 10),
