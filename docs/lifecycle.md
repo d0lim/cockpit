@@ -176,7 +176,7 @@ Every docker call runs in its own process group. Cancelling a call sends SIGTERM
 
 ## Kept environments
 
-- **Stop**: `compose stop`. **Destroy**: `compose down -v --remove-orphans` after removing one-off containers, then `src`, `work`, `env` and `build` go and the lease is released; the record, the report bundle and `seal.json` stay.
+- **Stop**: `compose stop`. **Destroy**: `compose down -v --remove-orphans` after removing one-off containers, then `src`, `work`, `env` and `build` go and the lease is released; once the run is recorded as destroyed, its live signal stream (`signals/`) is closed and removed, and a later signal read answers not found without creating it again. The record, the report bundle (with its frozen signal copy) and `seal.json` stay.
 - **Resume**: refuse when a port of the block is taken (the block is not leased again), check the runner pin, then start the resident services in dependency order, waiting for healthy dependencies through one-shot services. When containers or networks are gone, the environment is created again without a build. Readiness is the same as boot. Any failure stops the environment and closes the resume as failed with the reason.
 - **Exec**: refused with 409 unless the run is kept and up and no operation is in progress (a stopped run is told to resume first), with 400 for an id outside `^[a-z][a-z0-9-]{1,40}$`, with 404 for a flow the run's manifest does not have, and with 409 for a once flow that already ran in this environment or a once prerequisite that has not passed. A passing call runs `run <suite> --flow <id>` with the pinned image and `E2E_EXEC_OUT=/work/e2e/exec/<time>-<id>.json`, and reads only that file back.
 

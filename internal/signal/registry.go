@@ -1,8 +1,10 @@
 package signal
 
 import (
+	"errors"
 	"sync"
 
+	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/mask"
 )
@@ -24,6 +26,9 @@ func (r *Registry) Get(runID string) (*Stream, error) {
 	if s, ok := r.open[runID]; ok {
 		return s, nil
 	}
+	if m, err := r.st.ReadMeta(runID); err == nil && m != nil && m.Env == lifecycle.EnvDestroyed {
+		return nil, ErrRunDestroyed
+	}
 	s, err := OpenRun(r.st, runID, Options{Masker: func() *mask.Masker { return r.maskFor(runID) }})
 	if err != nil {
 		return nil, err
@@ -41,6 +46,17 @@ func (r *Registry) Close(runID string) error {
 		return nil
 	}
 	return s.Close()
+}
+
+func (r *Registry) Remove(runID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var err error
+	if s, ok := r.open[runID]; ok {
+		delete(r.open, runID)
+		err = s.Close()
+	}
+	return errors.Join(err, RemoveRun(r.st, runID))
 }
 
 func (r *Registry) Read(runID string, req ReadRequest) (ReadResponse, error) {

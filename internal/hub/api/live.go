@@ -167,6 +167,9 @@ func (a *api) signals(w http.ResponseWriter, r *http.Request) error {
 		return &Problem{Status: http.StatusConflict, Code: CodeNotAvailable, Message: "this hub has no signal store"}
 	}
 	resp, err := a.d.Signals.Read(v.ID, signal.ReadRequest{After: after, Limit: int(min(limit, maxSignalRead))})
+	if errors.Is(err, signal.ErrRunDestroyed) {
+		return notFound("the run was destroyed and its live signals were removed; the report bundle keeps its frozen copy")
+	}
 	if errors.Is(err, signal.ErrReadRefused) {
 		return &Problem{Status: http.StatusConflict, Code: CodeReadRefused, Message: "signal reads are refused for this run"}
 	}

@@ -24,9 +24,10 @@ const (
 )
 
 var (
-	ErrReadRefused = errors.New("signal reads are refused for this run")
-	ErrNoMasker    = errors.New("no masker for this run")
-	collectorName  = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
+	ErrReadRefused  = errors.New("signal reads are refused for this run")
+	ErrNoMasker     = errors.New("no masker for this run")
+	ErrRunDestroyed = errors.New("the run was destroyed and its live signal stream removed")
+	collectorName   = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 )
 
 type Options struct {

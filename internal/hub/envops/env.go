@@ -60,7 +60,13 @@ func (o *Ops) Destroy(ctx context.Context, id string) ticker.Result {
 	if err := o.releaseLease(id); err != nil {
 		return o.stuck(r, "destroy", err)
 	}
-	return o.finish(r.Store, id, lifecycle.Destroyed, nil)
+	res := o.finish(r.Store, id, lifecycle.Destroyed, nil)
+	if res.OK() && o.Streams != nil {
+		if err := o.Streams.Remove(id); err != nil {
+			o.log().Warn("the live signal stream was not removed", "run", id, "err", o.Mask(id, err.Error()))
+		}
+	}
+	return res
 }
 
 func (o *Ops) giveUp(r *Run, status int, code ticker.Code, reason string) ticker.Result {
