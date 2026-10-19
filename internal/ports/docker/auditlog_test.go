@@ -6,7 +6,19 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+
+	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
+
+var auditLogMutations = []porttest.Mutation{
+	{"the default exec audit goes to the injected logger", "log the default audit through slog.Info", "red: the injected logger gets no line and the process default gets the audit", "TestTheDefaultExecAuditWritesTheRunAndMaskedArgvToTheInjectedLoggerAndNothingToTheProcessDefault"},
+	{"the audit line names the run", "leave the run attribute out of the default audit", "red: the line lacks run=run-1", "TestTheDefaultExecAuditWritesTheRunAndMaskedArgvToTheInjectedLoggerAndNothingToTheProcessDefault"},
+	{"the audit argv is masked", "store the raw argv in the ExecAudit that the default audit logs", "red: the planted value shows in the audit line", "TestTheDefaultExecAuditWritesTheRunAndMaskedArgvToTheInjectedLoggerAndNothingToTheProcessDefault"},
+}
+
+func TestAuditLogMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
+	porttest.AssertMutationRecord(t, "auditlog_test.go", auditLogMutations)
+}
 
 func bufferLogger() (*slog.Logger, *bytes.Buffer) {
 	var b bytes.Buffer
