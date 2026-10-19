@@ -62,6 +62,7 @@ type Core struct {
 	ticking    chan struct{}
 	again      bool
 	timerStop  chan struct{}
+	afterRead  func()
 	disposed   bool
 }
 

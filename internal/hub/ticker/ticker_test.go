@@ -41,8 +41,9 @@ func (g *gateDocker) Labelled(context.Context, string) (reconcile.Labelled, erro
 }
 
 type quietEnv struct {
-	mu     sync.Mutex
-	closed []string
+	mu        sync.Mutex
+	closed    []string
+	destroyed atomic.Int32
 }
 
 func (e *quietEnv) KillGroup(int) error                         { return nil }
@@ -51,7 +52,7 @@ func (e *quietEnv) StopQuietly(context.Context, string)         {}
 func (e *quietEnv) HasRunnerResult(string) bool                 { return false }
 func (e *quietEnv) Redo(context.Context, string) error          { return nil }
 func (e *quietEnv) Stop(context.Context, string) Result         { return Result{} }
-func (e *quietEnv) Destroy(context.Context, string) Result      { return Result{} }
+func (e *quietEnv) Destroy(context.Context, string) Result      { e.destroyed.Add(1); return Result{} }
 func (e *quietEnv) Resume(context.Context, string) Result       { return Result{} }
 func (e *quietEnv) Mask(_, text string) string                  { return strings.ReplaceAll(text, planted, "****") }
 func (e *quietEnv) Report(context.Context, store.Meta) (reconcile.ReportOutcome, error) {
