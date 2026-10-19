@@ -3,6 +3,7 @@ package pipeline
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -49,10 +50,11 @@ func TestResumeRepairsThePinnedImageStartsContainersAndRefusesTakenPorts(t *test
 	if res := w.sched.Stop(m.ID, scheduler.Actor{By: "tester"}); res.Fail != nil {
 		t.Fatal(res.Fail)
 	}
-	w.hub.ops.Probe = func(port int) bool { return port != 22001 }
+	taken := w.base + 1
+	w.hub.ops.Probe = func(port int) bool { return port != taken }
 	calls = len(w.fake.Calls())
 	res = w.sched.Resume(m.ID, scheduler.Actor{By: "tester"})
-	if res.Fail == nil || res.Fail.Code != ticker.CodeConflictPort || !strings.Contains(res.Fail.Reason, "22001") {
+	if res.Fail == nil || res.Fail.Code != ticker.CodeConflictPort || !strings.Contains(res.Fail.Reason, strconv.Itoa(taken)) {
 		t.Fatalf("taken port: %+v", res.Fail)
 	}
 	for _, c := range w.fake.Calls()[calls:] {

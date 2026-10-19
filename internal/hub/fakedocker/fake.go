@@ -25,6 +25,7 @@ const (
 	OtherID     = "sha256:" + "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
 	ContainerID = "0123456789abcdef0123"
 	FakePgid    = 424242
+	fixtureBase = 22000
 )
 
 type Call struct {
@@ -238,6 +239,10 @@ func (f *Fake) config(args []string) (compose.Result, error) {
 	project := flag(args, "-p")
 	text := strings.ReplaceAll(string(data), "/fixture/runs/r-toy", filepath.Dir(src))
 	text = strings.ReplaceAll(text, `"r-toy`, `"`+project)
+	portBase := f.CanaryPort - compose.CanaryOffset
+	for _, offset := range []int{0, 1, 2, compose.CanaryOffset} {
+		text = strings.ReplaceAll(text, `"`+strconv.Itoa(fixtureBase+offset)+`"`, `"`+strconv.Itoa(portBase+offset)+`"`)
+	}
 	return compose.Result{Stdout: []byte(text)}, nil
 }
 

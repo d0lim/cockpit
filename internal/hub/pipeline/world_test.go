@@ -2,9 +2,12 @@ package pipeline
 
 import (
 	"context"
+	"math/rand/v2"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -29,6 +32,7 @@ type world struct {
 	sched   *scheduler.Scheduler
 	hub     *Hub
 	repo    string
+	base    int
 	mu      sync.Mutex
 	events  []string
 	ensures int
@@ -96,10 +100,10 @@ func newWorldAs(t *testing.T, runnerUser string, mutate func(*fakedocker.Fake), 
 
 func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.Fake), mutateRepo func(string)) *world {
 	t.Helper()
-	w := &world{t: t, repo: toyRepo(t, mutateRepo)}
+	w := &world{t: t, repo: toyRepo(t, mutateRepo), base: freeBlock(t)}
 	w.fake = &fakedocker.Fake{
 		ConfigFixture: filepath.Join("..", "..", "seal", "testdata", "config.toy.json"),
-		CanaryPort:    22099,
+		CanaryPort:    w.base + compose.CanaryOffset,
 		Version:       version.String(),
 		RunnerLogs:    "health › health-ok passed\ntoken " + planted + " leaked\n",
 		EnvFiles: map[string]string{
@@ -112,8 +116,10 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 	if mutate != nil {
 		mutate(w.fake)
 	}
-	limits := stages.Limits{Build: time.Minute, Boot: 2 * time.Second, Suite: 300 * time.Millisecond, Call: time.Minute, Poll: 10 * time.Millisecond}
-	cfg := config.Config{AllowedRepositories: []string{w.repo}, Limits: config.Defaults(), ReservedPorts: []config.PortRange{}}
+	stageLimits := stages.Limits{Build: time.Minute, Boot: 2 * time.Second, Suite: 300 * time.Millisecond, Call: time.Minute, Poll: 10 * time.Millisecond}
+	limits := config.Defaults()
+	limits.PortBase = w.base
+	cfg := config.Config{AllowedRepositories: []string{w.repo}, Limits: limits, ReservedPorts: []config.PortRange{}}
 	opts := Options{
 		Home: t.TempDir(), Config: cfg, HubPort: 7710, DockerFor: w.fake.For, Probe: fakedocker.Reconcile{},
 		Ensure: func(ctx context.Context) (runnerbin.Image, error) {
@@ -122,7 +128,7 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 			w.mu.Unlock()
 			return runnerbin.Image{Tag: fakedocker.RunnerTag, ID: fakedocker.PinnedID, Arch: "arm64"}, nil
 		},
-		Limits: limits, NoCollection: true, PortProbe: func(int) bool { return true }, TickInterval: 20 * time.Millisecond,
+		Limits: stageLimits, NoCollection: true, PortProbe: func(int) bool { return true }, TickInterval: 20 * time.Millisecond,
 		Events: func(e Event) { w.mu.Lock(); w.events = append(w.events, e.Line); w.mu.Unlock() },
 	}
 	option(&opts)
@@ -187,4 +193,18 @@ func replaceIn(t *testing.T, path, old, new string) {
 	if err := os.WriteFile(path, []byte(strings.Replace(string(data), old, new, 1)), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func freeBlock(t *testing.T) int {
+	t.Helper()
+	for range 50 {
+		base := 10000 + rand.IntN(380)*100
+		l, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(base+compose.CanaryOffset)))
+		if err == nil {
+			l.Close()
+			return base
+		}
+	}
+	t.Fatal("no free port block")
+	return 0
 }
