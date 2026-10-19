@@ -38,6 +38,7 @@ type world struct {
 	events  []string
 	phases  []Event
 	ensures int
+	opts    Options
 }
 
 func gitIn(t *testing.T, dir string, args ...string) string {
@@ -145,6 +146,7 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 		},
 	}
 	option(&opts)
+	w.opts = opts
 	sched, hub, err := New(opts)
 	if err != nil {
 		t.Fatal(err)
