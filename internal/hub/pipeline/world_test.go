@@ -40,6 +40,7 @@ type world struct {
 	ensures   int
 	ensureAt  []int
 	ensureTag string
+	onEnsure  func(ctx context.Context) error
 	opts      Options
 }
 
@@ -128,6 +129,11 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 	opts := Options{
 		Home: t.TempDir(), Config: cfg, HubPort: 7710, DockerFor: w.fake.For, Probe: fakedocker.Reconcile{},
 		Ensure: func(ctx context.Context) (runnerbin.Image, error) {
+			if w.onEnsure != nil {
+				if err := w.onEnsure(ctx); err != nil {
+					return runnerbin.Image{}, err
+				}
+			}
 			w.mu.Lock()
 			defer w.mu.Unlock()
 			w.ensures++

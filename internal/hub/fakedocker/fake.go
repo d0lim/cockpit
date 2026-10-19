@@ -42,6 +42,8 @@ type Fake struct {
 	canaryPort      atomic.Int64
 	Version         string
 	FailVerb        map[string]bool
+	FailStderr      string
+	Unhealthy       bool
 	ProbeLeak       bool
 	AppExited       bool
 	SeedExit        int
@@ -128,7 +130,7 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 	f.mu.Unlock()
 	verb := Verb(cmd.Args)
 	if f.FailVerb[verb] {
-		return compose.Result{Code: 1, Stderr: []byte(verb + " failed on purpose")}, nil
+		return compose.Result{Code: 1, Stderr: []byte(verb + " failed on purpose" + f.FailStderr)}, nil
 	}
 	switch verb {
 	case "version":
@@ -210,6 +212,13 @@ func (f *Fake) inspect(ref string) (compose.Result, error) {
 	return compose.Result{Code: 1}, nil
 }
 
+func dbHealth(unhealthy bool) string {
+	if unhealthy {
+		return "starting"
+	}
+	return "healthy"
+}
+
 func (f *Fake) ps() string {
 	appState := "running"
 	if f.AppExited {
@@ -217,7 +226,7 @@ func (f *Fake) ps() string {
 	}
 	rows := []map[string]any{
 		{"Service": "app", "ID": "aaa", "State": appState, "Health": "", "ExitCode": 0},
-		{"Service": "db", "ID": "bbb", "State": "running", "Health": "healthy"},
+		{"Service": "db", "ID": "bbb", "State": "running", "Health": dbHealth(f.Unhealthy)},
 		{"Service": "cache", "ID": "ccc", "State": "running", "Health": "healthy"},
 		{"Service": "seed", "ID": "eee", "State": "exited", "Health": "", "ExitCode": f.SeedExit},
 		{"Service": "edge", "ID": "ddd", "State": "running", "Health": ""},

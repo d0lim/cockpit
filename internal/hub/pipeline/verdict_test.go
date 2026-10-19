@@ -176,7 +176,7 @@ func TestAbortWhileTheRunnerRunsClosesAsAbortedAndForceRemovesTheRunner(t *testi
 	}
 	w.sched.Idle()
 	m := w.meta(res.ID)
-	if m.Phase != lifecycle.Done || m.Verdict != lifecycle.VerdictAborted || m.FailedStage != lifecycle.Testing {
+	if m.Phase != lifecycle.Done || m.Verdict != lifecycle.VerdictAborted || m.FailedStage != lifecycle.Testing || m.Env != lifecycle.EnvUp {
 		t.Fatalf("state %+v failed stage %s notice %q", m.State, m.FailedStage, m.Notice)
 	}
 	forced := false
