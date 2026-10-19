@@ -21,7 +21,7 @@ var edgeMutations = []porttest.Mutation{
 	{"redirects are refused and not followed", "follow redirects in CheckRedirect", "red: the redirect target receives a request", "TestRedirectIsReportedAsDeniedAndItsTargetIsNeverRequested"},
 	{"only edge names of this run resolve", "dial the URL host when it is not an edge", "red: localhost and the hub port are reached", "TestHubAPIArbitraryLocalhostPortsIPsAndForeignHostsAreDenied"},
 	{"Dialer.Control allows only the run's edge ports", "Control returns nil", "red: a dial to another loopback port passes Control", "TestDialerControlAllowsOnlyTheRunEdgeAddresses"},
-	{"proxy environment variables are ignored", "set Transport.Proxy to ProxyFromEnvironment", "red: the proxy receives the request", "TestProxyEnvironmentIsIgnored"},
+	{"proxy environment variables are ignored", "set Transport.Proxy to a function returning the HTTP_PROXY URL (ProxyFromEnvironment never proxies loopback, so it is not a mutation)", "red: the dial goes to the proxy, Control refuses it and the request fails", "TestProxyEnvironmentIsIgnored"},
 	{"errors pass the masker", "build the denial without mask", "red: the planted path shows in the error", "TestDenialMessagesPassTheMaskerAndOmitTheQuery"},
 	{"the body limit holds and bodies within it are not truncated", "remove LimitReader", "red: an oversized body comes back", "TestBodyOverTheLimitIsPortLimitAndBodyWithinItIsWhole"},
 	{"script arguments decode into the request", "ignore the options argument", "red: the header does not reach the edge", "TestEdgeCallDecodesSendArgumentsLikeTheScriptPassesThem"},

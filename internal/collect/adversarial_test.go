@@ -15,7 +15,6 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/ports"
-	httpport "github.com/d0lim/cockpit/internal/ports/http"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
 
@@ -142,22 +141,19 @@ func TestHugeConsoleOutputIsTruncated(t *testing.T) {
 }
 
 func TestCanarySecretIsAbsentFromErrorsTheScriptSees(t *testing.T) {
-	edge, err := httpport.NewEdge(httpport.EdgeOptions{Ports: map[string]int{"app": 1}, Mask: collecttest.MaskOf(canary)})
-	if err != nil {
-		t.Fatal(err)
-	}
+	leaky := &collecttest.Recorder{Err: ports.Unavailable(nil, "row 7 holds "+canary)}
 	frames := &collecttest.Frames{}
 	spec := collecttest.Spec(collecttest.Bundle(t, "toy-db", `
-		try { await ctx.http.send("GET", "http://not-an-edge/`+canary+`"); } catch (e) { throw new Error("seen: " + e.message); }
-	`), []string{ports.PortHTTP}, map[string]ports.Handler{ports.PortHTTP: edge})
+		try { await ctx.sql.query("app", "select secret from t"); } catch (e) { throw new Error("seen: " + e.message); }
+	`), []string{ports.PortSQL}, map[string]ports.Handler{ports.PortSQL: leaky})
 	spec.Mask = collecttest.MaskOf(canary)
 	spec.Tap = frames.Tap
 	out := runChild(t, spec)
 	sent := strings.Join(frames.Lines(worker.TapToChild)[1:], "")
-	if !strings.Contains(frames.Text(worker.TapFromChild), canary) {
-		t.Fatal("canary: the script did not send the planted value")
+	if len(leaky.Calls()) != 1 {
+		t.Fatal("canary: the port was not called")
 	}
-	if strings.Contains(sent, canary) || !strings.Contains(sent, "****") || strings.Contains(out.Failure, canary) || !strings.Contains(out.Failure, "seen: ") {
+	if strings.Contains(sent, canary) || !strings.Contains(sent, "row 7 holds ****") || strings.Contains(out.Failure, canary) || !strings.Contains(out.Failure, "seen: ") {
 		t.Fatalf("sent %q failure %q", sent, out.Failure)
 	}
 }
