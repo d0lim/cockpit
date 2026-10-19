@@ -124,7 +124,6 @@ func Harness(in HarnessInput) ([]byte, error) {
 		probe["profiles"] = []string{RoleProbe}
 		probe["networks"] = nets
 		probe["command"] = []string{"probe", strconv.Itoa(CanaryPort(in.PortBase))}
-		probe["extra_hosts"] = []string{"host.docker.internal:host-gateway"}
 		services[role] = probe
 	}
 	doc := map[string]any{"services": services, "networks": networks}

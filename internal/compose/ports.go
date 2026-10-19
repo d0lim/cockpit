@@ -49,14 +49,14 @@ func CanaryPort(base int) int {
 	return base + CanaryOffset
 }
 
-func edgeListen(p contract.PortOffset) int {
+func EdgeListen(p contract.PortOffset) int {
 	return edgeListenBase + p.Offset
 }
 
 func edgeRoutes(ports []contract.PortOffset) []string {
 	out := make([]string, len(ports))
 	for i, p := range ports {
-		out[i] = strconv.Itoa(edgeListen(p)) + "=" + p.Service + ":" + strconv.Itoa(p.Port)
+		out[i] = strconv.Itoa(EdgeListen(p)) + "=" + p.Service + ":" + strconv.Itoa(p.Port)
 	}
 	return out
 }
@@ -64,7 +64,7 @@ func edgeRoutes(ports []contract.PortOffset) []string {
 func edgePublished(base int, ports []contract.PortOffset) []string {
 	out := make([]string, len(ports))
 	for i, p := range ports {
-		out[i] = fmt.Sprintf("127.0.0.1:%d:%d", HostPort(base, p), edgeListen(p))
+		out[i] = fmt.Sprintf("127.0.0.1:%d:%d", HostPort(base, p), EdgeListen(p))
 	}
 	return out
 }
