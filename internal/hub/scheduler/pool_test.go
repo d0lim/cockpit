@@ -96,8 +96,11 @@ func TestStartableHeadStopsTheOldestLastUpKeptRunFirstAndItsResumeIsRefusedWithC
 	s, w := setup(t, []store.Meta{preserved(1, 30), preserved(2, 10), preserved(3, 20)})
 	id := s.Submit(ctx, sub("c4")).ID
 	s.Tick()
-	if !inOrder(w.snapshot(), rid(2)+" stop", id+" pipeline") || !slices.Equal(suffixed(w.snapshot(), " stop"), []string{rid(2) + " stop"}) {
-		t.Fatalf("%v", w.snapshot())
+	if calls := w.snapshot(); !inOrder(calls, rid(2)+" stop", "leaseBlock") || !slices.Equal(suffixed(calls, " stop"), []string{rid(2) + " stop"}) || len(suffixed(calls, "leaseBlock")) != 1 {
+		t.Fatalf("%v", calls)
+	}
+	if head := read(t, w, id); head.Phase != lifecycle.Preparing || head.Slot == nil {
+		t.Fatalf("the tick did not start the head after the stop: %+v", head)
 	}
 	if m := read(t, w, rid(2)); m.Env != lifecycle.EnvStopped || m.StopReason != lifecycle.StopCap {
 		t.Fatalf("%+v", m)
