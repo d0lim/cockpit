@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -116,18 +117,33 @@ func TestTicksRequestedWhileATickRunsFoldIntoOneMoreRound(t *testing.T) {
 		d.Pipeline = func(ctx context.Context, _ string) error { <-ctx.Done(); return nil }
 	})
 	go c.Tick()
-	for docker.infos.Load() == 0 {
-		time.Sleep(time.Millisecond)
-	}
+	waitPending(t, c, 1)
 	var wg sync.WaitGroup
 	for range 3 {
 		wg.Go(c.Tick)
 	}
-	time.Sleep(20 * time.Millisecond)
+	waitPending(t, c, 4)
 	close(docker.gate)
 	wg.Wait()
 	if got := docker.infos.Load(); got != 2 {
 		t.Fatalf("docker info called %d times, want 2", got)
+	}
+}
+
+func waitPending(t *testing.T, c *Core, n int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		c.mu.Lock()
+		got := c.pending
+		c.mu.Unlock()
+		if got == n {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("%d tick callers in flight, want %d", got, n)
+		}
+		runtime.Gosched()
 	}
 }
 

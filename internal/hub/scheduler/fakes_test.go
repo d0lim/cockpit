@@ -60,6 +60,7 @@ type world struct {
 	labelled map[string]int
 	started  []string
 	finishes map[string]chan struct{}
+	starts   map[string]chan struct{}
 	blocked  []int
 	clock    time.Time
 	execs    []string
@@ -136,7 +137,7 @@ func setup(t *testing.T, metas []store.Meta, edit ...func(*Deps)) (*Scheduler, *
 	}
 	list, _ := s.ListRuns()
 	s.WriteState(store.RebuildState(list.Runs))
-	w := &world{t: t, store: s, dockerUp: true, finishes: map[string]chan struct{}{}, clock: time.Date(2026, 10, 12, 7, 0, 0, 0, time.UTC)}
+	w := &world{t: t, store: s, dockerUp: true, finishes: map[string]chan struct{}{}, starts: map[string]chan struct{}{}, clock: time.Date(2026, 10, 12, 7, 0, 0, 0, time.UTC)}
 	layout := lease.DefaultLayout(map[string]int{"APP": 0, "API": 1})
 	d := Deps{
 		Deps: ticker.Deps{

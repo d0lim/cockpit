@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/hub/lease"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
@@ -95,12 +96,25 @@ func (w *world) Redo(ctx context.Context, id string) error {
 
 func (w *world) Mask(_, text string) string { return text }
 
+func (w *world) startedCh(id string) chan struct{} {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	ch, ok := w.starts[id]
+	if !ok {
+		ch = make(chan struct{})
+		w.starts[id] = ch
+	}
+	return ch
+}
+
 func (w *world) pipeline(ctx context.Context, id string) error {
+	started := w.startedCh(id)
 	w.mu.Lock()
 	w.started = append(w.started, id)
 	done := make(chan struct{})
 	w.finishes[id] = done
 	w.mu.Unlock()
+	close(started)
 	w.note(id + " pipeline")
 	select {
 	case <-done:
@@ -116,6 +130,11 @@ func (w *world) pipeline(ctx context.Context, id string) error {
 }
 
 func (w *world) finish(id string, minute int) {
+	select {
+	case <-w.startedCh(id):
+	case <-time.After(5 * time.Second):
+		w.t.Fatalf("the pipeline of %s never started", id)
+	}
 	w.store.PatchMeta(id, func(m *store.Meta) {
 		m.State = lifecycle.State{Phase: lifecycle.Done, Env: lifecycle.EnvUp, Verdict: lifecycle.VerdictPassed}
 		m.FinishedAt, m.LastUpAt = at(minute), at(minute)
