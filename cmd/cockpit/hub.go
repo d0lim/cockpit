@@ -6,66 +6,52 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/hub/cli"
+	"github.com/d0lim/cockpit/internal/hub/pipeline"
 	"github.com/d0lim/cockpit/internal/hub/pool"
+	"github.com/d0lim/cockpit/internal/hub/procgroup"
 	"github.com/d0lim/cockpit/internal/hub/reconcile"
-	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/server"
+	"github.com/d0lim/cockpit/internal/hub/sse"
+	"github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/hub/store"
-	"github.com/d0lim/cockpit/internal/hub/ticker"
-	"github.com/d0lim/cockpit/internal/version"
+	"github.com/d0lim/cockpit/internal/runnerbin"
 )
 
-var errUnwired = errors.New("this build has no run pipeline wired into the hub")
+const hubTick = 2 * time.Second
 
-type unwired struct{}
-
-func (unwired) Stop(context.Context, string) ticker.Result    { return unwiredResult() }
-func (unwired) Destroy(context.Context, string) ticker.Result { return unwiredResult() }
-func (unwired) Resume(context.Context, string) ticker.Result  { return unwiredResult() }
-func (unwired) KillGroup(int) error                           { return errUnwired }
-func (unwired) RemoveOneOffs(context.Context, string) error   { return errUnwired }
-func (unwired) CloseWithoutEnv(context.Context, string, bool) error {
-	return errUnwired
-}
-func (unwired) StopQuietly(context.Context, string) {}
-func (unwired) HasRunnerResult(string) bool         { return false }
-func (unwired) Report(context.Context, store.Meta) (reconcile.ReportOutcome, error) {
-	return reconcile.ReportOutcome{}, errUnwired
-}
-func (unwired) Redo(context.Context, string) error { return errUnwired }
-func (unwired) Mask(_, text string) string         { return text }
-func (unwired) Denied(store.Meta, bool, string) *ticker.Failure {
-	return &ticker.Failure{Status: 409, Code: ticker.CodeOpFailed, Reason: errUnwired.Error()}
-}
-func (unwired) Run(context.Context, store.Meta, string) scheduler.ExecResponse {
-	return scheduler.ExecResponse{Fail: &ticker.Failure{Status: 409, Code: ticker.CodeOpFailed, Reason: errUnwired.Error()}}
+type jobEvent struct {
+	JobID string `json:"jobId"`
+	Title string `json:"title"`
+	Phase string `json:"phase"`
+	Text  string `json:"text,omitempty"`
+	Code  *int   `json:"code,omitempty"`
 }
 
-func unwiredResult() ticker.Result {
-	return ticker.Failed(409, ticker.CodeOpFailed, errUnwired.Error(), nil)
-}
-
-func unwiredBuilder(getenv func(string) string) server.Builder {
+func pipelineBuilder(getenv func(string) string) server.Builder {
 	return func(in server.BuildInput) (server.Built, error) {
-		limits := pool.Limits{PoolMax: in.Config.Limits.KeptPool, QueueMax: in.Config.Limits.QueueCap, UpCap: in.Config.Limits.RunningCap}
-		d := scheduler.Deps{
-			Deps: ticker.Deps{
-				Store: in.Store, Docker: reconcile.NewCLI(), Env: unwired{}, Limits: limits,
-				Pipeline:     func(context.Context, string) error { return errUnwired },
-				Lease:        func(store.Leases, string) (int, error) { return 0, errUnwired },
-				StopOnDone:   pool.StopOnDoneFrom(getenv),
-				TickInterval: 2 * time.Second, Now: time.Now, Served: compose.ServedHostAPIs, CockpitVersion: version.String(), Log: in.Log,
+		pins := runnerbin.FilePins{Path: filepath.Join(in.Home, pinsFile)}
+		sched, hub, err := pipeline.New(pipeline.Options{
+			Home: in.Home, Config: in.Config, HubPort: in.HubPort, Streams: in.Streams, Log: in.Log,
+			DockerFor: func(h procgroup.Hooks) compose.Docker { return compose.CLI{Hooks: h} },
+			Probe:     reconcile.NewCLI(),
+			Ensure:    func(ctx context.Context) (runnerbin.Image, error) { return ensureImage(ctx, pins) },
+			Limits:    stages.DefaultLimits(), StopOnDone: pool.StopOnDoneFrom(getenv), TickInterval: hubTick,
+			Events: func(e pipeline.Event) {
+				in.Bus.Publish(sse.KindJob, e.Run, jobEvent{JobID: e.Run + "/pipeline", Title: "pipeline", Phase: "out", Text: e.Line})
 			},
-			Accept: func(context.Context, scheduler.SubmitInput) (scheduler.Accepted, error) {
-				return scheduler.Accepted{}, errUnwired
-			},
-			Exec: unwired{},
+		})
+		if err != nil {
+			return server.Built{}, err
 		}
-		return server.Built{Scheduler: scheduler.New(d)}, nil
+		return server.Built{
+			Scheduler: sched, Signals: hub.Streams(), Collectors: hub.Collectors(),
+			Services: hub.Services, Suites: hub.Suites, Mask: hub.Mask, Close: hub.Close,
+		}, nil
 	}
 }
 
@@ -75,7 +61,7 @@ func hub(ctx context.Context, args []string, getenv func(string) string, stderr 
 		return 2
 	}
 	log := slog.New(slog.NewTextHandler(stderr, nil))
-	err := server.Run(ctx, server.Options{Getenv: getenv, Build: unwiredBuilder(getenv), Log: log})
+	err := server.Run(ctx, server.Options{Getenv: getenv, Build: pipelineBuilder(getenv), Log: log})
 	if err != nil {
 		fmt.Fprintln(stderr, "cockpit hub: "+err.Error())
 		if errors.Is(err, store.ErrLegacyLayout) {

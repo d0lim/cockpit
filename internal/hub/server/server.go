@@ -51,6 +51,7 @@ type Built struct {
 	Services   func(m store.Meta) []api.ServicePort
 	Suites     func(ctx context.Context, worktree string) ([]string, error)
 	Mask       func(runID string) *mask.Masker
+	Close      func()
 }
 
 type Builder func(in BuildInput) (Built, error)
@@ -106,7 +107,14 @@ func Run(ctx context.Context, o Options) error {
 		return err
 	}
 	sched := built.Scheduler
-	defer func() { sched.Dispose(); sched.Idle(); streams.CloseAll() }()
+	defer func() {
+		sched.Dispose()
+		sched.Idle()
+		if built.Close != nil {
+			built.Close()
+		}
+		streams.CloseAll()
+	}()
 	if built.Mask == nil {
 		built.Mask = PatternMasker
 	}
