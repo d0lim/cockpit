@@ -20,7 +20,7 @@ var liveMutations = []porttest.Mutation{
 	{"live flow step messages pass the run masker", "skip the Mask loop in flow", "red: the planted value is in the step message", "TestLiveFlowAndSourceViewsPassTheRunMaskerAndBundleViewsComeFromTheBundle"},
 	{"live source text passes the run masker", "return data without a.d.Mask(v.ID).Mask in source", "red: the planted value is in the source text", "TestLiveFlowAndSourceViewsPassTheRunMaskerAndBundleViewsComeFromTheBundle"},
 	{"live source is served only for files the manifest points to", "drop the manifestFiles check in source", "red: a file the manifest does not name is served", "TestSourceRefusesFilesOutsideTheSuiteAndFilesTheManifestDoesNotName"},
-	{"live source is refused without a run masker", "skip the nil Mask check in source", "red: unmasked text is served", "TestSourceRefusesFilesOutsideTheSuiteAndFilesTheManifestDoesNotName"},
+	{"live source is refused without a run masker", "skip the nil Mask check in source", "red: the handler panics on the nil masker and the client gets no 409", "TestSourceRefusesFilesOutsideTheSuiteAndFilesTheManifestDoesNotName"},
 	{"signal reads of a refused run answer READ_REFUSED", "map ErrReadRefused to a 500", "red: the refused run answers INTERNAL", "TestSignalReadsCarryTheFrozenSeqDroppedCountsCollectorStateAndAResyncMarker"},
 }
 

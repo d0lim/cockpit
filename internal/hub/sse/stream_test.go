@@ -182,6 +182,9 @@ func TestAfterARestartAnOldLastEventIDOfAnotherEpochGetsEverythingFromTheStart(t
 	signals := &fakeSignals{signals: []contract.Signal{sig(1)}}
 	srv := serve(t, &Stream{Bus: restarted, Signals: signals, Poll: 10 * time.Millisecond, Ping: time.Hour})
 	frames := collect(t, srv, runA, "1700.50.40", 2)
+	if len(frames) != 2 {
+		t.Fatalf("frames after restart %+v", frames)
+	}
 	if frames[0].id != "1800.1.0" || frames[0].event != "job" || frames[1].id != "1800.1.1" {
 		t.Fatalf("frames %+v", frames)
 	}
