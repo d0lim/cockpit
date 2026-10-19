@@ -18,6 +18,7 @@ func TestSixthFinishedRunDestroysOnlyTheOldestUnkeptAndKeepsTheJustFinishedOne(t
 	s, w := setup(t, kept5, upCap(10))
 	sixth := s.Submit(ctx, sub("c6")).ID
 	s.Tick()
+	until(t, func() bool { return len(w.startedRuns()) > 0 })
 	if !slices.Equal(w.startedRuns(), []string{sixth}) {
 		t.Fatalf("%v", w.startedRuns())
 	}
@@ -60,6 +61,7 @@ func TestAllFiveKeptMakesANewRunWaitWithAReasonAndUnkeepingOneStartsIt(t *testin
 		t.Fatalf("%+v", r.Fail)
 	}
 	s.Tick()
+	until(t, func() bool { return len(w.startedRuns()) > 0 })
 	if !slices.Equal(w.startedRuns(), []string{id}) {
 		t.Fatalf("%v", w.startedRuns())
 	}

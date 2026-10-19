@@ -26,6 +26,7 @@ func TestSecondSubmitWhileActiveQueuesWithAPositionAndStartsWhenTheFirstFinishes
 	if second.Position != 1 || s.WaitReasonOf(second.ID) != lifecycle.WaitActiveRun || s.Get(second.ID).Position != 1 {
 		t.Fatalf("%+v %q", second, s.WaitReasonOf(second.ID))
 	}
+	until(t, func() bool { return len(w.startedRuns()) > 0 })
 	if !slices.Equal(w.startedRuns(), []string{first.ID}) {
 		t.Fatalf("%v", w.startedRuns())
 	}
