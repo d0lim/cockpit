@@ -18,7 +18,7 @@ var generatedDirs = map[string]bool{"sdk": true}
 
 var hashCommentExts = map[string]bool{".sh": true, ".yaml": true, ".yml": true, ".toml": true}
 
-var slashCommentExts = map[string]bool{".ts": true, ".js": true}
+var slashCommentExts = map[string]bool{".ts": true, ".tsx": true, ".js": true, ".css": true}
 
 type comment struct {
 	path string
@@ -52,7 +52,7 @@ func commentsIn(root string) ([]comment, int, error) {
 		case ext == ".go":
 			cs, err = goComments(path)
 		case slashCommentExts[ext]:
-			cs, err = lineComments(path, []string{"//", "/*"}, false)
+			cs, err = lineComments(path, []string{"//", "/*", "{/*"}, false)
 		case hashCommentExts[ext] || d.Name() == "Makefile":
 			cs, err = lineComments(path, []string{"#"}, true)
 		default:
@@ -179,6 +179,31 @@ func TestTypeScriptLineCommentIsReported(t *testing.T) {
 	cs, scanned, err := commentsIn(root)
 	if err != nil || scanned != 1 || len(cs) != 1 || cs[0].line != 2 {
 		t.Fatalf("scanned %d, comments %v, err %v", scanned, cs, err)
+	}
+}
+
+func TestTsxLineAndJsxCommentsAndCssBlockCommentsAreReported(t *testing.T) {
+	cases := map[string]string{
+		"web/a.tsx":  "export const A = () => (\n\t<div>\n\t\t{/* planted */}\n\t</div>\n);\n",
+		"web/b.tsx":  "const b = 1;\n// planted\nexport default b;\n",
+		"web/c.css":  "body { margin: 0; }\n/* planted */\n",
+		"web/ok.tsx": "export const ok = \"// not at line start\";\n",
+	}
+	want := map[string]int{"web/a.tsx": 3, "web/b.tsx": 2, "web/c.css": 2, "web/ok.tsx": 0}
+	ran := 0
+	for rel, content := range cases {
+		cs, scanned, err := commentsIn(plant(t, rel, content))
+		got := 0
+		if len(cs) == 1 {
+			got = cs[0].line
+		}
+		if err != nil || scanned != 1 || len(cs) > 1 || got != want[rel] {
+			t.Errorf("%s: scanned %d, comments %v, err %v", rel, scanned, cs, err)
+		}
+		ran++
+	}
+	if ran != 4 {
+		t.Fatalf("ran %d cases", ran)
 	}
 }
 

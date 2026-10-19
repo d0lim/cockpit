@@ -11,6 +11,7 @@ vet:
 
 test:
 	CGO_ENABLED=1 go test -race -count=1 ./...
+	cd web && bun install --frozen-lockfile --silent && bun run typecheck && bun test
 
 generate-check:
 	go generate ./...
