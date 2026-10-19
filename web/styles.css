@@ -58,8 +58,9 @@ aside, main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .badge { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: 11px; border: 1px solid currentColor; margin-right: 6px; white-space: nowrap; }
 .badge.ok { color: var(--ok); } .badge.warn { color: var(--warn); } .badge.bad { color: var(--bad); } .badge.info { color: var(--info); } .badge.idle { color: var(--idle); } .badge.neutral { color: var(--muted); border-style: dashed; }
 .services, .events, .spans, .collectors { list-style: none; margin: 0; padding: 0; }
-.services li { display: flex; align-items: center; gap: 4px; padding: 3px 0; }
-.services .name { flex: 1; }
+.services li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 3px 0; }
+.services .name { flex: 1 0 auto; white-space: nowrap; }
+.services .port { overflow-wrap: anywhere; }
 .port { margin-left: 4px; }
 .needs { color: var(--muted); font-size: 12px; }
 .steps { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
@@ -71,7 +72,7 @@ aside, main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .table-wrap { overflow: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 12px; }
 th, td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); white-space: normal; }
 tr.clickable { cursor: pointer; }
 tr.clickable:hover td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .console { margin: 0; padding: 8px; background: var(--console-bg); color: var(--console-text); border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 120px; }

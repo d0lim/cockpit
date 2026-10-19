@@ -42,22 +42,26 @@ export const holeNotice = (from: number, to: number) =>
 
 export const attrText = (v: unknown): string => (v === undefined ? "" : String(v));
 
-export type EmptyKind = "before-boot" | "env-off" | "no-collectors" | "no-signals";
+export type EmptyKind = "before-boot" | "env-off" | "no-collectors" | "none-of-kind" | "collectors-stopped" | "no-signals";
 
 export const EMPTY_SENTENCES: Readonly<Record<EmptyKind, string>> = {
 	"before-boot": "The environment has not booted yet. Signals start once it is up.",
 	"env-off": "The environment is off. Only the stored signals are shown.",
 	"no-collectors": "This run declares no collectors, so only hub signals appear here.",
+	"none-of-kind": "This run has signals, but none of the kind this tab shows.",
+	"collectors-stopped": "Collectors are stopped, so nothing new arrives until they are armed again.",
 	"no-signals": "No signals yet. Collectors are armed and nothing has arrived.",
 };
 
 const PRE_BOOT = new Set(["queued", "preparing", "building", "sealing", "booting"]);
 
-export function emptyKind(run: Pick<RunItem, "phase" | "env">, collectors: readonly CollectorState[], count: number): EmptyKind | null {
+export function emptyKind(run: Pick<RunItem, "phase" | "env">, collectors: readonly CollectorState[], count: number, total = count): EmptyKind | null {
 	if (count > 0) return run.env === "up" || PRE_BOOT.has(run.phase) ? null : "env-off";
 	if (PRE_BOOT.has(run.phase)) return "before-boot";
 	if (run.env !== "up") return "env-off";
 	if (collectors.length === 0) return "no-collectors";
+	if (total > 0) return "none-of-kind";
+	if (collectors.every((c) => c.state === "stopped")) return "collectors-stopped";
 	return "no-signals";
 }
 

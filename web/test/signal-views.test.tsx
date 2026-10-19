@@ -88,18 +88,20 @@ describe("the signal frame renders", () => {
 		expect(html).toContain("<p>body</p>");
 	});
 
-	test("the four empty states render four different sentences", () => {
+	test("the six empty states render six different sentences", () => {
 		const armed: CollectorState[] = [{ id: "toy-db", state: "armed", failures: 0 }];
 		const cases = [
 			{ r: run({ phase: "sealing", env: "absent" }), c: armed, s: EMPTY_SENTENCES["before-boot"] },
 			{ r: run({ phase: "done", env: "stopped" }), c: armed, s: EMPTY_SENTENCES["env-off"] },
 			{ r: run({ phase: "done", env: "up" }), c: [], s: EMPTY_SENTENCES["no-collectors"] },
+			{ r: run({ phase: "done", env: "up" }), c: armed, s: EMPTY_SENTENCES["none-of-kind"], total: 20 },
+			{ r: run({ phase: "done", env: "up" }), c: [{ id: "toy-db", state: "stopped", failures: 0 }] as CollectorState[], s: EMPTY_SENTENCES["collectors-stopped"] },
 			{ r: run({ phase: "done", env: "up" }), c: armed, s: EMPTY_SENTENCES["no-signals"] },
 		];
 		const seen = new Set<string>();
 		for (const k of cases) {
 			const html = renderToStaticMarkup(
-				<SignalFrame title="Trace" role="r" run={k.r} meta={{ ...META, collectors: k.c }} holes={[]} refused={null} count={0}>
+				<SignalFrame title="Trace" role="r" run={k.r} meta={{ ...META, collectors: k.c }} holes={[]} refused={null} count={0} total={k.total ?? 0}>
 					<p>hidden</p>
 				</SignalFrame>,
 			);
@@ -107,6 +109,6 @@ describe("the signal frame renders", () => {
 			expect(html).not.toContain("<p>hidden</p>");
 			seen.add(k.s);
 		}
-		expect(seen.size).toBe(4);
+		expect(seen.size).toBe(6);
 	});
 });

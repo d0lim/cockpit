@@ -8,10 +8,10 @@ export type SignalMeta = { frozen: boolean; frozenSeq: number; dropped: Record<s
 
 export const NO_META: SignalMeta = { frozen: false, frozenSeq: 0, dropped: {}, collectors: [] };
 
-type Props = { title: string; role: string; run: RunItem; meta: SignalMeta; holes: readonly Resync[]; refused: string | null; count: number; children: ReactNode };
+type Props = { title: string; role: string; run: RunItem; meta: SignalMeta; holes: readonly Resync[]; refused: string | null; count: number; total?: number; children: ReactNode };
 
-export function SignalFrame({ title, role, run, meta, holes, refused, count, children }: Props) {
-	const empty = emptyKind(run, meta.collectors, count);
+export function SignalFrame({ title, role, run, meta, holes, refused, count, total = count, children }: Props) {
+	const empty = emptyKind(run, meta.collectors, count, total);
 	return (
 		<Panel title={title}>
 			<p className="muted role">{role}</p>

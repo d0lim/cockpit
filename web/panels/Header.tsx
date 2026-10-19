@@ -23,7 +23,7 @@ export function Header({ run, item, hub, hubAt, connection, onSelect }: Props) {
 						))}
 					</select>
 				</div>
-				{run !== null ? <span className="muted">project {run}</span> : null}
+				{run !== null ? <span className="muted">compose project {run}</span> : null}
 				{run !== null && hub !== null && item === undefined ? <Badge tone="warn">not in the run list</Badge> : null}
 			</div>
 			<div className="actions">

@@ -48,7 +48,7 @@ export function RunTab({ tab, id, run, hub, live, meta, flowPick, tracePick, onF
 	if (!isSignalTab(tab)) return null;
 	const signals = latestRevisions(live.signals);
 	return (
-		<SignalFrame title={TAB_LABELS[tab]} role={TAB_ROLES[tab]} run={run} meta={meta} holes={live.holes} refused={live.refused} count={countFor(tab, signals)}>
+		<SignalFrame title={TAB_LABELS[tab]} role={TAB_ROLES[tab]} run={run} meta={meta} holes={live.holes} refused={live.refused} count={countFor(tab, signals)} total={signals.length}>
 			{tab === "trace" ? <SignalTrace rows={signals} meta={meta} pick={tracePick} onPick={onTrace} /> : null}
 			{tab === "events" ? <SignalEvents rows={eventRows(signals)} meta={meta} /> : null}
 			{tab === "table" ? <SignalTables rows={signals} meta={meta} /> : null}

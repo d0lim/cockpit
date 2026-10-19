@@ -99,16 +99,19 @@ describe("boundaries and states", () => {
 		expect([placement(2, true, 2), placement(3, true, 2), placement(3, false, 0)]).toEqual(["in-bundle", "after-bundle", "live"]);
 	});
 
-	test("the four empty states are chosen from the phase, the environment and the collectors and read differently", () => {
+	test("the six empty states are chosen from the phase, the environment, the collectors and the other signals and read differently", () => {
 		const armed: CollectorState[] = [{ id: "toy-db", state: "armed", failures: 0 }];
 		const kinds = [
 			emptyKind(run({ phase: "building", env: "absent" }), armed, 0),
 			emptyKind(run({ phase: "done", env: "stopped" }), armed, 0),
 			emptyKind(run({ phase: "done", env: "up" }), [], 0),
+			emptyKind(run({ phase: "done", env: "up" }), armed, 0, 20),
+			emptyKind(run({ phase: "done", env: "up" }), [{ ...armed[0]!, state: "stopped" }], 0),
 			emptyKind(run({ phase: "done", env: "up" }), armed, 0),
 		];
-		expect(kinds).toEqual(["before-boot", "env-off", "no-collectors", "no-signals"]);
-		expect(new Set(kinds.map((k) => (k ? EMPTY_SENTENCES[k] : ""))).size).toBe(4);
+		expect(kinds).toEqual(["before-boot", "env-off", "no-collectors", "none-of-kind", "collectors-stopped", "no-signals"]);
+		expect(new Set(kinds.map((k) => (k ? EMPTY_SENTENCES[k] : ""))).size).toBe(6);
+		expect(emptyKind(run({ phase: "done", env: "up" }), [...armed, { id: "toy-queue", state: "stopped", failures: 0 }], 0)).toBe("no-signals");
 		expect(emptyKind(run({ phase: "done", env: "up" }), armed, 3)).toBeNull();
 		expect(emptyKind(run({ phase: "done", env: "stopped" }), armed, 3)).toBe("env-off");
 	});
