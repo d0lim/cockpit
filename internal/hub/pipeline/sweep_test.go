@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"log/slog"
 	"net/url"
@@ -25,6 +26,7 @@ import (
 
 var sweepMutations = []porttest.Mutation{
 	{"the sql port scrubs the root secret and the reader password from its errors", "pass p.mask instead of scrubber(e.secrets, p.mask) to failure in Port.ensure", "red: the provisioned reader password is in not-proven.md in five encodings", "TestEveryPlantedCredentialIsAbsentInEveryEncodingFromTheBundleTheHubHomeAndTheHubLogAfterReportAndDestroy"},
+	{"the live home scan tolerates a file renamed away during the walk", "fail the walk on fs.ErrNotExist in leakScan.tree", "red: the scan stops with no such file for the vanished file", "TestTheLeakScanSkipsAFileThatVanishesDuringTheWalkAndStillReadsTheRest"},
 	{"collector state passes the run redactor before it is stored", "store the state key and value without mask", "red: the collector state value is in signals/kv/sweep.json", "TestEveryPlantedCredentialIsAbsentInEveryEncodingFromTheBundleTheHubHomeAndTheHubLogAfterReportAndDestroy"},
 }
 
@@ -121,10 +123,11 @@ func encodings(v string) map[string]string {
 }
 
 type leakScan struct {
-	values []canary
-	hits   []string
-	masked bool
-	files  int
+	values   []canary
+	hits     []string
+	masked   bool
+	files    int
+	vanished int
 }
 
 func (s *leakScan) text(where, text string) {
@@ -143,6 +146,10 @@ func (s *leakScan) text(where, text string) {
 func (s *leakScan) tree(t *testing.T, root string, skip func(rel string) bool) {
 	t.Helper()
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) {
+			s.vanished++
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -158,6 +165,10 @@ func (s *leakScan) tree(t *testing.T, root string, skip func(rel string) bool) {
 			return nil
 		}
 		data, err := os.ReadFile(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			s.vanished++
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -249,4 +260,23 @@ func TestEveryPlantedCredentialIsAbsentInEveryEncodingFromTheBundleTheHubHomeAnd
 		t.Fatalf("scanned %d bundle files, %d home files after destroy, %d canaries", bundle.files, destroyed.files, len(values))
 	}
 	t.Logf("scanned %d canaries in %d bundle, %d live and %d destroyed home files", len(values), bundle.files, live.files, destroyed.files)
+}
+
+func TestTheLeakScanSkipsAFileThatVanishesDuringTheWalkAndStillReadsTheRest(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{"kv.json.tmp": "pending", "stay.json": "token " + canaryValue("sql root secret")} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	scan := &leakScan{values: sweepCanaries}
+	scan.tree(t, root, func(rel string) bool {
+		if rel == "kv.json.tmp" {
+			os.Remove(filepath.Join(root, rel))
+		}
+		return false
+	})
+	if scan.vanished != 1 || scan.files != 1 || len(scan.hits) == 0 {
+		t.Fatalf("vanished %d files %d hits %v", scan.vanished, scan.files, scan.hits)
+	}
 }
