@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"encoding/json"
+	"maps"
 
 	"github.com/d0lim/cockpit/internal/contract"
 )
@@ -108,6 +109,10 @@ var stateLabels = map[Key]string{
 	"lost":           "Lost",
 	"orphan":         "Orphan",
 }
+
+func StateLabels() map[Key]string { return maps.Clone(stateLabels) }
+
+func StageLabels() map[Phase]string { return maps.Clone(stageLabels) }
 
 func Label(s State) string {
 	return stateLabels[s.Key()]

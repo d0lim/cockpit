@@ -93,3 +93,23 @@ func TestInitRefusesBadArgumentsAndBadBaseURLsWithExit2(t *testing.T) {
 		t.Fatalf("exit %d stderr %q", code, errOut)
 	}
 }
+
+func TestHubRefusesAHomeWithThePreviousLayoutWithExitThree(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "home")
+	os.MkdirAll(home, 0o700)
+	os.WriteFile(filepath.Join(home, "state.json"), []byte(`{"schemaVersion":1,"queue":[],"leases":{}}`), 0o600)
+	code, _, errOut := call(map[string]string{"COCKPIT_HOME": home, "COCKPIT_PORT": "7799"}, "hub")
+	if code != 3 || !strings.Contains(errOut, "previous cockpit") {
+		t.Fatalf("exit %d stderr %q", code, errOut)
+	}
+	if code, _, errOut := call(nil, "hub", "extra"); code != 2 || !strings.Contains(errOut, "usage") {
+		t.Fatalf("extra argument: exit %d stderr %q", code, errOut)
+	}
+}
+
+func TestRunsWithoutAHubExitsFourAndNamesTheHubCommand(t *testing.T) {
+	code, _, errOut := call(map[string]string{"COCKPIT_URL": "http://127.0.0.1:1"}, "runs", "list")
+	if code != 4 || !strings.Contains(errOut, "cockpit hub") {
+		t.Fatalf("exit %d stderr %q", code, errOut)
+	}
+}

@@ -169,3 +169,15 @@ func decodeResult(data []byte, failure ReadFailure) ResultRead {
 	}
 	return ResultRead{Value: r}
 }
+
+func ReadConfined(dir, name string) ([]byte, ReadFailure) {
+	root, err := os.OpenRoot(dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, ReadMissing
+	}
+	if err != nil {
+		return nil, ReadUnsafe
+	}
+	defer root.Close()
+	return readCapped(root, name)
+}

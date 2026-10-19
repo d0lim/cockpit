@@ -43,5 +43,5 @@ This file holds the rules that every AI coding agent and every person working in
 
 ## Documentation
 
-- `docs/sealing.md` (the five seals and the static assertion table), `docs/lifecycle.md` (the lifecycle transition table) and `docs/verdict.md` (the verdict rules) are the text of the run rules. When code and documentation disagree, we fix the documentation first and then bring the code in line.
+- `docs/sealing.md` (the five seals and the static assertion table), `docs/lifecycle.md` (the lifecycle transition table), `docs/verdict.md` (the verdict rules) and `docs/api.md` (the hub routes, event stream, guard and CLI exit codes) are the text of the run rules. When code and documentation disagree, we fix the documentation first and then bring the code in line.
 - Documentation is written in English. Code identifiers and paths are in backticks.

@@ -12,7 +12,7 @@ import (
 	"github.com/d0lim/cockpit/internal/version"
 )
 
-const usage = "usage: cockpit init [--base-url <url>] [<dir>] | sdk write <dir> | runner-image | run-env --project <path> [--suite <name>] [--unseal-check] [--keep] | --version"
+const usage = "usage: cockpit init [--base-url <url>] [<dir>] | sdk write <dir> | runner-image | run-env --project <path> [--suite <name>] [--unseal-check] [--keep] | hub | runs <command> ... | --version"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -38,6 +38,15 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		}
 	case "run-env":
 		return runEnv(ctx, args[1:], getenv, stdout, stderr)
+	case "hub":
+		return hub(ctx, args[1:], getenv, stderr)
+	case "runs":
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+		return runs(ctx, args[1:], getenv, cwd, stdout, stderr)
 	case worker.SubCommand:
 		if len(args) == 1 {
 			return scriptHost(ctx, stdout, stderr)
