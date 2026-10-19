@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { NEUTRAL } from "../shared/classify";
+import type { CollectorState } from "../shared/types";
 import { chipsOf, eventRows, groups, matches, recent } from "../signals/events";
 import { droppedLine, EMPTY_SENTENCES, emptyKind, latestRevisions, placement, withBoundaries } from "../signals/model";
 import { tables } from "../signals/table";
@@ -99,7 +100,7 @@ describe("boundaries and states", () => {
 	});
 
 	test("the four empty states are chosen from the phase, the environment and the collectors and read differently", () => {
-		const armed = [{ id: "toy-db", state: "armed", failures: 0 }];
+		const armed: CollectorState[] = [{ id: "toy-db", state: "armed", failures: 0 }];
 		const kinds = [
 			emptyKind(run({ phase: "building", env: "absent" }), armed, 0),
 			emptyKind(run({ phase: "done", env: "stopped" }), armed, 0),

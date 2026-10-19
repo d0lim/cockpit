@@ -7,6 +7,7 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 )
@@ -127,9 +128,10 @@ var flowStatus = map[string]string{
 }
 
 var collectors = map[string]string{
-	"armed":   "Armed",
-	"stopped": "Stopped",
-	"backoff": "Backing off",
+	string(collect.StateArmed):      "Armed",
+	string(collect.StateStopped):    "Stopped",
+	string(collect.StateBackoff):    "Backing off",
+	string(collect.StateReportOnly): "Report only",
 }
 
 func stringKeys[K ~string](in map[K]string) map[string]string {

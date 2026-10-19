@@ -13,7 +13,7 @@ export interface CollectStage {
 export type CollectStageStatus = "ok" | "skipped" | "absent" | "error";
 export interface CollectorState {
 	id: string;
-	state: string;
+	state: State;
 	lastOkAt?: string;
 	failures: number;
 	reason?: string;
@@ -256,6 +256,7 @@ export interface SpanLink {
 	spanId: string;
 }
 export type SpanStatus = "ok" | "error" | "incomplete";
+export type State = "armed" | "backoff" | "stopped" | "report-only";
 export interface StepCounts {
 	expected?: number;
 	actual?: number;

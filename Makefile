@@ -8,6 +8,8 @@ verify: vet test generate-check licenses build size
 
 vet:
 	go vet ./...
+	@unformatted="$$(gofmt -l $$(git ls-files --cached --others --exclude-standard '*.go'))"; \
+	if [ -n "$$unformatted" ]; then printf 'gofmt needed:\n%s\n' "$$unformatted" >&2; exit 1; fi
 
 test:
 	CGO_ENABLED=1 go test -race -count=1 ./...

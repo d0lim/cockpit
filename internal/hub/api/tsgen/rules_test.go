@@ -17,17 +17,17 @@ type sampleBase struct {
 
 type sample struct {
 	sampleBase
-	Plain   string              `json:"plain"`
-	Maybe   *int                `json:"maybe"`
-	Omitted *int                `json:"omitted,omitempty"`
-	Zero    int                 `json:"zero,omitzero"`
-	Skipped string              `json:"-"`
-	Raw     json.RawMessage     `json:"raw"`
-	Bytes   []byte              `json:"bytes"`
-	Nested  map[string][]string `json:"nested"`
-	Odd     bool                `json:"odd-key"`
+	Plain    string              `json:"plain"`
+	Maybe    *int                `json:"maybe"`
+	Omitted  *int                `json:"omitted,omitempty"`
+	Zero     int                 `json:"zero,omitzero"`
+	Skipped  string              `json:"-"`
+	Raw      json.RawMessage     `json:"raw"`
+	Bytes    []byte              `json:"bytes"`
+	Nested   map[string][]string `json:"nested"`
+	Odd      bool                `json:"odd-key"`
 	Untagged float64
-	hidden  string
+	hidden   string
 }
 
 type selfMarshal string
@@ -78,8 +78,11 @@ func TestEnumsListEveryTypedConstantAndNullZeroTypesDropTheEmptyValue(t *testing
 	if destroy := g.decls["DestroyReason"]; destroy != `export type DestroyReason = "" | "person" | "pool";` {
 		t.Errorf("canary: DestroyReason keeps its empty value, got %s", destroy)
 	}
-	if state := g.decls["CollectorState"]; !strings.Contains(state, "\tstate: string;") {
-		t.Errorf("CollectorState state %s", state)
+	if state := g.decls["CollectorState"]; !strings.Contains(state, "\tstate: State;") || g.decls["State"] != `export type State = "armed" | "backoff" | "stopped" | "report-only";` {
+		t.Errorf("CollectorState state %s, State %s", state, g.decls["State"])
+	}
+	if source := g.decls["SourceView"]; !strings.Contains(source, "\tsource: string;") {
+		t.Errorf("canary: an untyped string field stays string, got %s", source)
 	}
 }
 

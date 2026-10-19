@@ -5,6 +5,7 @@ import { SignalFrame, type SignalMeta } from "../panels/SignalFrame";
 import { SignalTable, SignalTables } from "../panels/SignalTable";
 import { SignalTrace } from "../panels/SignalTrace";
 import { EMPTY_SENTENCES, FROZEN_DIVIDER } from "../signals/model";
+import type { CollectorState } from "../shared/types";
 import { tables } from "../signals/table";
 import { event, RUN, resetSeq, run, span } from "./fixtures";
 
@@ -74,7 +75,7 @@ describe("the trace view renders", () => {
 
 describe("the signal frame renders", () => {
 	test("a collector row shows the backoff state, failure count and reason", () => {
-		const meta = { ...META, collectors: [{ id: "toy-db", state: "backoff", failures: 4, reason: "error: boom", lastOkAt: "2026-10-19T01:00:00Z" }] };
+		const meta: SignalMeta = { ...META, collectors: [{ id: "toy-db", state: "backoff", failures: 4, reason: "error: boom", lastOkAt: "2026-10-19T01:00:00Z" }] };
 		const html = renderToStaticMarkup(
 			<SignalFrame title="Events" role="r" run={run({ phase: "done" })} meta={meta} holes={[{ from: 3, to: 9 }]} refused={null} count={1}>
 				<p>body</p>
@@ -88,7 +89,7 @@ describe("the signal frame renders", () => {
 	});
 
 	test("the four empty states render four different sentences", () => {
-		const armed = [{ id: "toy-db", state: "armed", failures: 0 }];
+		const armed: CollectorState[] = [{ id: "toy-db", state: "armed", failures: 0 }];
 		const cases = [
 			{ r: run({ phase: "sealing", env: "absent" }), c: armed, s: EMPTY_SENTENCES["before-boot"] },
 			{ r: run({ phase: "done", env: "stopped" }), c: armed, s: EMPTY_SENTENCES["env-off"] },

@@ -13,7 +13,8 @@ describe("labels come from the generated Go table", () => {
 
 	test("collector states and stages read the generated words and unknown keys fall back to the key", () => {
 		expect(label("collectors", "backoff")).toBe("Backing off");
-		expect(label("collectors", "report-only")).toBe("report-only");
+		expect(label("collectors", "report-only")).toBe("Report only");
+		expect(label("collectors", "paused")).toBe("paused");
 		expect(stageLabel("sealing")).toBe("seal check");
 		expect(stageLabel(undefined)).toBe("-");
 		expect(Object.keys(LABELS).sort()).toEqual(["collectors", "destroy", "flowStatus", "messages", "stages", "states", "stop", "verdicts", "wait"]);

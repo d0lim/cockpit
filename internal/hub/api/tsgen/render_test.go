@@ -24,6 +24,7 @@ var tsgenMutations = []porttest.Mutation{
 	{"null-zero types are nullable", "drop the NullZero case in ref", "red: Verdict reaches the marshaler refusal", "TestEnumsListEveryTypedConstantAndNullZeroTypesDropTheEmptyValue"},
 	{"self-marshalling types are refused", "delete the json.Marshaler case in ref", "red: selfMarshal renders as a string type", "TestSelfMarshallingTypesAndNameCollisionsAreRefused"},
 	{"name collisions are refused", "claim returns false without comparing owners", "red: the second Event is silently dropped", "TestSelfMarshallingTypesAndNameCollisionsAreRefused"},
+	{"collector state is a typed union", "type api.CollectorState.State as a plain string", "red: State is missing and the field renders as string", "TestEnumsListEveryTypedConstantAndNullZeroTypesDropTheEmptyValue"},
 	{"the committed file is the generator output", "edit web/shared/api.ts by hand", "red: the file differs from Render", "TestCommittedAPITypesAreTheGeneratorOutput"},
 }
 

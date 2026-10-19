@@ -61,7 +61,7 @@ The tests check every answer against a JSON Schema generated from the Go struct.
 - **`KitView`**: services, kit files, the `cockpit runs exec` command with the repeatable flows, and the report directory.
 - **`ExecView`**: `exitCode`, `oomKilled`, `timedOut`, `flows`, `lines` and `reason`.
 - **`FlowView`** and **`SourceView`**: read from the bundle when it exists (`source: bundle`). Otherwise they are read live from `work/e2e` and `work/scripts` and pass the run masker (`source: live`). The live source view serves only files the manifest points to, and it refuses to answer without a run masker.
-- **`SignalsView`**: the signal read (`signals`, `frozen`, `frozenSeq`, `dropped`, `resync`, `next`) plus `collectors`. Each collector entry is `{id, state, lastOkAt, failures, reason}`, where `state` is `armed`, `stopped` or `backoff`. A run whose reads are refused answers 409 `READ_REFUSED`.
+- **`SignalsView`**: the signal read (`signals`, `frozen`, `frozenSeq`, `dropped`, `resync`, `next`) plus `collectors`. Each collector entry is `{id, state, lastOkAt, failures, reason}`, where `state` is a `collect.State`: `armed`, `backoff`, `stopped` or `report-only` (a collector with no interval that runs only at the report). A run whose reads are refused answers 409 `READ_REFUSED`.
 
 ## Event stream
 

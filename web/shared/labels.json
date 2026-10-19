@@ -51,6 +51,7 @@
   "collectors": {
     "armed": "Armed",
     "backoff": "Backing off",
+    "report-only": "Report only",
     "stopped": "Stopped"
   },
   "flowStatus": {

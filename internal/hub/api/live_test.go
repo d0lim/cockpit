@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/mask"
@@ -51,7 +52,7 @@ func TestSignalReadsCarryTheFrozenSeqDroppedCountsCollectorStateAndAResyncMarker
 	var src streamSource
 	f := newFixture(t, func(d *Deps) {
 		d.Signals = &src
-		d.Collectors = fixedCollectors{{ID: "toy-db", State: "backoff", LastOKAt: "2026-10-19T01:00:05.000Z", Failures: 3, Reason: "deadline"}}
+		d.Collectors = fixedCollectors{{ID: "toy-db", State: collect.StateBackoff, LastOKAt: "2026-10-19T01:00:05.000Z", Failures: 3, Reason: "deadline"}}
 	})
 	f.seed(runMeta(1, lifecycle.State{Phase: lifecycle.Done, Env: lifecycle.EnvUp, Verdict: lifecycle.VerdictPassed}, doneUp))
 	m := hubMasker(t)

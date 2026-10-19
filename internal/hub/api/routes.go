@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/sse"
@@ -27,11 +28,11 @@ type Scheduler interface {
 }
 
 type CollectorState struct {
-	ID       string `json:"id"`
-	State    string `json:"state"`
-	LastOKAt string `json:"lastOkAt,omitempty"`
-	Failures int    `json:"failures"`
-	Reason   string `json:"reason,omitempty"`
+	ID       string        `json:"id"`
+	State    collect.State `json:"state"`
+	LastOKAt string        `json:"lastOkAt,omitempty"`
+	Failures int           `json:"failures"`
+	Reason   string        `json:"reason,omitempty"`
 }
 
 type Collectors interface {
