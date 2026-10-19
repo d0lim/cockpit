@@ -149,7 +149,7 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 	}
 	key, err := originKey(u)
 	if err != nil || !c.allowed[key] {
-		return Response{}, ports.Denied(c.mask, "address not allowed — "+target(req.Method, u))
+		return Response{}, ports.Denied(c.mask, "address not allowed — "+target(req.Method, u)+": list its origin (scheme://host:port, no path, no IP address) as a value in env.json")
 	}
 	timeout := c.timeout
 	if req.TimeoutMs > 0 {

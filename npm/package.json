@@ -14,7 +14,8 @@
     "cockpit-flow.d.ts",
     "cockpit-collect.d.ts",
     "cockpit-globals.d.ts",
-    "tsconfig.base.json"
+    "tsconfig.base.json",
+    "GUIDE.md"
   ],
   "sideEffects": false,
   "publishConfig": {

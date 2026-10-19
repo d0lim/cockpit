@@ -17,6 +17,7 @@ fi
 rm -rf "$out"
 mkdir -p "$out"
 cp "$root"/sdk/*.d.ts "$root/sdk/tsconfig.base.json" "$root/npm/README.md" "$out/"
+cp "$root/docs/guide.md" "$out/GUIDE.md"
 {
 	printf '/// <reference path="./cockpit-globals.d.ts" />\n'
 	printf '/// <reference path="./cockpit-flow.d.ts" />\n'

@@ -14,6 +14,8 @@ import (
 
 var skippedDirs = map[string]bool{".git": true, "node_modules": true, "bin": true, "dist": true}
 
+var generatedDirs = map[string]bool{"sdk": true}
+
 var hashCommentExts = map[string]bool{".sh": true, ".yaml": true, ".yml": true, ".toml": true}
 
 var slashCommentExts = map[string]bool{".ts": true, ".js": true}
@@ -37,6 +39,9 @@ func commentsIn(root string) ([]comment, int, error) {
 		}
 		if d.IsDir() {
 			if path != root && skippedDirs[d.Name()] {
+				return filepath.SkipDir
+			}
+			if rel, _ := filepath.Rel(root, path); generatedDirs[rel] {
 				return filepath.SkipDir
 			}
 			return nil
@@ -181,6 +186,22 @@ func TestFilesWithoutCommentSyntaxAreNotScanned(t *testing.T) {
 	root := plant(t, "data/x.json", "{\"note\": \"// not a comment\"}\n")
 	cs, scanned, err := commentsIn(root)
 	if err != nil || scanned != 0 || len(cs) != 0 {
+		t.Fatalf("scanned %d, comments %v, err %v", scanned, cs, err)
+	}
+}
+
+func TestDocCommentsInTheGeneratedSdkDirectoryAreNotScanned(t *testing.T) {
+	root := plant(t, "sdk/x.d.ts", "/** generated doc */\nexport {};\n")
+	cs, scanned, err := commentsIn(root)
+	if err != nil || scanned != 0 || len(cs) != 0 {
+		t.Fatalf("scanned %d, comments %v, err %v", scanned, cs, err)
+	}
+}
+
+func TestDocCommentsInAnSdkDirectoryBelowTheRootAreReported(t *testing.T) {
+	root := plant(t, "internal/sdk/x.ts", "/** planted */\nexport {};\n")
+	cs, scanned, err := commentsIn(root)
+	if err != nil || scanned != 1 || len(cs) != 1 || cs[0].line != 1 {
 		t.Fatalf("scanned %d, comments %v, err %v", scanned, cs, err)
 	}
 }

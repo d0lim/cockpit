@@ -34,7 +34,7 @@ func TestNpmPackageIsAssembledFromTheGeneratedSdkWithTheGivenVersion(t *testing.
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	want := []string{"README.md", "cockpit-collect.d.ts", "cockpit-flow.d.ts", "cockpit-globals.d.ts", "index.d.ts", "package.json", "tsconfig.base.json"}
+	want := []string{"GUIDE.md", "README.md", "cockpit-collect.d.ts", "cockpit-flow.d.ts", "cockpit-globals.d.ts", "index.d.ts", "package.json", "tsconfig.base.json"}
 	if !slices.Equal(names, want) {
 		t.Fatalf("files %v, want %v", names, want)
 	}
@@ -89,5 +89,58 @@ func TestNpmPackagePassesBunPackDryRun(t *testing.T) {
 		if strings.HasSuffix(e.Name(), ".tgz") {
 			t.Fatalf("a dry run wrote %s", e.Name())
 		}
+	}
+}
+
+func fakeNpm(t *testing.T, script string) (string, string) {
+	t.Helper()
+	bin := t.TempDir()
+	log := filepath.Join(bin, "calls.log")
+	body := "#!/usr/bin/env bash\necho \"$*\" >> " + log + "\n" + script
+	if err := os.WriteFile(filepath.Join(bin, "npm"), []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return bin, log
+}
+
+func publish(t *testing.T, npmScript string) (string, string, error) {
+	t.Helper()
+	out, buildLog, err := buildNpm(t, "1.2.3")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, buildLog)
+	}
+	bin, log := fakeNpm(t, npmScript)
+	cmd := exec.Command("bash", filepath.Join(repoRoot(t), "scripts", "publish-npm.sh"), out)
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"))
+	stdout, err := cmd.CombinedOutput()
+	calls, _ := os.ReadFile(log)
+	return string(stdout), string(calls), err
+}
+
+func TestNpmPublishSkipsWithANoticeWhenThePackageIsNotOnTheRegistryYet(t *testing.T) {
+	out, calls, err := publish(t, "if [ \"$1\" = view ]; then echo 'npm error code E404' >&2; exit 1; fi\n")
+	if err != nil || !strings.Contains(out, "not on the registry yet") || strings.Contains(calls, "publish") {
+		t.Fatalf("err %v\nout %s\ncalls %s", err, out, calls)
+	}
+}
+
+func TestNpmPublishSkipsAVersionThatIsAlreadyPublished(t *testing.T) {
+	out, calls, err := publish(t, "if [ \"$1\" = view ]; then echo 1.2.3; fi\n")
+	if err != nil || !strings.Contains(out, "already published") || strings.Contains(calls, "publish") {
+		t.Fatalf("err %v\nout %s\ncalls %s", err, out, calls)
+	}
+}
+
+func TestNpmPublishPublishesANewVersionOfAnExistingPackage(t *testing.T) {
+	out, calls, err := publish(t, "if [ \"$1\" = view ] && [ \"$2\" = @d0lim/cockpit-sdk ]; then echo 1.2.2; fi\n")
+	if err != nil || !strings.Contains(calls, "publish --access public") || !strings.Contains(out, "published @d0lim/cockpit-sdk@1.2.3") {
+		t.Fatalf("err %v\nout %s\ncalls %s", err, out, calls)
+	}
+}
+
+func TestNpmPublishFailsOnARegistryErrorOtherThanNotFound(t *testing.T) {
+	out, calls, err := publish(t, "if [ \"$1\" = view ]; then echo 'npm error code ETIMEDOUT' >&2; exit 1; fi\n")
+	if err == nil || !strings.Contains(out, "ETIMEDOUT") || strings.Contains(calls, "publish") {
+		t.Fatalf("err %v\nout %s\ncalls %s", err, out, calls)
 	}
 }

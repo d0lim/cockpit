@@ -61,15 +61,20 @@ func generate(root string) error {
 		return err
 	}
 	config.Files = append(config.Files, "./"+contract.GlobalsFile)
+	docs, used := contract.Docs(), map[string]bool{}
 	for _, m := range contract.Modules() {
 		text, err := renderModule(m, decls)
 		if err != nil {
 			return err
 		}
+		text = withDocs(text, docs, used)
 		if err := write(filepath.Join(root, "sdk", m.File), []byte(text)); err != nil {
 			return err
 		}
 		config.Files = append(config.Files, "./"+m.File)
+	}
+	if err := unusedDocs(docs, used); err != nil {
+		return err
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

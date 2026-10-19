@@ -2,6 +2,8 @@
 
 This guide covers running suites with the cockpit runner against a compose stack you start yourself. The README's quick start is the shortest working setup; this page explains each part of it.
 
+`cockpit init [--base-url <url>] [<dir>]` writes that setup: the declaration, `e2e/env.json` with `baseUrl`, an example suite, a tsconfig, the compose overlay `compose.cockpit.yaml` and the state directory `.e2e/` with an empty private env. It refuses to overwrite any existing file, and it rejects a base URL that the runner would not accept as an origin.
+
 ## What goes where
 
 The runner reads everything from fixed paths inside its container. A compose overlay mounts your files there.
@@ -48,7 +50,7 @@ The runner exits with code 2 when the file is missing, has no `hostApi`, or name
 }
 ```
 
-The same file is the request allowlist. Every string value that is an `http` or `https` URL with a host name, no IP address and no path becomes an allowed origin. `ctx.http` refuses a request to any other origin. Name your services in compose and put their base URLs here; a URL that carries a path, such as `http://web/api`, is a value but not an origin.
+The same file is the request allowlist. Every string value that is an `http` or `https` URL with a host name, no IP address and no path becomes an allowed origin. `ctx.http` refuses a request to any other origin. Name your services in compose and put their base URLs here; a URL that carries a path, such as `http://web/api`, is a value but not an origin. A refused request fails its step with `address not allowed — GET /path: list its origin ... as a value in env.json`.
 
 Other limits of `ctx.http`: 30 seconds per request unless `timeoutMs` says otherwise, response bodies up to 8 MiB, and redirect responses are refused instead of followed.
 
@@ -154,7 +156,7 @@ The declarations for `cockpit:flow`, the engine globals and a tsconfig base come
 }
 ```
 
-`tsc --noEmit` then rejects calls the runner does not provide, such as `fetch` or a wrong argument type to a helper.
+A project that keeps its own tsconfig can set `"types": ["@d0lim/cockpit-sdk"]` instead. Editors pick up the same project, so hover shows each port's documentation and errors appear as you type. `tsc --noEmit` rejects calls the runner does not provide, such as `fetch` or a wrong argument type to a helper.
 
 ## Versions
 

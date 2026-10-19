@@ -37,6 +37,7 @@ declare module "cockpit:collect" {
 	export type SpanStatus = "ok" | "error" | "incomplete";
 	export type TimeSource = "host" | "container" | "runner";
 	export type Tone = "ok" | "warn" | "bad" | "idle" | "info";
+	/** A response as the runner received it. `body` is the raw text, at most 8 MiB. Header names are lowercase. */
 	export interface HttpResponse {
 		readonly method: string;
 		readonly url: string;

@@ -5,14 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
 
 	"go.yaml.in/yaml/v3"
 
+	httpport "github.com/d0lim/cockpit/internal/ports/http"
 	"github.com/d0lim/cockpit/internal/ports/source"
 )
 
@@ -78,14 +77,9 @@ func allowedOrigins(env map[string]any) []string {
 		if !ok {
 			continue
 		}
-		u, err := url.Parse(s)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || net.ParseIP(u.Hostname()) != nil {
-			continue
+		if origin, ok := httpport.Origin(s); ok {
+			origins = append(origins, origin)
 		}
-		if u.Path != "" && u.Path != "/" {
-			continue
-		}
-		origins = append(origins, u.Scheme+"://"+u.Host)
 	}
 	slices.Sort(origins)
 	return slices.Compact(origins)

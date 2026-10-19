@@ -70,3 +70,26 @@ func TestRunnerImagePrintsEnsuredTagOnOneLineAndExits2OnFailure(t *testing.T) {
 		t.Fatalf("exit %d stdout %q stderr %q", code, out, errOut)
 	}
 }
+
+func TestInitScaffoldsIntoTheGivenDirectoryAndPrintsNextSteps(t *testing.T) {
+	dir := t.TempDir()
+	code, out, errOut := call(nil, "init", "--base-url", "http://web:8080", dir)
+	if code != 0 || !strings.Contains(out, "created e2e/env.json") || !strings.Contains(out, "cockpit runner-image") || errOut != "" {
+		t.Fatalf("exit %d stdout %q stderr %q", code, out, errOut)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "compose.cockpit.yaml")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestInitRefusesBadArgumentsAndBadBaseURLsWithExit2(t *testing.T) {
+	for _, args := range [][]string{{"init", "--force"}, {"init", "a", "b"}, {"init", "--base-url"}} {
+		if code, _, errOut := call(nil, args...); code != 2 || !strings.Contains(errOut, "usage") {
+			t.Fatalf("%v: exit %d stderr %q", args, code, errOut)
+		}
+	}
+	code, _, errOut := call(nil, "init", "--base-url", "http://web/api", t.TempDir())
+	if code != 2 || !strings.Contains(errOut, "not an origin") {
+		t.Fatalf("exit %d stderr %q", code, errOut)
+	}
+}

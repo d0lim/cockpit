@@ -150,7 +150,7 @@ func (b boundary) resolve(args api.OnResolveArgs) (api.OnResolveResult, error) {
 		}
 		return api.OnResolveResult{}, nil
 	}
-	return api.OnResolveResult{}, fmt.Errorf("bare specifier %q is not allowed", spec)
+	return api.OnResolveResult{}, fmt.Errorf("bare specifier %q is not allowed: import only cockpit:* modules and relative paths inside the scripts directory", spec)
 }
 
 func (b boundary) load(args api.OnLoadArgs) (api.OnLoadResult, error) {

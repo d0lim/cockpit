@@ -5,12 +5,11 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
-
 jobs:
   binaries:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,16 +19,20 @@ jobs:
       - run: goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
   npm:
     needs: binaries
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm install -g npm@11.5.1
       - run: scripts/build-npm.sh "${GITHUB_REF_NAME#v}" dist/npm
-      - run: bun publish --access public
-        working-directory: dist/npm
-        env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: scripts/publish-npm.sh dist/npm

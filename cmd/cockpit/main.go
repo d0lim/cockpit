@@ -11,7 +11,7 @@ import (
 	"github.com/d0lim/cockpit/internal/version"
 )
 
-const usage = "usage: cockpit sdk write <dir> | runner-image | --version"
+const usage = "usage: cockpit init [--base-url <url>] [<dir>] | sdk write <dir> | runner-image | --version"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -29,6 +29,8 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 	case "--version":
 		fmt.Fprintln(stdout, "cockpit "+version.String())
 		return 0
+	case "init":
+		return initProject(args[1:], stdout, stderr)
 	case "sdk":
 		if len(args) == 3 && args[1] == "write" {
 			return sdkWrite(args[2], stdout, stderr)

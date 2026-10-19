@@ -21,7 +21,7 @@ Docker is required: `cockpit runner-image` imports the embedded runner as a loca
 
 ## Quick start
 
-Start from any directory that has a `compose.yaml`. This example uses a single nginx service.
+Start from a directory with a compose project. This example has one nginx service named `web`:
 
 ```yaml
 services:
@@ -29,59 +29,10 @@ services:
     image: nginx:alpine
 ```
 
-Add the project declaration, the public env, an empty private env and a suite:
+Scaffold the suite and run it:
 
 ```sh
-mkdir -p .cockpit e2e/suites .e2e
-printf 'hostApi: 1\n' > .cockpit/project.yaml
-printf '{ "baseUrl": "http://web" }\n' > e2e/env.json
-printf '{ "local": {} }\n' > .e2e/e2e.private.env.json
-```
-
-`e2e/suites/smoke.ts`:
-
-```ts
-import { expectStatus, flow, stage, step, suite } from "cockpit:flow";
-
-const home = flow({
-	id: "home",
-	title: "Home page",
-	stage: "basic",
-	once: false,
-	requires: [],
-	steps: [
-		step({
-			id: "get",
-			title: "GET / answers 200",
-			kind: "request",
-			async run(ctx) {
-				const res = await ctx.http.send("GET", `${ctx.env.baseUrl}/`);
-				expectStatus(res, 200);
-			},
-		}),
-	],
-});
-
-export default suite({ name: "smoke", stages: [stage({ id: "basic", title: "Basic" })], flows: [home] });
-```
-
-Attach the runner with a compose overlay, `compose.cockpit.yaml`:
-
-```yaml
-services:
-  runner:
-    image: ${COCKPIT_RUNNER_IMAGE:?run cockpit runner-image first}
-    pull_policy: never
-    profiles: ["runner"]
-    volumes:
-      - ./e2e:/work/scripts:ro
-      - ./.cockpit/project.yaml:/work/.cockpit/project.yaml:ro
-      - ./.e2e:/work/e2e
-```
-
-Run it:
-
-```sh
+cockpit init --base-url http://web
 export COCKPIT_RUNNER_IMAGE=$(cockpit runner-image)
 docker compose -f compose.yaml -f compose.cockpit.yaml up -d web
 docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run smoke
@@ -89,11 +40,21 @@ docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run smoke
 
 ```
 home › get passed 3ms [200]
+missing › get passed 1ms [404]
 ```
 
-The exit code is 0 when every step passed. `.e2e/` now holds `manifest.json`, `result.json`, `ledger.json` and `context.json`. Add `.e2e/` to `.gitignore`.
+The exit code is 0 when every step passed. `cockpit init` wrote:
 
-The [usage guide](docs/guide.md) covers the rest: the mounts and environment, writing flows, the `ctx` ports, running one flow, the output files, exit codes and type checking.
+| Path | Holds |
+| --- | --- |
+| `.cockpit/project.yaml` | the project declaration (`hostApi: 1`) |
+| `e2e/env.json` | public values for flows; every origin a flow calls must be one of them |
+| `e2e/suites/smoke.ts` | a two-flow example suite |
+| `e2e/tsconfig.json` | type checking against `@d0lim/cockpit-sdk` |
+| `compose.cockpit.yaml` | the runner service and its mounts |
+| `.e2e/` | run state and the private env, ignored by git |
+
+`init` refuses to overwrite existing files. The [usage guide](docs/guide.md) covers the rest: the mounts and environment, writing flows, the `ctx` ports, running one flow, the output files, exit codes and type checking.
 
 ## Type checking
 
@@ -111,7 +72,7 @@ Without a registry, `cockpit sdk write <dir>` writes the same files from the bin
 
 ## Releases
 
-A `v*` tag publishes the binaries to GitHub Releases, the cask to [d0lim/homebrew-tap](https://github.com/d0lim/homebrew-tap) and the `@d0lim/cockpit-sdk` package to npm, all with the tag's version. `hostApi` in `.cockpit/project.yaml` is the compatibility key: the runner refuses a declaration whose host API differs from its own.
+A `v*` tag builds the binaries with GoReleaser and attaches them to the GitHub release; mise installs from there. The same tag publishes `@d0lim/cockpit-sdk` to npm through trusted publishing, so the workflow needs no stored token. The cask in [d0lim/homebrew-tap](https://github.com/d0lim/homebrew-tap) is written by that repository's own workflow from the published release. `hostApi` in `.cockpit/project.yaml` is the compatibility key: the runner refuses a declaration whose host API differs from its own.
 
 ## Development
 

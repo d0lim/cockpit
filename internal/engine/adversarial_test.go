@@ -59,7 +59,7 @@ type adversarialCase struct {
 var adversarialCases = []adversarialCase{
 	{file: "escape-commit.ts", site: SiteHub, root: commitRoot, stage: rejectAtBundle, line: 1, text: `"../../outside/secret" is outside the boundary`},
 	{file: "node-builtin.ts", site: SiteHub, root: commitRoot, stage: rejectAtBundle, line: 1, text: `bare specifier "node:fs" is not allowed`},
-	{file: "bare-specifier.ts", site: SiteHub, root: commitRoot, stage: rejectAtBundle, line: 1, text: `bare specifier "left-pad" is not allowed`},
+	{file: "bare-specifier.ts", site: SiteHub, root: commitRoot, stage: rejectAtBundle, line: 1, text: `bare specifier "left-pad" is not allowed: import only cockpit:* modules and relative paths`},
 	{file: "dynamic-import.ts", site: SiteHub, root: commitRoot, stage: rejectAtBundle, line: 2, text: `dynamic import of "./node-builtin" is not allowed`},
 	{file: "dynamic-import-variable.ts", site: SiteHub, root: commitRoot, stage: rejectAtBundle, line: 4, text: "the engine cannot parse the bundle"},
 	{file: "escape-script-dir.ts", site: SiteRunner, root: scriptRoot, stage: rejectAtBundle, line: 1, text: `"../conformance/json-roundtrip" is outside the boundary`},

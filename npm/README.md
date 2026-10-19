@@ -1,6 +1,8 @@
 # @d0lim/cockpit-sdk
 
-Type declarations for scripts that run under [cockpit](https://github.com/d0lim/cockpit): the `cockpit:flow` module that runner-site flows import, the `cockpit:collect` module that hub-site collectors import, the globals the engine provides, and the tsconfig base they are checked with. The package holds declarations only; the runtime behind them is the `cockpit` binary.
+Type declarations for scripts that run under [cockpit](https://github.com/d0lim/cockpit): the `cockpit:flow` module that flows import, the `cockpit:collect` module for hub collectors, the globals the runner's engine provides, and the tsconfig base they are checked with. The declarations carry doc comments, so editors and agents see what each port does. The package holds no runtime code; the `cockpit` binary provides the implementation.
+
+`GUIDE.md` in this package is the full usage guide.
 
 ## Install
 
@@ -12,19 +14,25 @@ bun add -d @d0lim/cockpit-sdk@<version>
 
 ## Use
 
-Extend the tsconfig base so the declarations are included:
+`cockpit init` writes a working layout, including this tsconfig in `e2e/`:
 
 ```json
 {
   "extends": "@d0lim/cockpit-sdk/tsconfig.base.json",
-  "include": ["suites/*.ts"]
+  "include": ["**/*.ts"]
 }
 ```
 
-Flows then import everything they need from `cockpit:flow`:
+A project with its own tsconfig can load the declarations through `types` instead:
+
+```json
+{ "compilerOptions": { "types": ["@d0lim/cockpit-sdk"] } }
+```
+
+Flows import everything from `cockpit:flow`:
 
 ```ts
 import { type Ctx, expectStatus, flow, json, poll, stage, step, suite } from "cockpit:flow";
 ```
 
-`hostApi` in `.cockpit/project.yaml` stays the compatibility key: the runner refuses a commit whose declared host API differs from its own. Without a registry, `cockpit sdk write <dir>` writes the same files from the binary.
+The declarations include the engine globals (`Buffer`, `URL`, `console` and a few more). They can clash with `@types/node`, so keep the flows in a tsconfig of their own; flows cannot use Node APIs anyway.
