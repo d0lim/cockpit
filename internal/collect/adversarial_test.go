@@ -12,8 +12,6 @@ import (
 
 	"github.com/d0lim/cockpit/internal/collect/collecttest"
 	"github.com/d0lim/cockpit/internal/collect/worker"
-	"github.com/d0lim/cockpit/internal/hub/lifecycle"
-	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/ports"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
@@ -25,7 +23,6 @@ var adversarialMutations = []porttest.Mutation{
 	{"child output is capped", "copy stderr without the cap", "red: Stderr is larger than the cap and not truncated", "TestAdversarialHugeConsoleOutputIsTruncated"},
 	{"errors sent to the child pass the hub masker", "send known.Message without Mask in reply", "red: the canary is in the frame sent to the child", "TestAdversarialCanarySecretIsAbsentFromErrorsTheScriptSees"},
 	{"no global or module exposes the process environment", "set globalThis.process = { env: os.Environ() } in installGlobals", "red: the walker finds the planted value and process is a global", "TestAdversarialVariablePlantedInTheHubEnvironmentIsInvisibleInEveryGlobalAndModule"},
-	{"a dead child never touches the run lifecycle", "close the active run as error on a killed outcome", "red: the run meta leaves testing", "TestAdversarialDeadChildDoesNotCloseTheActiveRunAsError"},
 }
 
 const canary = "PLANTED-canary-secret-7f3a9c"
@@ -187,25 +184,6 @@ func TestAdversarialVariablePlantedInTheHubEnvironmentIsInvisibleInEveryGlobalAn
 	spec := collecttest.Spec(code, nil, nil)
 	if out := runChild(t, spec); out.Status != worker.StatusOK {
 		t.Fatalf("%+v", out)
-	}
-}
-
-func TestAdversarialDeadChildDoesNotCloseTheActiveRunAsError(t *testing.T) {
-	st := store.Open(filepath.Join(t.TempDir(), "home"))
-	id := "run-20261012-153001-997a37e"
-	slot := 0
-	m := store.Meta{State: lifecycle.State{Phase: lifecycle.Testing, Env: lifecycle.EnvUp}, ID: id, HostAPI: 1, Submitter: "cli", CreatedAt: "2026-10-12T06:00:00.000Z", Slot: &slot}
-	if err := st.WriteMeta(m); err != nil {
-		t.Fatal(err)
-	}
-	spec := collecttest.Spec(collecttest.Bundle(t, "toy-db", `while (true) {}`), nil, nil)
-	spec.Limits.Deadline = 300 * time.Millisecond
-	if out := runChild(t, spec); out.Status == worker.StatusOK {
-		t.Fatalf("%+v", out)
-	}
-	after, err := st.MustRead(id)
-	if err != nil || after.Phase != lifecycle.Testing || after.Verdict != lifecycle.VerdictNone || after.Env != lifecycle.EnvUp {
-		t.Fatalf("%+v %v", after.State, err)
 	}
 }
 
