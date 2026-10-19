@@ -52,7 +52,7 @@ type Core struct {
 	cond       *sync.Cond
 	pending    int
 	active     *Active
-	ops        map[string]chan struct{}
+	ops        map[string]int
 	scan       reconcile.Scan
 	managed    *reconcile.Managed
 	dockerDown bool
@@ -70,7 +70,7 @@ func New(d Deps) *Core {
 		d.Log = slog.Default()
 	}
 	base, cancel := context.WithCancel(context.Background())
-	c := &Core{d: d, base: base, cancelBase: cancel, ops: map[string]chan struct{}{}, managed: reconcile.NewManaged(), lastRedo: map[string]time.Time{}, scan: reconcile.Scan{Orphans: []reconcile.Orphan{}}}
+	c := &Core{d: d, base: base, cancelBase: cancel, ops: map[string]int{}, managed: reconcile.NewManaged(), lastRedo: map[string]time.Time{}, scan: reconcile.Scan{Orphans: []reconcile.Orphan{}}}
 	c.cond = sync.NewCond(&c.mu)
 	return c
 }
@@ -104,26 +104,41 @@ func (c *Core) goTick() { c.track(c.Tick) }
 
 func (c *Core) Kick() { c.goTick() }
 
-func (c *Core) RunOp(id string, fn func() Result, tick bool) Result {
-	ch := make(chan struct{})
+func (c *Core) claim(id string) {
 	c.mu.Lock()
-	c.ops[id] = ch
+	c.ops[id]++
 	c.pending++
 	c.mu.Unlock()
-	defer func() {
-		c.mu.Lock()
-		if c.ops[id] == ch {
-			delete(c.ops, id)
-		}
-		close(ch)
-		c.pending--
-		c.cond.Broadcast()
-		c.mu.Unlock()
-		if tick {
-			c.goTick()
-		}
-	}()
+}
+
+func (c *Core) release(id string, tick bool) {
+	c.mu.Lock()
+	if c.ops[id]--; c.ops[id] <= 0 {
+		delete(c.ops, id)
+	}
+	c.pending--
+	c.cond.Broadcast()
+	c.mu.Unlock()
+	if tick {
+		c.goTick()
+	}
+}
+
+func (c *Core) RunOp(id string, fn func() Result, tick bool) Result {
+	c.claim(id)
+	defer c.release(id, tick)
 	return fn()
+}
+
+func (c *Core) Operate(id string, apply func() (store.Meta, error), op func() Result) Result {
+	c.claim(id)
+	current, err := apply()
+	if err != nil {
+		c.release(id, false)
+		return c.applyFailure(err, current)
+	}
+	defer c.release(id, true)
+	return op()
 }
 
 func (c *Core) Busy(id string) bool {

@@ -192,7 +192,7 @@ Reconciliation runs inside the tick: on the first tick after the hub starts and 
 - A broken `state.json` is rebuilt from the run records: the queue in submit order, the leases from the slots of runs that hold an environment.
 - A kept run takes the observed environment. A run that should be up but is stopped is only marked stopped and is not resumed. A run with no containers, networks or volumes is marked `lost`; its report bundle and record stay, and the rest of its run directory and its lease are released.
 - An active run that the hub left behind first has its child process group killed (only when it started in the current boot) and its one-off containers removed, then closes as `error` with the notice "hub stopped". A run that was running or reporting goes through the report when the runner left its result file.
-- A run left in an operation in progress has its leftovers cleared and the same operation done again.
+- A run left in an operation in progress has its leftovers cleared and the same operation done again. The tick does this only for a run with no operation running in this hub: stop, resume and destroy mark the run busy before they apply their event and keep it busy until they return, so a tick that lands between the event and the docker work never does the operation a second time. A second command on a run whose operation is in progress is refused with 409 and leaves the first operation's busy mark in place.
 - A queued run pinned to a host API this hub does not serve is refused (`done/absent`, verdict `error`) and leaves the queue.
 - Labelled projects without a record are listed as orphans and never touched.
 

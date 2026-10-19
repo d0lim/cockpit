@@ -90,11 +90,9 @@ func (s *Scheduler) Resume(id string, _ Actor) ticker.Result {
 		r.Fail.Candidates = pool.ResumeCandidates(view.Runs)
 		return r
 	}
-	current, err := s.d.Store.ApplyEvent(id, lifecycle.Resume, lifecycle.Detail{}, func(x *store.Meta) { x.StopReason = lifecycle.StopNone })
-	if err != nil {
-		return ticker.Conflict(err.Error(), &current)
-	}
-	return s.core.RunOp(id, func() ticker.Result { return s.d.Env.Resume(s.core.Context(), id) }, true)
+	return s.core.Operate(id, func() (store.Meta, error) {
+		return s.d.Store.ApplyEvent(id, lifecycle.Resume, lifecycle.Detail{}, func(x *store.Meta) { x.StopReason = lifecycle.StopNone })
+	}, func() ticker.Result { return s.d.Env.Resume(s.core.Context(), id) })
 }
 
 func (s *Scheduler) Abort(id string, _ Actor) ticker.Result {
