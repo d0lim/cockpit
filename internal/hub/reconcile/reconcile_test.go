@@ -222,7 +222,7 @@ func TestBrokenStateFileIsRebuiltWithQueueInSubmitOrderAndLeasesFromSlots(t *tes
 
 func TestSkippedRunsAreLeftForTheirOwnOperation(t *testing.T) {
 	w := setup(t, meta(rid(1), withSlot(1), func(m *store.Meta) { m.State = lifecycle.State{Phase: lifecycle.Testing, Env: lifecycle.EnvUp} }))
-	w.hooks.Skip[rid(1)] = true
+	w.hooks.Skip = func(id string) bool { return id == rid(1) }
 	w.run(t)
 	if m := w.read(t, rid(1)); m.Phase != lifecycle.Testing || len(w.env.calls) != 0 {
 		t.Fatalf("%+v %v", m.State, w.env.calls)

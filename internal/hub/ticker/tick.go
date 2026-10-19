@@ -75,22 +75,15 @@ func (c *Core) markWaiting(reason lifecycle.WaitReason) error {
 	return nil
 }
 
-func (c *Core) skipSet() map[string]bool {
+func (c *Core) skipping(id string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	skip := map[string]bool{}
-	for id := range c.ops {
-		skip[id] = true
-	}
-	if c.active != nil {
-		skip[c.active.ID] = true
-	}
-	return skip
+	return c.ops[id] > 0 || c.active != nil && c.active.ID == id
 }
 
 func (c *Core) reconcileAll(ctx context.Context) error {
 	hooks := reconcile.Hooks{
-		Skip:    c.skipSet(),
+		Skip:    c.skipping,
 		Managed: c.managed,
 		RunOp: func(id string, fn func() error) error {
 			var err error

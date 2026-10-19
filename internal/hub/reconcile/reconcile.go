@@ -37,7 +37,7 @@ type Deps struct {
 }
 
 type Hooks struct {
-	Skip    map[string]bool
+	Skip    func(id string) bool
 	RunOp   func(id string, fn func() error) error
 	Managed *Managed
 }
@@ -63,7 +63,7 @@ func Run(ctx context.Context, d Deps, h Hooks) (Scan, error) {
 	known := map[string]bool{}
 	for _, m := range listed.Runs {
 		known[m.ID] = true
-		if h.Skip[m.ID] || m.Mark != lifecycle.MarkNone {
+		if h.Skip(m.ID) || m.Mark != lifecycle.MarkNone {
 			continue
 		}
 		if err := reconcileRun(ctx, d, h, m, statusOf[m.ID]); err != nil {

@@ -183,7 +183,7 @@ func setup(t *testing.T, metas ...store.Meta) *world {
 		Served:         []int{1},
 		CockpitVersion: "v0.3.0",
 	}
-	w.hooks = Hooks{Skip: map[string]bool{}, RunOp: func(_ string, fn func() error) error { return fn() }, Managed: NewManaged()}
+	w.hooks = Hooks{Skip: func(string) bool { return false }, RunOp: func(_ string, fn func() error) error { return fn() }, Managed: NewManaged()}
 	return w
 }
 

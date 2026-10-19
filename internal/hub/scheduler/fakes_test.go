@@ -56,6 +56,7 @@ type world struct {
 	calls    []string
 	dockerUp bool
 	foreign  []reconcile.Project
+	onLs     func()
 	labelled map[string]int
 	started  []string
 	finishes map[string]chan struct{}
@@ -95,6 +96,9 @@ func (w *world) withEnv() []store.Meta {
 }
 
 func (w *world) ComposeLs(context.Context) ([]reconcile.Project, error) {
+	if w.onLs != nil {
+		w.onLs()
+	}
 	out := []reconcile.Project{}
 	for _, m := range w.withEnv() {
 		status := "exited(12)"

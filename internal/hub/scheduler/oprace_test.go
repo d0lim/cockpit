@@ -11,6 +11,7 @@ import (
 )
 
 var opRaceMutations = []porttest.Mutation{
+	{"reconcile skips a run claimed after it starts", "build the reconcile skip set once before reconcile.Run lists the runs", "red: reconcile redoes the stop of a run another operation claimed after the skip set was built", "TestReconcileSkipsAStalledRunThatAnotherOperationClaimsAfterReconcileStarted"},
 	{"overlapping operations on one run keep it busy until the last one ends", "delete the run's mark in Core.release whatever its count", "red: the refused stop clears the busy mark of the destroy still running", "TestAStopRefusedWhileADestroyRunsLeavesTheRunBusyUntilTheDestroyEnds"},
 	{"an operation is busy before its event lands", "apply the event before Core.Operate claims the run", "red: Busy is false when the event lands and the tick's stalled-operation redo runs the operation a second time", "TestATickLandingAsAStopResumeOrDestroyEventIsAppliedFindsTheOperationBusyAndDoesNotRunItAgain"},
 }
@@ -104,5 +105,35 @@ func TestAStopRefusedWhileADestroyRunsLeavesTheRunBusyUntilTheDestroyEnds(t *tes
 	}
 	if m := read(t, w, id); m.Env != lifecycle.EnvDestroyed || len(suffixed(w.snapshot(), " down")) != 1 || len(suffixed(w.snapshot(), " stop")) != 0 {
 		t.Fatalf("state %+v calls %v", m.State, w.snapshot())
+	}
+}
+
+func TestReconcileSkipsAStalledRunThatAnotherOperationClaimsAfterReconcileStarted(t *testing.T) {
+	stalled := func(m *store.Meta) { m.Phase = lifecycle.Stopping }
+	s, w := setup(t, []store.Meta{preserved(1, 30, stalled)})
+	id := rid(1)
+	held, release := make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	w.onLs = func() {
+		once.Do(func() {
+			go s.core.RunOp(id, func() ticker.Result {
+				close(held)
+				<-release
+				return ticker.Result{}
+			}, false)
+			<-held
+		})
+	}
+	s.Reconcile()
+	stops := len(suffixed(w.snapshot(), " stop"))
+	close(release)
+	s.Idle()
+	select {
+	case <-held:
+	default:
+		t.Fatal("the reconcile never listed the compose projects")
+	}
+	if stops != 0 {
+		t.Fatalf("reconcile redid the stop of a claimed run %d times: %v", stops, w.snapshot())
 	}
 }
