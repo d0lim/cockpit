@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import type { Signal } from "../shared/types";
+import type { JobEvent, JobFrame, JobPhase, Signal } from "../shared/types";
 import { type Action, type Frame, initialLive, parseCursor, reduce } from "../store";
 import { hub, OTHER, RUN, run } from "./fixtures";
 
 const frame = (event: Frame["event"], id: string, data: unknown): Frame => ({ kind: "frame", event, id, data });
-const job = (id: string, phase: "start" | "out" | "exit", extra: Record<string, unknown> = {}, target = RUN) =>
-	frame("job", id, { kind: "job", target, at: "t", jobId: RUN, title: "pipeline", phase, ...extra });
+const job = (id: string, phase: JobPhase, extra: Partial<JobEvent> = {}, target = RUN) => {
+	const data: JobFrame = { kind: "job", target, at: "t", jobId: RUN, title: "pipeline", phase, ...extra };
+	return frame("job", id, data);
+};
 const sig = (seq: number): Signal => ({ seq, ts: "2026-10-19T01:00:00Z", tsSource: "host", kind: "event", collector: "toy-db", attrs: {} });
 
 describe("the live store folds stream frames", () => {

@@ -17,6 +17,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/sse"
 	"github.com/d0lim/cockpit/internal/hub/store"
+	"github.com/d0lim/cockpit/internal/hub/ui"
 	"github.com/d0lim/cockpit/internal/mask"
 )
 
@@ -125,7 +126,7 @@ func Run(ctx context.Context, o Options) error {
 	handler := api.Handler(api.Deps{
 		Port: port, Store: st, Scheduler: sched, Signals: built.Signals, Collectors: built.Collectors,
 		Services: built.Services, Suites: built.Suites, Mask: built.Mask, Changed: runs.kick,
-		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll},
+		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll}, Screen: ui.Files(),
 	})
 	base, cancelBase := context.WithCancel(context.Background())
 	defer cancelBase()

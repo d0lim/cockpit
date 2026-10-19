@@ -10,6 +10,7 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/api"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+	"github.com/d0lim/cockpit/internal/hub/sse"
 )
 
 var config = Config{NullZero: []reflect.Type{reflect.TypeFor[lifecycle.Verdict]()}, Roots: []reflect.Type{
@@ -27,6 +28,7 @@ var config = Config{NullZero: []reflect.Type{reflect.TypeFor[lifecycle.Verdict](
 	reflect.TypeFor[api.SuitesView](),
 	reflect.TypeFor[contract.CollectStage](),
 	reflect.TypeFor[contract.Tone](),
+	reflect.TypeFor[sse.JobEvent](),
 }}
 
 func main() {

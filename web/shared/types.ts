@@ -1,4 +1,4 @@
-import type { Event, HubList } from "./api";
+import type { Event, HubList, JobEvent } from "./api";
 
 export type * from "./api";
 
@@ -8,6 +8,6 @@ export type DataSource = "live" | "bundle";
 
 export type FrameHead = { target: string; at: string };
 export type RunsEvent = FrameHead & { kind: "runs"; list: HubList };
-export type JobEvent = FrameHead & { kind: "job"; jobId: string; title: string; phase: "start" | "out" | "exit"; text?: string; code?: number };
+export type JobFrame = FrameHead & { kind: "job" } & JobEvent;
 export type ResyncFrame = { target: string; from: number; to: number };
 export type RefusedFrame = { target: string; reason: string };

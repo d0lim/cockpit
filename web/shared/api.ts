@@ -86,6 +86,14 @@ export interface HubList {
 	tickError: string | null;
 	servedHostApis: number[];
 }
+export interface JobEvent {
+	jobId: string;
+	title: string;
+	phase: JobPhase;
+	text?: string;
+	code?: number;
+}
+export type JobPhase = "start" | "out" | "exit";
 export interface KitExec {
 	command: string;
 	flows: string[];

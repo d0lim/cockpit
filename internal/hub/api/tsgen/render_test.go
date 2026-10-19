@@ -99,7 +99,7 @@ func TestEveryInterfaceHasThePropertiesAndRequiredFieldsOfTheJSONSchemaOfItsStru
 		}
 		compared++
 	}
-	if compared != 40 {
+	if compared != 41 {
 		t.Fatalf("compared %d interfaces", compared)
 	}
 }

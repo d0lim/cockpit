@@ -42,6 +42,7 @@ The CLI sends `Origin` and `X-Cockpit` on every write.
 | GET | `/api/runs/{id}/signals` | `SignalsView` for `?after=<seq>&limit=<n>` |
 
 - There is no `/api/state` and no route for a manually started stack.
+- Every path outside `/api/` serves the embedded screen (`internal/hub/ui`, built from `web/`) for `GET` and `HEAD`, behind the same `Host` check. Another method answers 404. An unknown `/api/` path answers a 404 failure body, never the screen.
 - Every `{id}` must match the run id pattern (400) and name a known run (404).
 - A failure is `{code, message}`, plus `files`, `run` (a `RunItem`) or `candidates` when they apply. The codes are listed in `api.Codes`.
 - The submit body is `{worktree, commit, suite?, submitter?, new?}`. The submitter is the body field, then the `X-Cockpit-Submitter` header, then `ui`. `?force=1` on an operation acts on another person's run.
@@ -68,7 +69,8 @@ The tests check every answer against a JSON Schema generated from the Go struct.
 A tab opens one stream. Its frames are:
 
 - `runs`: the whole `HubList`, sent whenever it changes.
-- `job`, `log` and `services`: from the run's target.
+- `job`: one `sse.JobEvent` from the run's target, `{jobId, title, phase, text?, code?}`. `phase` is `start` (`text` is the command, when there is one), `out` (`text` is one output line) or `exit` (`code` is the exit code, present even when it is 0). The pipeline publishes it with `Bus.PublishJob` and the constructors `JobStarted`, `JobOutput` and `JobExited`.
+- `log` and `services`: from the run's target.
 - `signal`: one `contract.Signal` per frame, and it passes `schema/signal.json`.
 - `resync`: a `{from, to}` gap of dropped signals.
 - `signal-refused`: the run's signal reads were refused.

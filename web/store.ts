@@ -1,4 +1,4 @@
-import type { HubList, JobEvent, RefusedFrame, Resync, ResyncFrame, RunsEvent, Signal } from "./shared/types";
+import type { HubList, JobEvent, JobFrame, RefusedFrame, Resync, ResyncFrame, RunsEvent, Signal } from "./shared/types";
 
 export type JobLog = { jobId: string; title: string; lines: string[]; code?: number; running: boolean };
 export type Connection = "connecting" | "open" | "lost";
@@ -66,7 +66,7 @@ function applyFrame(state: Live, f: Frame): Live {
 			return { ...s, hub: e.list, hubAt: e.at };
 		}
 		case "job": {
-			const e = f.data as JobEvent;
+			const e = f.data as JobFrame;
 			return e.target === s.target ? { ...s, jobs: applyJob(s.jobs, e) } : s;
 		}
 		case "signal": {

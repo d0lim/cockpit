@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"io/fs"
 	"net/http"
 
 	"github.com/d0lim/cockpit/internal/collect"
@@ -50,6 +51,7 @@ type Deps struct {
 	Suites     func(ctx context.Context, worktree string) ([]string, error)
 	Mask       func(runID string) *mask.Masker
 	Changed    func()
+	Screen     fs.FS
 }
 
 type api struct{ d Deps }
@@ -110,7 +112,8 @@ func Handler(d Deps) http.Handler {
 			}
 		})
 	}
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) { writeProblem(w, notFound("not found")) })
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { writeProblem(w, notFound("not found")) })
+	mux.Handle("/", screen(d.Screen))
 	return Guard(d.Port, mux)
 }
 

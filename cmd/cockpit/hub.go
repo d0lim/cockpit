@@ -24,12 +24,21 @@ import (
 
 const hubTick = 2 * time.Second
 
-type jobEvent struct {
-	JobID string `json:"jobId"`
-	Title string `json:"title"`
-	Phase string `json:"phase"`
-	Text  string `json:"text,omitempty"`
-	Code  *int   `json:"code,omitempty"`
+const pipelineJob = "pipeline"
+
+func jobFrame(e pipeline.Event) sse.JobEvent {
+	id := e.Run + "/" + pipelineJob
+	switch e.Phase {
+	case pipeline.PhaseStart:
+		return sse.JobStarted(id, pipelineJob, e.Line)
+	case pipeline.PhaseExit:
+		code := 1
+		if e.Code != nil {
+			code = *e.Code
+		}
+		return sse.JobExited(id, pipelineJob, code)
+	}
+	return sse.JobOutput(id, pipelineJob, e.Line)
 }
 
 func pipelineBuilder(getenv func(string) string) server.Builder {
@@ -42,7 +51,7 @@ func pipelineBuilder(getenv func(string) string) server.Builder {
 			Ensure:    func(ctx context.Context) (runnerbin.Image, error) { return ensureImage(ctx, pins) },
 			Limits:    stages.DefaultLimits(), StopOnDone: pool.StopOnDoneFrom(getenv), TickInterval: hubTick,
 			Events: func(e pipeline.Event) {
-				in.Bus.Publish(sse.KindJob, e.Run, jobEvent{JobID: e.Run + "/pipeline", Title: "pipeline", Phase: string(e.Phase), Text: e.Line, Code: e.Code})
+				in.Bus.PublishJob(e.Run, jobFrame(e))
 			},
 		})
 		if err != nil {
