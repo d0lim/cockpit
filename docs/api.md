@@ -80,7 +80,7 @@ Every layer drops a frame whose composite id is not newer than the last one it d
 - `job`: one `sse.JobEvent` from the run's target, `{jobId, title, phase, text?, code?}`. `phase` is `start` (`text` is the command, when there is one), `out` (`text` is one output line) or `exit` (`code` is the exit code, present even when it is 0). The pipeline publishes it with `Bus.PublishJob` and the constructors `JobStarted`, `JobOutput` and `JobExited`.
 - `log` and `services`: from the run's target.
 - `signal`: one `contract.Signal` per frame, and it passes `schema/signal.json`.
-- `resync`: a `{from, to}` gap of dropped signals.
+- `resync`: a `{from, to}` gap of dropped signals. The screen keeps the gap notice and reads `GET /api/runs/{id}/signals?after=<to>` page by page, following `next`, up to its 20,000-signal cap. It merges the retained signals by `seq` with the ones the stream delivered meanwhile and adds any further gap the read reports. A failed read leaves the stream signals as they were.
 - `signal-refused`: the run's signal reads were refused.
 
 Rules:

@@ -21,7 +21,8 @@ export type Live = {
 };
 
 export type Frame = { kind: "frame"; event: StreamKind; id: string; data: unknown };
-export type Action = Frame | { kind: "select"; target: string | null } | { kind: "connection"; state: "open" | "lost" };
+export type Reread = { kind: "reread"; target: string; after: number; signals: Signal[]; holes: Resync[] };
+export type Action = Frame | Reread | { kind: "select"; target: string | null } | { kind: "connection"; state: "open" | "lost" };
 
 const NO_CURSOR: Cursor = { epoch: "", bus: 0, signal: 0 };
 const NO_LINES = { jobs: [] as JobLog[], signals: [] as Signal[], holes: [] as Resync[], refused: null };
@@ -83,7 +84,19 @@ function applyFrame(state: Live, f: Frame): Live {
 	return s;
 }
 
+function applyReread(s: Live, r: Reread): Live {
+	if (r.target !== s.target) return s;
+	const bySeq = new Map<number, Signal>();
+	for (const sig of s.signals) bySeq.set(sig.seq, sig);
+	for (const sig of r.signals) if (sig.seq > r.after) bySeq.set(sig.seq, sig);
+	const signals = cap([...bySeq.values()].sort((a, b) => a.seq - b.seq), SIGNAL_CAP);
+	const holes = [...s.holes];
+	for (const h of r.holes) if (!holes.some((x) => x.from === h.from && x.to === h.to)) holes.push(h);
+	return { ...s, signals, holes };
+}
+
 function apply(s: Live, a: Action): Live {
+	if (a.kind === "reread") return applyReread(s, a);
 	if (a.kind === "select") return a.target === s.target ? s : { ...initialLive(a.target), hub: s.hub, hubAt: s.hubAt };
 	if (a.kind === "connection") return { ...s, connection: a.state === "open" ? "open" : "lost" };
 	return applyFrame(s, a);

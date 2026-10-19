@@ -1,9 +1,9 @@
 import { useEffect, useReducer, useState } from "react";
-import type { FlowView, HubList, KitView, OpReply, Problem, ReportView, RunDetail, RunOp, SignalsView, SourceView } from "./shared/types";
+import type { FlowView, HubList, KitView, OpReply, Problem, ReadResponse, ReportView, Resync, ResyncFrame, RunDetail, RunOp, Signal, SignalsView, SourceView } from "./shared/types";
 import { chooseLive, type Env } from "./live/transport";
 import type { Live } from "./live/router";
 import { HUB_TARGET } from "./live/wire";
-import { type Action, initialLive, type Live as LiveState, reduce } from "./store";
+import { type Action, initialLive, type Live as LiveState, reduce, SIGNAL_CAP } from "./store";
 
 export class ApiFailure extends Error {
 	constructor(
@@ -42,6 +42,34 @@ export const fetchReport = (id: string) => call<ReportView>(runPath(id, "/report
 export const fetchFlow = (id: string, flow: string) => call<FlowView>(runPath(id, `/flows/${encodeURIComponent(flow)}`));
 export const fetchSource = (id: string, file: string) => call<SourceView>(runPath(id, `/source?file=${encodeURIComponent(file)}`));
 export const fetchSignalMeta = (id: string, after: number) => call<SignalsView>(runPath(id, `/signals?after=${after}&limit=1`));
+export const fetchSignalsAfter = (id: string, after: number) => call<SignalsView>(runPath(id, `/signals?after=${after}`));
+
+export type ReadAfter = (id: string, after: number) => Promise<ReadResponse>;
+
+export async function readAfterHole(target: string, to: number, read: ReadAfter): Promise<Action> {
+	const signals: Signal[] = [];
+	const holes: Resync[] = [];
+	let after = to;
+	while (signals.length < SIGNAL_CAP) {
+		const r = await read(target, after);
+		if (r.resync) holes.push(r.resync);
+		signals.push(...r.signals);
+		if (r.signals.length === 0 || r.next <= after) break;
+		after = r.next;
+	}
+	return { kind: "reread", target, after: to, signals, holes };
+}
+
+export function rereadOnResync(target: string | null, read: ReadAfter, push: (a: Action) => void): (a: Action) => void {
+	return (a) => {
+		push(a);
+		if (target === null || a.kind !== "frame" || a.event !== "resync") return;
+		const hole = a.data as ResyncFrame;
+		if (hole.target !== target) return;
+		readAfterHole(target, hole.to, read).then(push, () => undefined);
+	};
+}
+
 export const operate = (id: string, op: RunOp, force: boolean) => post<OpReply>(runPath(id, `/${op}${force ? "?force=1" : ""}`));
 
 const FLUSH_MS = 50;
@@ -61,7 +89,7 @@ export const defaultLive = (): Live => {
 	return shared;
 };
 
-export function useLive(target: string | null, source: Live = defaultLive()): LiveState {
+export function useLive(target: string | null, source: Live = defaultLive(), read: ReadAfter = fetchSignalsAfter): LiveState {
 	const [live, dispatch] = useReducer(reduce, target, initialLive);
 	useEffect(() => {
 		let queue: Action[] = [];
@@ -77,12 +105,12 @@ export function useLive(target: string | null, source: Live = defaultLive()): Li
 			if (timer === undefined) timer = setTimeout(flush, FLUSH_MS);
 		};
 		dispatch([{ kind: "select", target }]);
-		const off = source.subscribe(target ?? HUB_TARGET, push);
+		const off = source.subscribe(target ?? HUB_TARGET, rereadOnResync(target, read, push));
 		return () => {
 			off();
 			clearTimeout(timer);
 		};
-	}, [target, source]);
+	}, [target, source, read]);
 	return live;
 }
 
