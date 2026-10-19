@@ -27,6 +27,7 @@ type Command struct {
 	Env    []string
 	Stdin  io.Reader
 	Stdout io.Writer
+	Stderr io.Writer
 }
 
 type Result struct {
@@ -76,6 +77,9 @@ func (c CLI) Run(ctx context.Context, in Command) (Result, error) {
 	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &limitedWriter{buf: &stderr, max: dockerStderrBytes}
+	if in.Stderr != nil {
+		cmd.Stderr = in.Stderr
+	}
 	err := cmd.Run()
 	res := Result{Stdout: stdout.Bytes(), Stderr: stderr.Bytes()}
 	var exit *exec.ExitError
