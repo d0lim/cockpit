@@ -16,21 +16,23 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/mask"
+	"github.com/d0lim/cockpit/internal/report"
 	"github.com/d0lim/cockpit/internal/runnerbin"
 )
 
 var EnvDirs = []string{"src", "work", "env", "build"}
 
 type ReportInput struct {
-	Meta   store.Meta
-	Store  *store.Store
-	RunDir string
-	Decl   *contract.Declaration
-	Ports  map[string]int
-	Runner *compose.RunnerResult
-	Boot   *contract.BootVerdict
-	Masker *mask.Masker
-	Now    time.Time
+	Meta    store.Meta
+	Store   *store.Store
+	RunDir  string
+	Decl    *contract.Declaration
+	Ports   map[string]int
+	Runner  *compose.RunnerResult
+	Boot    *contract.BootVerdict
+	Masker  *mask.Masker
+	Signals report.Signals
+	Now     time.Time
 }
 
 type Reporter func(ctx context.Context, in ReportInput) (reconcile.ReportOutcome, string, error)

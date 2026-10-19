@@ -33,11 +33,7 @@ func (m *Masker) leaf(v any, hidden bool) any {
 		}
 		return out
 	case map[string]any:
-		out := make(map[string]any, len(x))
-		for k, e := range x {
-			out[k] = m.leaf(e, hidden || m.hiddenKey(k))
-		}
-		return out
+		return maskKeys(m, x, func(k string, e any) any { return m.leaf(e, hidden || m.hiddenKey(k)) })
 	case []string:
 		out := make([]string, len(x))
 		for i, e := range x {
@@ -45,17 +41,9 @@ func (m *Masker) leaf(v any, hidden bool) any {
 		}
 		return out
 	case map[string]string:
-		out := make(map[string]string, len(x))
-		for k, e := range x {
-			out[k] = m.leaf(e, hidden || m.hiddenKey(k)).(string)
-		}
-		return out
+		return maskKeys(m, x, func(k string, e string) string { return m.leaf(e, hidden || m.hiddenKey(k)).(string) })
 	case map[string][]string:
-		out := make(map[string][]string, len(x))
-		for k, e := range x {
-			out[k] = m.leaf(e, hidden || m.hiddenKey(k)).([]string)
-		}
-		return out
+		return maskKeys(m, x, func(k string, e []string) []string { return m.leaf(e, hidden || m.hiddenKey(k)).([]string) })
 	}
 	if scalar(v) {
 		if hidden {

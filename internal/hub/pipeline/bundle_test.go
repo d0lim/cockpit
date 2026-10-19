@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -12,8 +13,10 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 
 	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/hub/envops"
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+	"github.com/d0lim/cockpit/internal/hub/reconcile"
 	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 	"github.com/d0lim/cockpit/internal/report"
@@ -24,7 +27,7 @@ var bundleMutations = []porttest.Mutation{
 	{"the report stage writes a masked format-3 bundle", "skip report.Assemble in DefaultReport", "red: no report/summary.json", "TestAPassingRunWritesAFormat3BundleWithOwnerOnlyModesAndNoPlaintextSecret"},
 	{"the boot verdict reaches the report", "pass no Boot to the report inputs", "red: the passing run closes as error with no boot verdict", "TestAPassingRunWritesAFormat3BundleWithOwnerOnlyModesAndNoPlaintextSecret"},
 	{"a failed suite closes as failed with its stop point", "drop Result from the report inputs", "red: the verdict is error and no stoppedAt is written", "TestAFailedSuiteClosesAsFailedAndTheSummaryRecordsTheStopPoint"},
-	{"a rescan hit discards the bundle, marks the meta and refuses signal reads", "pass no Signals to Assemble", "red: report/ exists or the stream still answers", "TestARescanHitDiscardsTheBundleMarksRedactionFailedAndRefusesSignalReads"},
+	{"a rescan hit discards the bundle, marks the meta and refuses signal reads", "rename report.partial without the rescan in report.Assemble", "red: report/ exists with the value planted in the frozen copy", "TestARescanHitDiscardsTheBundleMarksRedactionFailedAndRefusesSignalReads"},
 }
 
 func TestBundleMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -141,21 +144,37 @@ func TestAFailedSuiteClosesAsFailedAndTheSummaryRecordsTheStopPoint(t *testing.T
 	}
 }
 
+type plantingSignals struct {
+	*signal.Stream
+}
+
+func (p plantingSignals) Freeze(bundleDir string) (signal.FreezeResult, error) {
+	res, err := p.Stream.Freeze(bundleDir)
+	if err != nil {
+		return res, err
+	}
+	f, err := os.OpenFile(filepath.Join(bundleDir, signal.Dir, "stream.jsonl"), os.O_WRONLY|os.O_APPEND, 0)
+	if err != nil {
+		return res, err
+	}
+	defer f.Close()
+	_, err = f.WriteString(`{"seq":99,"collector":"items","attrs":{"note":"` + planted + `"}}` + "\n")
+	return res, err
+}
+
+func plantInFrozenCopy(ctx context.Context, in envops.ReportInput) (reconcile.ReportOutcome, string, error) {
+	s, err := signal.Open(in.RunDir, signal.Options{Masker: func() *mask.Masker { return in.Masker }})
+	if err != nil {
+		return reconcile.ReportOutcome{}, "", err
+	}
+	defer s.Close()
+	in.Signals = plantingSignals{s}
+	return DefaultReport(ctx, in)
+}
+
 func TestARescanHitDiscardsTheBundleMarksRedactionFailedAndRefusesSignalReads(t *testing.T) {
-	w := newWorld(t, func(f *fakedocker.Fake) {
-		f.OnRunner = func(runDir string) {
-			m, _ := mask.New(mask.Options{Mode: mask.Hub})
-			s, err := signal.Open(runDir, signal.Options{Masker: func() *mask.Masker { return m }})
-			if err != nil {
-				panic(err)
-			}
-			defer s.Close()
-			sig := contract.Signal{Kind: contract.SignalKindEvent, Collector: "items", Attrs: contract.Attrs{planted: "seen"}, Event: &contract.EventBody{Body: "row"}}
-			if _, err := s.Append(sig); err != nil {
-				panic(err)
-			}
-		}
-	}, nil)
+	w := newWorld(t, nil, nil)
+	w.hub.o.Reporter, w.hub.ops.Reporter = plantInFrozenCopy, plantInFrozenCopy
 	m := w.submit()
 	dir, _ := w.hub.Store().RunDir(m.ID)
 	for _, name := range []string{report.DirReport, report.DirPartial} {

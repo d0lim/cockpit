@@ -105,10 +105,15 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 	}
 	bundle := report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker,
 		Patch: func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(meta.ID, change); return err }}
-	stream, streamErr := signal.Open(in.RunDir, signal.Options{Masker: func() *mask.Masker { return in.Masker }})
-	if streamErr == nil {
-		defer stream.Close()
-		bundle.Signals = stream
+	var streamErr error
+	bundle.Signals = in.Signals
+	if bundle.Signals == nil {
+		var stream *signal.Stream
+		stream, streamErr = signal.Open(in.RunDir, signal.Options{Masker: func() *mask.Masker { return in.Masker }})
+		if streamErr == nil {
+			defer stream.Close()
+			bundle.Signals = stream
+		}
 	}
 	out, err := report.Assemble(bundle)
 	if out.Redaction == nil && err != nil {

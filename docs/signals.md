@@ -14,7 +14,7 @@ The memory index is one 8-byte entry per `seq`: the line offset, the quota bucke
 
 ## Redaction
 
-Every signal passes the run masker at three points. On append, the string leaves are masked and attributes with credential names are hidden whole. On read, and when the frozen segment is copied into the report bundle, every line is masked again with the current value list. A stream opens only with a masker, and an append without one is refused. When the report's rescan discards the bundle, the hub calls `RefuseReads`. The refusal is kept in `segment.json`, so reads of that run stay refused after a restart.
+Every signal passes the run masker at three points. On append, the string leaves and the map keys are masked, and attributes with credential names are hidden whole (the name check reads the original key). When two keys mask to the same text, both stay: keys the masker leaves unchanged keep their name, and the masked ones follow in the order of their original keys with `#2`, `#3` and so on. On read, and when the frozen segment is copied into the report bundle, every line is masked again with the current value list. A stream opens only with a masker, and an append without one is refused. When the report's rescan discards the bundle, the hub calls `RefuseReads`. The refusal is kept in `segment.json`, so reads of that run stay refused after a restart.
 
 ## Frozen segment and tail
 
