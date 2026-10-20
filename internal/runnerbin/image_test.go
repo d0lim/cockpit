@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -26,7 +27,28 @@ var imageMutations = []porttest.Mutation{
 	{"architecture normalization", "NormalizeArch returns its input unchanged", "red: aarch64 does not become arm64", "TestDaemonArchAliasesNormalizeToArm64OrAmd64AndUnknownArchIsRejected"},
 	{"reject a runner that is not embedded", "replace ErrNotEmbedded with an empty binary", "red: an empty image is built without error", "TestPlaceholderOnlyTreeFailsWithRunnerNotEmbeddedAndUnreachableDaemonErrors"},
 	{"pin file round trip", "Pin does not write", "red: the reread pin is missing", "TestPinFileIsEmptyWhenMissingAndKeepsEachTagAcrossReads"},
+	{"refuse a runner from another revision", "skip the revision comparison in Ensure", "red: the stale runner is imported and the error is nil", "TestEmbeddedRunnerFromAnotherRevisionIsRefusedBeforeAnyImport"},
+	{"compare only when both revisions are known", "compare even when the hub revision is empty", "red: the hub without a revision refuses a runner that carries one", "TestSameRevisionOrAnUnknownRevisionOnEitherSideImports"},
+	{"an unreadable runner is refused when the hub knows its revision", "treat a build info read error as an unknown revision", "red: a runner without build info is imported", "TestRunnerWithoutReadableBuildInfoIsRefusedOnlyWhenTheHubKnowsItsRevision"},
+	{"read the revision from real build info", "readRevision returns an empty revision without error", "red: junk bytes are read without error", "TestRunnerRevisionReadsBuildInfoFromARealBinaryAndRejectsJunk"},
 }
+
+func withRevisions(t *testing.T, hub string, runner func([]byte) (string, error)) {
+	t.Helper()
+	prevHub, prevRunner := hubRevision, runnerRevision
+	hubRevision = func() string { return hub }
+	runnerRevision = runner
+	t.Cleanup(func() { hubRevision, runnerRevision = prevHub, prevRunner })
+}
+
+func fixedRevision(rev string) func([]byte) (string, error) {
+	return func([]byte) (string, error) { return rev, nil }
+}
+
+const (
+	revisionA = "2a58d980be1918ed856caf5fde0dd97de348efe9"
+	revisionB = "f84d09576b4b3c2a1d0e9f8a7b6c5d4e3f2a1b0c"
+)
 
 type fakeDocker struct {
 	arch        string
@@ -210,6 +232,63 @@ func TestPinFileIsEmptyWhenMissingAndKeepsEachTagAcrossReads(t *testing.T) {
 	}
 	if id, ok := again.Pinned("cockpit-runner:def"); !ok || id != "sha256:2" {
 		t.Fatalf("%q %v", id, ok)
+	}
+}
+
+func TestEmbeddedRunnerFromAnotherRevisionIsRefusedBeforeAnyImport(t *testing.T) {
+	withRevisions(t, revisionA, fixedRevision(revisionB))
+	lookup, _ := fakeRunner(t, "ELF-fake-runner")
+	d := &fakeDocker{arch: "arm64", inspect: map[string]string{}}
+	img, err := Ensure(context.Background(), d, lookup, &memPins{byTag: map[string]Image{}})
+	if err == nil || img != (Image{}) || d.imports != 0 {
+		t.Fatalf("%+v %v imports=%d", img, err, d.imports)
+	}
+	for _, want := range []string{"f84d09576b4b", "2a58d980be19", "scripts/build-runners.sh"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("error lacks %q: %v", want, err)
+		}
+	}
+}
+
+func TestSameRevisionOrAnUnknownRevisionOnEitherSideImports(t *testing.T) {
+	for _, c := range []struct{ hub, runner string }{{revisionA, revisionA}, {"", revisionB}, {revisionA, ""}, {"", ""}} {
+		withRevisions(t, c.hub, fixedRevision(c.runner))
+		lookup, _ := fakeRunner(t, "ELF-fake-runner")
+		d := &fakeDocker{arch: "arm64", inspect: map[string]string{}}
+		if _, err := Ensure(context.Background(), d, lookup, &memPins{byTag: map[string]Image{}}); err != nil || d.imports != 1 {
+			t.Fatalf("hub %q runner %q: %v imports=%d", c.hub, c.runner, err, d.imports)
+		}
+	}
+}
+
+func TestRunnerWithoutReadableBuildInfoIsRefusedOnlyWhenTheHubKnowsItsRevision(t *testing.T) {
+	unreadable := func([]byte) (string, error) { return "", errors.New("not a Go binary") }
+	withRevisions(t, revisionA, unreadable)
+	lookup, _ := fakeRunner(t, "ELF-fake-runner")
+	d := &fakeDocker{arch: "arm64", inspect: map[string]string{}}
+	if _, err := Ensure(context.Background(), d, lookup, &memPins{byTag: map[string]Image{}}); err == nil || !strings.Contains(err.Error(), "build info") || d.imports != 0 {
+		t.Fatalf("%v imports=%d", err, d.imports)
+	}
+	withRevisions(t, "", unreadable)
+	if _, err := Ensure(context.Background(), d, lookup, &memPins{byTag: map[string]Image{}}); err != nil || d.imports != 1 {
+		t.Fatalf("%v imports=%d", err, d.imports)
+	}
+}
+
+func TestRunnerRevisionReadsBuildInfoFromARealBinaryAndRejectsJunk(t *testing.T) {
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	self, err := os.ReadFile(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readRevision(self); err != nil {
+		t.Fatalf("test binary: %v", err)
+	}
+	if rev, err := readRevision([]byte("ELF-fake-runner")); err == nil {
+		t.Fatalf("junk read as revision %q", rev)
 	}
 }
 

@@ -6,12 +6,15 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"debug/buildinfo"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"strings"
+
+	"github.com/d0lim/cockpit/internal/version"
 )
 
 const (
@@ -59,6 +62,46 @@ func NormalizeArch(raw string) (string, error) {
 	return "", fmt.Errorf("unsupported daemon architecture %q", strings.TrimSpace(raw))
 }
 
+var (
+	hubRevision    = version.Revision
+	runnerRevision = readRevision
+)
+
+func readRevision(bin []byte) (string, error) {
+	info, err := buildinfo.Read(bytes.NewReader(bin))
+	if err != nil {
+		return "", err
+	}
+	for _, s := range info.Settings {
+		if s.Key == "vcs.revision" {
+			return s.Value, nil
+		}
+	}
+	return "", nil
+}
+
+func checkRevision(bin []byte) error {
+	hub := hubRevision()
+	if hub == "" {
+		return nil
+	}
+	runner, err := runnerRevision(bin)
+	if err != nil {
+		return fmt.Errorf("cannot read the embedded runner's build info: %w", err)
+	}
+	if runner == "" || runner == hub {
+		return nil
+	}
+	return fmt.Errorf("the embedded runner was built from %s but this cockpit was built from %s; run scripts/build-runners.sh, then rebuild cockpit (make build does both)", short(runner), short(hub))
+}
+
+func short(rev string) string {
+	if len(rev) > 12 {
+		return rev[:12]
+	}
+	return rev
+}
+
 func Tag(bin []byte) string {
 	sum := sha256.Sum256(bin)
 	return Repository + ":" + hex.EncodeToString(sum[:])[:12]
@@ -83,6 +126,9 @@ func Ensure(ctx context.Context, d Docker, lookup func(goarch string) ([]byte, e
 	bin, err := gunzip(gz)
 	if err != nil {
 		return Image{}, fmt.Errorf("cannot decompress the embedded runner: %w", err)
+	}
+	if err := checkRevision(bin); err != nil {
+		return Image{}, err
 	}
 	tag := Tag(bin)
 	if pinned, ok := pins.Pinned(tag); ok {

@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 export CGO_ENABLED := 0
 BIN := bin
 
-.PHONY: verify vet test generate-check licenses build size clean run-env seal-fixture
+.PHONY: verify vet test generate-check licenses runners build size clean run-env seal-fixture
 
 verify: vet test generate-check licenses build size
 
@@ -23,16 +23,17 @@ generate-check:
 licenses:
 	scripts/check-licenses.sh .
 
-build:
+runners:
+	scripts/build-runners.sh
+
+build: runners
 	go build -trimpath -o $(BIN)/cockpit ./cmd/cockpit
 	go build -trimpath -o $(BIN)/cockpit-runner ./cmd/cockpit-runner
 
 size: build
 	@printf 'cockpit %s bytes\ncockpit-runner %s bytes\n' "$$(wc -c < $(BIN)/cockpit | tr -d ' ')" "$$(wc -c < $(BIN)/cockpit-runner | tr -d ' ')"
 
-run-env:
-	scripts/build-runners.sh
-	go build -trimpath -o $(BIN)/cockpit ./cmd/cockpit
+run-env: build
 	scripts/run-env.sh $(RUN_ENV_ARGS)
 
 seal-fixture:
