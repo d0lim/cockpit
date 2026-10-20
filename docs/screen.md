@@ -55,18 +55,22 @@ The registry changes only what the screen shows. The running cap counts every ru
 - The guard refuses the upgrade unless `Origin` is `http://127.0.0.1:<port>` or `http://localhost:<port>` (403, reason `origin`), the same origins it accepts for `POST`. A browser always sends `Origin` on a WebSocket handshake.
 - Each screen declares its live regions, each an element with a fixed id. On connect, the hub renders every live region of the screen and sends them as `<hx-partial hx-target="#<id>" hx-swap="outerMorph">` elements. After that, a bus event or a new signal marks the regions it touches as changed, and the hub sends the changed regions at most every 250 milliseconds.
 - Because every message carries whole regions, a reconnect needs no cursor and repeats nothing: the first message after it brings each region up to date, and the morph keeps scroll positions and open details.
-- The tab closes the connection while it is hidden (`ws.pauseOnBackground`) and reconnects when it is shown. A screen that is not a run screen or `/` has no live regions, and its connection stays idle.
-- The hub closes the connection with code 1000 when the screen's run is destroyed and gone from the list, so the tab does not reconnect to it.
+- The tab closes the connection while it is hidden (`ws.pauseOnBackground`) and reconnects when it is shown.
+- The hub closes the connection with code 1000 when `screen` names no screen, or when the screen's run is gone from the list, so the tab does not reconnect.
+- A connection that falls behind the bus is dropped by the bus; the hub subscribes it again and marks every region changed.
+- The code is `live.Handler`. A screen hands it a `live.Screen`: its run, its regions, the regions each bus event kind touches, the regions new signals touch, and the renderer.
 
 | Screen | Live regions | Changed by |
 |---|---|---|
 | every screen | `rail` | `runs` |
+| Hub | `hub` | `runs` |
+| Other stacks | `stacks` | `runs` |
 | Runs | `runs` | `runs` |
 | every run screen | `run-head` | `runs` |
 | Overview | `run-overview` | `runs`, `job` |
 | Pipeline | `pipeline` | `job` |
-| Signals | `signals`, `collectors` | a new signal, `resync`, `signal-refused` |
-| Environment | `env` | `runs`, `services` |
+| Signals | `signals`, `collectors` | a new signal, a resync gap or a refused read; `collectors` also on `runs` |
+| Environment | `env` | `runs` |
 
 ## Actions
 

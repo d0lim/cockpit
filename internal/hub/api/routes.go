@@ -55,6 +55,7 @@ type Deps struct {
 	Hubs       func() []registry.Hub
 	Changed    func()
 	Screen     fs.FS
+	Live       http.Handler
 	Log        *slog.Logger
 }
 
@@ -124,6 +125,9 @@ func Handler(d Deps) http.Handler {
 		})
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { writeProblem(a.log(), w, notFound("not found")) })
+	if d.Live != nil {
+		mux.Handle("GET /live", d.Live)
+	}
 	mux.Handle("/", screen(d.Screen, a.log()))
 	return Guard(d.Port, a.log(), mux)
 }

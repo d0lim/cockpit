@@ -2,7 +2,10 @@ package api
 
 import (
 	"net/http"
+	"sync/atomic"
 	"testing"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
@@ -12,6 +15,7 @@ var guardMutations = []porttest.Mutation{
 	{"the Host header must be a loopback name with the hub port", "skip the hosts check in Guard", "red: a request with Host evil.example:port is served", "TestRequestsWithAnotherHostAreRefusedOnEveryMethod"},
 	{"writes need a loopback Origin", "skip the origins check in Guard", "red: a POST without Origin changes keep", "TestWritesWithoutOriginOrWithoutTheCockpitHeaderAreRefusedAndChangeNothing"},
 	{"writes need X-Cockpit: 1", "skip the header check in Guard", "red: a POST without the header changes keep", "TestWritesWithoutOriginOrWithoutTheCockpitHeaderAreRefusedAndChangeNothing"},
+	{"an upgrade needs a loopback Origin", "serve every GET without looking at Upgrade", "red: a WebSocket from http://evil.example opens", "TestAWebSocketUpgradeOpensOnlyWithALoopbackOrigin"},
 	{"browser cross-site writes are refused by CrossOriginProtection", "serve next instead of protected for writes", "red: a cross-site fetch with a forged Origin changes keep", "TestACrossSiteBrowserWriteIsRefusedEvenWithALoopbackOrigin"},
 }
 
@@ -88,6 +92,59 @@ func TestWritesWithoutOriginOrWithoutTheCockpitHeaderAreRefusedAndChangeNothing(
 	}
 	if len(denied) != 4 {
 		t.Fatal("case count")
+	}
+}
+
+func TestAWebSocketUpgradeOpensOnlyWithALoopbackOrigin(t *testing.T) {
+	var opened atomic.Int32
+	upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+	f := newFixture(t, func(d *Deps) {
+		d.Live = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			conn, err := upgrader.Upgrade(w, r, nil)
+			if err != nil {
+				return
+			}
+			opened.Add(1)
+			conn.WriteMessage(websocket.TextMessage, []byte("open"))
+			conn.Close()
+		})
+	})
+	url := "ws://127.0.0.1:" + itoa(f.port) + "/live"
+	denied := map[string]http.Header{
+		"no origin":       {},
+		"foreign origin":  {"Origin": {"http://evil.example"}},
+		"other port":      {"Origin": {"http://127.0.0.1:1"}},
+		"https loopback":  {"Origin": {"https://127.0.0.1:" + itoa(f.port)}},
+		"null origin":     {"Origin": {"null"}},
+		"origin with dot": {"Origin": {"http://127.0.0.1.evil.example:" + itoa(f.port)}},
+	}
+	for name, h := range denied {
+		conn, res, err := websocket.DefaultDialer.Dial(url, h)
+		if err == nil {
+			conn.Close()
+			t.Errorf("%s: opened", name)
+			continue
+		}
+		if res == nil || res.StatusCode != http.StatusForbidden {
+			t.Errorf("%s: %v %v", name, res, err)
+		}
+	}
+	if opened.Load() != 0 || len(denied) != 6 {
+		t.Fatalf("opened %d of %d denied cases", opened.Load(), len(denied))
+	}
+	for _, origin := range []string{f.origin, "http://localhost:" + itoa(f.port)} {
+		conn, _, err := websocket.DefaultDialer.Dial(url, http.Header{"Origin": {origin}})
+		if err != nil {
+			t.Fatalf("%s: %v", origin, err)
+		}
+		_, msg, err := conn.ReadMessage()
+		conn.Close()
+		if err != nil || string(msg) != "open" {
+			t.Fatalf("%s: %q %v", origin, msg, err)
+		}
+	}
+	if opened.Load() != 2 {
+		t.Fatalf("opened %d", opened.Load())
 	}
 }
 

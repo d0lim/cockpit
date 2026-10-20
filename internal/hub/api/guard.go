@@ -41,12 +41,18 @@ func Guard(port int, log *slog.Logger, next http.Handler) http.Handler {
 			forbidden(log, w, "host")
 			return
 		}
-		if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		read := r.Method == http.MethodGet || r.Method == http.MethodHead
+		upgrade := r.Header.Get("Upgrade") != ""
+		if read && !upgrade {
 			next.ServeHTTP(w, r)
 			return
 		}
 		if !slices.Contains(origins, r.Header.Get("Origin")) {
 			forbidden(log, w, "origin")
+			return
+		}
+		if read {
+			next.ServeHTTP(w, r)
 			return
 		}
 		if r.Header.Get(HeaderCockpit) != "1" {

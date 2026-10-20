@@ -20,6 +20,7 @@ This page holds the hub's HTTP routes, the event stream, the request guard and t
 Every request passes `api.Guard`:
 
 - The `Host` header must be `127.0.0.1:<port>` or `localhost:<port>`, on every method. This stops DNS rebinding.
+- A request with an `Upgrade` header (the screen's WebSocket, `docs/screen.md`) needs `Origin: http://127.0.0.1:<port>` or `http://localhost:<port>`, on every method.
 - `POST` also needs `Origin: http://127.0.0.1:<port>` or `http://localhost:<port>` and `X-Cockpit: 1`. It then passes `http.CrossOriginProtection`, which refuses a browser request marked `Sec-Fetch-Site: cross-site`.
 - A refusal is 403 with `{"code": "FORBIDDEN", "message": "forbidden:<reason>", "error": "forbidden:<reason>"}`. The reason is `host`, `origin`, `header` or `cross-origin`.
 
