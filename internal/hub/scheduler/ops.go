@@ -167,6 +167,7 @@ type Size struct {
 type HubList struct {
 	Runs       []RunView          `json:"runs"`
 	Orphans    []reconcile.Orphan `json:"orphans"`
+	Foreign    []string           `json:"foreign"`
 	Pool       Size               `json:"pool"`
 	Up         Count              `json:"up"`
 	DockerDown bool               `json:"dockerDown"`
@@ -195,7 +196,7 @@ func (s *Scheduler) List() (HubList, error) {
 		return HubList{}, err
 	}
 	view := s.core.View(list.Runs)
-	out := HubList{Orphans: s.core.Orphans(), DockerDown: s.core.DockerDown(), TickError: s.core.TickError(), Served: append([]int{}, s.d.Served...)}
+	out := HubList{Orphans: s.core.Orphans(), Foreign: s.core.Foreign(), DockerDown: s.core.DockerDown(), TickError: s.core.TickError(), Served: append([]int{}, s.d.Served...)}
 	for _, m := range list.Runs {
 		out.Runs = append(out.Runs, positioned(m, st.Queue))
 		if pool.InPool(m) {

@@ -14,6 +14,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/api"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	"github.com/d0lim/cockpit/internal/hub/lock"
+	"github.com/d0lim/cockpit/internal/hub/registry"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/sse"
 	"github.com/d0lim/cockpit/internal/hub/store"
@@ -94,6 +95,7 @@ func Run(ctx context.Context, o Options) error {
 		return err
 	}
 	defer lock.Release(dir)
+	hubs := openRegistry(o.Getenv, dir, o.Log)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("cannot listen on %s: %w", addr, err)
@@ -122,10 +124,10 @@ func Run(ctx context.Context, o Options) error {
 	if built.Signals == nil {
 		built.Signals = streams
 	}
-	runs := newRunsSync(sched, bus, o.Log)
+	runs := newRunsSync(sched, bus, hubs.Hubs, o.Log)
 	handler := api.Handler(api.Deps{
 		Port: port, Store: st, Scheduler: sched, Signals: built.Signals, Collectors: built.Collectors,
-		Services: built.Services, Suites: built.Suites, Mask: built.Mask, Changed: runs.kick,
+		Services: built.Services, Suites: built.Suites, Mask: built.Mask, Hubs: hubs.Hubs, Changed: runs.kick,
 		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll}, Screen: ui.Files(), Log: o.Log,
 	})
 	base, cancelBase := context.WithCancel(context.Background())
@@ -151,6 +153,21 @@ func Run(ctx context.Context, o Options) error {
 	down, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	return srv.Shutdown(down)
+}
+
+func openRegistry(getenv func(string) string, home string, log *slog.Logger) *registry.Registry {
+	dir, err := registry.Dir(getenv)
+	if err != nil {
+		log.Warn("hub registry unavailable", "error", err)
+		dir = ""
+	}
+	reg := registry.Open(dir, home)
+	if dir != "" {
+		if err := reg.Register(); err != nil {
+			log.Warn("hub registration failed", "error", err)
+		}
+	}
+	return reg
 }
 
 func orDefault(d, fallback time.Duration) time.Duration {

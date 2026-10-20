@@ -40,6 +40,7 @@ type Orphan struct {
 
 type Scan struct {
 	Orphans   []Orphan
+	Foreign   []string
 	ForeignUp int
 }
 
@@ -86,7 +87,7 @@ func ScanProjects(ctx context.Context, d Docker, known map[string]bool, managed 
 		}
 		projects = listed
 	}
-	scan := Scan{Orphans: []Orphan{}}
+	scan := Scan{Orphans: []Orphan{}, Foreign: []string{}}
 	for _, p := range projects {
 		if known[p.Name] {
 			continue
@@ -99,6 +100,7 @@ func ScanProjects(ctx context.Context, d Docker, known map[string]bool, managed 
 		case labelled:
 			scan.Orphans = append(scan.Orphans, Orphan{Project: p.Name, Running: Running(p.Status)})
 		case Running(p.Status):
+			scan.Foreign = append(scan.Foreign, p.Name)
 			scan.ForeignUp++
 		}
 	}

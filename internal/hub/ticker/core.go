@@ -187,6 +187,12 @@ func (c *Core) Orphans() []reconcile.Orphan {
 	return c.scan.Orphans
 }
 
+func (c *Core) Foreign() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.scan.Foreign
+}
+
 func (c *Core) DockerDown() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()

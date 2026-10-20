@@ -8,6 +8,7 @@ import (
 
 	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+	"github.com/d0lim/cockpit/internal/hub/registry"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/sse"
 	"github.com/d0lim/cockpit/internal/hub/store"
@@ -51,6 +52,7 @@ type Deps struct {
 	Services   func(m store.Meta) []ServicePort
 	Suites     func(ctx context.Context, worktree string) ([]string, error)
 	Mask       func(runID string) *mask.Masker
+	Hubs       func() []registry.Hub
 	Changed    func()
 	Screen     fs.FS
 	Log        *slog.Logger
@@ -124,6 +126,13 @@ func Handler(d Deps) http.Handler {
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { writeProblem(a.log(), w, notFound("not found")) })
 	mux.Handle("/", screen(d.Screen, a.log()))
 	return Guard(d.Port, a.log(), mux)
+}
+
+func (a *api) hubs() []registry.Hub {
+	if a.d.Hubs == nil {
+		return nil
+	}
+	return a.d.Hubs()
 }
 
 func (a *api) changed() {

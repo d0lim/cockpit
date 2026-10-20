@@ -19,6 +19,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/cli"
 	"github.com/d0lim/cockpit/internal/hub/hubtest"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+	"github.com/d0lim/cockpit/internal/hub/registry"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/store"
 )
@@ -44,7 +45,12 @@ func freePort(t *testing.T) int {
 
 func start(t *testing.T, home string, verdict lifecycle.Verdict) *running {
 	t.Helper()
-	r := &running{home: home, env: map[string]string{"COCKPIT_HOME": home, "COCKPIT_PORT": strconv.Itoa(freePort(t))}}
+	return startIn(t, filepath.Join(t.TempDir(), "registry"), home, verdict)
+}
+
+func startIn(t *testing.T, registryDir, home string, verdict lifecycle.Verdict) *running {
+	t.Helper()
+	r := &running{home: home, env: map[string]string{"COCKPIT_HOME": home, "COCKPIT_PORT": strconv.Itoa(freePort(t)), registry.EnvRegistry: registryDir}}
 	ready := make(chan string, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -116,6 +122,45 @@ func TestSubmitWithWaitOnTheToyConsumerEndsWithTheVerdictExitCode(t *testing.T) 
 	code, out = runCLI(t, passed.url, "list")
 	if code != cli.ExitOK || !strings.Contains(out, "Done (up)") || !strings.Contains(out, "kept 1/5") {
 		t.Fatalf("list: exit %d\n%s", code, out)
+	}
+}
+
+func TestTwoHubsOnOneRegistryListEachOtherWithThisHubFirstAndTheOtherUpAtItsAddress(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "registry")
+	first := startIn(t, dir, filepath.Join(t.TempDir(), "first"), lifecycle.VerdictPassed)
+	second := startIn(t, dir, filepath.Join(t.TempDir(), "second"), lifecycle.VerdictPassed)
+	type hub struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		Self bool   `json:"self"`
+		Up   bool   `json:"up"`
+		URL  string `json:"url"`
+	}
+	read := func(r *running) []hub {
+		res, err := http.Get(r.url + "/api/runs")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		var list struct {
+			Hubs []hub `json:"hubs"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
+			t.Fatal(err)
+		}
+		return list.Hubs
+	}
+	got := read(first)
+	want := []hub{{ID: registry.ID(first.home), Name: "first", Self: true, Up: true, URL: first.url}, {ID: registry.ID(second.home), Name: "second", Up: true, URL: second.url}}
+	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("first sees %+v, want %+v", got, want)
+	}
+	if err := second.stop(); err != nil {
+		t.Fatal(err)
+	}
+	got = read(first)
+	if len(got) != 2 || got[1].Up || got[1].URL != "" || got[1].Name != "second" {
+		t.Fatalf("after the second stopped: %+v", got)
 	}
 }
 

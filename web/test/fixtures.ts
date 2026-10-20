@@ -24,6 +24,8 @@ export const run = (over: Partial<RunItem> = {}): RunItem => ({
 export const hub = (runs: RunItem[], over: Partial<HubList> = {}): HubList => ({
 	runs,
 	orphans: [],
+	foreign: [],
+	hubs: [],
 	pool: { size: 1, max: 5 },
 	up: { count: 1, cap: 3 },
 	dockerDown: false,

@@ -101,6 +101,19 @@ func Release(home string) {
 	}
 }
 
+func Holder(home string) (*Lock, bool) {
+	path := lockPath(home)
+	raw, err := readIfPresent(path)
+	if err != nil || raw == nil {
+		return nil, false
+	}
+	owner, err := parse(raw, path)
+	if err != nil || !alive(owner.PID) {
+		return nil, false
+	}
+	return owner, true
+}
+
 func createExclusive(l *Lock) (bool, error) {
 	f, err := os.OpenFile(l.Path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if errors.Is(err, fs.ErrExist) {

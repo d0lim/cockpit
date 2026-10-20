@@ -208,6 +208,6 @@ func newE2E(t *testing.T) *e2e {
 	}
 	port := strconv.Itoa(freePort(t))
 	e.url = "http://127.0.0.1:" + port
-	e.env = append(os.Environ(), "COCKPIT_HOME="+e.home, "COCKPIT_PORT="+port, "COCKPIT_URL="+e.url, "COCKPIT_STOP_ON_DONE=0")
+	e.env = append(os.Environ(), "COCKPIT_HOME="+e.home, "COCKPIT_PORT="+port, "COCKPIT_URL="+e.url, "COCKPIT_STOP_ON_DONE=0", "COCKPIT_REGISTRY="+filepath.Join(e.home, "registry"))
 	return e
 }

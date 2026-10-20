@@ -10,7 +10,8 @@ This page holds the hub's HTTP routes, the event stream, the request guard and t
 2. refuses a directory that holds the previous cockpit's layout and exits 3,
 3. reads `config.yaml`,
 4. takes `hub.lock`,
-5. listens on `127.0.0.1` at `COCKPIT_PORT` (default 7710) and on no other address.
+5. registers its state directory in the hub registry (`docs/screen.md`); a registry it cannot write is logged and does not stop the start,
+6. listens on `127.0.0.1` at `COCKPIT_PORT` (default 7710) and on no other address.
 
 `server.Run` takes a `Builder` that returns the scheduler and the optional sources: signals, collector status, run services, suite names and the run masker. The builder receives the shared event bus and the signal stream registry (`server.Streams`, an alias of `signal.Registry`). A component that appends signals must take its stream from that registry, so reads and writes share one index. The builder in `cmd/cockpit` is the run pipeline (`pipeline.New`): it passes the registry to the pipeline, so the report stage, the collector supervisor, the signal and state ports and the API read one stream per run. It answers with the collector supervisor's status, the run's declared ports, the suite names of a worktree's `HEAD` and the run masker, closes the supervisor on shutdown, and publishes each pipeline on the bus as `job` events (`jobId` `<run>/pipeline`, `title` `pipeline`): `start` when it begins, one `out` per masked line, and `exit` with `code` 0 for a passed run and 1 otherwise. Run ports carry their declared `open` mode.
 
@@ -55,7 +56,7 @@ Because that schema follows the struct, it cannot see a field that disappears. `
 
 - **`RunItem`**: the run's state and identity fields, `phaseLabel` and `verdictLabel`. It keeps every field the previous hub sent except its harness flag, and adds `hostApi` and `cockpitVersion`.
 - **`RunDetail`**: a `RunItem` plus image keys and digests, the runner image, the tail, `allowedEvents` (`stop`, `resume`, `destroy`, `abort`; only `abort` while an exec holds the run) and `services`. Each service is `{name, service, port, hostPort, label, open?}`, where `open` is the declaration's open mode (`browser`, `link` or `copy`).
-- **`HubList`**: `runs` (`RunItem` rows), `orphans`, `pool`, `up`, `dockerDown`, `tickError` and `servedHostApis`, the host API versions this hub serves. The screen hides the signal and report tabs of a run outside that set.
+- **`HubList`**: `runs` (`RunItem` rows), `orphans`, `foreign`, `hubs`, `pool`, `up`, `dockerDown`, `tickError` and `servedHostApis`, the host API versions this hub serves. An orphan is `{project, running, hub?}`, where `hub` is the id of the registered hub that holds the run's record. `foreign` names the running compose projects without the cockpit label. `hubs` is the hub registry, this hub first: `{id, name, home, self, up, url?}`, with `url` only while the hub is up. The screen hides the signal and report tabs of a run outside that set.
 - **`ReportView`**: one of four statuses.
   - `pending` while the run is queued or active.
   - `redaction-failed` with the bundle paths the rescan caught.

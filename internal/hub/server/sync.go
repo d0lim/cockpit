@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/hub/registry"
 	"github.com/d0lim/cockpit/internal/hub/sse"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/mask"
@@ -17,6 +18,7 @@ import (
 
 type runsSync struct {
 	sched Scheduler
+	hubs  func() []registry.Hub
 	bus   *sse.Bus
 	log   *slog.Logger
 	wake  chan struct{}
@@ -24,8 +26,8 @@ type runsSync struct {
 	last  []byte
 }
 
-func newRunsSync(sched Scheduler, bus *sse.Bus, log *slog.Logger) *runsSync {
-	return &runsSync{sched: sched, bus: bus, log: log, wake: make(chan struct{}, 1)}
+func newRunsSync(sched Scheduler, bus *sse.Bus, hubs func() []registry.Hub, log *slog.Logger) *runsSync {
+	return &runsSync{sched: sched, hubs: hubs, bus: bus, log: log, wake: make(chan struct{}, 1)}
 }
 
 func (r *runsSync) kick() {
@@ -41,7 +43,7 @@ func (r *runsSync) publish() {
 		r.log.Warn("run list failed", "error", err)
 		return
 	}
-	body := map[string]any{"list": api.PublicList(list)}
+	body := map[string]any{"list": api.PublicList(list, r.hubs())}
 	raw, err := json.Marshal(body)
 	if err != nil {
 		return

@@ -66,7 +66,7 @@ func TestUnlabelledProjectsAreLeftAloneAndLabelledProjectsWithoutRecordsAreOnlyM
 	}
 }
 
-func TestRunningUnrelatedComposeProjectAddsOneToTheRunningCountWhateverItsPorts(t *testing.T) {
+func TestRunningUnrelatedComposeProjectAddsOneToTheRunningCountWhateverItsPortsAndIsListedByName(t *testing.T) {
 	w := setup(t, preserved(1, 10))
 	w.docker.ls = []Project{
 		{Name: rid(1), Status: "running(12)"},
@@ -75,11 +75,11 @@ func TestRunningUnrelatedComposeProjectAddsOneToTheRunningCountWhateverItsPorts(
 		{Name: "app-old-cockpit-run", Status: "created(1), running(2)"},
 	}
 	scan := w.run(t)
-	if scan.ForeignUp != 2 || len(scan.Orphans) != 0 {
+	if scan.ForeignUp != 2 || len(scan.Orphans) != 0 || !reflect.DeepEqual(scan.Foreign, []string{"toy-shop", "app-old-cockpit-run"}) {
 		t.Fatalf("%+v", scan)
 	}
 	w.docker.ls = w.docker.ls[:1]
-	if again := w.run(t); again.ForeignUp != 0 {
+	if again := w.run(t); again.ForeignUp != 0 || len(again.Foreign) != 0 {
 		t.Fatalf("canary: %+v", again)
 	}
 }

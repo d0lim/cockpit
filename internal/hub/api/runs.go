@@ -77,7 +77,7 @@ func (a *api) list(w http.ResponseWriter, _ *http.Request) error {
 	if err != nil {
 		return err
 	}
-	writeJSON(a.log(), w, http.StatusOK, PublicList(l))
+	writeJSON(a.log(), w, http.StatusOK, PublicList(l, a.hubs()))
 	return nil
 }
 

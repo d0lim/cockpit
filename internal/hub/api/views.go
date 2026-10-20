@@ -8,6 +8,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/pool"
 	"github.com/d0lim/cockpit/internal/hub/reconcile"
+	"github.com/d0lim/cockpit/internal/hub/registry"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/store"
 )
@@ -60,14 +61,30 @@ type RunDetail struct {
 	Services      []ServicePort         `json:"services"`
 }
 
+type OrphanItem struct {
+	reconcile.Orphan
+	Hub string `json:"hub,omitempty"`
+}
+
+type HubItem struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Home string `json:"home"`
+	Self bool   `json:"self"`
+	Up   bool   `json:"up"`
+	URL  string `json:"url,omitempty"`
+}
+
 type HubList struct {
-	Runs       []RunItem          `json:"runs"`
-	Orphans    []reconcile.Orphan `json:"orphans"`
-	Pool       scheduler.Size     `json:"pool"`
-	Up         scheduler.Count    `json:"up"`
-	DockerDown bool               `json:"dockerDown"`
-	TickError  *string            `json:"tickError"`
-	Served     []int              `json:"servedHostApis"`
+	Runs       []RunItem       `json:"runs"`
+	Orphans    []OrphanItem    `json:"orphans"`
+	Foreign    []string        `json:"foreign"`
+	Hubs       []HubItem       `json:"hubs"`
+	Pool       scheduler.Size  `json:"pool"`
+	Up         scheduler.Count `json:"up"`
+	DockerDown bool            `json:"dockerDown"`
+	TickError  *string         `json:"tickError"`
+	Served     []int           `json:"servedHostApis"`
 }
 
 type Submitted struct {
@@ -113,10 +130,16 @@ func Detail(v scheduler.RunView, allowed []lifecycle.Event, services []ServicePo
 	}
 }
 
-func PublicList(l scheduler.HubList) HubList {
-	out := HubList{Runs: []RunItem{}, Orphans: l.Orphans, Pool: l.Pool, Up: l.Up, DockerDown: l.DockerDown, Served: append([]int{}, l.Served...)}
-	if out.Orphans == nil {
-		out.Orphans = []reconcile.Orphan{}
+func PublicList(l scheduler.HubList, hubs []registry.Hub) HubList {
+	out := HubList{
+		Runs: []RunItem{}, Orphans: []OrphanItem{}, Foreign: append([]string{}, l.Foreign...), Hubs: []HubItem{},
+		Pool: l.Pool, Up: l.Up, DockerDown: l.DockerDown, Served: append([]int{}, l.Served...),
+	}
+	for _, o := range l.Orphans {
+		out.Orphans = append(out.Orphans, OrphanItem{Orphan: o, Hub: registry.Owner(hubs, o.Project)})
+	}
+	for _, h := range hubs {
+		out.Hubs = append(out.Hubs, HubItem{ID: h.ID, Name: h.Name, Home: h.Home, Self: h.Self, Up: h.Up, URL: h.URL()})
 	}
 	if l.TickError != "" {
 		out.TickError = &l.TickError

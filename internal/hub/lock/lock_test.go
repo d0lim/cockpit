@@ -21,6 +21,7 @@ var lockMutations = []porttest.Mutation{
 	{"the lock is created exclusively with mode 600", "open without O_EXCL", "red: the second create overwrites", "TestAcquireOnAnEmptyHomeCreatesALockWithPidPortAndModes"},
 	{"re-acquire in the same process is re-entrant", "skip the registry", "red: the second acquire rewrites the file", "TestSecondAcquireInTheSameProcessReturnsTheSameLock"},
 	{"a lock file naming this pid is re-entrant", "drop the own-pid branch", "red: the hub refuses its own lock", "TestLockFileWithThisPidIsReentrant"},
+	{"a holder is reported only while its process lives", "drop the alive check in Holder", "red: a dead pid's lock reads as a running hub", "TestHolderNamesALiveOwnersPortAndNothingForADeadOrMissingLock"},
 	{"the hub listens on loopback only", "use COCKPIT_PORT as the whole address", "red: 0.0.0.0:80 is accepted", "TestListenAddressIsLoopbackOnlyAndRejectsHostsAndBadPorts"},
 }
 
@@ -171,6 +172,28 @@ func TestReleaseRemovesOnlyThisProcessLock(t *testing.T) {
 	Release(other)
 	if read(t, other) != text {
 		t.Fatal("another pid's lock was removed")
+	}
+}
+
+func TestHolderNamesALiveOwnersPortAndNothingForADeadOrMissingLock(t *testing.T) {
+	missing := homeFixture(t)
+	if l, ok := Holder(missing); ok || l != nil {
+		t.Fatalf("missing lock: %+v %v", l, ok)
+	}
+	live := homeFixture(t)
+	other := exec.Command("sleep", "30")
+	if err := other.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { other.Process.Kill(); other.Wait() })
+	plant(t, live, body(other.Process.Pid, 7801))
+	if l, ok := Holder(live); !ok || l.Port != 7801 || l.PID != other.Process.Pid {
+		t.Fatalf("live lock: %+v %v", l, ok)
+	}
+	dead := homeFixture(t)
+	plant(t, dead, body(deadPID(t), 7802))
+	if l, ok := Holder(dead); ok || l != nil {
+		t.Fatalf("dead lock: %+v %v", l, ok)
 	}
 }
 

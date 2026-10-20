@@ -77,9 +77,19 @@ export interface FlowView {
 	source: string;
 	flow: FlowSummary;
 }
+export interface HubItem {
+	id: string;
+	name: string;
+	home: string;
+	self: boolean;
+	up: boolean;
+	url?: string;
+}
 export interface HubList {
 	runs: RunItem[];
-	orphans: Orphan[];
+	orphans: OrphanItem[];
+	foreign: string[];
+	hubs: HubItem[];
 	pool: Size;
 	up: Count;
 	dockerDown: boolean;
@@ -131,6 +141,9 @@ export type OpenMode = "browser" | "link" | "copy";
 export interface Orphan {
 	project: string;
 	running: boolean;
+}
+export interface OrphanItem extends Orphan {
+	hub?: string;
 }
 export type Phase = "queued" | "preparing" | "building" | "sealing" | "booting" | "testing" | "reporting" | "stopping" | "resuming" | "destroying" | "done";
 export interface Problem {
