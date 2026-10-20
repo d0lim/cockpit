@@ -57,7 +57,7 @@ Because that schema follows the struct, it cannot see a field that disappears. `
 
 - **`RunItem`**: the run's state and identity fields, `phaseLabel` and `verdictLabel`. It keeps every field the previous hub sent except its harness flag, and adds `hostApi` and `cockpitVersion`.
 - **`RunDetail`**: a `RunItem` plus image keys and digests, the runner image, the tail, `allowedEvents` (`stop`, `resume`, `destroy`, `abort`; only `abort` while an exec holds the run) and `services`. Each service is `{name, service, port, hostPort, label, open?}`, where `open` is the declaration's open mode (`browser`, `link` or `copy`).
-- **`HubList`**: `runs` (`RunItem` rows), `orphans`, `foreign`, `hubs`, `pool`, `up`, `dockerDown`, `tickError` and `servedHostApis`, the host API versions this hub serves. An orphan is `{project, running, hub?}`, where `hub` is the id of the registered hub that holds the run's record. `foreign` names the running compose projects without the cockpit label. `hubs` is the hub registry, this hub first: `{id, name, home, self, up, url?}`, with `url` only while the hub is up. The screen hides the signal and report tabs of a run outside that set.
+- **`HubList`**: `runs` (`RunItem` rows), `orphans`, `foreign`, `hubs`, `pool`, `up`, `dockerDown`, `tickError` and `servedHostApis`, the host API versions this hub serves. An orphan is `{project, running, hub?}`, where `hub` is the id of the registered hub that holds the run's record. `foreign` names the running compose projects without the cockpit label. `hubs` is the hub registry, this hub first: `{id, name, home, self, up, url?}`, with `url` only while the hub is up. The screen shows only the overview and the pipeline of a run outside that set.
 - **`ReportView`**: one of four statuses.
   - `pending` while the run is queued or active.
   - `redaction-failed` with the bundle paths the rescan caught.
@@ -70,19 +70,13 @@ Because that schema follows the struct, it cannot see a field that disappears. `
 
 ## Event stream
 
-The screen keeps one connection per stream target for the whole browser, because a browser allows only six HTTP/1.1 connections to one origin and every open stream holds one. `web/live` does this in three ways, tried in order:
-
-1. A `SharedWorker` (`/live/worker.js`, name `cockpit-live-<protocol>`) owns one `EventSource` per target that any tab asks for. It sends each new tab the frames it has kept for that target, fans live frames out to every tab that subscribed, and closes a target's stream when the last tab leaves. A tab says `bye` on `pagehide` and pings every 10 seconds; a tab silent for 35 seconds is dropped.
-2. Without a working shared worker, the tabs elect a leader through the Web Locks API and talk over a `BroadcastChannel`. The leader holds the streams and broadcasts frames. When it closes, the next tab takes the lock and opens the streams again.
-3. Without either, each tab opens its own streams, one per target.
-
-Every layer drops a frame whose composite id is not newer than the last one it delivered for that target (bus seq for `runs` and `job`, signal seq for `signal` and `resync`, one `signal-refused` per epoch), so a reconnect or a leader change repeats nothing. A stream's frames are:
+`GET /api/events` and `GET /api/runs/{id}/events` are server-sent event streams for clients of the API. The screen does not use them; it has its own live connection (`docs/screen.md`). A stream sends no frame twice for one connection, and a reconnect with `Last-Event-ID` resends only what came after it. A stream's frames are:
 
 - `runs`: the whole `HubList`, sent whenever it changes.
 - `job`: one `sse.JobEvent` from the run's target, `{jobId, title, phase, text?, code?}`. `phase` is `start` (`text` is the command, when there is one), `out` (`text` is one output line) or `exit` (`code` is the exit code, present even when it is 0). The pipeline publishes it with `Bus.PublishJob` and the constructors `JobStarted`, `JobOutput` and `JobExited`.
 - `log` and `services`: from the run's target.
 - `signal`: one `contract.Signal` per frame, and it passes `schema/signal.json`.
-- `resync`: a `{from, to}` gap of dropped signals. The screen keeps the gap notice and reads `GET /api/runs/{id}/signals?after=<to>` page by page, following `next`, up to its 20,000-signal cap. It merges the retained signals by `seq` with the ones the stream delivered meanwhile and adds any further gap the read reports. A failed read leaves the stream signals as they were.
+- `resync`: a `{from, to}` gap of dropped signals. A client reads what it missed with `GET /api/runs/{id}/signals?after=<to>`.
 - `signal-refused`: the run's signal reads were refused.
 
 Rules:
@@ -115,8 +109,4 @@ Rules:
 
 ## Labels
 
-`internal/hub/labels` owns the words the screen and the CLI show: state, stage, wait, stop and destroy labels from `internal/hub/lifecycle`, verdict, collector state and flow status labels, and the CLI messages with `{name}` placeholders. `go generate ./internal/hub/labels` writes `web/shared/labels.json`. `make verify` fails when the file drifts, and a test compares it with the Go table.
-
-## Screen types
-
-`go generate ./internal/hub/api` writes `web/shared/api.ts` from the Go response structs with `internal/hub/api/tsgen`. A field with `omitempty` or `omitzero` is optional, a pointer without it is `T | null`, an embedded struct becomes `extends`, and a named string type becomes the union of its typed constants. `lifecycle.Verdict` marshals its zero value as `null`, so it renders without the empty value and every field of that type is `Verdict | null`. Any other type with its own `MarshalJSON` stops the generator until it gets a TypeScript form. A test compares every generated interface with the JSON Schema that `jsonschema.ForType` builds from the same struct, property by property and required field by required field. The screen imports these types through `web/shared/types.ts` and adds only its own: operation names, frame envelopes and the data source badge.
+`internal/hub/labels` owns the words the screen and the CLI show: state, stage, wait, stop and destroy labels from `internal/hub/lifecycle`, verdict, collector state and flow status labels, and the CLI messages with `{name}` placeholders. The screen reads the same table in the hub process.

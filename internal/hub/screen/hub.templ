@@ -36,9 +36,9 @@ templ hubRegion(st *state) {
 				<dt>Registry id</dt>
 				<dd class="font-mono">{ orElse(st.self().ID, "not registered") }</dd>
 				<dt>State directory</dt>
-				<dd class="font-mono">{ st.d.Identity.Home }</dd>
+				<dd class="font-mono">{ st.s.d.Identity.Home }</dd>
 				<dt>Address</dt>
-				<dd class="font-mono">{ "http://127.0.0.1:" + strconv.Itoa(st.d.Identity.Port) }</dd>
+				<dd class="font-mono">{ "http://127.0.0.1:" + strconv.Itoa(st.s.d.Identity.Port) }</dd>
 				<dt>Version</dt>
 				<dd class="font-mono">{ st.version() }</dd>
 				<dt>Host APIs served</dt>

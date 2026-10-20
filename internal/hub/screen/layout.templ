@@ -27,7 +27,7 @@ templ layout(st *state, title string, body templ.Component) {
 			<script src="/assets/app.js"></script>
 		</head>
 		<body hx-boost:inherited="true" hx-headers:inherited={ cockpitHeaders } class="bg-bg text-fg antialiased">
-			<div hx-ws:connect={ "/live?screen=" + url.QueryEscape(st.path) } hx-swap="none" class="hidden"></div>
+			<div hx-ws:connect={ "/live?screen=" + url.QueryEscape(st.screenParam()) } hx-swap="none" class="hidden"></div>
 			<div class="flex min-h-screen">
 				@rail(st)
 				<div class="flex min-w-0 flex-1 flex-col">

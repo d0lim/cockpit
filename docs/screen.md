@@ -36,7 +36,7 @@ The registry changes only what the screen shows. The running cap counts every ru
 | `/` | Runs | What is happening on this hub now? | The queue and the active run, the kept pool with its five places, the ended runs. A row is the run id, suite, commit, lifecycle and verdict, and links to the run's default screen. |
 | `/runs/{id}` | Overview | What state is this run in, and what can I do? | Lifecycle and verdict, the reasons and notices, the actions the run allows, and the pipeline stages it passed. |
 | `/runs/{id}/report` | Report | Did it pass, and if not, why? | The verdict and its reasons, the stage → flow → step table and what was not counted as passed. |
-| `/runs/{id}/report/{flow}` | Flow | Where and how did this flow fail? | The flow's steps with their requests, responses and expectations, and the source of the failing step. |
+| `/runs/{id}/report/{flow}` | Flow | What did this flow do, and where did it stop? | The flow's steps with their requests, responses and expectations, and the source of the failing step. |
 | `/runs/{id}/signals/{view}` | Signals | What happened inside the environment while the suite ran? | One of four views (`trace`, `events`, `table`, `logs`) and the collector status. |
 | `/runs/{id}/env` | Environment | How do I get into this environment? | The service ports with their open modes, the kit, the exec command and the flows it can run again, and the report bundle path. |
 | `/runs/{id}/pipeline` | Pipeline | What did each stage print? | The masked pipeline output lines. |
@@ -45,7 +45,6 @@ The registry changes only what the screen shows. The running cap counts every ru
 
 - A run screen has a short header (run id, lifecycle, verdict) and the run's screen links: Overview, Report, Signals, Environment, Pipeline. The header is the only part every run screen shares.
 - A run's default screen is Overview while it is queued, Signals while it is active, and Report once it has ended. A run whose host API this hub does not serve has only Overview and Pipeline.
-- Signals views show the latest 500 signals. Older signals are read page by page on request, from `GET /api/runs/{id}/signals`, and are not live.
 - An unknown run id answers 404 with a screen that says so; a malformed one answers 400.
 
 ## Live connection
@@ -60,17 +59,31 @@ The registry changes only what the screen shows. The running cap counts every ru
 - A connection that falls behind the bus is dropped by the bus; the hub subscribes it again and marks every region changed.
 - The code is `live.Handler`. A screen hands it a `live.Screen`: its run, its regions, the regions each bus event kind touches, the regions new signals touch, and the renderer.
 
-| Screen | Live regions | Changed by |
+| Screens | Region | Changed by |
 |---|---|---|
 | every screen | `rail` | `runs` |
+| every run screen | `run-head` | `runs` |
+| Runs | `runs` | `runs` |
 | Hub | `hub` | `runs` |
 | Other stacks | `stacks` | `runs` |
-| Runs | `runs` | `runs` |
-| every run screen | `run-head` | `runs` |
-| Overview | `run-overview` | `runs`, `job` |
-| Pipeline | `pipeline` | `job` |
-| Signals | `signals`, `collectors` | a new signal, a resync gap or a refused read; `collectors` also on `runs` |
+| Overview | `run-overview` | `runs` |
+| Report | `report` | `runs` |
+| Flow | `flow` | `runs` |
+| Signals | `signals` | new signals |
+| Signals | `collectors` | `runs`, new signals |
 | Environment | `env` | `runs` |
+| Pipeline | `pipeline` | `job` |
+
+`TestTheScreenDocumentTablesMatchTheViewsBothWays` compares both tables on this page with the views the screen registers.
+
+### Screen state in the URL
+
+What a screen shows besides its run lives in its query, so a reload, a pasted URL and the live connection render the same thing:
+
+- Flow: `step`, the picked step; its line is marked in the code view and scrolled to once.
+- Signals: `trace` and `span` for the trace view, `f` (repeatable, `key:value`) and `event` for the events view, `hide` (repeatable, `<table>.<column>`) for the table view, `source` for the logs view.
+
+Signals are read once per run into a cache that keeps the latest 20,000 and reads only the new ones on each render; a run nobody reads for ten minutes leaves the cache. The events view shows the latest 500 events, a table the latest 500 rows, the logs view the latest 2,000 lines of one source.
 
 ## Actions
 

@@ -1,0 +1,68 @@
+package screen
+
+import "github.com/d0lim/cockpit/internal/hub/api"
+
+type codeModel struct {
+	target  *codeTarget
+	view    api.SourceView
+	err     error
+	rng     *flowRange
+	here    int
+	pastEnd bool
+}
+
+func (st *state) code(fv api.FlowView) codeModel {
+	m := codeModel{target: targetOf(fv.Flow, pickedStep(fv.Flow, st.query.Get("step")))}
+	if m.target == nil {
+		return m
+	}
+	m.view, m.err = st.s.d.Reader.Source(st.run.ID, m.target.file)
+	if m.err != nil {
+		return m
+	}
+	if _, flows, err := st.s.d.Reader.Flows(st.run.ID); err == nil {
+		m.rng = rangeOf(flows, fv.Flow.ID, m.view.File, m.view.Lines)
+	}
+	if m.target.line >= 1 && m.target.line <= m.view.Lines {
+		m.here = m.target.line
+	} else {
+		m.pastEnd = m.target.focus
+	}
+	return m
+}
+
+templ codeView(st *state, fv api.FlowView) {
+	if m := st.code(fv); m.target == nil {
+		<p class="card text-sm text-muted">No code: this run's manifest has no source location.</p>
+	} else if m.err != nil {
+		<p class="card text-sm text-muted">No code: { m.err.Error() }</p>
+	} else {
+		<div class="card p-0">
+			<div class="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2">
+				<span class="font-mono text-xs">{ m.view.File }</span>
+				@sourceTag(m.view.Source)
+				<span class="ml-auto text-xs text-muted">
+					if m.rng != nil {
+						flow lines { itoa(m.rng.start) }–{ itoa(m.rng.end) }
+					} else {
+						this file does not define the flow
+					}
+					if m.here > 0 {
+						· now at line { itoa(m.here) }
+					}
+				</span>
+			</div>
+			if m.pastEnd {
+				<p class="notice tone-warn m-3">The step's line ({ itoa(m.target.line) }) is past the end of this file ({ itoa(m.view.Lines) } lines).</p>
+			}
+			<div class="code" role="region" aria-label={ m.view.File + " source" } tabindex="0">
+				for _, l := range codeLines(m.view, m.rng, m.here) {
+					<div class={ "code-line", templ.KV("code-in-flow", l.inFlow), templ.KV("code-here", l.here) } if l.here { data-scroll-here={ m.view.File + ":" + itoa(l.n) } }>
+						<span class="code-ln">{ itoa(l.n) }</span>
+						<span class="code-src">{ l.text }</span>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}

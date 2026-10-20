@@ -144,8 +144,13 @@ func (a *api) changed() {
 	}
 }
 
+func (a *api) reader() *Reader { return &Reader{a: a} }
+
 func (a *api) runOf(r *http.Request) (*scheduler.RunView, error) {
-	id := r.PathValue("id")
+	return a.runByID(r.PathValue("id"))
+}
+
+func (a *api) runByID(id string) (*scheduler.RunView, error) {
 	if !store.IsRunID(id) {
 		return nil, badRequest("not a run id: run-<8-digit date>-<6-digit time>-<7-character commit>")
 	}

@@ -1,0 +1,224 @@
+package screen
+
+import (
+	"net/url"
+
+	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+)
+
+templ reportPage(st *state) {
+	@runHead(st)
+	@question("Did it pass, and if not, why", "The verdict and its reasons, what each flow did, and what was not counted as passed.")
+	@reportRegion(st)
+}
+
+templ reportRegion(st *state) {
+	<section id="report" class="space-y-6">
+		if v, err := st.report(); err != nil {
+			<p class="notice tone-bad">The report cannot be read: { err.Error() }</p>
+		} else {
+			switch v.Status {
+				case api.ReportPending:
+					<p class="card">The report is written when the run finishes. Now: { v.PhaseLabel }.</p>
+				case api.ReportRedactionFailed:
+					<div class="card">
+						<p class="notice tone-bad">The redaction rescan discarded the bundle. The files it caught:</p>
+						<ul class="mt-2 font-mono text-xs">
+							for _, f := range v.Files {
+								<li>{ f }</li>
+							}
+						</ul>
+					</div>
+				case api.ReportMetaOnly:
+					@metaOnly(v)
+				default:
+					@bundleReport(st, v, summaryOf(v))
+			}
+		}
+	</section>
+}
+
+templ metaOnly(v api.ReportView) {
+	<div class="card space-y-3">
+		<p>Finished without a bundle. Stopped at the { lifecycle.StageLabel(*v.FailedStage) } stage.</p>
+		if v.Notice != nil && *v.Notice != "" {
+			<p class="text-sm">Reason: { *v.Notice }</p>
+		}
+		<h3 class="text-sm font-semibold">Last lines of the failed stage</h3>
+		if len(v.Tail) > 0 {
+			<pre class="console">{ joinLines(v.Tail) }</pre>
+		} else {
+			<p class="text-sm text-muted">No lines left.</p>
+		}
+	</div>
+}
+
+templ bundleReport(st *state, v api.ReportView, s contract.Summary) {
+	<div class="card space-y-3">
+		<div class="flex flex-wrap items-center gap-2">
+			if v.VerdictLabel != nil {
+				@badge(verdictTone(v.Verdict), "verdict "+*v.VerdictLabel)
+			}
+			@badge(sealTone(s.Seal), "seal "+orElse(string(s.Seal), "-"))
+		</div>
+		if v.Steps != nil {
+			<p class="text-sm">
+				Steps { count(v.Steps.Actual) } of { count(v.Steps.Expected) } · failed { itoa(v.Steps.Failed) } · skipped { itoa(v.Steps.Skipped) } · requests { itoa(v.Steps.Requests) }
+			</p>
+		}
+		if v.StoppedAt != nil {
+			<div>
+				<h3 class="text-sm font-semibold">Stopped at</h3>
+				<p class="text-sm">
+					<a class="link font-mono" href={ templ.SafeURL("/runs/" + st.run.ID + "/report/" + v.StoppedAt.Flow + "?step=" + url.QueryEscape(v.StoppedAt.Step)) }>{ v.StoppedAt.Flow } · { v.StoppedAt.Step }</a>
+				</p>
+				if v.StoppedAt.Message != "" {
+					<pre class="console mt-2">{ v.StoppedAt.Message }</pre>
+				}
+			</div>
+		}
+		if len(s.Reasons) > 0 {
+			<ul class="list-disc pl-5 text-sm">
+				for _, r := range s.Reasons {
+					<li>{ r }</li>
+				}
+			</ul>
+		}
+	</div>
+	<div>
+		<h3 class="mb-2 text-sm font-semibold">Flows</h3>
+		if len(v.Flows) == 0 {
+			<p class="card text-sm text-muted">No flow results.</p>
+		} else {
+			<div class="card overflow-x-auto p-0">
+				<table class="grid-table">
+					<thead>
+						<tr><th>Stage</th><th>Flow</th><th>Status</th><th>Steps passed</th><th>Failed</th><th>Skipped</th><th>Stopped at</th></tr>
+					</thead>
+					<tbody>
+						for _, f := range v.Flows {
+							<tr>
+								<td>{ f.Stage }</td>
+								<td><a class="link font-mono" href={ templ.SafeURL("/runs/" + st.run.ID + "/report/" + f.ID) }>{ f.ID }</a></td>
+								<td>
+									@badge(flowTone(string(f.Status)), statusLabel(string(f.Status)))
+								</td>
+								<td>{ itoa(f.Passed) }/{ itoa(f.Steps) }</td>
+								<td>{ itoa(f.Failed) }</td>
+								<td>{ itoa(f.Skipped) }</td>
+								<td class="font-mono text-xs">{ orElse(f.StoppedAt, "-") }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+		for _, fs := range failedStages(s) {
+			<p class="notice tone-bad mt-2">Collection failed · { fs.name } { fs.detail }</p>
+		}
+	</div>
+	<div class="card">
+		<h3 class="mb-2 text-sm font-semibold">Not counted as passed</h3>
+		if items := notProvenItems(v.NotProven); len(items) > 0 {
+			<ul class="list-disc pl-5 text-sm">
+				for _, item := range items {
+					<li>{ item }</li>
+				}
+			</ul>
+		} else {
+			<p class="text-sm text-muted">Nothing.</p>
+		}
+	</div>
+	<div class="card text-sm">
+		<span class="text-muted">Report bundle</span>
+		<span class="ml-2 font-mono">{ v.ReportDir }</span>
+		<button type="button" class="link ml-2 text-xs" data-copy={ v.ReportDir }>copy</button>
+		<p class="mt-1 text-xs text-muted">The raw files (runner results, signals, sources) are in this directory. The hub does not serve them.</p>
+	</div>
+}
+
+func sealTone(s contract.SealVerdict) Tone {
+	switch s {
+	case contract.SealPassed:
+		return ToneOK
+	case contract.SealFailed, contract.SealError:
+		return ToneBad
+	}
+	return ToneIdle
+}
+
+templ flowPage(st *state) {
+	@runHead(st)
+	@question("What did this flow do, and where did it stop", "Its steps in order. Pick a step to see its line in the suite source.")
+	@flowRegion(st)
+}
+
+templ flowRegion(st *state) {
+	<section id="flow" class="space-y-6">
+		if fv, err := st.flow(); err != nil {
+			<p class="notice tone-bad">The flow cannot be read: { err.Error() }</p>
+		} else {
+			@flowSteps(st, fv)
+			@codeView(st, fv)
+		}
+	</section>
+}
+
+templ flowSteps(st *state, fv api.FlowView) {
+	<div class="card">
+		<div class="mb-3 flex flex-wrap items-center gap-2">
+			<a class="link text-sm" href={ templ.SafeURL("/runs/" + st.run.ID + "/report") }>← All flows</a>
+			<h3 class="font-mono text-sm font-semibold">{ fv.Flow.ID }</h3>
+			@badge(flowTone(string(fv.Flow.Status)), statusLabel(string(fv.Flow.Status)))
+			<span class="text-sm text-muted">{ fv.Flow.Title }</span>
+			<span class="ml-auto">
+				@sourceTag(fv.Source)
+			</span>
+		</div>
+		<p class="mb-3 text-xs text-muted">Stage { fv.Flow.Stage } · requires { requiresText(fv.Flow) } · { onceText(fv.Flow.Once) }</p>
+		if len(fv.Flow.StepList) == 0 {
+			<p class="text-sm text-muted">This report has no step list.</p>
+		}
+		<ol class="divide-y divide-line">
+			for _, s := range fv.Flow.StepList {
+				<li>
+					<a href={ templ.SafeURL(stepHref(st, s.ID)) } class={ "step-row", templ.KV("step-on", s.ID == st.query.Get("step")) }>
+						<span class="flex flex-wrap items-center gap-2">
+							<span class="font-mono text-xs">{ s.ID }</span>
+							<span class="text-sm">{ s.Title }</span>
+							<span class="text-xs text-muted">{ string(s.Kind) }</span>
+							@badge(flowTone(string(s.Status)), statusLabel(string(s.Status)))
+							<span class="text-xs text-muted">{ stepFacts(s) }</span>
+						</span>
+						if s.Message != "" {
+							<span class={ "mt-1 block whitespace-pre-wrap text-xs", templ.KV("text-bad", s.Status == contract.StepStatusFailed) }>{ s.Message }</span>
+						}
+					</a>
+				</li>
+			}
+		</ol>
+	</div>
+}
+
+func onceText(once bool) string {
+	if once {
+		return "runs once per environment"
+	}
+	return "can run again"
+}
+
+func stepHref(st *state, step string) string {
+	base := "/runs/" + st.run.ID + "/report/" + st.values["flow"]
+	if step == st.query.Get("step") {
+		return base
+	}
+	return base + "?step=" + url.QueryEscape(step)
+}
+
+templ sourceTag(source string) {
+	if tone, text := sourceBadge(source); true {
+		@badge(tone, text)
+	}
+}

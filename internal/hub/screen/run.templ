@@ -1,0 +1,198 @@
+package screen
+
+import (
+	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+)
+
+type tabLink struct {
+	id    string
+	label string
+	href  string
+}
+
+func runTabs(st *state) []tabLink {
+	base := "/runs/" + st.run.ID
+	tabs := []tabLink{{TabOverview, "Overview", base}}
+	if served(*st.run, st.list) {
+		tabs = append(tabs,
+			tabLink{TabReport, "Report", base + "/report"},
+			tabLink{TabSignals, "Signals", base + "/signals/trace"},
+			tabLink{TabEnv, "Environment", base + "/env"},
+		)
+	}
+	return append(tabs, tabLink{TabPipeline, "Pipeline", base + "/pipeline"})
+}
+
+func tabClass(on bool) string {
+	if on {
+		return "tab tab-on"
+	}
+	return "tab"
+}
+
+templ runHead(st *state) {
+	<section id="run-head" class="mb-6">
+		<div class="flex flex-wrap items-center gap-3">
+			<span class={ "dot", "tone-" + string(phaseTone(*st.run)) }></span>
+			<h1 class="font-mono text-base font-semibold">{ st.run.ID }</h1>
+			@badge(phaseTone(*st.run), st.run.PhaseLabel)
+			if st.run.VerdictLabel != nil {
+				@badge(verdictTone(st.run.Verdict), "verdict "+*st.run.VerdictLabel)
+			}
+			if st.run.Keep {
+				@badge(ToneInfo, "keep")
+			}
+		</div>
+		<p class="mt-1 text-sm text-muted">{ st.run.Suite } · { short(st.run.SHA) } · submitted by { st.run.Submitter } · { stamp(st.run.CreatedAt) }</p>
+		<nav class="mt-4 flex gap-1 border-b border-line" aria-label="Run screens">
+			for _, t := range runTabs(st) {
+				<a href={ templ.SafeURL(t.href) } class={ tabClass(t.id == st.tab) } if t.id == st.tab { aria-current="page" }>{ t.label }</a>
+			}
+		</nav>
+	</section>
+}
+
+templ question(title, hint string) {
+	<div class="mb-4">
+		<h2 class="text-base font-semibold">{ title }</h2>
+		<p class="text-sm text-muted">{ hint }</p>
+	</div>
+}
+
+templ overviewPage(st *state) {
+	@runHead(st)
+	@question("What state is this run in, and what can I do", "Where the run stands, why, and the actions it allows now.")
+	@overviewRegion(st)
+	<div id="action-result" class="mt-4" aria-live="polite"></div>
+}
+
+templ overviewRegion(st *state) {
+	<section id="run-overview" class="space-y-6">
+		<div class="card">
+			<p class="text-base">{ standing(*st.run) }</p>
+			for _, n := range notices(*st.run, st.list) {
+				<p class="notice tone-warn mt-3">{ n }</p>
+			}
+			@stages(*st.run)
+		</div>
+		@actions(st, st.detail())
+		<div class="card">
+			<dl class="kv">
+				<dt>Commit</dt>
+				<dd class="font-mono">
+					{ st.run.SHA }
+					<button type="button" class="link ml-2 text-xs" data-copy={ st.run.SHA }>copy</button>
+				</dd>
+				<dt>Suite</dt>
+				<dd>{ st.run.Suite }</dd>
+				<dt>Submitted</dt>
+				<dd>{ stamp(st.run.CreatedAt) } by { st.run.Submitter }</dd>
+				if st.run.StartedAt != "" {
+					<dt>Started</dt>
+					<dd>{ stamp(st.run.StartedAt) }</dd>
+				}
+				if st.run.FinishedAt != "" {
+					<dt>Finished</dt>
+					<dd>{ stamp(st.run.FinishedAt) }</dd>
+				}
+				<dt>Host API</dt>
+				<dd>{ itoa(st.run.HostAPI) } · cockpit { st.run.CockpitVersion }</dd>
+			</dl>
+		</div>
+	</section>
+}
+
+templ stages(r api.RunItem) {
+	<ol class="mt-4 flex flex-wrap items-center gap-2 text-xs" aria-label="Pipeline stages">
+		for _, s := range stageSteps(r) {
+			<li class={ "stage", "stage-" + s.state }>{ s.label }</li>
+		}
+	</ol>
+}
+
+templ actions(st *state, d *api.RunDetail) {
+	<div class="card">
+		<h3 class="mb-3 text-sm font-semibold">Actions</h3>
+		<div class="flex flex-wrap gap-2">
+			if st.run.Keep {
+				@actionButton(st, "unkeep", "Release keep", !keepFrozen(*st.run), confirmText("unkeep", *st.run))
+			} else {
+				@actionButton(st, "keep", "Keep", !keepFrozen(*st.run), "")
+			}
+			@actionButton(st, "stop", "Stop", allowed(d, lifecycle.Stop), confirmText("stop", *st.run))
+			@actionButton(st, "resume", "Resume", allowed(d, lifecycle.Resume), "")
+			@actionButton(st, "abort", "Abort", allowed(d, lifecycle.Abort), confirmText("abort", *st.run))
+			@actionButton(st, "destroy", "Destroy", allowed(d, lifecycle.Destroy), confirmText("destroy", *st.run))
+		</div>
+		<p class="mt-2 text-xs text-muted">Actions that lose state ask first. The new state shows here as soon as the hub applies it.</p>
+	</div>
+}
+
+templ actionButton(st *state, op, label string, enabled bool, confirm string) {
+	<form hx-post={ "/runs/" + st.run.ID + "/do/" + op } hx-target="#action-result" hx-swap="innerHTML" if confirm != "" { hx-confirm={ confirm } }>
+		if needsForce(op, *st.run) {
+			<input type="hidden" name="force" value="1"/>
+		}
+		<button type="submit" class={ "btn", templ.KV("btn-danger", op == "destroy") } disabled?={ !enabled }>{ label }</button>
+	</form>
+}
+
+templ opResult(op string, r api.RunItem) {
+	<p class="notice tone-ok">{ doneText(op) } · now { r.PhaseLabel }</p>
+}
+
+templ problemResult(p *api.Problem) {
+	<div class="notice tone-bad">
+		<p>{ p.Code } · { p.Message }</p>
+		if len(p.Candidates) > 0 {
+			<p class="mt-2">Runs to stop first, oldest last up first:</p>
+			<ol class="mt-1 list-decimal pl-5">
+				for _, c := range p.Candidates {
+					<li>
+						<a href={ templ.SafeURL("/runs/" + c.ID) } class="link font-mono">{ c.ID }</a>
+						<span class="text-muted">· last up { stamp(orElse(c.LastUpAt, c.FinishedAt)) }</span>
+						if c.Keep {
+							<span class="text-muted">· keep</span>
+						}
+					</li>
+				}
+			</ol>
+		}
+	</div>
+}
+
+templ pipelinePage(st *state) {
+	@runHead(st)
+	@question("What did each stage print", "The masked output of the pipeline, newest job first in this hub's memory.")
+	@pipelineRegion(st)
+}
+
+templ pipelineRegion(st *state) {
+	<section id="pipeline" class="space-y-4">
+		if jobs := st.jobs(); len(jobs) > 0 {
+			for _, j := range jobs {
+				<div class="card">
+					<div class="mb-2 flex items-center gap-2">
+						<h3 class="text-sm font-semibold">{ j.title }</h3>
+						if j.code == nil {
+							@badge(ToneWarn, "running")
+						} else if *j.code == 0 {
+							@badge(ToneOK, "exit 0")
+						} else {
+							@badge(ToneBad, "exit "+itoa(*j.code))
+						}
+					</div>
+					<div class="console log-box"><div>{ j.text() }</div></div>
+				</div>
+			}
+		} else if tail := st.detail(); tail != nil && len(tail.Tail) > 0 {
+			<div class="card">
+				<p class="mb-2 text-sm text-muted">This hub has no output of this run in memory. The last lines the run kept:</p>
+				<pre class="console">{ joinLines(tail.Tail) }</pre>
+			</div>
+		} else {
+			<p class="card text-sm text-muted">No pipeline output in this hub's memory, and the run kept no lines.</p>
+		}
+	</section>
+}

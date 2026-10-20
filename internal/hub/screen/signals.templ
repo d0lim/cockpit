@@ -1,0 +1,228 @@
+package screen
+
+import (
+	"net/url"
+	"slices"
+
+	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/hub/api"
+)
+
+var viewLabels = map[string]string{"trace": "Trace", "events": "Events", "table": "Table", "logs": "Logs"}
+
+var viewHints = map[string]string{
+	"trace":  "Run, flow, step and exec spans on one timeline.",
+	"events": "What happened, in time order.",
+	"table":  "Attributes compared as columns, one table per name.",
+	"logs":   "Container log lines, one source at a time.",
+}
+
+func (st *state) href(set map[string][]string) string {
+	q := url.Values{}
+	for k, v := range st.query {
+		q[k] = v
+	}
+	for k, v := range set {
+		if len(v) == 0 {
+			q.Del(k)
+		} else {
+			q[k] = v
+		}
+	}
+	if len(q) == 0 {
+		return st.path
+	}
+	return st.path + "?" + q.Encode()
+}
+
+func (st *state) toggle(key, value string) string {
+	cur := st.query[key]
+	if slices.Contains(cur, value) {
+		return st.href(map[string][]string{key: slices.DeleteFunc(slices.Clone(cur), func(v string) bool { return v == value })})
+	}
+	return st.href(map[string][]string{key: append(slices.Clone(cur), value)})
+}
+
+templ signalsPage(st *state) {
+	@runHead(st)
+	@question("What happened inside the environment while the suite ran", viewHints[st.values["view"]])
+	<nav class="mb-4 flex gap-1" aria-label="Signal views">
+		for _, v := range signalViews {
+			<a href={ templ.SafeURL("/runs/" + st.run.ID + "/signals/" + v) } class={ "pill", templ.KV("pill-on", v == st.values["view"]) }>{ viewLabels[v] }</a>
+		}
+	</nav>
+	@collectorsRegion(st)
+	@signalsRegion(st)
+}
+
+templ collectorsRegion(st *state) {
+	<section id="collectors" class="mb-4">
+		if cs := st.s.d.Reader.Collectors(st.run.ID); len(cs) > 0 {
+			<ul class="flex flex-wrap gap-2 text-xs" aria-label="Collector status">
+				for _, c := range cs {
+					<li class="rounded-md border border-line bg-surface px-2 py-1">
+						@badge(collectorTone(c), label(labelTable.Collectors, string(c.State)))
+						<span class="ml-1 font-mono">{ c.ID }</span>
+						<span class="text-muted">· last success { stamp(c.LastOKAt) } · failures { itoa(c.Failures) }</span>
+						if c.Reason != "" {
+							<span class="text-muted">· { c.Reason }</span>
+						}
+					</li>
+				}
+			</ul>
+		}
+	</section>
+}
+
+func collectorTone(c api.CollectorState) Tone {
+	switch c.State {
+	case "armed":
+		return ToneOK
+	case "backoff":
+		return ToneWarn
+	case "report-only":
+		return ToneInfo
+	}
+	return ToneIdle
+}
+
+templ signalsRegion(st *state) {
+	<section id="signals" class="space-y-4">
+		if snap := st.signals(); true {
+			if snap.refused != "" {
+				<p class="notice tone-bad">{ snap.refused }</p>
+			}
+			for _, h := range snap.resyncs {
+				<p class="notice tone-warn">Signals { itoa(int(h.From)) }–{ itoa(int(h.To)) } were dropped before the hub read them; reading continues after them.</p>
+			}
+			if line := droppedLine(snap.dropped); line != "" {
+				<p class="text-xs text-muted">{ line }</p>
+			}
+			switch st.values["view"] {
+				case "trace":
+					@traceView(st, snap, latestRevisions(snap.signals))
+				case "events":
+					@eventsView(st, snap, latestRevisions(snap.signals))
+				case "table":
+					@tableView(st, snap, latestRevisions(snap.signals))
+				default:
+					@logsView(st, snap)
+			}
+		}
+	</section>
+}
+
+templ emptyNotice(st *state, snap signalSnapshot, count int) {
+	if kind := emptyKind(*st.run, st.s.d.Reader.Collectors(st.run.ID), count, len(snap.signals)); kind != "" {
+		<p class="card text-sm text-muted">{ emptySentences[kind] }</p>
+	}
+}
+
+templ eventsView(st *state, snap signalSnapshot, all []contract.Signal) {
+	if rows := eventRows(all); true {
+		@emptyNotice(st, snap, len(rows))
+		if latest := lastN(rows, eventWindow); len(latest) > 0 {
+			<div class="flex flex-wrap gap-2" aria-label="Filters">
+				for _, c := range chipsOf(latest) {
+					<a href={ templ.SafeURL(st.toggle("f", c.String())) } class={ "pill", templ.KV("pill-on", slices.Contains(st.query["f"], c.String())) }>{ c.key }: { c.value }</a>
+				}
+			</div>
+			if shown := filterRows(latest, parseChips(st.query["f"])); true {
+				<div class="flex flex-wrap gap-3 text-xs">
+					for _, g := range groups(shown) {
+						<span>
+							@badge(g.tone, g.status)
+							{ itoa(g.count) }
+						</span>
+					}
+					<span class="text-muted">Filters apply to the latest { itoa(len(latest)) } of { itoa(len(rows)) } events read.</span>
+				</div>
+				<div class={ "grid gap-4", templ.KV("lg:grid-cols-[1fr_24rem]", pickEvent(shown, st.query.Get("event")) != nil) }>
+					<ol class="card divide-y divide-line p-0">
+						for _, s := range shown {
+							if snap.frozen && s.Seq == firstAfter(shown, snap.frozenSeq) {
+								<li class="px-4 py-1 text-xs font-semibold text-muted">After the report was finalized</li>
+							}
+							<li>
+								<a href={ templ.SafeURL(st.href(map[string][]string{"event": {selectionKey(s)}})) } class={ "event-row", templ.KV("event-on", selectionKey(s) == st.query.Get("event")) }>
+									<span class="font-mono text-xs text-muted">{ clock(s.TS) }</span>
+									@badge(toneOfAttr(s.Attrs["tone"]), statusOf(s))
+									<span class="min-w-0 truncate">{ eventTitle(s) }</span>
+									<span class="ml-auto shrink-0 text-xs text-muted">{ s.Collector } { placement(s.Seq, snap) }</span>
+								</a>
+							</li>
+						}
+					</ol>
+					if picked := pickEvent(shown, st.query.Get("event")); picked != nil {
+						@eventDetail(*picked)
+					}
+				</div>
+			}
+		}
+	}
+}
+
+func filterRows(rows []contract.Signal, chips []chip) []contract.Signal {
+	var out []contract.Signal
+	for _, s := range rows {
+		if matches(s, chips) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+func firstAfter(rows []contract.Signal, seq int64) int64 {
+	for _, s := range rows {
+		if s.Seq > seq {
+			return s.Seq
+		}
+	}
+	return -1
+}
+
+func eventTitle(s contract.Signal) string {
+	if l := attrText(s.Attrs["label"]); l != "" {
+		return l
+	}
+	if s.Event != nil && s.Event.Body != "" {
+		return s.Event.Body
+	}
+	return s.Collector
+}
+
+func pickEvent(rows []contract.Signal, key string) *contract.Signal {
+	for i := range rows {
+		if key != "" && selectionKey(rows[i]) == key {
+			return &rows[i]
+		}
+	}
+	return nil
+}
+
+templ eventDetail(s contract.Signal) {
+	<aside class="card space-y-3 text-sm" aria-label="Event detail">
+		<dl class="kv">
+			<dt>seq</dt>
+			<dd>{ itoa(int(s.Seq)) }</dd>
+			<dt>collector</dt>
+			<dd>{ s.Collector }</dd>
+			if s.ID != "" {
+				<dt>id</dt>
+				<dd>{ s.ID } · rev { itoa(s.Rev) }</dd>
+			}
+			<dt>time</dt>
+			<dd>{ s.TS } · { string(s.TSSource) }</dd>
+			for _, k := range sortedKeys(s.Attrs) {
+				<dt>{ k }</dt>
+				<dd class="break-all">{ attrText(s.Attrs[k]) }</dd>
+			}
+		</dl>
+		if body, cut := bodyText(s); body != "" {
+			<pre class="console whitespace-pre-wrap">{ body }</pre>
+			if cut {
+				<p class="text-xs text-muted">The body is cut on screen.</p>
+			}
+		}
+	</aside>
+}

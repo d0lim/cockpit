@@ -29,3 +29,16 @@ export async function copyFrom(target: EventTarget | null): Promise<boolean> {
 document.addEventListener("click", (event) => {
 	void copyFrom(event.target);
 });
+
+let scrolledTo = "";
+
+export function scrollToHere(): void {
+	const here = document.querySelector<HTMLElement>("[data-scroll-here]");
+	const key = here?.dataset.scrollHere ?? "";
+	if (here === null || key === scrolledTo) return;
+	scrolledTo = key;
+	here.scrollIntoView({ block: "center" });
+}
+
+document.addEventListener("DOMContentLoaded", scrollToHere);
+document.addEventListener("htmx:after:settle", scrollToHere);

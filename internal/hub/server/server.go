@@ -126,15 +126,14 @@ func Run(ctx context.Context, o Options) error {
 		built.Signals = streams
 	}
 	runs := newRunsSync(sched, bus, hubs.Hubs, o.Log)
-	sc := screen.New(screen.Deps{
-		Scheduler: sched, Hubs: hubs.Hubs, Bus: bus, Signals: built.Signals, Assets: ui.Files(),
-		Identity: screen.Identity{Home: dir, Port: port}, Log: o.Log,
-	})
-	handler := api.Handler(api.Deps{
+	deps := api.Deps{
 		Port: port, Store: st, Scheduler: sched, Signals: built.Signals, Collectors: built.Collectors,
 		Services: built.Services, Suites: built.Suites, Mask: built.Mask, Hubs: hubs.Hubs, Changed: runs.kick,
-		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll}, Screen: sc.Handler(), Live: sc.Live(), Log: o.Log,
-	})
+		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll}, Log: o.Log,
+	}
+	sc := screen.New(screen.Deps{Reader: api.NewReader(deps), Bus: bus, Assets: ui.Files(), Identity: screen.Identity{Home: dir, Port: port}, Log: o.Log})
+	deps.Screen, deps.Live = sc.Handler(), sc.Live()
+	handler := api.Handler(deps)
 	base, cancelBase := context.WithCancel(context.Background())
 	defer cancelBase()
 	srv := &http.Server{Handler: handler, ReadHeaderTimeout: readHeaderTimeout, BaseContext: func(net.Listener) context.Context { return base }}

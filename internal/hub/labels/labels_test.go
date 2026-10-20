@@ -1,40 +1,11 @@
 package labels
 
 import (
-	"bytes"
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"regexp"
-	"runtime"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 )
-
-func generated(t *testing.T) []byte {
-	t.Helper()
-	_, file, _, _ := runtime.Caller(0)
-	raw, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "..", "..", "web", "shared", "labels.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return raw
-}
-
-func TestLabelsJSONIsTheGeneratedCopyOfTheGoTable(t *testing.T) {
-	want, err := JSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(generated(t), want) {
-		t.Fatal("web/shared/labels.json differs from labels.JSON(); run go generate ./internal/hub/labels")
-	}
-	var back Table
-	if err := json.Unmarshal(generated(t), &back); err != nil || back.Messages[MsgHubUnreachable] != messages[MsgHubUnreachable] {
-		t.Fatalf("labels.json does not decode back: %v", err)
-	}
-}
 
 func TestEveryLifecycleStateStageAndReasonHasALabel(t *testing.T) {
 	table := Load()

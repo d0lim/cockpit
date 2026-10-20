@@ -146,6 +146,112 @@
 	.rail-count {
 		@apply absolute -top-1 -right-1 min-w-4 rounded-full bg-warn px-1 text-[10px] leading-4 text-white;
 	}
+	.tab {
+		@apply -mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg;
+	}
+	.tab-on {
+		@apply border-accent font-medium text-fg;
+	}
+	.pill {
+		@apply rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs text-muted hover:border-accent;
+	}
+	.pill-on {
+		@apply border-accent text-fg;
+		background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+	}
+	.btn {
+		@apply rounded-md border border-line bg-surface px-3 py-1.5 text-sm hover:border-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line;
+	}
+	.btn-danger {
+		@apply border-bad text-bad;
+	}
+	.stage {
+		@apply rounded-full border px-2.5 py-0.5;
+	}
+	.stage-done {
+		@apply border-ok text-ok;
+	}
+	.stage-now {
+		@apply border-warn bg-warn text-white;
+	}
+	.stage-failed {
+		@apply border-bad bg-bad text-white;
+	}
+	.stage-todo {
+		@apply border-line text-muted;
+	}
+	.stage-skip {
+		@apply border-dashed border-line text-muted opacity-60;
+	}
+	.grid-table {
+		@apply w-full text-left text-sm;
+	}
+	.grid-table th {
+		@apply border-b border-line px-3 py-2 text-xs font-medium whitespace-nowrap text-muted;
+	}
+	.grid-table td {
+		@apply border-b border-line px-3 py-2 align-top;
+	}
+	.grid-table tr:last-child td {
+		@apply border-b-0;
+	}
+	.row-on td {
+		background: color-mix(in oklab, var(--accent) 8%, transparent);
+	}
+	.step-row,
+	.event-row {
+		@apply flex flex-col px-4 py-2 hover:bg-bg;
+	}
+	.event-row {
+		@apply flex-row items-center gap-3;
+	}
+	.step-on,
+	.event-on {
+		background: color-mix(in oklab, var(--accent) 10%, transparent);
+	}
+	.span-row {
+		@apply grid grid-cols-[minmax(10rem,18rem)_1fr_auto] items-center gap-3 px-4 py-1.5 hover:bg-bg;
+	}
+	.span-track {
+		@apply h-2 w-full;
+	}
+	.span-bar {
+		fill: var(--tone);
+	}
+	.span-marker {
+		opacity: 0.6;
+	}
+	.depth-1 { padding-left: 1rem; }
+	.depth-2 { padding-left: 2rem; }
+	.depth-3 { padding-left: 3rem; }
+	.depth-4 { padding-left: 4rem; }
+	.depth-5 { padding-left: 5rem; }
+	.depth-6 { padding-left: 6rem; }
+	.depth-7 { padding-left: 7rem; }
+	.depth-8 { padding-left: 8rem; }
+	.code {
+		@apply max-h-[60vh] overflow-auto py-2 font-mono text-xs;
+	}
+	.code-line {
+		@apply grid grid-cols-[3.5rem_1fr] border-l-2 border-transparent;
+	}
+	.code-in-flow {
+		@apply border-accent;
+		background: color-mix(in oklab, var(--accent) 5%, transparent);
+	}
+	.code-here {
+		@apply border-warn;
+		background: color-mix(in oklab, var(--warn) 18%, transparent);
+	}
+	.code-ln {
+		@apply pr-3 text-right text-muted select-none;
+	}
+	.code-src {
+		@apply whitespace-pre;
+	}
+	.log-box {
+		@apply flex max-h-[65vh] flex-col-reverse overflow-y-auto whitespace-pre-wrap;
+	}
 	.htmx-indicator {
 		opacity: 0;
 		visibility: hidden;

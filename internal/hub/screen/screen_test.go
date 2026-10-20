@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -127,7 +128,7 @@ func TestRunsAreGroupedIntoQueueKeptAndEndedAndLinkToTheirDefaultScreen(t *testi
 }
 
 func TestOtherStacksListsForeignAndUnownedProjectsAndLinksOwnedOnesToTheirHub(t *testing.T) {
-	st := &state{list: api.HubList{
+	st := &state{query: url.Values{}, list: api.HubList{
 		Foreign: []string{"toy-shop"},
 		Orphans: []api.OrphanItem{
 			{Orphan: reconcile.Orphan{Project: rid(7), Running: true}},

@@ -1,0 +1,215 @@
+package screen
+
+import (
+	"slices"
+	"sort"
+	"strconv"
+
+	"github.com/d0lim/cockpit/internal/contract"
+)
+
+func sortedKeys(m contract.Attrs) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func pct(f float64) string { return strconv.FormatFloat(f, 'f', 2, 64) }
+
+func depthClass(d int) string { return "depth-" + itoa(min(d, 8)) }
+
+func pickTrace(traces []traceSummary, id string) string {
+	for _, t := range traces {
+		if t.id == id {
+			return id
+		}
+	}
+	if len(traces) > 0 {
+		return traces[0].id
+	}
+	return ""
+}
+
+templ traceView(st *state, snap signalSnapshot, all []contract.Signal) {
+	if traces := traceList(all); true {
+		@emptyNotice(st, snap, len(traces))
+		if len(traces) > 0 {
+			if picked := pickTrace(traces, st.query.Get("trace")); true {
+				<div class="card overflow-x-auto p-0">
+					<table class="grid-table">
+						<thead><tr><th>Root</th><th>Start</th><th>Length</th><th>Status</th><th>Spans</th></tr></thead>
+						<tbody>
+							for _, t := range traces {
+								<tr class={ templ.KV("row-on", t.id == picked) }>
+									<td>
+										<a class="link" href={ templ.SafeURL(st.href(map[string][]string{"trace": {t.id}, "span": nil})) }>{ t.root }</a>
+										if t.exec {
+											<span class="text-xs text-muted">exec</span>
+										}
+									</td>
+									<td>{ stamp(t.start) }</td>
+									<td>{ durationText(t.duration) }</td>
+									<td>
+										@badge(spanTone(t.status), string(t.status))
+									</td>
+									<td>{ itoa(t.spans) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				@spanList(st, snap, picked, all)
+			}
+		}
+	}
+}
+
+templ spanList(st *state, snap signalSnapshot, trace string, all []contract.Signal) {
+	if byTrace, _ := spansByTrace(all); true {
+		if rows := spanRows(byTrace[trace]); true {
+			<div class={ "grid gap-4", templ.KV("lg:grid-cols-[1fr_22rem]", pickSpan(rows, st.query.Get("span")) != nil) }>
+				<ol class="card divide-y divide-line p-0" aria-label={ "spans of " + trace }>
+					for _, r := range rows {
+						<li>
+							<a href={ templ.SafeURL(st.href(map[string][]string{"trace": {trace}, "span": {r.id}})) } class={ "span-row", templ.KV("event-on", r.id == st.query.Get("span")) }>
+								<span class={ "truncate text-sm", depthClass(r.depth) }>{ r.s.Span.Name }</span>
+								<svg class="span-track" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
+									<rect x={ pct(r.offset) } y="0" width={ pct(r.width) } height="6" class={ "span-bar", "tone-" + string(spanTone(r.s.Span.Status)), templ.KV("span-marker", r.marker) }></rect>
+								</svg>
+								<span class="text-xs text-muted">
+									{ durationText(r.duration) } · { string(r.s.Span.Status) }
+									if r.sourceMark != "" {
+										· time { r.sourceMark }
+									}
+									if p := placement(r.s.Seq, snap); p != "" {
+										· { p }
+									}
+								</span>
+							</a>
+						</li>
+					}
+				</ol>
+				if r := pickSpan(rows, st.query.Get("span")); r != nil {
+					<aside class="card text-sm" aria-label="Span detail">
+						<dl class="kv">
+							<dt>span</dt>
+							<dd class="break-all">{ r.id }</dd>
+							<dt>start</dt>
+							<dd>{ r.s.Span.Start }</dd>
+							<dt>end</dt>
+							<dd>{ orElse(r.s.Span.End, "not ended") }</dd>
+							<dt>status</dt>
+							<dd>{ string(r.s.Span.Status) }</dd>
+							<dt>time source</dt>
+							<dd>{ string(r.s.TSSource) }</dd>
+						</dl>
+						for _, l := range r.s.Span.Links {
+							<a class="link mt-2 block text-xs" href={ templ.SafeURL(st.href(map[string][]string{"trace": {l.TraceID}, "span": nil})) }>Follow the link to { l.TraceID }</a>
+						}
+					</aside>
+				}
+			</div>
+		}
+	}
+}
+
+func pickSpan(rows []spanRow, id string) *spanRow {
+	for i := range rows {
+		if id != "" && rows[i].id == id {
+			return &rows[i]
+		}
+	}
+	return nil
+}
+
+templ tableView(st *state, snap signalSnapshot, all []contract.Signal) {
+	if list := tables(all); true {
+		@emptyNotice(st, snap, len(list))
+		for _, t := range list {
+			<section class="space-y-2" aria-label={ "table " + t.name }>
+				<h3 class="text-sm font-semibold">{ t.name } <span class="font-normal text-muted">latest { itoa(len(t.rows)) } of { itoa(t.total) } rows</span></h3>
+				<div class="flex flex-wrap gap-1">
+					for _, c := range t.columns {
+						<a href={ templ.SafeURL(st.toggle("hide", t.name+"."+c)) } class={ "pill", templ.KV("pill-on", !slices.Contains(st.query["hide"], t.name+"."+c)) }>{ c }</a>
+					}
+				</div>
+				<div class="card overflow-x-auto p-0">
+					<table class="grid-table">
+						<thead>
+							<tr>
+								<th>time</th>
+								for _, c := range visible(st, t) {
+									<th>{ c }</th>
+								}
+								<th>bundle</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, s := range t.rows {
+								<tr>
+									<td class="font-mono text-xs">{ clock(s.TS) }</td>
+									for _, c := range visible(st, t) {
+										<td>{ cellOf(s, c) }</td>
+									}
+									<td class="text-xs text-muted">{ placement(s.Seq, snap) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		}
+	}
+}
+
+func visible(st *state, t signalTable) []string {
+	var out []string
+	for _, c := range t.columns {
+		if !slices.Contains(st.query["hide"], t.name+"."+c) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+func pickSource(sources []logSource, name string) *logSource {
+	for i := range sources {
+		if sources[i].name == name {
+			return &sources[i]
+		}
+	}
+	if len(sources) > 0 {
+		return &sources[0]
+	}
+	return nil
+}
+
+templ logsView(st *state, snap signalSnapshot) {
+	if sources := logSources(snap.signals); true {
+		@emptyNotice(st, snap, len(sources))
+		if src := pickSource(sources, st.query.Get("source")); src != nil {
+			<div class="flex flex-wrap gap-1" aria-label="Log sources">
+				for _, s := range sources {
+					<a href={ templ.SafeURL(st.href(map[string][]string{"source": {s.name}})) } class={ "pill", templ.KV("pill-on", s.name == src.name) }>{ s.name } · { itoa(len(s.lines)) }</a>
+				}
+			</div>
+			<div class="console log-box">
+				<div>
+					for _, l := range lastN(src.lines, logWindow) {
+						<div><span class="text-muted">{ clock(l.TS) }</span> { logBody(l) }</div>
+					}
+				</div>
+			</div>
+		}
+	}
+}
+
+func logBody(s contract.Signal) string {
+	if s.Event == nil {
+		return ""
+	}
+	return s.Event.Body
+}

@@ -1,13 +1,11 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"path/filepath"
 
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
-	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/report"
 )
 
@@ -37,34 +35,6 @@ type ExecView struct {
 	Flows     []ExecFlow `json:"flows"`
 	Lines     []string   `json:"lines"`
 	Reason    string     `json:"reason,omitempty"`
-}
-
-func (a *api) exec(w http.ResponseWriter, id string, body map[string]any, actor scheduler.Actor) error {
-	flow, ok := body["flow"].(string)
-	if !ok || flow == "" {
-		return badRequest("flow is a flow id string")
-	}
-	res := a.d.Scheduler.Exec(id, flow, actor)
-	a.changed()
-	if res.Fail != nil {
-		return fromFailure(res.Fail)
-	}
-	raw, err := json.Marshal(res.Result)
-	if err != nil {
-		return err
-	}
-	var view ExecView
-	if err := json.Unmarshal(raw, &view); err != nil {
-		return err
-	}
-	if view.Flows == nil {
-		view.Flows = []ExecFlow{}
-	}
-	if view.Lines == nil {
-		view.Lines = []string{}
-	}
-	writeJSON(a.log(), w, http.StatusOK, view)
-	return nil
 }
 
 type KitFiles struct {
@@ -101,25 +71,9 @@ func repeatableFlows(runDir string) []string {
 }
 
 func (a *api) kit(w http.ResponseWriter, r *http.Request) error {
-	v, err := a.runOf(r)
+	view, err := a.reader().Kit(r.PathValue("id"))
 	if err != nil {
 		return err
-	}
-	dir, err := a.runDir(v.ID)
-	if err != nil {
-		return err
-	}
-	view := KitView{ID: v.ID, Env: v.Env, Services: []ServicePort{}, ReportDir: filepath.Join(dir, report.DirReport)}
-	if holdsPorts(v.Meta) {
-		if a.d.Services != nil {
-			view.Services = a.d.Services(v.Meta)
-		}
-		if _, f := report.ReadConfined(dir, KitReadme); f == report.ReadOK {
-			view.Kit = &KitFiles{Dir: filepath.Join(dir, KitDir), Readme: filepath.Join(dir, KitReadme)}
-		}
-		if execAccepts(v.Meta) {
-			view.Exec = &KitExec{Command: ExecCommand + v.ID + " -- <flow id>", Flows: repeatableFlows(dir)}
-		}
 	}
 	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil

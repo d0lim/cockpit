@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
-	"github.com/d0lim/cockpit/internal/hub/ticker"
 )
 
 const (
@@ -73,11 +72,11 @@ func text(body map[string]any, key string, required bool) (string, error) {
 }
 
 func (a *api) list(w http.ResponseWriter, _ *http.Request) error {
-	l, err := a.d.Scheduler.List()
+	l, err := a.reader().List()
 	if err != nil {
 		return err
 	}
-	writeJSON(a.log(), w, http.StatusOK, PublicList(l, a.hubs()))
+	writeJSON(a.log(), w, http.StatusOK, l)
 	return nil
 }
 
@@ -119,15 +118,11 @@ func (a *api) submit(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (a *api) get(w http.ResponseWriter, r *http.Request) error {
-	v, err := a.runOf(r)
+	d, err := a.reader().Run(r.PathValue("id"))
 	if err != nil {
 		return err
 	}
-	var services []ServicePort
-	if a.d.Services != nil && holdsPorts(v.Meta) {
-		services = a.d.Services(v.Meta)
-	}
-	writeJSON(a.log(), w, http.StatusOK, Detail(*v, a.d.Scheduler.AllowedEvents(v.Meta), services))
+	writeJSON(a.log(), w, http.StatusOK, d)
 	return nil
 }
 
@@ -149,34 +144,30 @@ func (a *api) operate(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	if op == OpExec {
-		return a.exec(w, v.ID, body, actor)
+		flow, ok := body["flow"].(string)
+		if !ok || flow == "" {
+			return badRequest("flow is a flow id string")
+		}
+		view, err := a.reader().Exec(v.ID, flow, actor)
+		if err != nil {
+			return err
+		}
+		writeJSON(a.log(), w, http.StatusOK, view)
+		return nil
 	}
-	s := a.d.Scheduler
-	ops := map[string]func(string, scheduler.Actor) ticker.Result{
-		"keep": s.Keep, "unkeep": s.Unkeep, "stop": s.Stop, "resume": s.Resume, "destroy": s.Destroy, "abort": s.Abort,
+	reply, status, err := a.reader().Operate(v.ID, op, actor)
+	if err != nil {
+		return err
 	}
-	res := ops[op](v.ID, actor)
-	a.changed()
-	if res.Fail != nil {
-		return fromFailure(res.Fail)
-	}
-	status := http.StatusOK
-	if op == "abort" {
-		status = http.StatusAccepted
-	}
-	writeJSON(a.log(), w, status, OpReply{Run: MetaItem(res.Run)})
+	writeJSON(a.log(), w, status, reply)
 	return nil
 }
 
 func (a *api) report(w http.ResponseWriter, r *http.Request) error {
-	v, err := a.runOf(r)
+	view, err := a.reader().Report(r.PathValue("id"))
 	if err != nil {
 		return err
 	}
-	dir, err := a.runDir(v.ID)
-	if err != nil {
-		return err
-	}
-	writeJSON(a.log(), w, http.StatusOK, reportView(dir, v.Meta))
+	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil
 }

@@ -1,9 +1,6 @@
 package labels
 
-//go:generate go run ./gen -out ../../../web/shared/labels.json
-
 import (
-	"encoding/json"
 	"maps"
 	"strings"
 
@@ -154,11 +151,6 @@ func Load() Table {
 		FlowStatus: maps.Clone(flowStatus),
 		Messages:   maps.Clone(messages),
 	}
-}
-
-func JSON() ([]byte, error) {
-	data, err := json.MarshalIndent(Load(), "", "  ")
-	return append(data, '\n'), err
 }
 
 func Verdict(v lifecycle.Verdict) *string {

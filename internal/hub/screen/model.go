@@ -145,6 +145,14 @@ func stamp(iso string) string {
 	return t.Local().Format("01-02 15:04")
 }
 
+func clock(iso string) string {
+	t, err := time.Parse(time.RFC3339Nano, iso)
+	if err != nil {
+		return ""
+	}
+	return t.Local().Format("15:04:05")
+}
+
 func label(table map[string]string, key string) string {
 	if v, ok := table[key]; ok {
 		return v

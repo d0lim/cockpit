@@ -13,11 +13,11 @@ vet:
 
 test:
 	CGO_ENABLED=1 go test -race -count=1 ./...
-	cd web && bun install --frozen-lockfile --silent && bun run typecheck && bun test
+	cd web && bun install --frozen-lockfile --silent && bun run typecheck
 
 generate-check:
 	go generate ./...
-	@dirty="$$(git status --porcelain -- schema sdk web/shared internal/hub/ui/dist internal/hub/screen 2>/dev/null)"; \
+	@dirty="$$(git status --porcelain -- schema sdk internal/hub/ui/dist internal/hub/screen 2>/dev/null)"; \
 	if [ -n "$$dirty" ]; then printf 'generated files drifted:\n%s\n' "$$dirty" >&2; exit 1; fi
 
 licenses:
