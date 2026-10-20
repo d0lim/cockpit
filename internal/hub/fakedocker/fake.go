@@ -64,6 +64,7 @@ type Fake struct {
 	StoppedAt       *contract.StopPoint
 	Incomplete      bool
 	OnRunner        func(runDir string)
+	OnVerb          func(verb string)
 	ContainerSecret string
 	RunnerDelay     time.Duration
 }
@@ -132,6 +133,9 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 	f.calls = append(f.calls, Call{Args: slices.Clone(cmd.Args), Env: slices.Clone(cmd.Env)})
 	f.mu.Unlock()
 	verb := Verb(cmd.Args)
+	if f.OnVerb != nil {
+		f.OnVerb(verb)
+	}
 	if f.FailVerb[verb] {
 		return compose.Result{Code: 1, Stderr: []byte(verb + " failed on purpose" + f.FailStderr)}, nil
 	}

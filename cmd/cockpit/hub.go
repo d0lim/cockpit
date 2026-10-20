@@ -19,6 +19,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/sse"
 	"github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/hub/store"
+	sqlport "github.com/d0lim/cockpit/internal/ports/sql"
 	"github.com/d0lim/cockpit/internal/runnerbin"
 )
 
@@ -70,6 +71,10 @@ func hub(ctx context.Context, args []string, getenv func(string) string, stderr 
 		return 2
 	}
 	log := slog.New(slog.NewTextHandler(stderr, nil))
+	if err := sqlport.RouteDriverLog(log); err != nil {
+		fmt.Fprintln(stderr, "cockpit hub: "+err.Error())
+		return 1
+	}
 	err := server.Run(ctx, server.Options{Getenv: getenv, Build: pipelineBuilder(getenv), Log: log})
 	if err != nil {
 		fmt.Fprintln(stderr, "cockpit hub: "+err.Error())

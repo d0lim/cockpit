@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ type Options struct {
 	MaxRows   int
 	MaxBytes  int
 	Timeout   time.Duration
+	Log       *slog.Logger
 }
 
 type Request struct {
@@ -85,11 +87,12 @@ type Port struct {
 
 func New(opts Options) (*Port, error) {
 	clearPGEnv()
+	log := newDriverLog(opts.Log, opts.Mask)
 	return build(opts, func(d contract.Database, t Target, l limits) backend {
 		if d.Driver == contract.DriverPostgres {
 			return pgBackend{decl: d, target: t, max: l}
 		}
-		return mysqlBackend{decl: d, target: t, max: l}
+		return mysqlBackend{decl: d, target: t, max: l, log: log}
 	})
 }
 

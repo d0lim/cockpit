@@ -118,7 +118,7 @@ func (o *Ops) runConfig(id string, r *Run, c *collected, stream *signal.Stream, 
 		if err != nil {
 			return collect.RunConfig{}, nil, err
 		}
-		sql, err := sqlport.New(sqlport.Options{Databases: r.Decl.Databases, Targets: targets, Secret: secretLookup(r), Mask: m})
+		sql, err := sqlport.New(sqlport.Options{Databases: r.Decl.Databases, Targets: targets, Secret: secretLookup(r), Mask: m, Log: o.log().With("run", id)})
 		if err != nil {
 			return collect.RunConfig{}, nil, err
 		}

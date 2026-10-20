@@ -1,6 +1,7 @@
 package sqlport
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -24,6 +25,7 @@ type mysqlBackend struct {
 	decl   contract.Database
 	target Target
 	max    limits
+	log    mysql.Logger
 }
 
 func (b mysqlBackend) config(user, password string) *mysql.Config {
@@ -37,6 +39,7 @@ func (b mysqlBackend) config(user, password string) *mysql.Config {
 	cfg.Loc = time.UTC
 	cfg.AllowAllFiles = false
 	cfg.MultiStatements = false
+	cfg.Logger = cmp.Or(b.log, cfg.Logger)
 	return cfg
 }
 

@@ -92,6 +92,9 @@ func (o *Ops) Transition(t store.Transition) {
 	if err := collect.Fire(ctx, o.Collect, id, hook); err != nil {
 		o.log().Warn("collector hook did not finish cleanly", "run", id, "action", hook.Action, "cause", hook.Cause, "err", o.Mask(id, err.Error()))
 	}
+	if hook.Action == lifecycle.HookDrain && hook.Cause != lifecycle.CauseReporting {
+		o.release(id)
+	}
 	if ends(t.After) {
 		o.forget(id)
 	}
@@ -107,14 +110,23 @@ func (o *Ops) forget(id string) {
 	if !ok {
 		return
 	}
-	c := v.(*collected)
+	v.(*collected).close()
+	if o.Streams != nil {
+		o.Streams.Close(id)
+	}
+}
+
+func (o *Ops) release(id string) {
+	if v, ok := o.runs.Load(id); ok {
+		v.(*collected).close()
+	}
+}
+
+func (c *collected) close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, close := range c.closers {
 		close()
-	}
-	if o.Streams != nil {
-		o.Streams.Close(id)
 	}
 }
 
