@@ -13,24 +13,24 @@ var (
 	jsRemoteRef = regexp.MustCompile(`(?:import\(|from\s*|fetch\(|EventSource\(|WebSocket\(|importScripts\(|Worker\()\s*['"\x60](?:https?:|wss?:|//)`)
 )
 
-func TestEmbeddedScreenServesIndexAndEveryAssetItReferences(t *testing.T) {
-	files := Files()
-	index, err := fs.ReadFile(files, "index.html")
+func TestTheEmbeddedAssetsAreTheStylesheetTheScriptAndTheTwoHtmxFiles(t *testing.T) {
+	var names []string
+	err := fs.WalkDir(Files(), ".", func(path string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			names = append(names, path)
+		}
+		return err
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	refs := htmlRef.FindAllStringSubmatch(string(index), -1)
-	if len(refs) < 2 {
-		t.Fatalf("index.html references %d assets", len(refs))
+	want := []string{"app.css", "app.js", "htmx.min.js", "hx-ws.min.js"}
+	if strings.Join(names, ",") != strings.Join(want, ",") {
+		t.Fatalf("embedded %v, want %v", names, want)
 	}
-	for _, m := range refs {
-		ref := m[1]
-		if !strings.HasPrefix(ref, "./") {
-			t.Fatalf("index.html references %q, which is not a relative asset", ref)
-		}
-		if _, err := fs.Stat(files, strings.TrimPrefix(ref, "./")); err != nil {
-			t.Fatalf("index.html references %q, which is not embedded: %v", ref, err)
-		}
+	app, _ := fs.ReadFile(Files(), "app.js")
+	if strings.Contains(string(app), "export{") || strings.Contains(string(app), "export {") {
+		t.Fatal("app.js is a module, but the page loads it as a classic script")
 	}
 }
 
@@ -75,33 +75,5 @@ func TestBuildOutputLoadsNothingFromAnExternalURL(t *testing.T) {
 		if !hit {
 			t.Fatalf("the check does not catch %q", planted)
 		}
-	}
-}
-
-func TestTheSharedWorkerTheScreenStartsIsEmbeddedAndTheScreenNamesIt(t *testing.T) {
-	files := Files()
-	worker, err := fs.ReadFile(files, "live/worker.js")
-	if err != nil || !strings.Contains(string(worker), "onconnect") {
-		t.Fatalf("live/worker.js is missing or does not accept connections: %v", err)
-	}
-	named := 0
-	entries, err := fs.Glob(files, "index-*.js")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, path := range entries {
-		raw, err := fs.ReadFile(files, path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if strings.Contains(string(raw), `"/live/worker.js"`) {
-			named++
-		}
-	}
-	if len(entries) != 1 || named != 1 {
-		t.Fatalf("%d screen bundles, %d name the worker", len(entries), named)
-	}
-	if !jsRemoteRef.MatchString(`new SharedWorker("https://cdn.example/w.js")`) {
-		t.Fatal("the external URL check does not cover workers")
 	}
 }

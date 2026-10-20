@@ -53,6 +53,8 @@ func commentsIn(root string) ([]comment, int, error) {
 			cs, err = goComments(path)
 		case slashCommentExts[ext]:
 			cs, err = lineComments(path, []string{"//", "/*", "{/*"}, false)
+		case ext == ".templ":
+			cs, err = lineComments(path, []string{"//", "/*", "<!--"}, false)
 		case hashCommentExts[ext] || d.Name() == "Makefile":
 			cs, err = lineComments(path, []string{"#"}, true)
 		default:
@@ -228,5 +230,29 @@ func TestDocCommentsInAnSdkDirectoryBelowTheRootAreReported(t *testing.T) {
 	cs, scanned, err := commentsIn(root)
 	if err != nil || scanned != 1 || len(cs) != 1 || cs[0].line != 1 {
 		t.Fatalf("scanned %d, comments %v, err %v", scanned, cs, err)
+	}
+}
+
+func TestTemplLineBlockAndHtmlCommentsAreReported(t *testing.T) {
+	cases := map[string]int{
+		"package p\n\n// planted\ntempl A() {\n\t<p>a</p>\n}\n":         3,
+		"package p\n\ntempl A() {\n\t<!-- planted -->\n\t<p>a</p>\n}\n": 4,
+		"package p\n\ntempl A() {\n\t/* planted */\n\t<p>a</p>\n}\n":    4,
+		"package p\n\ntempl A() {\n\t<a href=\"http://x\">a</a>\n}\n":   0,
+	}
+	ran := 0
+	for content, want := range cases {
+		cs, scanned, err := commentsIn(plant(t, "internal/p/a.templ", content))
+		got := 0
+		if len(cs) == 1 {
+			got = cs[0].line
+		}
+		if err != nil || scanned != 1 || len(cs) > 1 || got != want {
+			t.Errorf("%q: scanned %d, comments %v, err %v", content, scanned, cs, err)
+		}
+		ran++
+	}
+	if ran != 4 {
+		t.Fatalf("ran %d cases", ran)
 	}
 }

@@ -1,0 +1,121 @@
+package screen
+
+import "github.com/d0lim/cockpit/internal/hub/api"
+
+func hubName(l api.HubList, id string) string {
+	for _, h := range l.Hubs {
+		if h.ID == id {
+			return h.Name
+		}
+	}
+	return id
+}
+
+func hubLink(l api.HubList, id string) string {
+	for _, h := range l.Hubs {
+		if h.ID == id && h.Up {
+			return h.URL + "/"
+		}
+	}
+	return "/hub#hubs"
+}
+
+func unowned(l api.HubList) []api.OrphanItem {
+	var out []api.OrphanItem
+	for _, o := range l.Orphans {
+		if o.Hub == "" {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+func owned(l api.HubList) []api.OrphanItem {
+	var out []api.OrphanItem
+	for _, o := range l.Orphans {
+		if o.Hub != "" {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+templ stacksPage(st *state) {
+	<div class="mb-6">
+		<h1 class="text-lg font-semibold">What else uses this host</h1>
+		<p class="text-sm text-muted">Compose projects that no hub on this host runs. They count toward the running cap. Nothing here is touched by a hub; remove them by hand.</p>
+	</div>
+	@stacksRegion(st)
+}
+
+templ stacksRegion(st *state) {
+	<section id="stacks" class="space-y-8">
+		<div>
+			<h2 class="text-sm font-semibold">Without the cockpit label</h2>
+			<p class="mb-2 text-xs text-muted">Running stacks that another tool or a person started.</p>
+			if len(st.list.Foreign) == 0 {
+				<p class="card text-sm text-muted">None running.</p>
+			} else {
+				<ul class="card divide-y divide-line p-0">
+					for _, name := range st.list.Foreign {
+						@stackRow(name, ToneWarn, "up", "docker compose -p "+name+" down")
+					}
+				</ul>
+			}
+		</div>
+		<div>
+			<h2 class="text-sm font-semibold">Cockpit runs without a hub</h2>
+			<p class="mb-2 text-xs text-muted">Labelled projects that no registered hub has a record of.</p>
+			if len(unowned(st.list)) == 0 {
+				<p class="card text-sm text-muted">None.</p>
+			} else {
+				<ul class="card divide-y divide-line p-0">
+					for _, o := range unowned(st.list) {
+						@stackRow(o.Project, orphanTone(o), orphanState(o), "docker compose -p "+o.Project+" down -v --remove-orphans")
+					}
+				</ul>
+			}
+		</div>
+		if len(owned(st.list)) > 0 {
+			<div>
+				<h2 class="text-sm font-semibold">Runs of other hubs</h2>
+				<p class="mb-2 text-xs text-muted">Open their hub to act on them.</p>
+				<ul class="card divide-y divide-line p-0">
+					for _, o := range owned(st.list) {
+						<li class="flex items-center gap-3 px-4 py-3">
+							<span class="font-mono text-xs">{ o.Project }</span>
+							<span class="ml-auto flex items-center gap-2">
+								<a href={ templ.SafeURL(hubLink(st.list, o.Hub)) } hx-boost="false" class="link text-sm">{ hubName(st.list, o.Hub) }</a>
+								@badge(orphanTone(o), orphanState(o))
+							</span>
+						</li>
+					}
+				</ul>
+			</div>
+		}
+	</section>
+}
+
+func orphanTone(o api.OrphanItem) Tone {
+	if o.Running {
+		return ToneWarn
+	}
+	return ToneIdle
+}
+
+func orphanState(o api.OrphanItem) string {
+	if o.Running {
+		return "up"
+	}
+	return "stopped"
+}
+
+templ stackRow(name string, tone Tone, state, command string) {
+	<li class="flex items-center gap-3 px-4 py-3">
+		<span class="font-mono text-xs">{ name }</span>
+		<span class="ml-auto flex items-center gap-2">
+			<button type="button" class="link text-xs" data-copy={ command }>copy the removal command</button>
+			@badge(tone, state)
+		</span>
+	</li>
+}

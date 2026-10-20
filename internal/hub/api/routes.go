@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"io/fs"
 	"log/slog"
 	"net/http"
 
@@ -54,7 +53,7 @@ type Deps struct {
 	Mask       func(runID string) *mask.Masker
 	Hubs       func() []registry.Hub
 	Changed    func()
-	Screen     fs.FS
+	Screen     http.Handler
 	Live       http.Handler
 	Log        *slog.Logger
 }

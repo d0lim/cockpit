@@ -16,6 +16,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/lock"
 	"github.com/d0lim/cockpit/internal/hub/registry"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
+	"github.com/d0lim/cockpit/internal/hub/screen"
 	"github.com/d0lim/cockpit/internal/hub/sse"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/hub/ui"
@@ -125,10 +126,14 @@ func Run(ctx context.Context, o Options) error {
 		built.Signals = streams
 	}
 	runs := newRunsSync(sched, bus, hubs.Hubs, o.Log)
+	sc := screen.New(screen.Deps{
+		Scheduler: sched, Hubs: hubs.Hubs, Bus: bus, Signals: built.Signals, Assets: ui.Files(),
+		Identity: screen.Identity{Home: dir, Port: port}, Log: o.Log,
+	})
 	handler := api.Handler(api.Deps{
 		Port: port, Store: st, Scheduler: sched, Signals: built.Signals, Collectors: built.Collectors,
 		Services: built.Services, Suites: built.Suites, Mask: built.Mask, Hubs: hubs.Hubs, Changed: runs.kick,
-		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll}, Screen: ui.Files(), Log: o.Log,
+		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll}, Screen: sc.Handler(), Live: sc.Live(), Log: o.Log,
 	})
 	base, cancelBase := context.WithCancel(context.Background())
 	defer cancelBase()

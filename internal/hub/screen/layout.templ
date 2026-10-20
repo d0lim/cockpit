@@ -1,0 +1,172 @@
+package screen
+
+import (
+	"net/url"
+	"strconv"
+	"strings"
+	"unicode"
+
+	"github.com/d0lim/cockpit/internal/hub/api"
+)
+
+const cockpitHeaders = `{"X-Cockpit":"1"}`
+
+const htmxConfig = `{"includeIndicatorCSS":false,"defaultSwap":"innerHTML"}`
+
+templ layout(st *state, title string, body templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en" data-live="connecting">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="htmx-config" content={ htmxConfig }/>
+			<title>{ title } · { st.self().Name } · cockpit</title>
+			<link rel="stylesheet" href="/assets/app.css"/>
+			<script src="/assets/htmx.min.js"></script>
+			<script src="/assets/hx-ws.min.js"></script>
+			<script src="/assets/app.js"></script>
+		</head>
+		<body hx-boost:inherited="true" hx-headers:inherited={ cockpitHeaders } class="bg-bg text-fg antialiased">
+			<div hx-ws:connect={ "/live?screen=" + url.QueryEscape(st.path) } hx-swap="none" class="hidden"></div>
+			<div class="flex min-h-screen">
+				@rail(st)
+				<div class="flex min-w-0 flex-1 flex-col">
+					<header class="flex h-12 items-center gap-3 border-b border-line bg-surface px-6">
+						<a href="/" class="font-semibold text-fg">{ st.self().Name }</a>
+						<span class="text-muted">/</span>
+						<span class="text-fg">{ title }</span>
+						<span class="ml-auto flex items-center gap-2 text-xs text-muted">
+							<span class="live-dot size-2 rounded-full"></span>
+							<span class="live-text"></span>
+						</span>
+					</header>
+					<main class="mx-auto w-full max-w-6xl flex-1 px-6 py-6">
+						@body
+					</main>
+				</div>
+			</div>
+		</body>
+	</html>
+}
+
+templ partial(id string, c templ.Component) {
+	<hx-partial hx-target={ "#" + id } hx-swap="outerMorph">
+		@c
+	</hx-partial>
+}
+
+func initials(name string) string {
+	var words [][]rune
+	var cur []rune
+	flush := func() {
+		if len(cur) > 0 {
+			words = append(words, cur)
+			cur = nil
+		}
+	}
+	runes := []rune(strings.TrimSpace(name))
+	for i, r := range runes {
+		switch {
+		case !unicode.IsLetter(r) && !unicode.IsDigit(r):
+			flush()
+			continue
+		case i > 0 && unicode.IsUpper(r) && unicode.IsLower(runes[i-1]), i > 0 && unicode.IsDigit(r) != unicode.IsDigit(runes[i-1]):
+			flush()
+		}
+		cur = append(cur, r)
+	}
+	flush()
+	switch {
+	case len(words) == 0:
+		return "?"
+	case len(words) == 1 && len(words[0]) > 1:
+		return strings.ToUpper(string(words[0][:2]))
+	case len(words) == 1:
+		return strings.ToUpper(string(words[0]))
+	}
+	return strings.ToUpper(string(words[0][0]) + string(words[len(words)-1][0]))
+}
+
+func stackCount(l api.HubList) int {
+	n := len(l.Foreign)
+	for _, o := range l.Orphans {
+		if o.Hub == "" {
+			n++
+		}
+	}
+	return n
+}
+
+func hubTitle(h api.HubItem) string {
+	if h.Up {
+		return h.Name + " · running at " + h.URL
+	}
+	return h.Name + " · not running · " + h.Home
+}
+
+func railClass(active bool) string {
+	if active {
+		return "rail-item rail-active"
+	}
+	return "rail-item"
+}
+
+templ rail(st *state) {
+	<nav id="rail" aria-label="Workspaces" class="flex w-18 shrink-0 flex-col items-center gap-3 border-r border-line bg-rail py-3">
+		for _, h := range st.list.Hubs {
+			if h.Self {
+				@railEntry("/", hubTitle(h), h.Name, railClass(st.path != "/stacks" && st.path != "/hub"), false) {
+					{ initials(h.Name) }
+					if st.list.DockerDown || st.list.TickError != nil {
+						<span class="rail-alert" aria-label="needs attention"></span>
+					}
+				}
+			} else if h.Up {
+				@railEntry(h.URL+"/", hubTitle(h), h.Name, "rail-item", true) {
+					{ initials(h.Name) }
+				}
+			} else {
+				@railEntry("/hub#hubs", hubTitle(h), h.Name, "rail-item rail-down", false) {
+					{ initials(h.Name) }
+				}
+			}
+		}
+		if len(st.list.Hubs) == 0 {
+			@railEntry("/", "this hub", st.self().Name, railClass(st.path != "/stacks" && st.path != "/hub"), false) {
+				{ initials(st.self().Name) }
+			}
+		}
+		<div class="mt-auto flex flex-col items-center gap-3">
+			@railEntry("/stacks", "Compose projects no hub runs", "Stacks", railClass(st.path == "/stacks"), false) {
+				<span aria-hidden="true">≡</span>
+				if n := stackCount(st.list); n > 0 {
+					<span class="rail-count">{ strconv.Itoa(n) }</span>
+				}
+			}
+			@railEntry("/hub", "This hub's identity and the hubs on this host", "Hub", railClass(st.path == "/hub"), false) {
+				<span aria-hidden="true">i</span>
+			}
+		</div>
+	</nav>
+}
+
+templ railEntry(href, title, name, class string, external bool) {
+	<a href={ templ.SafeURL(href) } title={ title } class="rail-entry" if external { hx-boost="false" }>
+		<span class={ class }>
+			{ children... }
+		</span>
+		<span class="rail-name">{ name }</span>
+	</a>
+}
+
+templ problemBody(status int, message string) {
+	<section class="card max-w-xl">
+		<p class="text-xs uppercase tracking-wide text-muted">{ strconv.Itoa(status) }</p>
+		<p class="mt-1 text-base">{ message }</p>
+		<p class="mt-4"><a href="/" class="link">Back to the runs</a></p>
+	</section>
+}
+
+templ badge(tone Tone, text string) {
+	<span class={ "badge", "tone-" + string(tone) }>{ text }</span>
+}

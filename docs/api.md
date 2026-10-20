@@ -44,7 +44,7 @@ The CLI sends `Origin` and `X-Cockpit` on every write.
 | GET | `/api/runs/{id}/signals` | `SignalsView` for `?after=<seq>&limit=<n>` |
 
 - There is no `/api/state` and no route for a manually started stack.
-- Every path outside `/api/` serves the embedded screen (`internal/hub/ui`, built from `web/`) for `GET` and `HEAD`, behind the same `Host` check. Another method answers 404. An unknown `/api/` path answers a 404 failure body, never the screen.
+- Every path outside `/api/` is the screen (`internal/hub/screen`, `docs/screen.md`), behind the same guard: its pages and assets on `GET`, its live connection on `GET /live`, and its run actions on `POST`, which need the same `Origin` and `X-Cockpit` as `/api/` writes. An unknown `/api/` path answers a 404 failure body, never the screen.
 - Every `{id}` must match the run id pattern (400) and name a known run (404).
 - A failure is `{code, message}`, plus `files`, `run` (a `RunItem`) or `candidates` when they apply. The codes are listed in `api.Codes`.
 - The submit body is `{worktree, commit, suite?, submitter?, new?}`. The submitter is the body field, then the `X-Cockpit-Submitter` header, then `ui`. `?force=1` on an operation acts on another person's run.

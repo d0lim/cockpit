@@ -4,27 +4,35 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
-	"testing/fstest"
 
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
 
 var screenMutations = []porttest.Mutation{
 	{"the screen sits behind the host guard", "mount the screen on an outer mux beside Guard instead of inside it", "red: a foreign Host header gets the index", "TestTheScreenIsServedAtTheRootBehindTheHostGuard"},
-	{"unknown api paths stay JSON problems", "drop the /api/ fallback so the file server answers", "red: /api/unknown answers a plain text 404", "TestTheScreenIsServedAtTheRootBehindTheHostGuard"},
-	{"writes to the screen are refused", "drop the method check in screen", "red: a POST to / is served", "TestTheScreenIsServedAtTheRootBehindTheHostGuard"},
-	{"no screen means not found", "serve an empty file server when Screen is nil", "red: / answers a directory listing", "TestWithoutAScreenTheRootAnswersNotFound"},
+	{"unknown api paths stay JSON problems", "drop the /api/ fallback so the screen answers", "red: /api/unknown answers the screen's page", "TestTheScreenIsServedAtTheRootBehindTheHostGuard"},
+	{"screen writes pass the write guard", "mount the screen beside Guard for POST", "red: a POST without Origin reaches the screen", "TestAScreenWriteReachesTheScreenOnlyWithTheWriteGuardHeaders"},
+	{"no screen means not found", "serve an empty handler when Screen is nil", "red: / answers 200 with an empty body", "TestWithoutAScreenTheRootAnswersNotFound"},
 }
 
 func TestScreenMutationRecordMatchesThisFile(t *testing.T) {
 	porttest.AssertMutationRecord(t, "screen_test.go", screenMutations)
 }
 
-const screenIndex = "<!doctype html><script src=\"./app.js\"></script>"
+const screenIndex = "<!doctype html><p>runs</p>"
 
-func screenFiles() fstest.MapFS {
-	return fstest.MapFS{"index.html": {Data: []byte(screenIndex)}, "app.js": {Data: []byte("console.info(1)")}}
+type stubScreen struct{ writes atomic.Int32 }
+
+func (s *stubScreen) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		s.writes.Add(1)
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	io.WriteString(w, screenIndex)
 }
 
 func (f *fixture) getHost(path, host string) (int, http.Header, string) {
@@ -44,24 +52,41 @@ func (f *fixture) getHost(path, host string) (int, http.Header, string) {
 }
 
 func TestTheScreenIsServedAtTheRootBehindTheHostGuard(t *testing.T) {
-	f := newFixture(t, func(d *Deps) { d.Screen = screenFiles() })
+	f := newFixture(t, func(d *Deps) { d.Screen = &stubScreen{} })
 	loopback := "127.0.0.1:" + itoa(f.port)
-	status, header, body := f.getHost("/", loopback)
-	if status != http.StatusOK || body != screenIndex || header.Get("X-Content-Type-Options") != "nosniff" {
-		t.Fatalf("index %d %q %v", status, body, header)
+	if status, _, body := f.getHost("/", loopback); status != http.StatusOK || body != screenIndex {
+		t.Fatalf("index %d %q", status, body)
 	}
-	if status, header, body := f.getHost("/app.js", "localhost:"+itoa(f.port)); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "javascript") || body != "console.info(1)" {
-		t.Fatalf("asset %d %v %q", status, header, body)
+	if status, _, body := f.getHost("/runs/x", "localhost:"+itoa(f.port)); status != http.StatusOK || body != screenIndex {
+		t.Fatalf("screen path %d %q", status, body)
 	}
 	if status, _, body := f.getHost("/", "rebind.example:"+itoa(f.port)); status != http.StatusForbidden || !strings.Contains(body, "forbidden:host") || strings.Contains(body, "doctype") {
 		t.Fatalf("foreign host %d %q", status, body)
 	}
-	status, raw := f.post("/", nil)
-	if status != http.StatusNotFound || !strings.Contains(string(raw), "NOT_FOUND") {
-		t.Fatalf("post to the screen %d %s", status, raw)
-	}
 	if status, _, body := f.getHost("/api/unknown", loopback); status != http.StatusNotFound || !strings.Contains(body, "NOT_FOUND") || strings.Contains(body, "doctype") {
 		t.Fatalf("unknown api path %d %q", status, body)
+	}
+}
+
+func TestAScreenWriteReachesTheScreenOnlyWithTheWriteGuardHeaders(t *testing.T) {
+	stub := &stubScreen{}
+	f := newFixture(t, func(d *Deps) { d.Screen = stub })
+	path := "/runs/" + rid(1) + "/do/keep"
+	denied := map[string]http.Header{
+		"no origin":      {HeaderCockpit: {"1"}},
+		"foreign origin": {"Origin": {"http://evil.example"}, HeaderCockpit: {"1"}},
+		"no header":      {"Origin": {f.origin}},
+	}
+	for name, h := range denied {
+		if status, raw := f.do(http.MethodPost, path, nil, h); status != http.StatusForbidden {
+			t.Errorf("%s: %d %s", name, status, raw)
+		}
+	}
+	if stub.writes.Load() != 0 || len(denied) != 3 {
+		t.Fatalf("%d writes reached the screen", stub.writes.Load())
+	}
+	if status, raw := f.do(http.MethodPost, path, nil, f.cli()); status != http.StatusAccepted || stub.writes.Load() != 1 {
+		t.Fatalf("guarded write %d %s, %d writes", status, raw, stub.writes.Load())
 	}
 }
 

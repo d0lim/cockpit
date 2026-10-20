@@ -85,6 +85,7 @@ The run actions are forms that post to `POST /runs/{id}/do/{op}`, where `op` is 
 `web/` builds the browser assets into `internal/hub/ui/dist`, which the hub serves under `/assets/`:
 
 - `htmx.min.js` and `hx-ws.min.js` from the pinned `htmx.org` package, copied unchanged.
-- `app.css`, built by Tailwind CSS from `web/app.css` and the templ components.
+- `app.css`, built by Tailwind CSS from `web/screen/app.css` and the classes in the templ components.
+- `app.js`, built from `web/screen/app.ts` as a classic script: it shows the live connection's state and copies `data-copy` text to the clipboard.
 
 Every page sends `Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`. The screen uses no `hx-on` and no `js:` values, so htmx never evaluates text; `includeIndicatorCSS` is off and the indicator styles live in `app.css`.

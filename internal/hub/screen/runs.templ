@@ -1,0 +1,111 @@
+package screen
+
+import (
+	"strconv"
+
+	"github.com/d0lim/cockpit/internal/hub/api"
+)
+
+const submitHint = "cockpit runs submit"
+
+templ runsPage(st *state) {
+	<div class="mb-6">
+		<h1 class="text-lg font-semibold">What is happening on this hub now</h1>
+		<p class="text-sm text-muted">The queue, the kept environments and the runs that ended. Pick a run to see it.</p>
+	</div>
+	@runsRegion(st)
+}
+
+templ runsRegion(st *state) {
+	<section id="runs" class="space-y-8">
+		@capacity(st.list)
+		if st.list.DockerDown {
+			<p class="notice tone-bad">Docker does not respond. The queue does not start until it answers.</p>
+		}
+		if st.list.TickError != nil {
+			<p class="notice tone-bad">The last tick failed: { *st.list.TickError }</p>
+		}
+		if len(st.list.Runs) == 0 {
+			<div class="card text-center">
+				<p class="text-muted">No runs yet. Submit one from the consumer repository:</p>
+				<pre class="console mt-3 inline-block">{ submitHint }</pre>
+			</div>
+		} else {
+			@runGroups(st, groupRuns(st.list))
+		}
+	</section>
+}
+
+templ capacity(l api.HubList) {
+	<div class="grid gap-4 sm:grid-cols-2">
+		<div class="card">
+			<p class="text-xs uppercase tracking-wide text-muted">Kept pool</p>
+			<div class="mt-2 flex items-center gap-1.5">
+				for i := 0; i < max(l.Pool.Max, l.Pool.Size); i++ {
+					<span class={ "slot", templ.KV("slot-full", i < l.Pool.Size) }></span>
+				}
+				<span class="ml-2 text-sm">{ strconv.Itoa(l.Pool.Size) } of { strconv.Itoa(l.Pool.Max) } kept</span>
+			</div>
+		</div>
+		<div class="card">
+			<p class="text-xs uppercase tracking-wide text-muted">Running environments</p>
+			<div class="mt-2 flex items-center gap-1.5">
+				for i := 0; i < max(l.Up.Cap, l.Up.Count); i++ {
+					<span class={ "slot", templ.KV("slot-full", i < l.Up.Count), templ.KV("slot-over", i >= l.Up.Cap) }></span>
+				}
+				<span class="ml-2 text-sm">{ strconv.Itoa(l.Up.Count) } of { strconv.Itoa(l.Up.Cap) } up</span>
+			</div>
+		</div>
+	</div>
+}
+
+templ runGroups(st *state, g RunGroups) {
+	if len(g.Pending) > 0 {
+		@runTable(st, "Queue and active run", "Waiting to start, or running its suite now.", g.Pending)
+	}
+	if len(g.Pool) > 0 {
+		@runTable(st, "Kept", "Finished runs whose environment remains. A person resumes or destroys them.", g.Pool)
+	}
+	if len(g.Ended) > 0 {
+		@runTable(st, "Ended", "Runs whose environment is gone. Their reports remain.", g.Ended)
+	}
+}
+
+templ runTable(st *state, title, hint string, runs []api.RunItem) {
+	<div>
+		<h2 class="text-sm font-semibold">{ title }</h2>
+		<p class="mb-2 text-xs text-muted">{ hint }</p>
+		<ul class="card divide-y divide-line p-0">
+			for _, r := range runs {
+				@runRow(st, r)
+			}
+		</ul>
+	</div>
+}
+
+templ runRow(st *state, r api.RunItem) {
+	<li>
+		<a href={ templ.SafeURL(defaultPath(r, st.list)) } class="run-row">
+			<span class={ "dot", "tone-" + string(phaseTone(r)) }></span>
+			<span class="min-w-0">
+				<span class="block font-mono text-xs">{ r.ID }</span>
+				<span class="block truncate text-xs text-muted">{ r.Suite } · { short(r.SHA) } · { rowDetail(r) }</span>
+			</span>
+			<span class="ml-auto flex shrink-0 items-center gap-1.5">
+				if r.Keep {
+					@badge(ToneInfo, "keep")
+				}
+				if r.ID == nextDestroy(st.list.Runs) {
+					@badge(ToneWarn, "next to destroy")
+				}
+				if r.ID == nextStop(st.list.Runs) {
+					@badge(ToneWarn, "next to stop")
+				}
+				@badge(phaseTone(r), r.PhaseLabel)
+				if r.VerdictLabel != nil {
+					@badge(verdictTone(r.Verdict), *r.VerdictLabel)
+				}
+			</span>
+		</a>
+	</li>
+}

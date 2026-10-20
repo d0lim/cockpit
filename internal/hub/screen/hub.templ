@@ -1,0 +1,92 @@
+package screen
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/d0lim/cockpit/internal/hub/api"
+)
+
+func servedText(apis []int) string {
+	parts := make([]string, len(apis))
+	for i, a := range apis {
+		parts[i] = strconv.Itoa(a)
+	}
+	return strings.Join(parts, ", ")
+}
+
+func startCommand(h api.HubItem) string {
+	return "COCKPIT_HOME=" + h.Home + " cockpit hub"
+}
+
+templ hubPage(st *state) {
+	<div class="mb-6">
+		<h1 class="text-lg font-semibold">Which hub is this</h1>
+		<p class="text-sm text-muted">Its identity, its limits and the other hubs on this host.</p>
+	</div>
+	@hubRegion(st)
+}
+
+templ hubRegion(st *state) {
+	<section id="hub" class="space-y-8">
+		<div class="card">
+			<dl class="kv">
+				<dt>Name</dt>
+				<dd>{ st.self().Name }</dd>
+				<dt>Registry id</dt>
+				<dd class="font-mono">{ orElse(st.self().ID, "not registered") }</dd>
+				<dt>State directory</dt>
+				<dd class="font-mono">{ st.d.Identity.Home }</dd>
+				<dt>Address</dt>
+				<dd class="font-mono">{ "http://127.0.0.1:" + strconv.Itoa(st.d.Identity.Port) }</dd>
+				<dt>Version</dt>
+				<dd class="font-mono">{ st.version() }</dd>
+				<dt>Host APIs served</dt>
+				<dd>{ servedText(st.list.Served) }</dd>
+				<dt>Kept pool</dt>
+				<dd>at most { strconv.Itoa(st.list.Pool.Max) } environments</dd>
+				<dt>Running cap</dt>
+				<dd>{ strconv.Itoa(st.list.Up.Cap) } environments up at once</dd>
+				<dt>Docker</dt>
+				<dd>
+					if st.list.DockerDown {
+						@badge(ToneBad, "does not respond")
+					} else {
+						@badge(ToneOK, "responds")
+					}
+				</dd>
+			</dl>
+		</div>
+		<div id="hubs">
+			<h2 class="text-sm font-semibold">Hubs on this host</h2>
+			<p class="mb-2 text-xs text-muted">Every hub registers its state directory when it starts. Each runs its own runs; open a hub to act on them.</p>
+			<ul class="card divide-y divide-line p-0">
+				for _, h := range st.list.Hubs {
+					<li class="flex items-center gap-3 px-4 py-3">
+						<span class="rail-item rail-small">{ initials(h.Name) }</span>
+						<span class="min-w-0">
+							<span class="block text-sm">
+								{ h.Name }
+								if h.Self {
+									<span class="text-muted">· this hub</span>
+								}
+							</span>
+							<span class="block truncate font-mono text-xs text-muted">{ h.Home }</span>
+						</span>
+						<span class="ml-auto flex shrink-0 items-center gap-2">
+							if h.Self {
+								@badge(ToneOK, "running")
+							} else if h.Up {
+								<a href={ templ.SafeURL(h.URL + "/") } hx-boost="false" class="link text-sm">open { h.URL }</a>
+								@badge(ToneOK, "running")
+							} else {
+								<button type="button" class="link text-xs" data-copy={ startCommand(h) }>copy the start command</button>
+								@badge(ToneIdle, "not running")
+							}
+						</span>
+					</li>
+				}
+			</ul>
+		</div>
+	</section>
+}
