@@ -68,7 +68,7 @@ bun add -d @d0lim/cockpit-sdk@<version>
 ```
 
 ```json
-{ "extends": "@d0lim/cockpit-sdk/tsconfig.base.json", "include": ["suites/*.ts"] }
+{ "extends": "@d0lim/cockpit-sdk/tsconfig.base.json", "include": ["**/*.ts"] }
 ```
 
 Without a registry, `cockpit sdk write <dir>` writes the same files from the binary.

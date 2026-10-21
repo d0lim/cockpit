@@ -78,6 +78,13 @@ scripts:
   collectors: e2e/collectors
 ```
 
+For MySQL the database entry differs only in what the names mean: `readSchemas` lists databases, `database` (optional) is the default database for unqualified table names and must be one of them, and `rootUser` defaults to `root`:
+
+```yaml
+databases:
+  - { name: library, driver: mysql, port: mysql, readSchemas: [library], database: library, rootSecret: MYSQL_ROOT_PASSWORD }
+```
+
 Every path is relative to the repository root. The fields an adopter usually gets wrong:
 
 - **`project.expectedServices`** are the services the boot stage waits for. Leave out services that only run under a profile.
@@ -90,7 +97,7 @@ The hub checks the declaration in a fixed order and rejects a submit with the fi
 
 ## 3. Credentials
 
-Credentials never come from the repository. `env.command` runs once per run, before compose starts, in `env.image` with no network, as the hub's user, with the extracted commit mounted writable at `/src` as the working directory. The image must be pinned by digest and must have `/bin/sh`. The command writes each of `env.outputs` under `/src`, and the hub makes them mode 600:
+Credentials never come from the repository. `env.command` runs once per run, before compose starts, in `env.image` with no network, as the hub's user, with the extracted commit mounted writable at `/src` as the working directory. The image must be pinned by digest (`docker buildx imagetools inspect alpine:3.20` prints it) and must have `/bin/sh`. The command writes each of `env.outputs` under `/src`, and the hub makes them mode 600:
 
 ```sh
 #!/bin/sh
@@ -154,7 +161,7 @@ export default collector({
 
 - **When it runs**: first when the environment is ready, alongside the suite, then every `intervalMs` (1000 to 3600000) while the environment is up, and once more when the report is written. Without `intervalMs` it runs only at the report.
 - **Revisions**: an event with an `id` that is emitted again replaces the earlier one on reads, and an unchanged row is not stored twice, so emitting every row on every run is the intended pattern. Add `rev` to order revisions explicitly.
-- **Attributes the screen reads**: `table` groups events into one table per name in the Table view, `status` and `tone` color the row, `label` titles it. A `ref.<name>` attribute whose value equals a step's `ctx.ref` value links the event to that step. The keys of a JSON `body` become table columns.
+- **Attributes the screen reads**: `table` groups events into one table per name in the Table view, `status` and `tone` color the row, `label` titles it, and the keys of a JSON `body` become table columns. A `ref.<name>` attribute relates the row to the steps that marked the same id; declare only the ids that identify the row and keep parent ids in the body, as [correlation keys](guide.md#correlation-keys-and-request-records) explains.
 - **Ports**: `ctx.sql`, `ctx.http` (GET and HEAD to the declared port names), `ctx.docker` (logs, service states, and `exec` of argv prefixes listed in `exec.allow`) and `ctx.state` for a cursor between runs of the collector. The declarations in `@d0lim/cockpit-sdk` document each one.
 - **Where to see it**: the run's Signals screen lists each collector with its state and failure count, and `GET /api/runs/<id>/signals` returns the same under `collectors`. A passed verdict says nothing about collectors.
 
@@ -180,4 +187,4 @@ cockpit runs submit --wait
 | `missing`, `schema`, `confinement`, `host-api`, `ports`, `compose` | the field the message names; see [harness](harness.md#reading-the-declaration) |
 | a suite name is needed | pass `--suite`; the message lists the commit's suites |
 | the seal check fails | a service reaches outside the run or binds a path outside it; the report's seal result names the assertion ([sealing](sealing.md)) |
-| boot times out | an expected service never became healthy; the run's logs show which |
+| boot fails | compose names the service that did not start, exited non-zero or never became healthy. The hub keeps no container logs from a failed boot, but the run's containers stay until the run is destroyed, so `docker logs <run id>-<service>-1` shows that service's output |

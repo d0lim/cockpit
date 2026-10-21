@@ -110,7 +110,14 @@ ctx.ref("transaction", tx.id);
 
 The runner also records every request a step sends: method, host, path (never the query or a body), status, duration and start time, at most 50 per step. Paths pass the runner masker, so an id appears in a path only after the flow marked it with `ref`.
 
-The hub turns refs into attributes `ref.<name>` of the step's span and each request into a span under it (`docs/signals.md`). Collectors that put the same values in their own `ref.<name>` attributes let the screen link a database row, a notification or a log line back to the step and request that caused it.
+The hub turns refs into attributes `ref.<name>` of the step's span and each request into a span under it (`docs/signals.md`). Collectors that put the same values in their own `ref.<name>` attributes let the screen link a database row, a notification or a log line back to the step and request that caused it ([Running on the hub](hub.md#collectors)).
+
+The screen relates signals through groups of ids, not single values. The refs of one step form a group, and so do the `ref.` attributes of one row; groups that share an id merge. A signal carries an id when one of its attribute values, or a top-level field of its JSON body, equals it, and a picked step lists every signal that carries an id of its group. So mark the narrowest ids:
+
+- A step refs the ids it created or acts on, not a parent id that every step of the flow touches.
+- A row declares under `ref.` only the ids that identify it, and keeps parent ids in its body, where they are shown and searchable without merging groups.
+
+A loan step that refs only its loan id, and a loan row with `ref.loan` and the book's isbn in its body, relates each loan to its own step. Ref the isbn in every step and declare `ref.isbn` on every loan row, and every loan relates to every step.
 
 ## Helpers
 
@@ -169,7 +176,7 @@ The declarations for `cockpit:flow`, the engine globals and a tsconfig base come
 ```json
 {
   "extends": "@d0lim/cockpit-sdk/tsconfig.base.json",
-  "include": ["suites/*.ts"]
+  "include": ["**/*.ts"]
 }
 ```
 
@@ -177,4 +184,4 @@ A project that keeps its own tsconfig can set `"types": ["@d0lim/cockpit-sdk"]` 
 
 ## Versions
 
-The binary, the embedded runner, the runner image tag and the npm package share one version. Pin the binary per project with mise and pin the package to the same version. `cockpit --version` prints it, and `cockpit runner-image` prints the image tag for the runner inside that binary. A new cockpit version keeps `hostApi: 1` as long as it only adds to the host API; a breaking change raises it, and the runner then refuses suites that still declare the old one.
+The binary, the embedded runner, the runner image tag and the npm package share one version. Pin the binary per project with mise and pin the package to the same version. `cockpit --version` prints it, and `cockpit runner-image` prints the image tag for the runner inside that binary. A build from source prints `dev+<commit>` and has no published package; take its declarations with `cockpit sdk write <dir>`. A new cockpit version keeps `hostApi: 1` as long as it only adds to the host API; a breaking change raises it, and the runner then refuses suites that still declare the old one.
