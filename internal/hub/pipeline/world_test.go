@@ -164,7 +164,7 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { sched.Dispose(); hub.Close() })
+	t.Cleanup(func() { sched.Dispose(); sched.Idle(); hub.Close() })
 	w.sched, w.hub = sched, hub
 	return w
 }
