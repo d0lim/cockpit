@@ -99,7 +99,7 @@ The run actions are forms that post to `POST /runs/{id}/do/{op}`, where `op` is 
 - The hub runs the operation through the same scheduler call as `POST /api/runs/{id}/{op}`, with the actor `ui`, and answers with a notice fragment: the result on success, or the problem message and code with the problem's status on refusal. htmx 4 swaps 4xx answers, so a refusal shows where the action was.
 - The run's new state reaches the page through the live connection, not through the action's answer.
 - Destroy asks for confirmation with `hx-confirm`.
-- The Runs screen submits a run with `POST /runs/submit`: a repository from the hub's `allowedRepositories`, a commit (default `HEAD`) and a suite chosen from the suites that repository's `HEAD` declares (`GET /runs/suites?worktree=<path>` answers the options). It runs the same submission as `POST /api/runs`, with the submitter `ui`, and answers with a notice that links to the new run.
+- The Runs screen submits a run with `POST /runs/submit`: a repository from the hub's `allowedRepositories`, a commit (default `HEAD`) and a suite chosen from the suites that the repository declares at that commit (`GET /runs/suites?worktree=<path>&commit=<ref>` answers the options again whenever the repository or the commit changes). It runs the same submission as `POST /api/runs`, with the submitter `ui`, and answers with a notice that links to the new run.
 
 ## Assets
 

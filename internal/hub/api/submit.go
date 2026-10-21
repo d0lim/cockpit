@@ -9,12 +9,12 @@ import (
 
 func (r *Reader) Repositories() []string { return slices.Clone(r.a.d.Repos) }
 
-func (r *Reader) Suites(ctx context.Context, worktree string) (SuitesView, error) {
+func (r *Reader) Suites(ctx context.Context, worktree, commit string) (SuitesView, error) {
 	view := SuitesView{Worktree: worktree, Suites: []SuiteName{}}
 	if r.a.d.Suites == nil || worktree == "" {
 		return view, nil
 	}
-	names, err := r.a.d.Suites(ctx, worktree)
+	names, err := r.a.d.Suites(ctx, worktree, commit)
 	if err != nil {
 		return SuitesView{}, badRequest(err.Error())
 	}

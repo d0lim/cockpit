@@ -31,7 +31,7 @@ The CLI sends `Origin` and `X-Cockpit` on every write.
 | Method | Path | Answer |
 |---|---|---|
 | GET | `/api/events` | event stream for `?target=hub` (default) or `?target=<run id>` |
-| GET | `/api/suites` | `SuitesView` for `?worktree=<path>` |
+| GET | `/api/suites` | `SuitesView` for `?worktree=<path>`, read at `&commit=<ref>` (default `HEAD`) |
 | GET | `/api/runs` | `HubList` |
 | POST | `/api/runs` | 202 `Submitted` |
 | GET | `/api/runs/{id}` | `RunDetail` |

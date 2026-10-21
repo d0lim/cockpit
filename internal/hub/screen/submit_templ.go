@@ -49,7 +49,7 @@ func submitForm(st *state) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<p class=\"mb-3 text-xs text-muted\">The suites are the ones the repository declares at its HEAD.</p><form hx-post=\"/runs/submit\" hx-target=\"#submit-result\" hx-swap=\"innerHTML\" class=\"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_10rem_auto]\"><label class=\"grid gap-1 text-xs text-muted\">Repository <select name=\"worktree\" class=\"field\" hx-get=\"/runs/suites\" hx-include=\"this\" hx-target=\"#suite-options\" hx-swap=\"innerHTML\" hx-trigger=\"change, load\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<p class=\"mb-3 text-xs text-muted\">The suites are the ones the repository declares at the commit you type.</p><form hx-post=\"/runs/submit\" hx-target=\"#submit-result\" hx-swap=\"innerHTML\" class=\"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_10rem_auto]\"><label class=\"grid gap-1 text-xs text-muted\">Repository <select name=\"worktree\" class=\"field\" hx-get=\"/runs/suites\" hx-include=\"[name='worktree'],[name='commit']\" hx-target=\"#suite-options\" hx-swap=\"innerHTML\" hx-trigger=\"change, load\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -98,7 +98,7 @@ func submitForm(st *state) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"field font-mono\" autocomplete=\"off\"></label> <label class=\"grid gap-1 text-xs text-muted\">Suite <select name=\"suite\" id=\"suite-options\" class=\"field\"><option value=\"\">default</option></select></label> <button type=\"submit\" class=\"btn\">Submit</button></form><div id=\"submit-result\" class=\"mt-3\" aria-live=\"polite\"></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"field font-mono\" autocomplete=\"off\" hx-get=\"/runs/suites\" hx-include=\"[name='worktree'],[name='commit']\" hx-target=\"#suite-options\" hx-swap=\"innerHTML\" hx-trigger=\"change\"></label> <label class=\"grid gap-1 text-xs text-muted\">Suite <select name=\"suite\" id=\"suite-options\" class=\"field\"><option value=\"\">default</option></select></label> <button type=\"submit\" class=\"btn\">Submit</button></form><div id=\"submit-result\" class=\"mt-3\" aria-live=\"polite\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

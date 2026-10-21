@@ -49,7 +49,7 @@ type Deps struct {
 	Signals    sse.Signals
 	Collectors Collectors
 	Services   func(m store.Meta) []ServicePort
-	Suites     func(ctx context.Context, worktree string) ([]string, error)
+	Suites     func(ctx context.Context, worktree, commit string) ([]string, error)
 	Repos      []string
 	Mask       func(runID string) *mask.Masker
 	Hubs       func() []registry.Hub
@@ -202,7 +202,7 @@ type SuiteName struct {
 }
 
 func (a *api) suites(w http.ResponseWriter, r *http.Request) error {
-	view, err := a.reader().Suites(r.Context(), r.URL.Query().Get("worktree"))
+	view, err := a.reader().Suites(r.Context(), r.URL.Query().Get("worktree"), r.URL.Query().Get("commit"))
 	if err != nil {
 		return err
 	}

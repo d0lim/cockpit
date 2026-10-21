@@ -1,7 +1,9 @@
 package pipeline
 
 import (
+	"cmp"
 	"context"
+	"strings"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/hub/api"
@@ -47,7 +49,7 @@ func (h *Hub) Services(m store.Meta) []api.ServicePort {
 	return out
 }
 
-func (h *Hub) Suites(ctx context.Context, worktree string) ([]string, error) {
+func (h *Hub) Suites(ctx context.Context, worktree, commit string) ([]string, error) {
 	if _, err := h.o.Config.Allow(ctx, compose.CommonDirOf, worktree); err != nil {
 		return nil, err
 	}
@@ -56,7 +58,7 @@ func (h *Hub) Suites(ctx context.Context, worktree string) ([]string, error) {
 		return nil, err
 	}
 	git := compose.Git{Dir: top}
-	sha, err := git.ResolveCommit(ctx, "HEAD")
+	sha, err := git.ResolveCommit(ctx, cmp.Or(strings.TrimSpace(commit), "HEAD"))
 	if err != nil {
 		return nil, err
 	}

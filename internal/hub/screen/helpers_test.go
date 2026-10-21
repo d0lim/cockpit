@@ -91,9 +91,12 @@ func newFixture(t *testing.T) *fixture {
 	reader := api.NewReader(api.Deps{
 		Store: st, Scheduler: sched, Signals: f.signals, Mask: func(string) *mask.Masker { return masker },
 		Repos: []string{toyRepo},
-		Suites: func(_ context.Context, worktree string) ([]string, error) {
+		Suites: func(_ context.Context, worktree, commit string) ([]string, error) {
 			if worktree != toyRepo {
 				return nil, errors.New(worktree + " is not listed in allowedRepositories")
+			}
+			if commit == "old" {
+				return []string{"smoke"}, nil
 			}
 			return []string{"joint", "canary"}, nil
 		},

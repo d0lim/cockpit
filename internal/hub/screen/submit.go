@@ -36,7 +36,7 @@ func (s *Screen) submit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Screen) suites(w http.ResponseWriter, r *http.Request) {
-	view, err := s.d.Reader.Suites(r.Context(), r.URL.Query().Get("worktree"))
+	view, err := s.d.Reader.Suites(r.Context(), r.URL.Query().Get("worktree"), r.URL.Query().Get("commit"))
 	if err != nil {
 		var msg string
 		var p *api.Problem

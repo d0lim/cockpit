@@ -52,7 +52,7 @@ type Built struct {
 	Signals    sse.Signals
 	Collectors api.Collectors
 	Services   func(m store.Meta) []api.ServicePort
-	Suites     func(ctx context.Context, worktree string) ([]string, error)
+	Suites     func(ctx context.Context, worktree, commit string) ([]string, error)
 	Mask       func(runID string) *mask.Masker
 	Close      func()
 }

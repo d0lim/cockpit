@@ -17,6 +17,10 @@ func TestTheRunsScreenOffersTheAllowedRepositoriesAndTheirSuites(t *testing.T) {
 	if !strings.Contains(options, `value="joint"`) || !strings.Contains(options, `value="canary"`) {
 		t.Fatalf("suite options: %s", options)
 	}
+	_, _, older := f.get("/runs/suites?worktree=" + url.QueryEscape(toyRepo) + "&commit=old")
+	if !strings.Contains(older, `value="smoke"`) || strings.Contains(older, `value="joint"`) {
+		t.Fatalf("suite options at another commit: %s", older)
+	}
 	_, _, refused := f.get("/runs/suites?worktree=" + url.QueryEscape("/elsewhere"))
 	if strings.Contains(refused, `value="joint"`) || !strings.Contains(refused, "not listed in allowedRepositories") {
 		t.Fatalf("suite options of an unlisted repository: %s", refused)
