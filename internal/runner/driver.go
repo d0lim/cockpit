@@ -32,6 +32,7 @@ type DriverDeps struct {
 	Masker   func() *mask.Masker
 	Identity contract.RunnerIdentity
 	ExecOut  func(target string) string
+	TakeRefs func() []contract.StepRef
 }
 
 type Driver struct {
@@ -179,6 +180,7 @@ func (d *Driver) Finish(ref StepRef, failure *string) error {
 		rec.HTTPStatus = &status
 	}
 	rec.FinishedAt = iso(finished)
+	rec.Calls, rec.Refs = d.takeRecords()
 	if err := d.deps.Context.Save(); err != nil {
 		return err
 	}
@@ -266,7 +268,7 @@ func (d *Driver) openStep(flow *FlowDecl) (*StepRef, error) {
 		return nil, err
 	}
 	d.sentBefore = d.deps.HTTP.Counter().Sent
-	d.deps.HTTP.ResetStatus()
+	d.resetStep()
 	d.started = startedAt
 	d.current = &StepRef{Flow: flow.ID, Step: step.ID}
 	return d.current, nil

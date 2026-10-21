@@ -126,6 +126,7 @@ func flowModule() Module {
 			{"priv", "readonly priv: Readonly<Record<string, string>>;"},
 			{"http", "readonly http: HttpPort;"},
 			{"capture", "capture(name: string, value: string, opts?: CaptureOptions): void;"},
+			{"ref", "ref(name: string, value: string): void;"},
 			{"get", "get(name: string): string;"},
 			{"totp", "totp(loginId: string): Promise<string>;"},
 			{"saveSeed", "saveSeed(loginId: string, secret: string): void;"},

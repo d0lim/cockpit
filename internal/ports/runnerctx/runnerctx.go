@@ -7,6 +7,7 @@ import (
 
 	"github.com/dop251/goja"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/engine"
 	"github.com/d0lim/cockpit/internal/ports"
 	"github.com/d0lim/cockpit/internal/ports/capture"
@@ -27,18 +28,33 @@ type Deps struct {
 	Clock    clock.Clock
 	Keys     *cryptoport.Keys
 	Mask     ports.Mask
+	Patterns ports.Mask
 	Changed  func()
 
-	mu sync.Mutex
+	mu     sync.Mutex
+	public map[string]bool
+	refs   []contract.StepRef
 }
 
 func (d *Deps) KnownValues() []string {
 	d.mu.Lock()
 	values := slices.Collect(maps.Values(d.Priv))
+	for _, v := range d.Context.Captures.Values() {
+		if !d.public[v] {
+			values = append(values, v)
+		}
+	}
 	d.mu.Unlock()
-	values = append(values, d.Context.Captures.Values()...)
 	slices.Sort(values)
 	return slices.Compact(values)
+}
+
+func (d *Deps) TakeRefs() []contract.StepRef {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	out := d.refs
+	d.refs = nil
+	return out
 }
 
 func (d *Deps) seed(loginID string) (string, bool) {
@@ -148,7 +164,7 @@ func (b *binder) build() (*goja.Object, error) {
 	}{
 		{ctx, "env", env},
 		{http, "send", b.send}, {ctx, "http", http},
-		{ctx, "capture", b.capture}, {ctx, "get", b.get},
+		{ctx, "capture", b.capture}, {ctx, "get", b.get}, {ctx, "ref", b.ref},
 		{ctx, "totp", b.totp}, {ctx, "saveSeed", b.saveSeed},
 		{crypto, "randomUUID", b.randomUUID}, {crypto, "getRandomValues", b.getRandomValues},
 		{subtle, "generateKey", b.generateKey}, {subtle, "sign", b.sign},

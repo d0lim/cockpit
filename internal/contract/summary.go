@@ -58,6 +58,8 @@ type FlowStep struct {
 	HTTPStatus *int            `json:"httpStatus,omitempty"`
 	Message    string          `json:"message,omitempty"`
 	Source     *ManifestSource `json:"source,omitempty"`
+	Calls      []StepCall      `json:"calls,omitempty"`
+	Refs       []StepRef       `json:"refs,omitempty"`
 }
 
 type FlowSummary struct {

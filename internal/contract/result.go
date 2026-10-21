@@ -10,6 +10,20 @@ const (
 	StepStatusSkipped StepStatus = "skipped"
 )
 
+type StepCall struct {
+	Method     string `json:"method"`
+	Host       string `json:"host"`
+	Path       string `json:"path"`
+	Status     *int   `json:"status,omitempty"`
+	StartedAt  string `json:"startedAt"`
+	DurationMs int64  `json:"durationMs"`
+}
+
+type StepRef struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type ResultStep struct {
 	Flow       string     `json:"flow"`
 	ID         string     `json:"id"`
@@ -20,6 +34,8 @@ type ResultStep struct {
 	Message    string     `json:"message,omitempty"`
 	StartedAt  string     `json:"startedAt,omitempty"`
 	FinishedAt string     `json:"finishedAt,omitempty"`
+	Calls      []StepCall `json:"calls,omitempty"`
+	Refs       []StepRef  `json:"refs,omitempty"`
 }
 
 type StopPoint struct {

@@ -35,6 +35,9 @@ var runnerMutations = []porttest.Mutation{
 	{"flow helpers are exported by cockpit:flow", "drop target, expectStatus, json and poll from the module exports", "red: the alpha step fails on an undefined function", "TestFlowHelpersExpectStatusJsonTargetAndPollWorkInsideAStep"},
 	{"expectStatus keeps the query and the body out of its message", "append res.url or res.body to the thrown message", "red: the beta message carries the query or the body", "TestExpectStatusFailureNamesMethodAndPathOnly"},
 	{"json keeps the body out of its message", "append res.body to the thrown message", "red: the gamma message carries the body", "TestJsonFailureOnANonJSONBodyKeepsTheBodyOut"},
+	{"recorded request paths are masked", "takeRecords copies the raw path instead of masking it", "red: the private value shows up in result.json", "TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs"},
+	{"a captured value stays masked in recorded paths unless a ref names it", "KnownValues leaves every capture out", "red: hidden-id-1 shows up in result.json", "TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs"},
+	{"records belong to one step", "TakeCalls keeps the calls it returned", "red: the quiet step carries calls", "TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs"},
 	{"poll stops at the deadline", "skip the deadline check after a failed attempt", "red: the delta step never finishes or reports another attempt count", "TestPollGivesUpAtTheDeadlineAndReportsTheAttemptCount"},
 }
 
@@ -110,5 +113,5 @@ func TestMissingOrBrokenSuiteFileExitsTwoWithoutManifest(t *testing.T) {
 }
 
 func TestRunnerMutationRecordMatchesTestFilesBothWays(t *testing.T) {
-	porttest.AssertMutationRecordAcross(t, []string{"main_test.go", "execute_test.go", "exec_test.go", "helpers_test.go"}, runnerMutations)
+	porttest.AssertMutationRecordAcross(t, []string{"main_test.go", "execute_test.go", "exec_test.go", "helpers_test.go", "records_test.go"}, runnerMutations)
 }

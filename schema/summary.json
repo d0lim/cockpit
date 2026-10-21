@@ -149,6 +149,59 @@
                     "line"
                   ],
                   "additionalProperties": false
+                },
+                "calls": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string"
+                      },
+                      "host": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "integer"
+                      },
+                      "startedAt": {
+                        "type": "string"
+                      },
+                      "durationMs": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "method",
+                      "host",
+                      "path",
+                      "startedAt",
+                      "durationMs"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [

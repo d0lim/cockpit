@@ -133,7 +133,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	}
 	ctxDeps := &runnerctx.Deps{
 		Env: publicEnv, Priv: priv, PrivPath: s.privPath, SeedKeys: seedKeys(publicEnv),
-		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText,
+		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText, Patterns: base.Mask,
 	}
 	ctxDeps.Changed = func() { current.Store(base.WithKnown(ctxDeps.KnownValues())) }
 	ctxDeps.Changed()
@@ -146,7 +146,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		Out:   func(line string) { fmt.Fprintln(deps.Stdout, line) },
 		Clock: clk, HTTP: client, Context: e2eCtx, Ledger: ledger, Masker: current.Load,
 		Identity: contract.RunnerIdentity{Version: version.String(), Image: s.image},
-		ExecOut:  execOut,
+		ExecOut:  execOut, TakeRefs: ctxDeps.TakeRefs,
 	})
 	bundle, err := engine.BuildBundle(ctx, engine.BundleInput{Driver: driverSource(name), Root: s.scripts, Site: engine.SiteRunner})
 	if err != nil {

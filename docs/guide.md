@@ -87,6 +87,7 @@ Suites import only from `cockpit:flow` and from relative paths inside the script
 | `env`, `priv` | the public env and the private env, read-only |
 | `http.send(method, url, opts?)` | sends one request to an allowed origin; `opts` takes `headers`, `json`, `body`, `timeoutMs` |
 | `capture(name, value, { persist? })` | stores a value for later steps; `persist: true` keeps it in the context file across runs |
+| `ref(name, value)` | marks `value` as a public correlation key of the running step, under `name`; see below |
 | `get(name)` | reads a captured value and fails the step when it is missing |
 | `totp(loginId)`, `saveSeed(loginId, secret)` | produces a TOTP code from a stored seed, and stores a seed into the private env |
 | `crypto` | `randomUUID`, `getRandomValues` and RSA signing through `subtle` |
@@ -94,6 +95,22 @@ Suites import only from `cockpit:flow` and from relative paths inside the script
 | `clock()`, `sleep(ms)` | the current time in milliseconds and a pause |
 
 The engine also provides `Buffer`, `TextEncoder`, `URL`, `URLSearchParams`, `atob`, `btoa`, `setTimeout` and `console`. Console output goes to the runner's stderr, masked.
+
+## Correlation keys and request records
+
+Captured values are treated as secrets: the runner masks every occurrence of them as `****` in its output, the result file and the step messages. Ids that a flow creates (a transaction id, a reference id) are usually captured, and once masked nothing that the run leaves behind can say which request made which row.
+
+`ctx.ref(name, value)` says that `value` is a public id. From then on the runner no longer masks it, even when it is also captured, and it records `{name, value}` on the running step. The name matches `^[a-z][A-Za-z0-9]{0,31}$`; the value is 1 to 200 characters without control characters. A value that the private env holds, that contains one of its values, or that the runner's credential patterns would mask is refused with `PORT_BAD_ARGS`, and stays masked. A step keeps at most 50 refs.
+
+```ts
+const tx = json<{ id: string }>(await ctx.http.send("POST", `${ctx.env.baseUrl}/transfers`, { json: body }));
+ctx.capture("transferId", tx.id);
+ctx.ref("transaction", tx.id);
+```
+
+The runner also records every request a step sends: method, host, path (never the query or a body), status, duration and start time, at most 50 per step. Paths pass the runner masker, so an id appears in a path only after the flow marked it with `ref`.
+
+The hub turns refs into attributes `ref.<name>` of the step's span and each request into a span under it (`docs/signals.md`). Collectors that put the same values in their own `ref.<name>` attributes let the screen link a database row, a notification or a log line back to the step and request that caused it.
 
 ## Helpers
 

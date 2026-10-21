@@ -122,8 +122,10 @@ declare module "cockpit:flow" {
 		readonly priv: Readonly<Record<string, string>>;
 		/** Requests to the origins listed in env.json. */
 		readonly http: HttpPort;
-		/** Stores a value for later steps and flows in this run. Captured values are masked in all output. */
+		/** Stores a value for later steps and flows in this run. Captured values are masked in all output, unless `ref` marked them public. */
 		capture(name: string, value: string, opts?: CaptureOptions): void;
+		/** Marks a value as a public correlation key of the running step under `name`. The value is no longer masked, and the hub shows it as the step span attribute `ref.<name>`. Refuses a value from the private env or one the credential patterns mask. */
+		ref(name: string, value: string): void;
 		/** Reads a captured value. Throws, failing the step, when the value was never captured. */
 		get(name: string): string;
 		/** Returns a TOTP code for an account in env.json `totpSeedKeys`, whose seed is in the private env. It does not return the same code twice for one account, and waits for the next time step when it has to. */

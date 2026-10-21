@@ -49,6 +49,17 @@ type Counter struct {
 	LastStatus int
 }
 
+type Call struct {
+	Method   string
+	Host     string
+	Path     string
+	Status   int
+	Started  time.Time
+	Duration time.Duration
+}
+
+const maxCalls = 1000
+
 type Client struct {
 	allowed map[string]bool
 	timeout time.Duration
@@ -57,6 +68,7 @@ type Client struct {
 	client  *http.Client
 	mu      sync.Mutex
 	counter Counter
+	calls   []Call
 }
 
 func New(opts Options) (*Client, error) {
@@ -130,6 +142,22 @@ func (c *Client) ResetStatus() {
 	c.counter.LastStatus = 0
 }
 
+func (c *Client) TakeCalls() []Call {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := c.calls
+	c.calls = nil
+	return out
+}
+
+func (c *Client) record(call Call) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.calls) < maxCalls {
+		c.calls = append(c.calls, call)
+	}
+}
+
 func (c *Client) sent() {
 	c.mu.Lock()
 	c.counter.Sent++
@@ -181,12 +209,18 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 	}
 	hreq.Header = headers
 	c.sent()
+	call := Call{Method: req.Method, Host: u.Hostname(), Path: u.Path, Started: time.Now()}
+	defer func() {
+		call.Duration = time.Since(call.Started)
+		c.record(call)
+	}()
 	res, err := c.client.Do(hreq)
 	if err != nil {
 		return Response{}, c.failure(hctx, err, timeout, target(req.Method, u))
 	}
 	defer res.Body.Close()
 	c.status(res.StatusCode)
+	call.Status = res.StatusCode
 	if res.StatusCode >= 300 && res.StatusCode < 400 && res.Header.Get("Location") != "" {
 		return Response{}, ports.Denied(c.mask, fmt.Sprintf("got a redirect response (%d) — %s", res.StatusCode, target(req.Method, u)))
 	}
