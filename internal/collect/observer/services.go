@@ -22,21 +22,29 @@ type Services struct {
 
 type serviceSeen struct {
 	state, health string
+	exit          int
 	rev           int
 }
 
 func (s *Services) Name() string { return ServicesCollector }
 
-func tone(state, health string) contract.Tone {
+func tone(state, health string, exit int) contract.Tone {
 	switch {
 	case state == "running" && (health == "" || health == "healthy"):
 		return contract.ToneOK
 	case state == "running":
 		return contract.ToneWarn
-	case state == "absent":
+	case state == "absent", state == "exited" && exit == 0:
 		return contract.ToneIdle
 	}
 	return contract.ToneBad
+}
+
+func exitOf(st dockerport.ServiceState) int {
+	if st.ExitCode == nil {
+		return -1
+	}
+	return *st.ExitCode
 }
 
 func (s *Services) Run(ctx context.Context) error {
@@ -56,11 +64,11 @@ func (s *Services) Run(ctx context.Context) error {
 		current := map[string]bool{}
 		for _, st := range list {
 			current[st.Service] = true
-			s.note(seen, st.Service, st.State, st.Health)
+			s.note(seen, st.Service, st.State, st.Health, exitOf(st))
 		}
 		for name, prev := range seen {
 			if !current[name] && prev.state != "absent" {
-				s.note(seen, name, "absent", "")
+				s.note(seen, name, "absent", "", -1)
 			}
 		}
 		t := time.NewTimer(poll)
@@ -73,19 +81,22 @@ func (s *Services) Run(ctx context.Context) error {
 	}
 }
 
-func (s *Services) note(seen map[string]*serviceSeen, name, state, health string) {
+func (s *Services) note(seen map[string]*serviceSeen, name, state, health string, exit int) {
 	prev := seen[name]
-	if prev != nil && prev.state == state && prev.health == health {
+	if prev != nil && prev.state == state && prev.health == health && prev.exit == exit {
 		return
 	}
-	next := &serviceSeen{state: state, health: health, rev: 1}
+	next := &serviceSeen{state: state, health: health, exit: exit, rev: 1}
 	if prev != nil {
 		next.rev = prev.rev + 1
 	}
 	seen[name] = next
-	attrs := contract.Attrs{"table": ServicesCollector, "label": name, "status": state, "tone": string(tone(state, health))}
+	attrs := contract.Attrs{"table": ServicesCollector, "label": name, "status": state, "tone": string(tone(state, health, exit))}
 	if health != "" {
 		attrs["health"] = health
+	}
+	if exit >= 0 {
+		attrs["exitCode"] = exit
 	}
 	_, _ = s.Emit.Append(contract.Signal{
 		Kind: contract.SignalKindEvent, Collector: ServicesCollector, TSSource: contract.TimeSourceHost,

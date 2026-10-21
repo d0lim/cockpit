@@ -143,6 +143,10 @@ func Main(c context.Context, argv []string, io IO) int {
 	if i := indexOf(words, "--"); i >= 0 {
 		options = words[:i]
 	}
+	if wantsHelp(words, options) {
+		fmt.Fprintln(io.Stdout, strings.Join(usageLines, "\n"))
+		return ExitOK
+	}
 	raw := io.Getenv(EnvURL)
 	if raw == "" {
 		raw = DefaultURL
@@ -165,6 +169,10 @@ func Main(c context.Context, argv []string, io IO) int {
 		return x.emit(ExitError, CodeCLIError, map[string]any{"message": err.Error()}, []string{labels.Text(labels.MsgUnexpected, map[string]string{"error": err.Error()})}, true)
 	}
 	return code
+}
+
+func wantsHelp(words, options []string) bool {
+	return indexOf(options, "--help") >= 0 || indexOf(options, "-h") >= 0 || (len(words) > 1 && words[1] == "help")
 }
 
 func indexOf(list []string, s string) int {

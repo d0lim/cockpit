@@ -201,3 +201,16 @@ func TestUsageErrorsAreThreeAndWritesCarryTheGuardHeaders(t *testing.T) {
 		t.Fatalf("headers %v", last)
 	}
 }
+
+func TestHelpPrintsTheUsageAndExitsZeroWithoutCallingTheHub(t *testing.T) {
+	url := deadURL(t)
+	for _, argv := range [][]string{{"--help"}, {"-h"}, {"help"}, {"submit", "--help"}, {"stop", id, "-h"}} {
+		got := invoke(t, url, argv...)
+		if got.code != ExitOK || !strings.Contains(got.stdout, "usage: ") || !strings.Contains(got.stdout, "submit [--commit") {
+			t.Errorf("%v: %+v", argv, got)
+		}
+	}
+	if got := invoke(t, url, "exec", id, "--", "-h"); got.code == ExitOK {
+		t.Fatalf("a -h after -- is a flow argument, not help: %+v", got)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/d0lim/cockpit/internal/compose"
@@ -25,9 +26,10 @@ var psFormat = strings.Join([]string{
 }, "\t")
 
 type ServiceState struct {
-	Service string `json:"service"`
-	State   string `json:"state"`
-	Health  string `json:"health,omitempty"`
+	Service  string `json:"service"`
+	State    string `json:"state"`
+	Health   string `json:"health,omitempty"`
+	ExitCode *int   `json:"exitCode,omitempty"`
 }
 
 type container struct {
@@ -93,10 +95,24 @@ func (p *Port) PS(ctx context.Context) ([]ServiceState, error) {
 	out := []ServiceState{}
 	for _, c := range cs {
 		if p.target(c) {
-			out = append(out, ServiceState{Service: c.service, State: c.state, Health: health(c.status)})
+			out = append(out, ServiceState{Service: c.service, State: c.state, Health: health(c.status), ExitCode: exitCode(c.status)})
 		}
 	}
 	return out, nil
+}
+
+var exitedStatus = regexp.MustCompile(`^Exited \((\d+)\)`)
+
+func exitCode(status string) *int {
+	m := exitedStatus.FindStringSubmatch(status)
+	if m == nil {
+		return nil
+	}
+	code, err := strconv.Atoi(m[1])
+	if err != nil {
+		return nil
+	}
+	return &code
 }
 
 func health(status string) string {

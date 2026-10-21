@@ -105,7 +105,7 @@ func TestProjectCallsNameTheProjectAndKeepTheComposeHygieneFlags(t *testing.T) {
 		t.Fatalf("up %q", up)
 	}
 	down := d.calls[len(d.calls)-1]
-	if !slices.Equal(down[len(down)-5:], []string{"--profile", "*", "down", "-v", "--remove-orphans"}) {
+	if !slices.Equal(down[len(down)-7:], []string{"--profile", "*", "down", "-v", "--remove-orphans", "--rmi", "local"}) {
 		t.Fatalf("down %q", down)
 	}
 }

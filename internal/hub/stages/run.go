@@ -2,6 +2,7 @@ package stages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -106,7 +107,7 @@ func AwaitBoot(ctx context.Context, p compose.Project, expected []string, oneSho
 
 func (e *Env) Boot(ctx context.Context) error {
 	if err := e.Project.Up(ctx); err != nil {
-		return err
+		return e.diagnose(ctx, err)
 	}
 	config := e.Config
 	if config == nil {
@@ -115,7 +116,12 @@ func (e *Env) Boot(ctx context.Context) error {
 			return err
 		}
 	}
-	return AwaitBoot(ctx, e.Project, e.Loaded.Declaration.Project.ExpectedServices, compose.OneShots(config), e.Limits.Boot, e.Limits.Poll)
+	err := AwaitBoot(ctx, e.Project, e.Loaded.Declaration.Project.ExpectedServices, compose.OneShots(config), e.Limits.Boot, e.Limits.Poll)
+	var failed *Failed
+	if errors.As(err, &failed) {
+		return e.diagnose(ctx, err)
+	}
+	return err
 }
 
 func (e *Env) RunSuite(ctx context.Context, suite string) (compose.RunnerResult, error) {

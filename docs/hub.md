@@ -187,4 +187,4 @@ cockpit runs submit --wait
 | `missing`, `schema`, `confinement`, `host-api`, `ports`, `compose` | the field the message names; see [harness](harness.md#reading-the-declaration) |
 | a suite name is needed | pass `--suite`; the message lists the commit's suites |
 | the seal check fails | a service reaches outside the run or binds a path outside it; the report's seal result names the assertion ([sealing](sealing.md)) |
-| boot fails | compose names the service that did not start, exited non-zero or never became healthy. The hub keeps no container logs from a failed boot, but the run's containers stay until the run is destroyed, so `docker logs <run id>-<service>-1` shows that service's output |
+| boot fails | the notice names the service that exited non-zero, died or stayed unhealthy, and the run's tail holds the last 40 lines of its log, masked: the run's page shows the tail, and `cockpit runs report <id>` prints its last lines. The containers stay stopped until the run is destroyed |

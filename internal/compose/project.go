@@ -4,11 +4,27 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 )
 
-const failureTail = 20
+const (
+	failureTail = 20
+	StepUp      = "compose up"
+)
+
+var progressLine = regexp.MustCompile(`^\W*(?:Container|Network|Volume|Image)\s+\S+\s+(?:Creating|Created|Recreate|Recreated|Starting|Started|Waiting|Healthy|Running|Stopping|Stopped|Removing|Removed|Pulling|Pulled|Building|Built|Exited)\s*$`)
+
+func withoutProgress(text string) string {
+	var kept []string
+	for _, line := range strings.Split(text, "\n") {
+		if !progressLine.MatchString(line) {
+			kept = append(kept, line)
+		}
+	}
+	return strings.Join(kept, "\n")
+}
 
 type Project struct {
 	Docker Docker
@@ -55,7 +71,7 @@ func (p Project) run(ctx context.Context, step string, args []string) (Result, e
 		return res, fmt.Errorf("%s: %w", step, err)
 	}
 	if res.Code != 0 {
-		return res, &Failed{Step: step, Code: res.Code, Tail: p.Mask(tail(string(res.Stderr), failureTail))}
+		return res, &Failed{Step: step, Code: res.Code, Tail: p.Mask(tail(withoutProgress(string(res.Stderr)), failureTail))}
 	}
 	return res, nil
 }
@@ -104,7 +120,7 @@ func (p Project) Build(ctx context.Context, builder string) error {
 }
 
 func (p Project) Up(ctx context.Context) error {
-	_, err := p.Compose(ctx, "compose up", "up", "-d", "--no-build")
+	_, err := p.Compose(ctx, StepUp, "up", "-d", "--no-build")
 	return err
 }
 
@@ -136,7 +152,7 @@ func (p Project) Down(ctx context.Context) error {
 	if _, err := p.RemoveOneOffs(ctx, ""); err != nil {
 		return err
 	}
-	_, err := p.ByName(ctx, "compose down", "--profile", "*", "down", "-v", "--remove-orphans")
+	_, err := p.ByName(ctx, "compose down", "--profile", "*", "down", "-v", "--remove-orphans", "--rmi", "local")
 	return err
 }
 

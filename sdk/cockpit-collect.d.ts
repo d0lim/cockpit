@@ -66,6 +66,8 @@ declare module "cockpit:collect" {
 		service: string;
 		state: string;
 		health?: string;
+		/** The exit code of a container that exited; absent while it runs. */
+		exitCode?: number;
 	}
 	export interface TextOutput {
 		text: string;

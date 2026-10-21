@@ -94,6 +94,7 @@ Rules:
 - `submit` sends the git top level of the current directory, `--commit` (default `HEAD`), `--suite`, `--submitter` (then `COCKPIT_SUBMITTER`, then `cli`) and `--new`.
 - `--wait` and `wait` poll the run until it settles. They reconnect for 60 seconds when the hub goes away.
 - `exec <id> -- <flow id>` reruns one flow in a finished run whose environment is up.
+- `--help`, `-h` or `help` prints the usage and exits 0, with or without a command.
 - `--json` prints exactly one JSON object line: `{"schemaVersion": 1, "code": <stable code>, ...}`. The stable codes are `cli.StableCodes()`: the CLI's own codes plus the hub's `api.Codes`.
 
 | Exit | Meaning |

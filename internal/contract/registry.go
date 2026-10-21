@@ -158,6 +158,7 @@ export interface ServiceState {
 	service: string;
 	state: string;
 	health?: string;
+	exitCode?: number;
 }
 export interface TextOutput {
 	text: string;

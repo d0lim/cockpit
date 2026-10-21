@@ -60,7 +60,7 @@ func standardPS() []string {
 	return []string{
 		psLine("c-app", "app", "running", "Up 2 minutes (healthy)", project, runID, ""),
 		psLine("c-db", "db", "running", "Up 2 minutes (health: starting)", project, runID, ""),
-		psLine("c-worker", "worker", "exited", "Exited (0) 1 minute ago", project, runID, ""),
+		psLine("c-worker", "worker", "exited", "Exited (3) 1 minute ago", project, runID, ""),
 		psLine("c-edge", "edge", "running", "Up", project, runID, compose.RoleEdge),
 		psLine("c-probe", "probe", "exited", "Exited (0)", project, runID, compose.RoleProbe),
 		psLine("c-toolbox", "toolbox", "exited", "Exited (0)", project, runID, compose.RoleBuilder),

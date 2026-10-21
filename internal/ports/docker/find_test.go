@@ -2,6 +2,7 @@ package dockerport
 
 import (
 	"context"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -54,8 +55,9 @@ func TestPSListsOnlyThisRunsTargetServicesWithTheirHealth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []ServiceState{{"app", "running", "healthy"}, {"db", "running", "starting"}, {"worker", "exited", ""}}
-	if !slices.Equal(got, want) {
+	three := 3
+	want := []ServiceState{{"app", "running", "healthy", nil}, {"db", "running", "starting", nil}, {"worker", "exited", "", &three}}
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("%+v", got)
 	}
 	ps := f.commands("ps")
