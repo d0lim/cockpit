@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -30,7 +31,10 @@ import (
 	"github.com/d0lim/cockpit/internal/signal"
 )
 
-const planted = "PLANTED-screen-secret-7d21aa"
+const (
+	planted = "PLANTED-screen-secret-7d21aa"
+	toyRepo = "/work/toy-repo"
+)
 
 type fixture struct {
 	t       *testing.T
@@ -43,8 +47,9 @@ type fixture struct {
 }
 
 type fakeSignals struct {
-	mu   sync.Mutex
-	list []contract.Signal
+	mu        sync.Mutex
+	list      []contract.Signal
+	destroyed bool
 }
 
 func (f *fakeSignals) add(s ...contract.Signal) {
@@ -59,6 +64,9 @@ func (f *fakeSignals) add(s ...contract.Signal) {
 func (f *fakeSignals) Read(_ string, req signal.ReadRequest) (signal.ReadResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.destroyed {
+		return signal.ReadResponse{}, signal.ErrRunDestroyed
+	}
 	resp := signal.ReadResponse{Signals: []contract.Signal{}, Dropped: map[string]int64{}, Next: req.After}
 	for _, s := range f.list {
 		if s.Seq > req.After && (req.Limit == 0 || len(resp.Signals) < req.Limit) {
@@ -82,6 +90,13 @@ func newFixture(t *testing.T) *fixture {
 	}
 	reader := api.NewReader(api.Deps{
 		Store: st, Scheduler: sched, Signals: f.signals, Mask: func(string) *mask.Masker { return masker },
+		Repos: []string{toyRepo},
+		Suites: func(_ context.Context, worktree string) ([]string, error) {
+			if worktree != toyRepo {
+				return nil, errors.New(worktree + " is not listed in allowedRepositories")
+			}
+			return []string{"joint", "canary"}, nil
+		},
 		Services: func(store.Meta) []api.ServicePort {
 			return []api.ServicePort{{Name: "app", Service: "app", Port: 8080, HostPort: 22101, Label: "App", Open: contract.OpenBrowser}}
 		},

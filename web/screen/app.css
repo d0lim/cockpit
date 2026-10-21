@@ -162,6 +162,9 @@
 	.btn {
 		@apply rounded-md border border-line bg-surface px-3 py-1.5 text-sm hover:border-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line;
 	}
+	.field {
+		@apply rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-fg outline-none focus:border-accent;
+	}
 	.btn-danger {
 		@apply border-bad text-bad;
 	}

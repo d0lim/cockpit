@@ -95,9 +95,6 @@ func (a *api) submit(w http.ResponseWriter, r *http.Request) error {
 	if in.Suite, err = text(body, "suite", false); err != nil {
 		return err
 	}
-	if in.Suite != "" && !suitePattern.MatchString(in.Suite) {
-		return badRequest("the suite name must be lowercase letters, digits and -, up to 63 characters")
-	}
 	if v, ok := body["new"]; ok {
 		b, isBool := v.(bool)
 		if !isBool {
@@ -108,12 +105,11 @@ func (a *api) submit(w http.ResponseWriter, r *http.Request) error {
 	if in.Submitter, err = submitterOf(r, body); err != nil {
 		return err
 	}
-	res := a.d.Scheduler.Submit(r.Context(), in)
-	a.changed()
-	if res.Fail != nil {
-		return fromFailure(res.Fail)
+	submitted, err := a.reader().Submit(r.Context(), in)
+	if err != nil {
+		return err
 	}
-	writeJSON(a.log(), w, http.StatusAccepted, Submitted{ID: res.ID, Phase: res.Phase, Position: res.Position, Merged: res.Merged})
+	writeJSON(a.log(), w, http.StatusAccepted, submitted)
 	return nil
 }
 

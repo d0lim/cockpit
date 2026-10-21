@@ -33,10 +33,10 @@ The registry changes only what the screen shows. The running cap counts every ru
 
 | Path | Screen | Question | Holds |
 |---|---|---|---|
-| `/` | Runs | What is happening on this hub now? | The queue and the active run, the kept pool with its five places, the ended runs. A row is the run id, suite, commit, lifecycle and verdict, and links to the run's default screen. |
+| `/` | Runs | What is happening on this hub now? | The queue and the active run, the kept pool with its five places, the ended runs, and a form that submits a run. A row is the run id, suite, commit, lifecycle and verdict, and links to the run's default screen. |
 | `/runs/{id}` | Overview | What state is this run in, and what can I do? | Lifecycle and verdict, the reasons and notices, the actions the run allows, and the pipeline stages it passed. |
 | `/runs/{id}/report` | Report | Did it pass, and if not, why? | The verdict and its reasons, the stage → flow → step table and what was not counted as passed. |
-| `/runs/{id}/report/{flow}` | Flow | What did this flow do, and where did it stop? | The flow's steps with their requests, responses and expectations, and the source of the failing step. |
+| `/runs/{id}/report/{flow}` | Flow | What did this flow do, and where did it stop? | The flow's steps, each with the requests it sent, the ids it marked and what the environment recorded under those ids, and the source line of the picked step. |
 | `/runs/{id}/signals/{view}` | Signals | What happened inside the environment while the suite ran? | One of four views (`trace`, `events`, `table`, `logs`) and the collector status. |
 | `/runs/{id}/env` | Environment | How do I get into this environment? | The service ports with their open modes, the kit, the exec command and the flows it can run again, and the report bundle path. |
 | `/runs/{id}/pipeline` | Pipeline | What did each stage print? | The masked pipeline output lines. |
@@ -68,7 +68,7 @@ The registry changes only what the screen shows. The running cap counts every ru
 | Other stacks | `stacks` | `runs` |
 | Overview | `run-overview` | `runs` |
 | Report | `report` | `runs` |
-| Flow | `flow` | `runs` |
+| Flow | `flow` | `runs`, new signals |
 | Signals | `signals` | new signals |
 | Signals | `collectors` | `runs`, new signals |
 | Environment | `env` | `runs` |
@@ -81,9 +81,16 @@ The registry changes only what the screen shows. The running cap counts every ru
 What a screen shows besides its run lives in its query, so a reload, a pasted URL and the live connection render the same thing:
 
 - Flow: `step`, the picked step; its line is marked in the code view and scrolled to once.
-- Signals: `trace` and `span` for the trace view, `f` (repeatable, `key:value`) and `event` for the events view, `hide` (repeatable, `<table>.<column>`) for the table view, `source` for the logs view.
+- Signals: `trace` and `span` for the trace view, `f` (repeatable, `key:value`), `q` (text search) and `event` for the events view, `hide` (repeatable, `<table>.<column>`) for the table view, `source` for the logs view.
 
 Signals are read once per run into a cache that keeps the latest 20,000 and reads only the new ones on each render; a run nobody reads for ten minutes leaves the cache. The events view shows the latest 500 events, a table the latest 500 rows, the logs view the latest 2,000 lines of one source.
+
+## Reading signals
+
+- **Correlation.** The ids of a run are the values that a step marked with `ref` and the values of `ref.` attributes (`docs/signals.md`), except masked ones. A signal carries an id when one of its attribute values, or a top-level field of its JSON object body, equals it. A picked span, event or table row shows its `ref.` attributes and the other ids it carries as links to the events view searched for that id, then lists the related signals: the steps that marked one of its ids, then up to 40 other signals that carry one of them, each linking to where it is shown (a step to the Flow screen, a span to the trace view, a log line to its log source, any other event to the events view). A table whose rows carry an id that a step marked gets a `step` column linking to those steps. On the Flow screen the picked step lists the requests it sent (each linking to its span), the ids it marked and the signals related to them, so a database row leads back to the request that made it.
+- **Table view.** Its columns are the signal attributes other than `table` and the `ref.` keys, then, when a signal's body is a JSON object, the keys of that object, so a collector that puts a database row in the body shows the row's columns.
+- **Events view.** `q` keeps the events whose collector, id, attributes or body contain the text, ignoring case, among all the events read; the filters and the window of 500 apply after it. The detail shows a JSON object body indented.
+- **After destroy.** A destroyed run's Signals screen reads the frozen copy in its report bundle and says so.
 
 ## Actions
 
@@ -92,6 +99,7 @@ The run actions are forms that post to `POST /runs/{id}/do/{op}`, where `op` is 
 - The hub runs the operation through the same scheduler call as `POST /api/runs/{id}/{op}`, with the actor `ui`, and answers with a notice fragment: the result on success, or the problem message and code with the problem's status on refusal. htmx 4 swaps 4xx answers, so a refusal shows where the action was.
 - The run's new state reaches the page through the live connection, not through the action's answer.
 - Destroy asks for confirmation with `hx-confirm`.
+- The Runs screen submits a run with `POST /runs/submit`: a repository from the hub's `allowedRepositories`, a commit (default `HEAD`) and a suite chosen from the suites that repository's `HEAD` declares (`GET /runs/suites?worktree=<path>` answers the options). It runs the same submission as `POST /api/runs`, with the submitter `ui`, and answers with a notice that links to the new run.
 
 ## Assets
 

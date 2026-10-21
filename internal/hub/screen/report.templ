@@ -151,7 +151,7 @@ func sealTone(s contract.SealVerdict) Tone {
 
 templ flowPage(st *state) {
 	@runHead(st)
-	@question("What did this flow do, and where did it stop", "Its steps in order. Pick a step to see its line in the suite source.")
+	@question("What did this flow do, and where did it stop", "Its steps in order. Pick a step to see its requests, the ids it marked, what the environment recorded under them, and its line in the suite source.")
 	@flowRegion(st)
 }
 
@@ -196,6 +196,9 @@ templ flowSteps(st *state, fv api.FlowView) {
 							<span class={ "mt-1 block whitespace-pre-wrap text-xs", templ.KV("text-bad", s.Status == contract.StepStatusFailed) }>{ s.Message }</span>
 						}
 					</a>
+					if s.ID == st.query.Get("step") {
+						@stepRecords(st, fv.Flow.ID, s)
+					}
 				</li>
 			}
 		</ol>

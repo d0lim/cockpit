@@ -1,8 +1,10 @@
 package screen
 
 import (
+	"encoding/json"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/d0lim/cockpit/internal/contract"
 )
@@ -11,7 +13,22 @@ type signalTable struct {
 	name    string
 	columns []string
 	rows    []contract.Signal
+	bodies  []map[string]any
 	total   int
+	steps   bool
+}
+
+func (st *state) markSteps(list []signalTable) []signalTable {
+	c := st.correlation()
+	for i := range list {
+		for _, s := range list[i].rows {
+			if len(c.stepsOf(s)) > 0 {
+				list[i].steps = true
+				break
+			}
+		}
+	}
+	return list
 }
 
 var firstColumns = []string{"label", "status", "tone"}
@@ -38,16 +55,31 @@ func tables(signals []contract.Signal) []signalTable {
 	for i := range out {
 		out[i].total = len(out[i].rows)
 		out[i].rows = lastN(out[i].rows, tableWindow)
-		out[i].columns = columnsOf(out[i].rows)
+		out[i].bodies = make([]map[string]any, len(out[i].rows))
+		for j, s := range out[i].rows {
+			out[i].bodies[j] = bodyObject(s)
+		}
+		out[i].columns = columnsOf(out[i].rows, out[i].bodies)
 	}
 	return out
 }
 
-func columnsOf(rows []contract.Signal) []string {
+func bodyObject(s contract.Signal) map[string]any {
+	if s.Event == nil || !strings.HasPrefix(strings.TrimSpace(s.Event.Body), "{") {
+		return nil
+	}
+	var m map[string]any
+	if json.Unmarshal([]byte(s.Event.Body), &m) != nil {
+		return nil
+	}
+	return m
+}
+
+func columnsOf(rows []contract.Signal, bodies []map[string]any) []string {
 	keys := map[string]bool{}
 	for _, s := range rows {
 		for k := range s.Attrs {
-			if k != "table" {
+			if k != "table" && !isRef(k) {
 				keys[k] = true
 			}
 		}
@@ -68,14 +100,55 @@ func columnsOf(rows []contract.Signal) []string {
 		}
 	}
 	slices.Sort(rest)
-	return append(out, rest...)
+	out = append(out, rest...)
+	seen := map[string]bool{}
+	for i, s := range rows {
+		if bodies[i] == nil {
+			continue
+		}
+		for _, k := range bodyKeys(s) {
+			if !keys[k] && !seen[k] {
+				seen[k] = true
+				out = append(out, k)
+			}
+		}
+	}
+	return out
 }
 
-func cellOf(s contract.Signal, column string) string {
+func bodyKeys(s contract.Signal) []string {
+	if s.Event == nil {
+		return nil
+	}
+	dec := json.NewDecoder(strings.NewReader(s.Event.Body))
+	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
+		return nil
+	}
+	var keys []string
+	for dec.More() {
+		t, err := dec.Token()
+		if err != nil {
+			return keys
+		}
+		if k, ok := t.(string); ok {
+			keys = append(keys, k)
+		}
+		var skip json.RawMessage
+		if dec.Decode(&skip) != nil {
+			return keys
+		}
+	}
+	return keys
+}
+
+func cellOf(s contract.Signal, body map[string]any, column string) string {
 	if column == "value" && s.Metric != nil {
 		return strconv.FormatFloat(s.Metric.Value, 'f', -1, 64)
 	}
-	return attrText(s.Attrs[column])
+	if v, ok := s.Attrs[column]; ok {
+		return attrText(v)
+	}
+	return attrText(body[column])
 }
 
 type logSource struct {

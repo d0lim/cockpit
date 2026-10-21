@@ -86,7 +86,7 @@ var views = []view{
 	},
 	{
 		pattern: "/runs/{id}/report/{flow}", title: "Flow", tab: TabReport, run: true, served: true, check: flowExists,
-		own:  []region{{id: "flow", kinds: []sse.Kind{sse.KindRuns}, render: flowRegion}},
+		own:  []region{{id: "flow", kinds: []sse.Kind{sse.KindRuns}, signals: true, render: flowRegion}},
 		body: flowPage,
 	},
 	{

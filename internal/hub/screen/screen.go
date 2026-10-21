@@ -62,6 +62,7 @@ type state struct {
 	tab    string
 
 	services map[string]serviceState
+	corr     *correlation
 }
 
 func (s *Screen) load(ctx context.Context, path string, query url.Values) (*state, error) {
@@ -103,6 +104,8 @@ func (s *Screen) Handler() http.Handler {
 		mux.HandleFunc("GET "+v.pattern, func(w http.ResponseWriter, r *http.Request) { s.page(w, r, v) })
 	}
 	mux.HandleFunc("POST /runs/{id}/do/{op}", s.act)
+	mux.HandleFunc("POST /runs/submit", s.submit)
+	mux.HandleFunc("GET /runs/suites", s.suites)
 	if s.d.Assets != nil {
 		files := http.StripPrefix("/assets/", http.FileServerFS(s.d.Assets))
 		mux.HandleFunc("GET /assets/", func(w http.ResponseWriter, r *http.Request) {

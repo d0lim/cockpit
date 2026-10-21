@@ -128,7 +128,7 @@ func Run(ctx context.Context, o Options) error {
 	runs := newRunsSync(sched, bus, hubs.Hubs, o.Log)
 	deps := api.Deps{
 		Port: port, Store: st, Scheduler: sched, Signals: built.Signals, Collectors: built.Collectors,
-		Services: built.Services, Suites: built.Suites, Mask: built.Mask, Hubs: hubs.Hubs, Changed: runs.kick,
+		Services: built.Services, Suites: built.Suites, Repos: cfg.AllowedRepositories, Mask: built.Mask, Hubs: hubs.Hubs, Changed: runs.kick,
 		Stream: &sse.Stream{Bus: bus, Signals: built.Signals, Ping: o.Ping, Poll: o.Poll}, Log: o.Log,
 	}
 	sc := screen.New(screen.Deps{Reader: api.NewReader(deps), Bus: bus, Assets: ui.Files(), Identity: screen.Identity{Home: dir, Port: port}, Log: o.Log})

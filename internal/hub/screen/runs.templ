@@ -13,6 +13,9 @@ templ runsPage(st *state) {
 		<h1 class="text-lg font-semibold">What is happening on this hub now</h1>
 		<p class="text-sm text-muted">The queue, the kept environments and the runs that ended. Pick a run to see it.</p>
 	</div>
+	<div class="mb-8">
+		@submitForm(st)
+	</div>
 	@runsRegion(st)
 }
 
@@ -27,7 +30,7 @@ templ runsRegion(st *state) {
 		}
 		if len(st.list.Runs) == 0 {
 			<div class="card text-center">
-				<p class="text-muted">No runs yet. Submit one from the consumer repository:</p>
+				<p class="text-muted">No runs yet. Submit one above, or from the consumer repository:</p>
 				<pre class="console mt-3 inline-block">{ submitHint }</pre>
 			</div>
 		} else {

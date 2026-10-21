@@ -1,0 +1,77 @@
+package screen
+
+import (
+	"net/url"
+	"strconv"
+
+	"github.com/d0lim/cockpit/internal/contract"
+)
+
+func callHref(st *state, flow, step string, n int) string {
+	span := "call:" + flow + "/" + step + "/" + strconv.Itoa(n)
+	return "/runs/" + st.run.ID + "/signals/trace?" + url.Values{"trace": {st.run.ID}, "span": {span}}.Encode()
+}
+
+func callTone(c contract.StepCall) Tone {
+	if c.Status != nil && *c.Status < 400 {
+		return ToneOK
+	}
+	return ToneBad
+}
+
+func callStatus(c contract.StepCall) string {
+	if c.Status == nil {
+		return "no response"
+	}
+	return strconv.Itoa(*c.Status)
+}
+
+func refValues(refs []contract.StepRef) []string {
+	out := make([]string, len(refs))
+	for i, r := range refs {
+		out[i] = r.Value
+	}
+	return out
+}
+
+func refChips(refs []contract.StepRef) []chip {
+	out := make([]chip, len(refs))
+	for i, r := range refs {
+		out[i] = chip{r.Name, r.Value}
+	}
+	return out
+}
+
+func stepSelf(st *state, flow, step string) string {
+	return "span\x00" + st.run.ID + "\x00" + stepPrefix + flow + "/" + step
+}
+
+templ stepRecords(st *state, flow string, s contract.FlowStep) {
+	<div class="mt-2 space-y-3 rounded-md border border-line p-3" aria-label={ "records of " + s.ID }>
+		if len(s.Calls) == 0 && len(s.Refs) == 0 {
+			<p class="text-xs text-muted">This step recorded no request and marked no id.</p>
+		}
+		if len(s.Calls) > 0 {
+			<div>
+				<p class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Requests</p>
+				<ol class="space-y-1 text-xs">
+					for i, c := range s.Calls {
+						<li class="flex items-center gap-2">
+							<span class="font-mono text-muted">{ clock(c.StartedAt) }</span>
+							@badge(callTone(c), callStatus(c))
+							<a class="link min-w-0 truncate font-mono" href={ templ.SafeURL(callHref(st, flow, s.ID, i+1)) }>{ c.Method } { c.Path }</a>
+							<span class="ml-auto shrink-0 text-muted">{ c.Host } · { itoa(int(c.DurationMs)) }ms</span>
+						</li>
+					}
+				</ol>
+			</div>
+		}
+		if len(s.Refs) > 0 {
+			<div class="space-y-2">
+				<p class="text-xs font-semibold uppercase tracking-wide text-muted">Ids this step marked</p>
+				@refLinks(st, refChips(s.Refs))
+				@relatedList(st, refValues(s.Refs), stepSelf(st, flow, s.ID))
+			</div>
+		}
+	</div>
+}

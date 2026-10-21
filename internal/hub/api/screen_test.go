@@ -71,22 +71,28 @@ func TestTheScreenIsServedAtTheRootBehindTheHostGuard(t *testing.T) {
 func TestAScreenWriteReachesTheScreenOnlyWithTheWriteGuardHeaders(t *testing.T) {
 	stub := &stubScreen{}
 	f := newFixture(t, func(d *Deps) { d.Screen = stub })
-	path := "/runs/" + rid(1) + "/do/keep"
+	paths := []string{"/runs/" + rid(1) + "/do/keep", "/runs/submit"}
 	denied := map[string]http.Header{
 		"no origin":      {HeaderCockpit: {"1"}},
 		"foreign origin": {"Origin": {"http://evil.example"}, HeaderCockpit: {"1"}},
 		"no header":      {"Origin": {f.origin}},
 	}
-	for name, h := range denied {
-		if status, raw := f.do(http.MethodPost, path, nil, h); status != http.StatusForbidden {
-			t.Errorf("%s: %d %s", name, status, raw)
+	tried := 0
+	for _, path := range paths {
+		for name, h := range denied {
+			tried++
+			if status, raw := f.do(http.MethodPost, path, nil, h); status != http.StatusForbidden {
+				t.Errorf("%s %s: %d %s", path, name, status, raw)
+			}
 		}
 	}
-	if stub.writes.Load() != 0 || len(denied) != 3 {
-		t.Fatalf("%d writes reached the screen", stub.writes.Load())
+	if stub.writes.Load() != 0 || tried != 6 {
+		t.Fatalf("%d writes reached the screen after %d tries", stub.writes.Load(), tried)
 	}
-	if status, raw := f.do(http.MethodPost, path, nil, f.cli()); status != http.StatusAccepted || stub.writes.Load() != 1 {
-		t.Fatalf("guarded write %d %s, %d writes", status, raw, stub.writes.Load())
+	for i, path := range paths {
+		if status, raw := f.do(http.MethodPost, path, nil, f.cli()); status != http.StatusAccepted || stub.writes.Load() != int32(i+1) {
+			t.Fatalf("guarded write to %s: %d %s, %d writes", path, status, raw, stub.writes.Load())
+		}
 	}
 }
 

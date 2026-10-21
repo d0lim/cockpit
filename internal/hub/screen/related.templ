@@ -1,0 +1,70 @@
+package screen
+
+import "github.com/d0lim/cockpit/internal/contract"
+
+templ refLinks(st *state, refs []chip) {
+	if len(refs) > 0 {
+		<div class="flex flex-wrap gap-1" aria-label="Marked ids">
+			for _, r := range refs {
+				<a class="pill" href={ templ.SafeURL(st.searchHref(r.value)) } title="Search the events for this id">{ r.key } = <span class="font-mono">{ r.value }</span></a>
+			}
+		</div>
+	}
+}
+
+templ stepLinks(st *state, steps []contract.Signal) {
+	for i, s := range steps {
+		if i > 0 {
+			<span class="text-muted">, </span>
+		}
+		<a class="link font-mono text-xs" href={ templ.SafeURL(st.signalHref(s)) }>{ signalName(s) }</a>
+	}
+}
+
+templ relatedList(st *state, ids []string, self string) {
+	if r := st.correlation().related(ids, self); len(r.steps)+len(r.others) > 0 {
+		<div class="space-y-2" aria-label="Related signals">
+			<p class="text-xs font-semibold uppercase tracking-wide text-muted">Related by id</p>
+			if len(r.steps) > 0 {
+				<p class="text-xs">
+					<span class="text-muted">Marked by </span>
+					@stepLinks(st, r.steps)
+				</p>
+			}
+			if len(r.others) > 0 {
+				<ul class="space-y-1 text-xs">
+					for _, s := range r.others {
+						<li class="flex items-center gap-2">
+							<span class="font-mono text-muted">{ clock(s.TS) }</span>
+							<a class="link min-w-0 truncate" href={ templ.SafeURL(st.signalHref(s)) }>{ signalName(s) }</a>
+							if v := attrText(s.Attrs["status"]); v != "" {
+								@badge(toneOfAttr(s.Attrs["tone"]), v)
+							}
+						</li>
+					}
+				</ul>
+			}
+			if r.more > 0 {
+				<p class="text-xs text-muted">and { itoa(r.more) } more; search an id above to see them all.</p>
+			}
+		</div>
+	}
+}
+
+templ idChips(st *state, ids []string) {
+	if len(ids) > 0 {
+		<div class="flex flex-wrap gap-1" aria-label="Ids in this signal">
+			for _, v := range ids {
+				<a class="pill font-mono" href={ templ.SafeURL(st.searchHref(v)) } title="Search the events for this id">{ v }</a>
+			}
+		</div>
+	}
+}
+
+templ signalDetail(st *state, s contract.Signal) {
+	@refLinks(st, refAttrs(s))
+	if ids := st.correlation().idsOf(s); true {
+		@idChips(st, unnamed(s, ids))
+		@relatedList(st, ids, sigKey(s))
+	}
+}

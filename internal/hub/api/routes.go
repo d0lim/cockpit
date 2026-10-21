@@ -50,6 +50,7 @@ type Deps struct {
 	Collectors Collectors
 	Services   func(m store.Meta) []ServicePort
 	Suites     func(ctx context.Context, worktree string) ([]string, error)
+	Repos      []string
 	Mask       func(runID string) *mask.Masker
 	Hubs       func() []registry.Hub
 	Changed    func()
@@ -201,16 +202,9 @@ type SuiteName struct {
 }
 
 func (a *api) suites(w http.ResponseWriter, r *http.Request) error {
-	worktree := r.URL.Query().Get("worktree")
-	view := SuitesView{Worktree: worktree, Suites: []SuiteName{}}
-	if a.d.Suites != nil && worktree != "" {
-		names, err := a.d.Suites(r.Context(), worktree)
-		if err != nil {
-			return badRequest(err.Error())
-		}
-		for _, n := range names {
-			view.Suites = append(view.Suites, SuiteName{Name: n})
-		}
+	view, err := a.reader().Suites(r.Context(), r.URL.Query().Get("worktree"))
+	if err != nil {
+		return err
 	}
 	writeJSON(a.log(), w, http.StatusOK, view)
 	return nil

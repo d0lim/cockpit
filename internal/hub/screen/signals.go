@@ -24,6 +24,7 @@ type signalSnapshot struct {
 	frozenSeq  int64
 	dropped    map[string]int64
 	refused    string
+	source     string
 	collectors []api.CollectorState
 }
 
@@ -87,7 +88,7 @@ func (c *signalCache) read(id string) signalSnapshot {
 			rs.snap.resyncs = append(rs.snap.resyncs, *view.Resync)
 		}
 		rs.snap.frozen, rs.snap.frozenSeq, rs.snap.dropped = view.Frozen, view.FrozenSeq, view.Dropped
-		rs.snap.collectors = view.Collectors
+		rs.snap.collectors, rs.snap.source = view.Collectors, view.Source
 		rs.seen = max(rs.seen, view.Next)
 		if len(view.Signals) < signalPage {
 			break

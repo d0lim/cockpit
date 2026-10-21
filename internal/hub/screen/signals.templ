@@ -92,6 +92,9 @@ templ signalsRegion(st *state) {
 			if snap.refused != "" {
 				<p class="notice tone-bad">{ snap.refused }</p>
 			}
+			if snap.source == api.SourceBundle {
+				<p class="notice tone-info">This run's environment was destroyed. These are the signals frozen into its report bundle when the report was finalized.</p>
+			}
 			for _, h := range snap.resyncs {
 				<p class="notice tone-warn">Signals { itoa(int(h.From)) }–{ itoa(int(h.To)) } were dropped before the hub read them; reading continues after them.</p>
 			}
@@ -119,9 +122,14 @@ templ emptyNotice(st *state, snap signalSnapshot, count int) {
 }
 
 templ eventsView(st *state, snap signalSnapshot, all []contract.Signal) {
-	if rows := eventRows(all); true {
-		@emptyNotice(st, snap, len(rows))
-		if latest := lastN(rows, eventWindow); len(latest) > 0 {
+	if every := eventRows(all); true {
+		@emptyNotice(st, snap, len(every))
+		if len(every) > 0 {
+			@searchForm(st)
+		}
+		if rows := searchRows(every, st.query.Get("q")); len(every) > 0 && len(rows) == 0 {
+			<p class="card text-sm text-muted">No event contains “{ st.query.Get("q") }”.</p>
+		} else if latest := lastN(rows, eventWindow); len(latest) > 0 {
 			<div class="flex flex-wrap gap-2" aria-label="Filters">
 				for _, c := range chipsOf(latest) {
 					<a href={ templ.SafeURL(st.toggle("f", c.String())) } class={ "pill", templ.KV("pill-on", slices.Contains(st.query["f"], c.String())) }>{ c.key }: { c.value }</a>
@@ -154,7 +162,7 @@ templ eventsView(st *state, snap signalSnapshot, all []contract.Signal) {
 						}
 					</ol>
 					if picked := pickEvent(shown, st.query.Get("event")); picked != nil {
-						@eventDetail(*picked)
+						@eventDetail(st, *picked)
 					}
 				</div>
 			}
@@ -200,7 +208,20 @@ func pickEvent(rows []contract.Signal, key string) *contract.Signal {
 	return nil
 }
 
-templ eventDetail(s contract.Signal) {
+templ searchForm(st *state) {
+	<form method="get" action={ templ.SafeURL(st.path) } class="flex gap-2" role="search">
+		for _, f := range st.query["f"] {
+			<input type="hidden" name="f" value={ f }/>
+		}
+		<input type="search" name="q" value={ st.query.Get("q") } placeholder="Search collectors, attributes and bodies" class="field w-full max-w-md"/>
+		<button type="submit" class="btn">Search</button>
+		if st.query.Get("q") != "" {
+			<a class="link self-center text-sm" href={ templ.SafeURL(st.href(map[string][]string{"q": nil, "event": nil})) }>Clear</a>
+		}
+	</form>
+}
+
+templ eventDetail(st *state, s contract.Signal) {
 	<aside class="card space-y-3 text-sm" aria-label="Event detail">
 		<dl class="kv">
 			<dt>seq</dt>
@@ -214,10 +235,13 @@ templ eventDetail(s contract.Signal) {
 			<dt>time</dt>
 			<dd>{ s.TS } · { string(s.TSSource) }</dd>
 			for _, k := range sortedKeys(s.Attrs) {
-				<dt>{ k }</dt>
-				<dd class="break-all">{ attrText(s.Attrs[k]) }</dd>
+				if !isRef(k) {
+					<dt>{ k }</dt>
+					<dd class="break-all">{ attrText(s.Attrs[k]) }</dd>
+				}
 			}
 		</dl>
+		@signalDetail(st, s)
 		if body, cut := bodyText(s); body != "" {
 			<pre class="console whitespace-pre-wrap">{ body }</pre>
 			if cut {

@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -243,8 +244,38 @@ func bodyText(s contract.Signal) (string, bool) {
 	if s.Event == nil {
 		return "", false
 	}
-	if len(s.Event.Body) > bodyLimit {
-		return s.Event.Body[:bodyLimit], true
+	body := s.Event.Body
+	var pretty bytes.Buffer
+	if strings.HasPrefix(strings.TrimSpace(body), "{") && json.Indent(&pretty, []byte(body), "", "  ") == nil {
+		body = pretty.String()
 	}
-	return s.Event.Body, false
+	if len(body) > bodyLimit {
+		return body[:bodyLimit], true
+	}
+	return body, false
+}
+
+func searchRows(rows []contract.Signal, q string) []contract.Signal {
+	q = strings.ToLower(strings.TrimSpace(q))
+	if q == "" {
+		return rows
+	}
+	var out []contract.Signal
+	for _, s := range rows {
+		if strings.Contains(strings.ToLower(searchText(s)), q) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+func searchText(s contract.Signal) string {
+	parts := []string{s.Collector, s.ID}
+	for k, v := range s.Attrs {
+		parts = append(parts, k, attrText(v))
+	}
+	if s.Event != nil {
+		parts = append(parts, s.Event.Body)
+	}
+	return strings.Join(parts, "\x00")
 }
