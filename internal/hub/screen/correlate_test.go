@@ -123,3 +123,22 @@ func TestADestroyedRunsSignalsComeFromItsBundleAndSaySo(t *testing.T) {
 		t.Fatalf("destroyed run signals: %s", body)
 	}
 }
+
+func TestARowReachesTheStepThroughAnotherRowThatDeclaresBothIds(t *testing.T) {
+	f := newFixture(t)
+	finished(f)
+	step := markedStep()
+	step.Attrs = contract.Attrs{"flow": "alpha", "step": "a1", "status": "passed", "ref.movement": "mv-7"}
+	link := row("movements", "mv-7", `{"id":"mv-7","transaction_id":"txn-7"}`)
+	link.Attrs["ref.movement"], link.Attrs["ref.transaction"] = "mv-7", "txn-7"
+	f.signals.add(step, link, row("ledger", "txn-7", `{"id":"txn-7","phase":"DONE"}`), row("ledger", "txn-8", `{"id":"txn-8","phase":"DONE"}`))
+	_, _, body := f.get("/runs/" + rid(1) + "/signals/table")
+	ledger := body[strings.Index(body, `aria-label="table ledger"`):]
+	if n := strings.Count(ledger, `/report/alpha?step=a1"`); n != 1 {
+		t.Fatalf("%d step links in the ledger table, want the txn-7 row only", n)
+	}
+	_, _, detail := f.get("/runs/" + rid(1) + "/signals/events?event=" + url.QueryEscape("toy-db/ledger:txn-7"))
+	if !strings.Contains(detail, ">alpha/a1<") || !strings.Contains(detail, "movements · movements:mv-7") {
+		t.Fatalf("the transaction row does not reach the step through the movement row")
+	}
+}

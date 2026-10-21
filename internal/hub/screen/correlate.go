@@ -3,6 +3,7 @@ package screen
 import (
 	"encoding/json"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/d0lim/cockpit/internal/contract"
@@ -18,6 +19,46 @@ type correlation struct {
 	ids    map[string]bool
 	carry  map[string][]contract.Signal
 	values map[string][]string
+	parent map[string]string
+	groups map[string][]string
+}
+
+func (c *correlation) root(id string) string {
+	for c.parent[id] != id {
+		c.parent[id] = c.parent[c.parent[id]]
+		id = c.parent[id]
+	}
+	return id
+}
+
+func (c *correlation) join(ids []string) {
+	for _, id := range ids {
+		if _, ok := c.parent[id]; !ok {
+			c.parent[id] = id
+		}
+	}
+	for _, id := range ids[min(1, len(ids)):] {
+		if a, b := c.root(ids[0]), c.root(id); a != b {
+			c.parent[b] = a
+		}
+	}
+}
+
+func (c *correlation) group(ids []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, id := range ids {
+		if _, ok := c.parent[id]; !ok {
+			continue
+		}
+		r := c.root(id)
+		if seen[r] {
+			continue
+		}
+		seen[r] = true
+		out = append(out, c.groups[r]...)
+	}
+	return out
 }
 
 func isRef(key string) bool { return strings.HasPrefix(key, signal.RefPrefix) }
@@ -53,18 +94,25 @@ func valuesOf(s contract.Signal) []string {
 }
 
 func correlate(signals []contract.Signal) *correlation {
-	c := &correlation{ids: map[string]bool{}, carry: map[string][]contract.Signal{}, values: map[string][]string{}}
+	c := &correlation{ids: map[string]bool{}, carry: map[string][]contract.Signal{}, values: map[string][]string{}, parent: map[string]string{}, groups: map[string][]string{}}
 	for _, s := range signals {
-		for k, v := range s.Attrs {
+		var declared []string
+		for _, k := range sortedKeys(s.Attrs) {
 			if isRef(k) {
-				if t := attrText(v); t != "" && !strings.Contains(t, "****") {
+				if t := attrText(s.Attrs[k]); t != "" && !strings.Contains(t, "****") {
 					c.ids[t] = true
+					declared = append(declared, t)
 				}
 			}
 		}
+		c.join(declared)
 	}
 	if len(c.ids) == 0 {
 		return c
+	}
+	for _, id := range sortedSet(c.ids) {
+		r := c.root(id)
+		c.groups[r] = append(c.groups[r], id)
 	}
 	for _, s := range signals {
 		key := sigKey(s)
@@ -98,7 +146,7 @@ type relatedSet struct {
 func (c *correlation) related(ids []string, self string) relatedSet {
 	var r relatedSet
 	seen := map[string]bool{self: true}
-	for _, id := range ids {
+	for _, id := range c.group(ids) {
 		for _, s := range c.carry[id] {
 			key := sigKey(s)
 			if seen[key] {
@@ -181,5 +229,14 @@ func unnamed(s contract.Signal, ids []string) []string {
 			out = append(out, v)
 		}
 	}
+	return out
+}
+
+func sortedSet(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	slices.Sort(out)
 	return out
 }

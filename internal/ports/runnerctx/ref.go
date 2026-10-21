@@ -42,6 +42,9 @@ func (d *Deps) addRef(name, value string) error {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if slices.Contains(d.refs, contract.StepRef{Name: name, Value: value}) {
+		return nil
+	}
 	if len(d.refs) >= maxRefs {
 		return ports.Limit(d.Mask, "a step keeps at most 50 refs")
 	}

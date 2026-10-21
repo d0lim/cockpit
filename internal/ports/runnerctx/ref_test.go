@@ -15,6 +15,7 @@ var refMutations = []porttest.Mutation{
 	{"without a Secret check every ref is refused", "secretLike answers false when Secret is nil", "red: a ref is accepted with no Secret check", "TestARefWithoutASecretCheckIsRefused"},
 	{"a capture that no ref names stays masked", "treat every capture as public", "red: the plain capture leaves the known values", "TestARefMarksACapturedIdPublicAndRecordsItOnTheStep"},
 	{"a step keeps at most 50 refs", "drop the maxRefs check", "red: the 51st ref is accepted", "TestRefNamesValuesAndCountAreBounded"},
+	{"the same ref twice in one step records once", "drop the Contains check in addRef", "red: the transaction ref is recorded twice", "TestARefMarksACapturedIdPublicAndRecordsItOnTheStep"},
 }
 
 func TestRefMutationRecordMatchesTheTestsInThisFile(t *testing.T) {
@@ -40,13 +41,15 @@ func TestARefMarksACapturedIdPublicAndRecordsItOnTheStep(t *testing.T) {
 	ctx.capture("transferId", "wvt-0001");
 	ctx.capture("session", "sess-secret-9");
 	ctx.ref("transaction", "wvt-0001");
+	ctx.ref("transaction", "wvt-0001");
+	ctx.ref("txHash", "wvt-0001");
 }`)
 	known := w.deps.KnownValues()
 	if slices.Contains(known, "wvt-0001") || !slices.Contains(known, "sess-secret-9") || !slices.Contains(known, planted) {
 		t.Fatalf("known values %v", known)
 	}
 	refs := w.deps.TakeRefs()
-	if !slices.Equal(refs, []contract.StepRef{{Name: "transaction", Value: "wvt-0001"}}) || len(w.deps.TakeRefs()) != 0 {
+	if !slices.Equal(refs, []contract.StepRef{{Name: "transaction", Value: "wvt-0001"}, {Name: "txHash", Value: "wvt-0001"}}) || len(w.deps.TakeRefs()) != 0 {
 		t.Fatalf("refs %v", refs)
 	}
 	if w.changed < 3 {
