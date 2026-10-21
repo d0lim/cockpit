@@ -52,7 +52,7 @@ func DeclarationDocs() map[string]string {
 		"scripts":                   "Where the TypeScript scripts live.",
 		"scripts.dir":               "The directory the runner sees as `/work/scripts`; `env.json` sits at its top.",
 		"scripts.suites":            "The suites directory inside `dir`: each `<name>.ts` whose name is a suite name is a suite.",
-		"scripts.collectors":        "The collectors directory inside `dir`: each `<id>.ts` is a collector.",
+		"scripts.collectors":        "The collectors directory inside `dir`: each `<id>.ts` is a collector. Without it the run has no collectors.",
 		"kit":                       "The handoff text for a person using the run's environment.",
 		"kit.notes":                 "Text added to the run's kit README, shown on the screen's Environment page and in `env/README.md`.",
 	}

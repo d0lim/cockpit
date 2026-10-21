@@ -14,6 +14,7 @@ import (
 var collectDefMutations = []porttest.Mutation{
 	{"a collector's runtime id must match its file name", "skip the id comparison in checkShape", "red: a file b.ts exporting id a is accepted", "TestCollectorDefsReadIdsIntervalsAndPortsAndRefuseAMismatchedIdOrABadInterval"},
 	{"intervals are whole milliseconds from one second to one hour", "skip the range check in checkShape", "red: intervalMs 500 and 1.5 are accepted", "TestCollectorDefsReadIdsIntervalsAndPortsAndRefuseAMismatchedIdOrABadInterval"},
+	{"a declaration without scripts.collectors has no collectors", "drop the empty check in CollectorDefs", "red: the declaration is refused with ' is not inside scripts'", "TestADeclarationWithoutACollectorsDirectoryHasNoCollectors"},
 	{"sql is allowed only with declared databases", "always allow every hub port", "red: a declaration without databases allows sql", "TestCollectorDefsReadIdsIntervalsAndPortsAndRefuseAMismatchedIdOrABadInterval"},
 }
 
@@ -68,5 +69,18 @@ func TestCollectorDefsReadIdsIntervalsAndPortsAndRefuseAMismatchedIdOrABadInterv
 	decl.Databases = nil
 	if slices.Contains(AllowedPorts(decl), "sql") || !slices.Contains(AllowedPorts(decl), "signal") {
 		t.Fatalf("allowed without databases: %v", AllowedPorts(decl))
+	}
+}
+
+func TestADeclarationWithoutACollectorsDirectoryHasNoCollectors(t *testing.T) {
+	decl := toyDeclaration(t)
+	dir := toyScriptCopy(t)
+	if defs, err := CollectorDefs(t.Context(), decl, dir); err != nil || len(defs) == 0 {
+		t.Fatalf("canary: the toy declaration has collectors: %v %v", defs, err)
+	}
+	decl.Scripts.Collectors = ""
+	defs, err := CollectorDefs(t.Context(), decl, dir)
+	if err != nil || len(defs) != 0 {
+		t.Fatalf("defs %v, err %v", defs, err)
 	}
 }

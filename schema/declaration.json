@@ -354,7 +354,7 @@
         },
         "collectors": {
           "type": "string",
-          "description": "The collectors directory inside `dir`: each `\u003cid\u003e.ts` is a collector.",
+          "description": "The collectors directory inside `dir`: each `\u003cid\u003e.ts` is a collector. Without it the run has no collectors.",
           "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
         }
       },

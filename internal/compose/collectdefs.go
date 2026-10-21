@@ -85,6 +85,9 @@ func collectorFiles(scriptsDir, rel string) ([]string, error) {
 }
 
 func CollectorDefs(ctx context.Context, decl contract.Declaration, scriptsDir string) ([]CollectorDef, error) {
+	if decl.Scripts.Collectors == "" {
+		return nil, nil
+	}
 	rel, err := collectorsRel(decl)
 	if err != nil {
 		return nil, err
