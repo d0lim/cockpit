@@ -17,7 +17,12 @@ fi
 rm -rf "$out"
 mkdir -p "$out"
 cp "$root"/sdk/*.d.ts "$root/sdk/tsconfig.base.json" "$root/npm/README.md" "$out/"
-cp "$root/docs/guide.md" "$out/GUIDE.md"
+docs_url="https://github.com/d0lim/cockpit/blob/main/docs"
+for pair in guide:GUIDE hub:HUB; do
+	sed -e 's/](guide\.md/](GUIDE.md/g' -e 's/](hub\.md/](HUB.md/g' -e "s#](\([a-z]*\)\.md#](${docs_url}/\1.md#g" \
+		"$root/docs/${pair%%:*}.md" > "$out/${pair##*:}.md"
+done
+cp "$root/schema/declaration.json" "$out/declaration.schema.json"
 {
 	printf '/// <reference path="./cockpit-globals.d.ts" />\n'
 	printf '/// <reference path="./cockpit-flow.d.ts" />\n'

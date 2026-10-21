@@ -15,7 +15,9 @@
     "cockpit-collect.d.ts",
     "cockpit-globals.d.ts",
     "tsconfig.base.json",
-    "GUIDE.md"
+    "GUIDE.md",
+    "HUB.md",
+    "declaration.schema.json"
   ],
   "sideEffects": false,
   "publishConfig": {

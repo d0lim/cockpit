@@ -2,27 +2,32 @@
   "type": "object",
   "properties": {
     "hostApi": {
-      "type": "integer"
+      "type": "integer",
+      "description": "The host API the scripts are written against. The hub refuses a value outside the set it serves, and the runner refuses one that differs from its own."
     },
     "project": {
       "type": "object",
       "properties": {
         "builder": {
-          "type": "string"
+          "type": "string",
+          "description": "A service that runs in the build stage before `compose build`, alone on the outside network and binding only the run's build copy of the commit, for downloads that do not fit a Dockerfile."
         },
         "expectedServices": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "The services the boot stage waits for: each must run and, when it has a healthcheck, be healthy. A one-shot service is ready when it exits 0. Leave out services that start only under a profile."
         },
         "networkOnlyKeys": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Accepted for compatibility; the hub does not read it."
         }
       },
+      "description": "The services of the stack.",
       "required": [
         "expectedServices"
       ],
@@ -36,7 +41,8 @@
           "items": {
             "type": "string",
             "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
-          }
+          },
+          "description": "Paths whose uncommitted changes refuse a submit, so local edits are never silently left out. The run always reads the commit."
         },
         "runnerSources": {
           "type": "array",
@@ -45,10 +51,12 @@
             "properties": {
               "name": {
                 "type": "string",
+                "description": "The source name flows pass to `ctx.readSource` and `ctx.listSource`.",
                 "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
               },
               "path": {
                 "type": "string",
+                "description": "The directory in the commit.",
                 "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
               }
             },
@@ -57,9 +65,11 @@
               "path"
             ],
             "additionalProperties": false
-          }
+          },
+          "description": "Directories of the commit copied read-only into the runner at `/work/source/\u003cname\u003e`, for `ctx.readSource` and `ctx.listSource`."
         }
       },
+      "description": "Local inputs of a submit besides the commit.",
       "additionalProperties": false
     },
     "compose": {
@@ -70,19 +80,23 @@
           "items": {
             "type": "string",
             "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
-          }
+          },
+          "description": "The compose files in order. The hub adds its harness file last, which removes every published `ports` entry of the consumer."
         },
         "forbidden": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Substrings no file name of the set may contain, so a file meant for local use never enters a sealed run."
         },
         "projectDirectory": {
           "type": "string",
+          "description": "The directory compose resolves relative paths against; the repository root when omitted.",
           "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
         }
       },
+      "description": "The compose file set of the run.",
       "required": [
         "files"
       ],
@@ -95,22 +109,28 @@
         "properties": {
           "name": {
             "type": "string",
+            "description": "The edge name: collectors reach the port as `http://\u003cname\u003e/...`, `databases[].port` names it, and run.env carries `RUN_PORT_\u003cNAME\u003e`.",
             "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
           },
           "offset": {
-            "type": "integer"
+            "type": "integer",
+            "description": "The slot in the run's port block: the host port is the block base plus the offset, from 0 to 98. 99 is reserved for the seal probe."
           },
           "service": {
-            "type": "string"
+            "type": "string",
+            "description": "The compose service behind the port."
           },
           "port": {
-            "type": "integer"
+            "type": "integer",
+            "description": "The container port of that service."
           },
           "display": {
-            "type": "string"
+            "type": "string",
+            "description": "The label the screen and the kit README show for the port."
           },
           "open": {
             "type": "string",
+            "description": "How the port is offered: `browser` at `http://\u003crun id\u003e.localhost:\u003cport\u003e`, an origin of its own per run; `link` at `http://127.0.0.1:\u003cport\u003e`; `copy` as an address to copy, for a port that is not HTTP.",
             "enum": [
               "browser",
               "link",
@@ -127,7 +147,8 @@
           "open"
         ],
         "additionalProperties": false
-      }
+      },
+      "description": "Services published on `127.0.0.1` while the run's environment is up."
     },
     "images": {
       "type": "array",
@@ -136,6 +157,7 @@
         "properties": {
           "key": {
             "type": "string",
+            "description": "The run.env variable (`IMG_...`) holding the key. Use it in the image tag of a built service, such as `image: shop-api:${IMG_API}`, and the build stage skips an image that is present.",
             "pattern": "^IMG_[A-Z0-9_]+$"
           },
           "inputs": {
@@ -143,7 +165,8 @@
             "items": {
               "type": "string",
               "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
-            }
+            },
+            "description": "The paths whose git object ids the key hashes, together with the compose files."
           }
         },
         "required": [
@@ -151,7 +174,8 @@
           "inputs"
         ],
         "additionalProperties": false
-      }
+      },
+      "description": "Content keys for built images, so a commit whose image inputs did not change reuses the image it built before."
     },
     "env": {
       "type": "object",
@@ -160,10 +184,12 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "The argv. It runs with the extracted commit mounted writable at `/src` as the working directory, as the hub's user, under umask 077."
         },
         "image": {
           "type": "string",
+          "description": "The image the command runs in, pinned by digest. It must have `/bin/sh`, and it runs with no network, a read-only root and no capabilities.",
           "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$"
         },
         "outputs": {
@@ -171,9 +197,11 @@
           "items": {
             "type": "string",
             "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
-          }
+          },
+          "description": "The files the command writes. Each one is a value source of the run redactor. `.env` in the compose project directory becomes the env file of every compose call, and an output named `e2e.private.env.json` becomes the runner's private env."
         }
       },
+      "description": "The credential generator, run once per run before compose starts.",
       "required": [
         "command",
         "image",
@@ -191,10 +219,12 @@
             "properties": {
               "path": {
                 "type": "string",
+                "description": "The file.",
                 "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
               },
               "format": {
                 "type": "string",
+                "description": "`dotenv` reads the value of each key, `json` every string leaf, `pem` each body line of its PEM blocks.",
                 "enum": [
                   "dotenv",
                   "json",
@@ -207,21 +237,25 @@
               "format"
             ],
             "additionalProperties": false
-          }
+          },
+          "description": "Files of the run read as value sources of the run redactor, usually env outputs. At least one is required."
         },
         "publicNames": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Dotenv keys or JSON field names whose values are not secret and stay readable."
         },
         "patterns": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "RE2 expressions; every match is masked in addition to the values of the sources."
         }
       },
+      "description": "The files whose values are credentials of the run.",
       "required": [
         "sources"
       ],
@@ -234,10 +268,12 @@
         "properties": {
           "name": {
             "type": "string",
+            "description": "The name collectors pass to `ctx.sql.query`.",
             "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
           },
           "driver": {
             "type": "string",
+            "description": "The database engine.",
             "enum": [
               "mysql",
               "postgres"
@@ -245,25 +281,31 @@
           },
           "port": {
             "type": "string",
+            "description": "The `ports` name that publishes the database.",
             "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
           },
           "readSchemas": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "For PostgreSQL, the schemas of `database` the reader may select from; for MySQL, the databases."
           },
           "ownerRole": {
-            "type": "string"
+            "type": "string",
+            "description": "PostgreSQL only: the role that creates tables after the collectors start, so the reader can also select from them."
           },
           "rootSecret": {
-            "type": "string"
+            "type": "string",
+            "description": "A key of a `dotenv` source in `secrets.sources` that holds the root password."
           },
           "rootUser": {
-            "type": "string"
+            "type": "string",
+            "description": "The user the hub logs in as to create the reader; `postgres` or `root` when omitted."
           },
           "database": {
-            "type": "string"
+            "type": "string",
+            "description": "For PostgreSQL, the database to connect to (`postgres` when omitted); for MySQL, the default database for unqualified table names, which must be one of `readSchemas`."
           }
         },
         "required": [
@@ -274,7 +316,8 @@
           "rootSecret"
         ],
         "additionalProperties": false
-      }
+      },
+      "description": "Databases collectors read through `ctx.sql`. The hub logs in as the root user only to create a read-only user for the run, and reads as that user."
     },
     "exec": {
       "type": "object",
@@ -286,9 +329,11 @@
             "items": {
               "type": "string"
             }
-          }
+          },
+          "description": "Allowed argv prefixes. An exec passes when its argv starts with one of them, and the first element must be a program, not a shell."
         }
       },
+      "description": "What collectors may run with `ctx.docker.exec`.",
       "required": [
         "allow"
       ],
@@ -299,17 +344,21 @@
       "properties": {
         "dir": {
           "type": "string",
+          "description": "The directory the runner sees as `/work/scripts`; `env.json` sits at its top.",
           "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
         },
         "suites": {
           "type": "string",
+          "description": "The suites directory inside `dir`: each `\u003cname\u003e.ts` whose name is a suite name is a suite.",
           "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
         },
         "collectors": {
           "type": "string",
+          "description": "The collectors directory inside `dir`: each `\u003cid\u003e.ts` is a collector.",
           "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
         }
       },
+      "description": "Where the TypeScript scripts live.",
       "required": [
         "dir",
         "suites"
@@ -320,9 +369,11 @@
       "type": "object",
       "properties": {
         "notes": {
-          "type": "string"
+          "type": "string",
+          "description": "Text added to the run's kit README, shown on the screen's Environment page and in `env/README.md`."
         }
       },
+      "description": "The handoff text for a person using the run's environment.",
       "required": [
         "notes"
       ],
@@ -331,6 +382,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "declaration",
+  "description": "The project declaration `.cockpit/project.yaml`, read from the submitted commit. Paths are relative to the repository root.",
   "required": [
     "hostApi",
     "project",

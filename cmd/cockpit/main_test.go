@@ -74,7 +74,7 @@ func TestRunnerImagePrintsEnsuredTagOnOneLineAndExits2OnFailure(t *testing.T) {
 func TestInitScaffoldsIntoTheGivenDirectoryAndPrintsNextSteps(t *testing.T) {
 	dir := t.TempDir()
 	code, out, errOut := call(nil, "init", "--base-url", "http://web:8080", dir)
-	if code != 0 || !strings.Contains(out, "created e2e/env.json") || !strings.Contains(out, "cockpit runner-image") || errOut != "" {
+	if code != 0 || !strings.Contains(out, "created e2e/env.json") || !strings.Contains(out, "cockpit runner-image") || !strings.Contains(out, "docs/hub.md") || errOut != "" {
 		t.Fatalf("exit %d stdout %q stderr %q", code, out, errOut)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "compose.cockpit.yaml")); err != nil {

@@ -2,7 +2,7 @@
 
 Type declarations for scripts that run under [cockpit](https://github.com/d0lim/cockpit): the `cockpit:flow` module that flows import, the `cockpit:collect` module for hub collectors, the globals the runner's engine provides, and the tsconfig base they are checked with. The declarations carry doc comments, so editors and agents see what each port does. The package holds no runtime code; the `cockpit` binary provides the implementation.
 
-`GUIDE.md` in this package is the full usage guide.
+`GUIDE.md` in this package is the usage guide for suites and the runner, and `HUB.md` takes a project to its first sealed run on the hub. `declaration.schema.json` is the JSON Schema of `.cockpit/project.yaml`, with a description on every field; point a YAML editor at `node_modules/@d0lim/cockpit-sdk/declaration.schema.json`.
 
 ## Install
 

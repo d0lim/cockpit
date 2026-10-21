@@ -1,6 +1,6 @@
 # Usage guide
 
-This guide covers running suites with the cockpit runner against a compose stack you start yourself. The README's quick start is the shortest working setup; this page explains each part of it.
+This guide covers running suites with the cockpit runner against a compose stack you start yourself. The README's quick start is the shortest working setup; this page explains each part of it. To run a suite as a sealed run of a commit on the hub, read [Running on the hub](hub.md) next: everything here about suites and `ctx` applies there too.
 
 `cockpit init [--base-url <url>] [<dir>]` writes that setup: the declaration, `e2e/env.json` with `baseUrl`, an example suite, a tsconfig, the compose overlay `compose.cockpit.yaml` and the state directory `.e2e/` with an empty private env. It refuses to overwrite any existing file, and it rejects a base URL that the runner would not accept as an origin.
 
@@ -37,7 +37,7 @@ The runner image runs as uid `65532`. On Linux, make the state directory writabl
 hostApi: 1
 ```
 
-The runner exits with code 2 when the file is missing, has no `hostApi`, or names a different host API than the runner serves. The remaining declaration fields (compose files, services, secrets, port slots) belong to the sealed-run hub and are ignored by the runner.
+The runner exits with code 2 when the file is missing, has no `hostApi`, or names a different host API than the runner serves. The remaining declaration fields (compose files, services, secrets, port slots) belong to the sealed-run hub and are ignored by the runner; [Running on the hub](hub.md) explains them.
 
 ## Public env and the request allowlist
 

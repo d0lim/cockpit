@@ -2,7 +2,10 @@
 
 cockpit runs end-to-end flows against a compose stack. You write flows in TypeScript, and the cockpit runner executes them in a container on the stack's network, then writes the results as JSON. One `cockpit` binary carries the runner, so the version you install is the version that runs your flows.
 
-The sealed-run hub (one commit, a fresh sealed environment, a verdict and a report bundle) is under construction. Today the binary builds the runner image and writes the type declarations; the runner executes suites against a stack you start yourself.
+There are two ways to run a suite:
+
+- **On the hub** (`cockpit hub`): one commit and one suite on a fresh sealed environment, with credentials generated inside the run, no route out at runtime, a verdict and a report bundle. [Running on the hub](docs/hub.md) takes a compose project to its first sealed run.
+- **The runner alone**, against a stack you start yourself. It is the quickest way to write and debug flows, and it is what the quick start below sets up. The [usage guide](docs/guide.md) covers it.
 
 ## Install
 
@@ -54,7 +57,7 @@ The exit code is 0 when every step passed. `cockpit init` wrote:
 | `compose.cockpit.yaml` | the runner service and its mounts |
 | `.e2e/` | run state and the private env, ignored by git |
 
-`init` refuses to overwrite existing files. The [usage guide](docs/guide.md) covers the rest: the mounts and environment, writing flows, the `ctx` ports, running one flow, the output files, exit codes and type checking.
+`init` refuses to overwrite existing files. Its declaration holds only `hostApi`, which is enough for the runner; the hub needs the rest of the fields in [Running on the hub](docs/hub.md). The [usage guide](docs/guide.md) covers the rest: the mounts and environment, writing flows, the `ctx` ports, running one flow, the output files, exit codes and type checking.
 
 ## Type checking
 

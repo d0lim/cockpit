@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -34,15 +35,22 @@ func TestNpmPackageIsAssembledFromTheGeneratedSdkWithTheGivenVersion(t *testing.
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	want := []string{"GUIDE.md", "README.md", "cockpit-collect.d.ts", "cockpit-flow.d.ts", "cockpit-globals.d.ts", "index.d.ts", "package.json", "tsconfig.base.json"}
+	want := []string{"GUIDE.md", "HUB.md", "README.md", "cockpit-collect.d.ts", "cockpit-flow.d.ts", "cockpit-globals.d.ts", "declaration.schema.json", "index.d.ts", "package.json", "tsconfig.base.json"}
 	if !slices.Equal(names, want) {
 		t.Fatalf("files %v, want %v", names, want)
 	}
-	for _, name := range []string{"cockpit-collect.d.ts", "cockpit-flow.d.ts", "cockpit-globals.d.ts", "tsconfig.base.json"} {
-		generated, _ := os.ReadFile(filepath.Join(root, "sdk", name))
+	copies := map[string]string{
+		"cockpit-collect.d.ts":    "sdk/cockpit-collect.d.ts",
+		"cockpit-flow.d.ts":       "sdk/cockpit-flow.d.ts",
+		"cockpit-globals.d.ts":    "sdk/cockpit-globals.d.ts",
+		"tsconfig.base.json":      "sdk/tsconfig.base.json",
+		"declaration.schema.json": "schema/declaration.json",
+	}
+	for name, source := range copies {
+		generated, _ := os.ReadFile(filepath.Join(root, source))
 		packaged, _ := os.ReadFile(filepath.Join(out, name))
 		if len(generated) == 0 || !bytes.Equal(generated, packaged) {
-			t.Fatalf("%s differs from sdk/ or is empty", name)
+			t.Fatalf("%s differs from %s or is empty", name, source)
 		}
 	}
 	pkg, _ := os.ReadFile(filepath.Join(out, "package.json"))
@@ -54,6 +62,39 @@ func TestNpmPackageIsAssembledFromTheGeneratedSdkWithTheGivenVersion(t *testing.
 	index, _ := os.ReadFile(filepath.Join(out, "index.d.ts"))
 	if strings.Count(string(index), "/// <reference path=") != 3 {
 		t.Fatalf("index.d.ts %q", index)
+	}
+}
+
+func TestPackagedGuidesLinkEachOtherInThePackageAndEveryOtherDocOnGitHub(t *testing.T) {
+	out, log, err := buildNpm(t, "1.2.3")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, log)
+	}
+	link := regexp.MustCompile(`\]\(([^)#\s]+)`)
+	checked, local, remote := 0, 0, 0
+	for _, name := range []string{"GUIDE.md", "HUB.md"} {
+		text, _ := os.ReadFile(filepath.Join(out, name))
+		for _, m := range link.FindAllStringSubmatch(string(text), -1) {
+			checked++
+			target := m[1]
+			switch {
+			case strings.HasPrefix(target, "https://github.com/d0lim/cockpit/blob/main/docs/"):
+				remote++
+				doc := strings.TrimPrefix(target, "https://github.com/d0lim/cockpit/blob/main/docs/")
+				if _, err := os.Stat(filepath.Join(repoRoot(t), "docs", doc)); err != nil {
+					t.Fatalf("%s links %s, which docs/ does not hold", name, target)
+				}
+			case strings.Contains(target, "://"):
+			default:
+				local++
+				if _, err := os.Stat(filepath.Join(out, target)); err != nil {
+					t.Fatalf("%s links %s, which the package does not hold", name, target)
+				}
+			}
+		}
+	}
+	if local == 0 || remote == 0 {
+		t.Fatalf("checked %d links: %d inside the package, %d on GitHub", checked, local, remote)
 	}
 }
 

@@ -70,6 +70,11 @@ func buildSchemas() (map[string][]byte, error) {
 			return nil, fmt.Errorf("schema %s: %w", r.Name, err)
 		}
 		dropNull(s)
+		if r.Name == "declaration" {
+			if err := describeAll(s, contract.DeclarationDocs()); err != nil {
+				return nil, err
+			}
+		}
 		s.Schema = schemaDialect
 		s.Title = r.Name
 		var buf bytes.Buffer

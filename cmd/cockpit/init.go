@@ -45,6 +45,7 @@ Next:
      docker compose -f compose.yaml -f compose.cockpit.yaml up -d
      docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run smoke
 Results land in .e2e/. The usage guide is at https://github.com/d0lim/cockpit/blob/main/docs/guide.md
+To run sealed runs on the hub, the declaration needs more fields: https://github.com/d0lim/cockpit/blob/main/docs/hub.md
 `, pkg)
 	return 0
 }
