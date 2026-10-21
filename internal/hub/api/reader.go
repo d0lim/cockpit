@@ -91,7 +91,7 @@ func (r *Reader) Flows(id string) (string, []contract.FlowSummary, error) {
 		m := r.a.d.Mask(v.ID)
 		for i := range flows {
 			for j := range flows[i].StepList {
-				flows[i].StepList[j].Message = m.Mask(flows[i].StepList[j].Message)
+				maskStep(&flows[i].StepList[j], m.Mask)
 			}
 		}
 	}
@@ -152,9 +152,10 @@ func (r *Reader) Signals(id string, after int64, limit int) (SignalsView, error)
 	if r.a.d.Signals == nil {
 		return SignalsView{}, &Problem{Status: http.StatusConflict, Code: CodeNotAvailable, Message: "this hub has no signal store"}
 	}
-	resp, err := r.a.d.Signals.Read(v.ID, signal.ReadRequest{After: after, Limit: min(limit, maxSignalRead)})
+	req := signal.ReadRequest{After: after, Limit: min(limit, maxSignalRead)}
+	resp, err := r.a.d.Signals.Read(v.ID, req)
 	if errors.Is(err, signal.ErrRunDestroyed) {
-		return SignalsView{}, notFound("the run was destroyed and its live signals were removed; the report bundle keeps its frozen copy")
+		return r.frozenSignals(v.ID, req)
 	}
 	if errors.Is(err, signal.ErrReadRefused) {
 		return SignalsView{}, &Problem{Status: http.StatusConflict, Code: CodeReadRefused, Message: "signal reads are refused for this run"}
@@ -162,7 +163,25 @@ func (r *Reader) Signals(id string, after int64, limit int) (SignalsView, error)
 	if err != nil {
 		return SignalsView{}, err
 	}
-	return SignalsView{ReadResponse: resp, Collectors: r.Collectors(v.ID)}, nil
+	return SignalsView{ReadResponse: resp, Source: SourceLive, Collectors: r.Collectors(v.ID)}, nil
+}
+
+func (r *Reader) frozenSignals(id string, req signal.ReadRequest) (SignalsView, error) {
+	_, dir, err := r.run(id)
+	if err != nil {
+		return SignalsView{}, err
+	}
+	if r.a.d.Mask == nil {
+		return SignalsView{}, &Problem{Status: http.StatusConflict, Code: CodeNotAvailable, Message: "no run masker: the frozen signals are not served"}
+	}
+	resp, err := signal.ReadFrozen(filepath.Join(dir, report.DirReport), r.a.d.Mask(id), req)
+	if errors.Is(err, signal.ErrNoFrozenCopy) {
+		return SignalsView{}, notFound("the run was destroyed and its report bundle holds no frozen signals")
+	}
+	if err != nil {
+		return SignalsView{}, err
+	}
+	return SignalsView{ReadResponse: resp, Source: SourceBundle, Collectors: []CollectorState{}}, nil
 }
 
 func (r *Reader) Collectors(id string) []CollectorState {
@@ -229,3 +248,22 @@ func (r *Reader) Exec(id, flow string, actor scheduler.Actor) (ExecView, error) 
 }
 
 func (r *Reader) SignalSource() sse.Signals { return r.a.d.Signals }
+
+func maskStep(st *contract.FlowStep, mask func(string) string) {
+	st.Message = mask(st.Message)
+	calls := make([]contract.StepCall, len(st.Calls))
+	for i, c := range st.Calls {
+		c.Host, c.Path = mask(c.Host), mask(c.Path)
+		calls[i] = c
+	}
+	refs := make([]contract.StepRef, len(st.Refs))
+	for i, r := range st.Refs {
+		refs[i] = contract.StepRef{Name: mask(r.Name), Value: mask(r.Value)}
+	}
+	if len(calls) > 0 {
+		st.Calls = calls
+	}
+	if len(refs) > 0 {
+		st.Refs = refs
+	}
+}

@@ -19,6 +19,7 @@ import (
 
 var liveMutations = []porttest.Mutation{
 	{"live flow step messages pass the run masker", "skip the Mask loop in flow", "red: the planted value is in the step message", "TestLiveFlowAndSourceViewsPassTheRunMaskerAndBundleViewsComeFromTheBundle"},
+	{"live flow calls and refs pass the run masker", "maskStep masks only the message", "red: the planted value is in a call path, a call host or a ref", "TestLiveFlowCallsAndRefsPassTheRunMasker"},
 	{"live source text passes the run masker", "return data without a.d.Mask(v.ID).Mask in source", "red: the planted value is in the source text", "TestLiveFlowAndSourceViewsPassTheRunMaskerAndBundleViewsComeFromTheBundle"},
 	{"live source is served only for files the manifest points to", "drop the manifestFiles check in source", "red: a file the manifest does not name is served", "TestSourceRefusesFilesOutsideTheSuiteAndFilesTheManifestDoesNotName"},
 	{"live source is refused without a run masker", "skip the nil Mask check in source", "red: the handler panics on the nil masker and the client gets no 409", "TestSourceRefusesFilesOutsideTheSuiteAndFilesTheManifestDoesNotName"},
@@ -167,5 +168,28 @@ func TestSourceRefusesFilesOutsideTheSuiteAndFilesTheManifestDoesNotName(t *test
 	}
 	if len(denied) != 3 {
 		t.Fatal("case count")
+	}
+}
+
+func TestLiveFlowCallsAndRefsPassTheRunMasker(t *testing.T) {
+	f := newFixture(t, func(d *Deps) { d.Mask = func(string) *mask.Masker { return hubMasker(t, planted) } })
+	f.seed(runMeta(1, lifecycle.State{Phase: lifecycle.Testing, Env: lifecycle.EnvUp}, doneUp))
+	dir := f.runDir(rid(1))
+	writeRunnerFiles(t, dir, "plain")
+	path := filepath.Join(dir, RunnerDir, "result.json")
+	var result contract.Result
+	raw, _ := os.ReadFile(path)
+	json.Unmarshal(raw, &result)
+	result.Steps[0].Calls = []contract.StepCall{{Method: "GET", Host: "h-" + planted, Path: "/orders/" + planted, StartedAt: "2026-10-19T01:00:01.000Z"}, {Method: "GET", Host: "app", Path: "/orders/ord-7", StartedAt: "2026-10-19T01:00:02.000Z"}}
+	result.Steps[0].Refs = []contract.StepRef{{Name: "order", Value: planted}, {Name: "order", Value: "ord-7"}}
+	raw, _ = json.Marshal(result)
+	os.WriteFile(path, raw, 0o600)
+	status, body := f.get("/api/runs/" + rid(1) + "/flows/alpha")
+	text := string(body)
+	if status != http.StatusOK || strings.Contains(text, planted) || strings.Count(text, "****") < 3 {
+		t.Fatalf("live flow: %d %s", status, body)
+	}
+	if !strings.Contains(text, "/orders/ord-7") || !strings.Contains(text, `"value":"ord-7"`) {
+		t.Fatalf("canary: a public id was lost: %s", body)
 	}
 }

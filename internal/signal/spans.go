@@ -59,8 +59,8 @@ func build(root spanRoot, res contract.Result, exitedAt string) []contract.Signa
 		if end == "" || status == contract.SpanStatusIncomplete {
 			end, status = exitedAt, contract.SpanStatusIncomplete
 		}
-		attrs := contract.Attrs{"flow": st.Flow, "step": st.ID, "status": string(st.Status)}
-		steps = append(steps, span(root, "step:"+st.Flow+"/"+st.ID, "flow:"+st.Flow, st.ID, st.StartedAt, end, status, attrs, nil))
+		steps = append(steps, span(root, "step:"+st.Flow+"/"+st.ID, "flow:"+st.Flow, st.ID, st.StartedAt, end, status, stepAttrs(st), nil))
+		steps = append(steps, callSpans(root, st)...)
 		f, ok := flows[st.Flow]
 		if !ok {
 			f = &flowSpan{start: st.StartedAt, end: end, status: contract.SpanStatusOK}

@@ -97,3 +97,34 @@ func TestRunnerSpansAppendToTheStreamAsSpanSignals(t *testing.T) {
 		t.Fatalf("%+v", got.Signals)
 	}
 }
+
+func TestStepRefsBecomeRefAttributesAndCallsBecomeSpansUnderTheStep(t *testing.T) {
+	ok, bad := 201, 409
+	st := step("order", "place", contract.StepStatusPassed, "2026-10-12T07:00:01Z", "2026-10-12T07:00:02Z")
+	st.Refs = []contract.StepRef{{Name: "order", Value: "ord-1"}, {Name: "order", Value: "ord-2"}}
+	st.Calls = []contract.StepCall{
+		{Method: "POST", Host: "app", Path: "/orders", Status: &ok, StartedAt: "2026-10-12T07:00:01.100Z", DurationMs: 250},
+		{Method: "POST", Host: "app", Path: "/orders", Status: &bad, StartedAt: "2026-10-12T07:00:01.400Z", DurationMs: 30},
+		{Method: "GET", Host: "app", Path: "/orders/ord-1", StartedAt: "2026-10-12T07:00:01.500Z"},
+	}
+	res := contract.Result{SchemaVersion: 2, Suite: "smoke", Complete: true, StartedAt: "2026-10-12T07:00:00Z", FinishedAt: "2026-10-12T07:00:05Z", Steps: []contract.ResultStep{st}}
+	signals := RunSpans(runID, res, "")
+	stepSpan := spanByID(t, signals, "step:order/place")
+	if stepSpan.Attrs["ref.order"] != "ord-1" || stepSpan.Attrs["ref.order.2"] != "ord-2" {
+		t.Fatalf("step attrs %v", stepSpan.Attrs)
+	}
+	first := spanByID(t, signals, "call:order/place/1")
+	if first.Span.ParentID != "step:order/place" || first.Span.Name != "POST /orders" || first.Span.Status != contract.SpanStatusOK || first.Span.End != "2026-10-12T07:00:01.350Z" || first.Attrs["status"] != 201 {
+		t.Fatalf("first call %+v %v", first.Span, first.Attrs)
+	}
+	if s := spanByID(t, signals, "call:order/place/2"); s.Span.Status != contract.SpanStatusError {
+		t.Fatalf("a 409 call is %s", s.Span.Status)
+	}
+	third := spanByID(t, signals, "call:order/place/3")
+	if _, has := third.Attrs["status"]; has || third.Span.Status != contract.SpanStatusError || third.Span.End != "2026-10-12T07:00:01.500Z" {
+		t.Fatalf("a call without a response %+v %v", third.Span, third.Attrs)
+	}
+	if len(signals) != 6 {
+		t.Fatalf("%d spans", len(signals))
+	}
+}

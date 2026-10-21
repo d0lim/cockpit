@@ -33,6 +33,7 @@ type SourceView struct {
 
 type SignalsView struct {
 	signal.ReadResponse
+	Source     string           `json:"source"`
 	Collectors []CollectorState `json:"collectors"`
 }
 

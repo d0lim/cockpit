@@ -99,6 +99,7 @@ func FlowSummaries(m ManifestRead, r ResultRead) []contract.FlowSummary {
 			res, ok := byKey[stepKey(f.ID, s.ID)]
 			if ok {
 				step.Status, step.Requests, step.DurationMs, step.HTTPStatus, step.Message = res.Status, res.Requests, res.DurationMs, res.HTTPStatus, res.Message
+				step.Calls, step.Refs = res.Calls, res.Refs
 				results = append(results, &res)
 			} else {
 				results = append(results, nil)
