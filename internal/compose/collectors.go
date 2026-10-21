@@ -63,8 +63,9 @@ func Suites(decl contract.Declaration, tree Tree) []string {
 	dir := string(decl.Scripts.Suites)
 	var names []string
 	for p, e := range tree.Entries {
-		if e.Type == "blob" && path.Dir(p) == dir && strings.HasSuffix(p, ".ts") {
-			names = append(names, strings.TrimSuffix(path.Base(p), ".ts"))
+		name := strings.TrimSuffix(path.Base(p), ".ts")
+		if e.Type == "blob" && path.Dir(p) == dir && strings.HasSuffix(p, ".ts") && contract.SuiteName.MatchString(name) {
+			names = append(names, name)
 		}
 	}
 	slices.Sort(names)

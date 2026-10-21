@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 )
 
@@ -25,7 +26,7 @@ func (r *Reader) Suites(ctx context.Context, worktree, commit string) (SuitesVie
 }
 
 func (r *Reader) Submit(ctx context.Context, in scheduler.SubmitInput) (Submitted, error) {
-	if in.Suite != "" && !suitePattern.MatchString(in.Suite) {
+	if in.Suite != "" && !contract.SuiteName.MatchString(in.Suite) {
 		return Submitted{}, badRequest("the suite name must be lowercase letters, digits and -, up to 63 characters")
 	}
 	res := r.a.d.Scheduler.Submit(ctx, in)

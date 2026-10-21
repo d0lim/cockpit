@@ -21,7 +21,6 @@ const (
 
 var (
 	labelPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._@-]{0,63}$`)
-	suitePattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
 	Ops          = []string{"keep", "unkeep", "stop", "resume", "destroy", "abort"}
 )
 
