@@ -12,7 +12,7 @@ import (
 	"github.com/d0lim/cockpit/internal/version"
 )
 
-const usage = "usage: cockpit-runner run <suite> [--flow <id>]... | probe <canary-port> | edge <port>=<host>:<port>... | --version"
+const usage = "usage: cockpit-runner run <suite> [--flow <id>]... | probe <canary-port> | edge [<port>=<host>:<port>...] | --version"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

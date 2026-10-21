@@ -11,8 +11,8 @@ import (
 
 func edgeMain(ctx context.Context, args []string, stderr io.Writer) int {
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "usage: cockpit-runner edge <port>=<host>:<port>...")
-		return 2
+		<-ctx.Done()
+		return 0
 	}
 	routes := make([]runner.Route, 0, len(args))
 	for _, spec := range args {

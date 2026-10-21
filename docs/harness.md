@@ -44,7 +44,7 @@ Every compose call of a run names the project `-p <run id>` and `--project-direc
 
 | Service | Mode | Networks | Notes |
 | --- | --- | --- | --- |
-| `edge` | `edge` | the internal networks and `egress` | publishes `127.0.0.1:<base + offset>` to container port `30000 + offset` and proxies to `<service>:<port>` |
+| `edge` | `edge` | the internal networks and `egress` | publishes `127.0.0.1:<base + offset>` to container port `30000 + offset` and proxies to `<service>:<port>`; without declared `ports` it listens on nothing and runs until it is stopped |
 | `runner` | `run` (profile `runner`) | the internal networks | binds only `work/` paths; only `/work/e2e` is writable |
 | `probe` | `probe` (profile `probe`) | `default` | canary port `base + 99` |
 | `probe-control` | `probe` (profile `probe`) | `egress` | the positive control of the probe |

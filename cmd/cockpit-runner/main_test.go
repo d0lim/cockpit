@@ -7,6 +7,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 )
 
 func call(args ...string) (int, string, string) {
@@ -32,7 +33,7 @@ func TestNoArgumentsOrUnknownCommandPrintsUsageAndExitsTwo(t *testing.T) {
 }
 
 func TestSubcommandArgumentErrorsExitTwoWithReason(t *testing.T) {
-	cases := [][]string{{"run"}, {"run", "Bad/name"}, {"probe"}, {"probe", "x"}, {"probe", "70000"}, {"edge"}, {"edge", "nope"}}
+	cases := [][]string{{"run"}, {"run", "Bad/name"}, {"probe"}, {"probe", "x"}, {"probe", "70000"}, {"edge", "nope"}}
 	for _, args := range cases {
 		code, _, errOut := call(args...)
 		if code != 2 || errOut == "" {
@@ -52,6 +53,22 @@ func TestEdgeReturnsZeroWhenContextEnds(t *testing.T) {
 	ln.Close()
 	var out, errOut bytes.Buffer
 	if code := run(ctx, []string{"edge", fmt.Sprintf("%d=127.0.0.1:1", port)}, func(string) string { return "" }, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d stderr %q", code, errOut.String())
+	}
+}
+
+func TestAnEdgeWithNoRoutesWaitsForTheContextAndReturnsZero(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	var out, errOut bytes.Buffer
+	go func() { done <- run(ctx, []string{"edge"}, func(string) string { return "" }, &out, &errOut) }()
+	select {
+	case code := <-done:
+		t.Fatalf("an edge with no routes returned %d before its context ended: %q", code, errOut.String())
+	case <-time.After(50 * time.Millisecond):
+	}
+	cancel()
+	if code := <-done; code != 0 || errOut.Len() != 0 {
 		t.Fatalf("exit %d stderr %q", code, errOut.String())
 	}
 }
