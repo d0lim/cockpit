@@ -29,6 +29,14 @@ export default suite({
 				await ctx.http.send("GET", base(ctx) + "/secret/" + ctx.priv.credential);
 			} }),
 			step({ id: "quiet", title: "quiet", kind: "wait", run: async () => {} }),
+			step({ id: "refuse", title: "refuse", kind: "capture", run: async (ctx) => {
+				let refused = 0;
+				for (const v of [ctx.priv.credential, "x-" + ctx.priv.credential + "-y", "Bearer abcdefghijklmnop", "eyJhbGciOi.eyJzdWIiOi.c2ln"]) {
+					try { ctx.ref("bad", v); } catch { refused++; }
+				}
+				ctx.ref("item", "id-5432-ab");
+				if (refused !== 4) throw new Error("refused " + refused);
+			} }),
 		] }),
 	],
 });
@@ -70,5 +78,12 @@ func TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs(t *testing.T) {
 	}
 	if len(steps[1].Calls) != 0 || len(steps[1].Refs) != 0 {
 		t.Fatalf("the next step inherited records: %+v", steps[1])
+	}
+}
+
+func TestARefOfAPrivateValueOrACredentialShapeIsRefusedAndAShortPrivateValueBlocksNothing(t *testing.T) {
+	refuse := recordSteps(t)[2]
+	if refuse.Status != contract.StepStatusPassed || !slices.Equal(refuse.Refs, []contract.StepRef{{Name: "item", Value: "id-5432-ab"}}) {
+		t.Fatalf("refuse step %+v", refuse)
 	}
 }

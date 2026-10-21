@@ -1,7 +1,9 @@
 package runnerctx
 
 import (
+	"maps"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -20,13 +22,12 @@ var refName = regexp.MustCompile(`^[a-z][A-Za-z0-9]{0,31}$`)
 
 func (d *Deps) secretLike(value string) bool {
 	d.mu.Lock()
-	defer d.mu.Unlock()
-	for _, v := range d.Priv {
-		if v != "" && strings.Contains(value, v) {
-			return true
-		}
+	priv := slices.Collect(maps.Values(d.Priv))
+	d.mu.Unlock()
+	if d.Secret == nil {
+		return true
 	}
-	return d.Patterns != nil && d.Patterns(value) != value
+	return d.Secret(value, priv)
 }
 
 func (d *Deps) addRef(name, value string) error {

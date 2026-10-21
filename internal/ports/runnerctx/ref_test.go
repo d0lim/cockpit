@@ -11,8 +11,8 @@ import (
 
 var refMutations = []porttest.Mutation{
 	{"a ref'd capture is no longer masked", "keep every capture in KnownValues", "red: the ref'd id is still a known value", "TestARefMarksACapturedIdPublicAndRecordsItOnTheStep"},
-	{"a private env value cannot be made public", "drop the Priv loop in secretLike", "red: ref of the planted value is accepted and the value leaves the known values", "TestARefOfAPrivateValueOrACredentialPatternIsRefusedAndStaysMasked"},
-	{"a value the credential patterns mask cannot be made public", "drop the Patterns check in secretLike", "red: ref of the token is accepted", "TestARefOfAPrivateValueOrACredentialPatternIsRefusedAndStaysMasked"},
+	{"a private env value cannot be made public", "secretLike passes no private values to Secret", "red: ref of the planted value is accepted and the value leaves the known values", "TestARefOfAPrivateValueOrACredentialPatternIsRefusedAndStaysMasked"},
+	{"without a Secret check every ref is refused", "secretLike answers false when Secret is nil", "red: a ref is accepted with no Secret check", "TestARefWithoutASecretCheckIsRefused"},
 	{"a capture that no ref names stays masked", "treat every capture as public", "red: the plain capture leaves the known values", "TestARefMarksACapturedIdPublicAndRecordsItOnTheStep"},
 	{"a step keeps at most 50 refs", "drop the maxRefs check", "red: the 51st ref is accepted", "TestRefNamesValuesAndCountAreBounded"},
 }
@@ -23,7 +23,14 @@ func TestRefMutationRecordMatchesTheTestsInThisFile(t *testing.T) {
 
 func refWorld(t *testing.T) *world {
 	w := newWorld(t)
-	w.deps.Patterns = func(s string) string { return strings.ReplaceAll(s, "tok_live_abc", "****") }
+	w.deps.Secret = func(v string, priv []string) bool {
+		for _, p := range priv {
+			if len(p) >= 6 && strings.Contains(v, p) {
+				return true
+			}
+		}
+		return strings.Contains(v, "tok_live_abc")
+	}
 	return w
 }
 
@@ -80,5 +87,16 @@ func TestRefNamesValuesAndCountAreBounded(t *testing.T) {
 }`)
 	if refs := w.deps.TakeRefs(); len(refs) != 50 || refs[49].Value != "v-49" {
 		t.Fatalf("%d refs", len(refs))
+	}
+}
+
+func TestARefWithoutASecretCheckIsRefused(t *testing.T) {
+	w := newWorld(t)
+	w.mustRun(`export default async () => {
+	must(catchCode(() => ctx.ref("transaction", "wvt-0003")).startsWith("PORT_BAD_ARGS|"), "no secret check");
+	ctx.capture("canary", "wvt-0003");
+}`)
+	if refs := w.deps.TakeRefs(); len(refs) != 0 || !slices.Contains(w.deps.KnownValues(), "wvt-0003") {
+		t.Fatalf("refs %v", refs)
 	}
 }

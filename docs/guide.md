@@ -100,7 +100,7 @@ The engine also provides `Buffer`, `TextEncoder`, `URL`, `URLSearchParams`, `ato
 
 Captured values are treated as secrets: the runner masks every occurrence of them as `****` in its output, the result file and the step messages. Ids that a flow creates (a transaction id, a reference id) are usually captured, and once masked nothing that the run leaves behind can say which request made which row.
 
-`ctx.ref(name, value)` says that `value` is a public id. From then on the runner no longer masks it, even when it is also captured, and it records `{name, value}` on the running step. The name matches `^[a-z][A-Za-z0-9]{0,31}$`; the value is 1 to 200 characters without control characters. A value that the private env holds, that contains one of its values, or that the runner's credential patterns would mask is refused with `PORT_BAD_ARGS`, and stays masked. A step keeps at most 50 refs.
+`ctx.ref(name, value)` says that `value` is a public id. From then on the runner no longer masks it, even when it is also captured, and it records `{name, value}` on the running step. The name matches `^[a-z][A-Za-z0-9]{0,31}$`; the value is 1 to 200 characters without control characters. A value that the runner masker would change using only the private env values and its credential patterns is refused with `PORT_BAD_ARGS`, and stays masked: a private value or one that contains it (private values shorter than 6 characters are not masked, so they block nothing), or a credential shape such as a bearer token or a JWT. A step keeps at most 50 refs.
 
 ```ts
 const tx = json<{ id: string }>(await ctx.http.send("POST", `${ctx.env.baseUrl}/transfers`, { json: body }));

@@ -28,7 +28,7 @@ type Deps struct {
 	Clock    clock.Clock
 	Keys     *cryptoport.Keys
 	Mask     ports.Mask
-	Patterns ports.Mask
+	Secret   func(value string, priv []string) bool
 	Changed  func()
 
 	mu     sync.Mutex

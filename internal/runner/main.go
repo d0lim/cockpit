@@ -133,7 +133,8 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	}
 	ctxDeps := &runnerctx.Deps{
 		Env: publicEnv, Priv: priv, PrivPath: s.privPath, SeedKeys: seedKeys(publicEnv),
-		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText, Patterns: base.Mask,
+		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText,
+		Secret: func(v string, priv []string) bool { return base.WithKnown(priv).Mask(v) != v },
 	}
 	ctxDeps.Changed = func() { current.Store(base.WithKnown(ctxDeps.KnownValues())) }
 	ctxDeps.Changed()

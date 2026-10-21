@@ -99,7 +99,7 @@ func newWorld(t *testing.T, specs []flowSpec, fail []string) *world {
 	must(os.MkdirAll(filepath.Join(w.scripts, "flows"), 0o755))
 	must(os.MkdirAll(filepath.Join(w.root, ".cockpit"), 0o755))
 	must(os.WriteFile(filepath.Join(w.root, ".cockpit", "project.yaml"), []byte("hostApi: 1\nscripts:\n  dir: scripts\n"), 0o644))
-	must(os.WriteFile(filepath.Join(w.dir, "e2e.private.env.json"), []byte(`{"local":{"credential":"`+privSecret+`"}}`), 0o600))
+	must(os.WriteFile(filepath.Join(w.dir, "e2e.private.env.json"), []byte(`{"local":{"credential":"`+privSecret+`","port":"5432"}}`), 0o600))
 	must(os.WriteFile(filepath.Join(w.scripts, "env.json"), []byte(`{"baseUrl":"http://fake.local"}`), 0o644))
 	must(os.WriteFile(filepath.Join(w.scripts, "flows", "fake.ts"), []byte(fakeFlows), 0o644))
 	specJSON, _ := json.Marshal(specs)
