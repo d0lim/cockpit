@@ -53,7 +53,8 @@ The exit code is 0 when every step passed. `cockpit init` wrote:
 | `.cockpit/project.yaml` | the project declaration (`hostApi: 1`) |
 | `e2e/env.json` | public values for flows; every origin a flow calls must be one of them |
 | `e2e/suites/smoke.ts` | a two-flow example suite |
-| `e2e/tsconfig.json` | type checking against `@d0lim/cockpit-sdk` |
+| `e2e/tsconfig.json` | type checking against the declarations in `e2e/.cockpit-sdk` |
+| `e2e/.cockpit-sdk/` | the declarations for `cockpit:flow`, `cockpit:collect` and the engine globals, and the tsconfig base |
 | `compose.cockpit.yaml` | the runner service and its mounts |
 | `.e2e/` | run state and the private env, ignored by git |
 
@@ -61,21 +62,17 @@ The exit code is 0 when every step passed. `cockpit init` wrote:
 
 ## Type checking
 
-Flows are checked against declarations that cockpit generates. Take them from npm and pin the same version as the binary:
-
-```sh
-bun add -d @d0lim/cockpit-sdk@<version>
-```
+Flows are checked against declarations that cockpit generates and embeds in the binary, so they always match the runner that binary carries. `cockpit init` writes them to `e2e/.cockpit-sdk`, and `cockpit sdk write <dir>` writes them anywhere:
 
 ```json
-{ "extends": "@d0lim/cockpit-sdk/tsconfig.base.json", "include": ["**/*.ts"] }
+{ "extends": "./.cockpit-sdk/tsconfig.base.json", "include": ["**/*.ts"] }
 ```
 
-Without a registry, `cockpit sdk write <dir>` writes the same files from the binary.
+Commit the written files. After upgrading cockpit, write them again and review the diff: it shows every declaration the new version changed, before `tsc` checks the flows against them.
 
 ## Releases
 
-A `v*` tag builds the binaries with GoReleaser and attaches them to the GitHub release; mise installs from there. The same tag publishes `@d0lim/cockpit-sdk` to npm through trusted publishing, so the workflow needs no stored token. The cask in [d0lim/homebrew-tap](https://github.com/d0lim/homebrew-tap) is written by that repository's own workflow from the published release. `hostApi` in `.cockpit/project.yaml` is the compatibility key: the runner refuses a declaration whose host API differs from its own.
+A `v*` tag builds the binaries with GoReleaser and attaches them to the GitHub release; mise installs from there. When `sdk/` changed since the previous tag, the release notes carry a "Declarations changed" section with the host API and the diff. The cask in [d0lim/homebrew-tap](https://github.com/d0lim/homebrew-tap) is written by that repository's own workflow from the published release. `hostApi` in `.cockpit/project.yaml` is the compatibility key: the runner refuses a declaration whose host API differs from its own, and a declaration change that breaks scripts written for the current host API raises it.
 
 ## Development
 

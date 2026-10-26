@@ -11,12 +11,15 @@ import (
 
 	"github.com/d0lim/cockpit/internal/contract"
 	httpport "github.com/d0lim/cockpit/internal/ports/http"
+	"github.com/d0lim/cockpit/internal/sdkbin"
 )
 
 //go:embed template/smoke.ts
 var smokeSuite string
 
 const DefaultBaseURL = "http://app"
+
+const SDKDir = "e2e/.cockpit-sdk"
 
 const composeOverlay = `services:
   runner:
@@ -30,7 +33,7 @@ const composeOverlay = `services:
 `
 
 const tsconfig = `{
-  "extends": "@d0lim/cockpit-sdk/tsconfig.base.json",
+  "extends": "./.cockpit-sdk/tsconfig.base.json",
   "include": ["**/*.ts"]
 }
 `
@@ -46,7 +49,7 @@ func files(baseURL string) ([]file, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []file{
+	fs := []file{
 		{".cockpit/project.yaml", fmt.Sprintf("hostApi: %d\n", contract.HostAPI), 0o644},
 		{"compose.cockpit.yaml", composeOverlay, 0o644},
 		{"e2e/env.json", string(env) + "\n", 0o644},
@@ -54,7 +57,19 @@ func files(baseURL string) ([]file, error) {
 		{"e2e/tsconfig.json", tsconfig, 0o644},
 		{".e2e/.gitignore", "*\n", 0o644},
 		{".e2e/e2e.private.env.json", "{\n  \"local\": {}\n}\n", 0o600},
-	}, nil
+	}
+	names, err := sdkbin.Names()
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range names {
+		data, err := sdkbin.Read(name)
+		if err != nil {
+			return nil, err
+		}
+		fs = append(fs, file{SDKDir + "/" + name, string(data), 0o644})
+	}
+	return fs, nil
 }
 
 func Write(dir, baseURL string) ([]string, error) {

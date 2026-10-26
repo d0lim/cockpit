@@ -171,17 +171,17 @@ Step statuses are `passed`, `failed`, `skipped`, `running` and `notRun`. The fil
 
 ## Type checking
 
-The declarations for `cockpit:flow`, the engine globals and a tsconfig base come from the npm package `@d0lim/cockpit-sdk`, or from `cockpit sdk write <dir>` when no registry is available. Extend the base from the scripts directory:
+The declarations for `cockpit:flow`, `cockpit:collect`, the engine globals and a tsconfig base are embedded in the binary. `cockpit init` writes them to `e2e/.cockpit-sdk`, and `cockpit sdk write <dir>` writes them to any directory. Extend the base from the scripts directory:
 
 ```json
 {
-  "extends": "@d0lim/cockpit-sdk/tsconfig.base.json",
+  "extends": "./.cockpit-sdk/tsconfig.base.json",
   "include": ["**/*.ts"]
 }
 ```
 
-A project that keeps its own tsconfig can set `"types": ["@d0lim/cockpit-sdk"]` instead. Editors pick up the same project, so hover shows each port's documentation and errors appear as you type. `tsc --noEmit` rejects calls the runner does not provide, such as `fetch` or a wrong argument type to a helper.
+A project that keeps its own tsconfig can list the three `.d.ts` files in its `files` instead. Commit the written files; after an upgrade, write them again and review the diff before type checking. Editors pick up the same project, so hover shows each port's documentation and errors appear as you type. `tsc --noEmit` rejects calls the runner does not provide, such as `fetch` or a wrong argument type to a helper.
 
 ## Versions
 
-The binary, the embedded runner, the runner image tag and the npm package share one version. Pin the binary per project with mise and pin the package to the same version. `cockpit --version` prints it, and `cockpit runner-image` prints the image tag for the runner inside that binary. A build from source prints `dev+<commit>` and has no published package; take its declarations with `cockpit sdk write <dir>`. A new cockpit version keeps `hostApi: 1` as long as it only adds to the host API; a breaking change raises it, and the runner then refuses suites that still declare the old one.
+The binary, the embedded runner, the runner image tag and the embedded declarations share one version. Pin the binary per project with mise; the declarations it writes always belong to that version. `cockpit --version` prints it, and `cockpit runner-image` prints the image tag for the runner inside that binary. A build from source prints `dev+<commit>` and writes the declarations of its own tree. A new cockpit version keeps `hostApi: 1` as long as it only adds to the host API; a breaking change raises it, and the runner then refuses suites that still declare the old one.

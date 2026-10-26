@@ -20,19 +20,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  npm:
-    needs: binaries
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-      - run: npm install -g npm@11.5.1
-      - run: scripts/build-npm.sh "${GITHUB_REF_NAME#v}" dist/npm
-      - run: scripts/publish-npm.sh dist/npm

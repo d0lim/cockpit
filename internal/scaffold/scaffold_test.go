@@ -28,8 +28,24 @@ func read(t *testing.T, path string) string {
 func TestInitWritesTheQuickStartFilesWithTheirModes(t *testing.T) {
 	dir := t.TempDir()
 	written, err := Write(dir, "http://web:8080/")
-	if err != nil || len(written) != 7 {
+	if err != nil || len(written) != 11 {
 		t.Fatalf("written %v err %v", written, err)
+	}
+	names, err := sdkbin.Names()
+	if err != nil || len(names) != 4 {
+		t.Fatalf("sdk names %v err %v", names, err)
+	}
+	for _, name := range names {
+		want, err := sdkbin.Read(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := read(t, filepath.Join(dir, SDKDir, name)); got != string(want) {
+			t.Fatalf("%s differs from the embedded declarations", name)
+		}
+	}
+	if got := read(t, filepath.Join(dir, "e2e/tsconfig.json")); !strings.Contains(got, `"extends": "./.cockpit-sdk/tsconfig.base.json"`) {
+		t.Fatalf("tsconfig %q", got)
 	}
 	if got := read(t, filepath.Join(dir, ".cockpit/project.yaml")); got != "hostApi: 1\n" {
 		t.Fatalf("declaration %q", got)
@@ -140,13 +156,6 @@ func tsc(t *testing.T, suite string) (bool, string, int) {
 			t.Fatal(err)
 		}
 	}
-	pkg := filepath.Join(dir, "node_modules/@d0lim/cockpit-sdk")
-	if _, err := sdkbin.Write(pkg); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(pkg, "package.json"), []byte(`{"name":"@d0lim/cockpit-sdk","version":"0.0.0"}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	for attempt := 1; ; attempt++ {
@@ -155,7 +164,7 @@ func tsc(t *testing.T, suite string) (bool, string, int) {
 		out, err := cmd.CombinedOutput()
 		declarations := 0
 		for _, line := range strings.Split(string(out), "\n") {
-			if strings.Contains(line, "@d0lim/cockpit-sdk/") && strings.HasSuffix(strings.TrimSpace(line), ".d.ts") {
+			if strings.Contains(line, "/.cockpit-sdk/") && strings.HasSuffix(strings.TrimSpace(line), ".d.ts") {
 				declarations++
 			}
 		}

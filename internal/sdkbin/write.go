@@ -34,6 +34,14 @@ func Names() ([]string, error) {
 	return names, nil
 }
 
+func Read(name string) ([]byte, error) {
+	sub, err := files()
+	if err != nil {
+		return nil, err
+	}
+	return fs.ReadFile(sub, name)
+}
+
 func Write(dir string) ([]string, error) {
 	sub, err := files()
 	if err != nil {
