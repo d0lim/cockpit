@@ -1,0 +1,60 @@
+const encodings: BufferEncoding[] = ["utf8", "utf-8", "hex", "base64"];
+const fromText: Buffer = Buffer.from("hi", "utf8");
+const fromBytes: Buffer = Buffer.from(new Uint8Array([1, 2]));
+const fromBuffer: Buffer = Buffer.from(new ArrayBuffer(2));
+const filled: Buffer = Buffer.alloc(4, 0);
+const empty: Buffer = Buffer.alloc(1);
+const joined: Buffer = Buffer.concat([fromText, fromBytes], 4);
+const same: boolean = joined.equals(fromBuffer);
+const text: string = filled.toString("hex", 0, 2);
+const plain: string = empty.toString();
+
+const encoder = new TextEncoder();
+const encoding: "utf-8" = encoder.encoding;
+const encoded: Uint8Array = encoder.encode("hi");
+const nothing: Uint8Array = encoder.encode();
+
+const params = new URLSearchParams("a=1");
+const fromRecord = new URLSearchParams({ b: "2" });
+const fromPairs = new URLSearchParams([["c", "3"]]);
+const copied = new URLSearchParams(params);
+const bare = new URLSearchParams();
+params.append("a", "2");
+params.delete("b");
+const got: string | null = params.get("a");
+const all: string[] = params.getAll("a");
+const has: boolean = params.has("a");
+params.set("d", "4");
+params.sort();
+params.forEach((value: string, name: string) => console.log(value, name));
+const keys: IterableIterator<string> = params.keys();
+const values: IterableIterator<string> = params.values();
+const entries: IterableIterator<[string, string]> = params.entries();
+const spread: [string, string][] = [...params];
+const query: string = params.toString();
+
+const url = new URL("/path?x=1#h", "http://app:8080");
+const relative = new URL("a", url);
+url.hash = "#h2";
+url.host = "app:8081";
+url.hostname = "app";
+url.href = "http://app/";
+const origin: string = url.origin;
+url.password = "p";
+url.pathname = "/p";
+url.port = "80";
+url.protocol = "http:";
+url.search = "?y=2";
+const search: URLSearchParams = url.searchParams;
+url.username = "u";
+const href: string = url.toString();
+const asJson: string = url.toJSON();
+
+console.info(encodings, same, text, plain, encoding, encoded, nothing, fromRecord, fromPairs, copied, bare);
+console.debug(got, all, has, keys, values, entries, spread, query, relative.href, origin, search.toString(), href, asJson);
+console.warn(url.hash, url.host, url.hostname, url.href, url.password, url.pathname, url.port, url.protocol, url.search, url.username);
+const timer: number = setTimeout((...args: unknown[]) => console.error(args), 1, "late");
+const decoded: string = atob(btoa("hi"));
+console.log(timer, decoded);
+
+export {};

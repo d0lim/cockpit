@@ -46,13 +46,18 @@ func within(t *testing.T, dir, path string) bool {
 
 func runTsc(t *testing.T, samples ...string) tscRun {
 	t.Helper()
+	return runTscFrom(t, filepath.Join("testdata", "tsc"), samples...)
+}
+
+func runTscFrom(t *testing.T, src string, samples ...string) tscRun {
+	t.Helper()
 	bunx, err := exec.LookPath("bunx")
 	if err != nil {
 		t.Fatalf("bunx not found; run under mise exec: %v", err)
 	}
 	dir := t.TempDir()
 	for _, name := range samples {
-		data, err := os.ReadFile(filepath.Join("testdata", "tsc", name))
+		data, err := os.ReadFile(filepath.Join(src, name))
 		if err != nil {
 			t.Fatal(err)
 		}
