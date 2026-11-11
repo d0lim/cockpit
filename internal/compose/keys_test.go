@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/d0lim/cockpit/internal/compose/composetest"
 )
 
 func toyKeys(t *testing.T, dir, sha string) map[string]string {
@@ -98,5 +100,29 @@ func TestRunEnvCarriesRunPathsPortsAndKeysAndRefusesEmptyValues(t *testing.T) {
 	}
 	if _, err := RunEnv(RunEnvInput{RunID: runID, Layout: l, Keys: map[string]string{"IMG_APP": ""}}); err == nil || !strings.Contains(err.Error(), "IMG_APP") {
 		t.Fatalf("empty key: %v", err)
+	}
+}
+
+func TestImageKeyOnASubmoduleRootIsThePinnedCommitAndMovesWithThePinWhileAnInputInsideASubmoduleKeysOnItsBlob(t *testing.T) {
+	dir, _ := toyRepo(t, nil)
+	composetest.Submodule(t, dir, "mock", "mock")
+	composeIDs := []string{gitT(t, dir, "rev-parse", "HEAD:compose.yaml"), gitT(t, dir, "rev-parse", "HEAD:compose.sealed-app.yaml")}
+	pinned := toyKeys(t, dir, gitT(t, dir, "rev-parse", "HEAD"))
+	if pinned["IMG_APP"] != keyOf(append(slices.Clone(composeIDs), gitT(t, dir, "rev-parse", "HEAD:mock"))) {
+		t.Fatalf("the submodule root does not key on its pinned commit: %v", pinned)
+	}
+	mock := filepath.Join(dir, "mock")
+	writeFile(t, filepath.Join(mock, "extra.go"), "package main\n")
+	composetest.Git(t, mock, "add", "-A")
+	composetest.Git(t, mock, "commit", "-q", "-m", "move")
+	if moved := toyKeys(t, dir, commit(t, dir, func() {})); moved["IMG_APP"] == pinned["IMG_APP"] {
+		t.Fatal("moving the pin kept the key")
+	}
+	inside := commit(t, dir, func() {
+		replaceIn(t, filepath.Join(dir, ".cockpit", "project.yaml"), "inputs: [mock]", "inputs: [mock/main.go]")
+	})
+	blob := gitT(t, mock, "rev-parse", "HEAD:main.go")
+	if got := toyKeys(t, dir, inside); got["IMG_APP"] != keyOf(append(slices.Clone(composeIDs), blob)) {
+		t.Fatalf("an input inside the submodule does not key on its blob: %v", got)
 	}
 }

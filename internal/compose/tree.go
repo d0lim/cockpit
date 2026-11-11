@@ -3,6 +3,7 @@ package compose
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -21,6 +22,8 @@ type Tree struct {
 
 type repository struct {
 	prefix  string
+	parent  string
+	name    string
 	commit  string
 	objects objects
 }
@@ -33,12 +36,58 @@ func (g Git) ListTree(ctx context.Context, sha string) (Tree, error) {
 	if err != nil {
 		return Tree{}, err
 	}
-	root := repository{commit: sha, objects: objects{dir: common}}
-	listed, err := root.objects.list(ctx, sha)
-	if err != nil {
+	t := Tree{SHA: sha, Entries: map[string]Entry{}, repos: map[string]repository{}}
+	if err := t.splice(ctx, repository{commit: sha, objects: objects{dir: common}}); err != nil {
 		return Tree{}, err
 	}
-	return Tree{SHA: sha, Entries: listed, repos: map[string]repository{root.prefix: root}}, nil
+	return t, nil
+}
+
+func (t Tree) splice(ctx context.Context, r repository) error {
+	listed, err := r.objects.list(ctx, r.commit)
+	switch {
+	case err != nil && r.prefix == "":
+		return err
+	case err != nil:
+		return reject(RejectSubmodule, r.prefix, "submodule %q pins commit %s, which %s does not hold (%v); %s", r.name, r.commit, r.objects.dir, err, submoduleHint)
+	}
+	t.repos[r.prefix] = r
+	var links []string
+	for rel, e := range listed {
+		e.repo = r.prefix
+		t.Entries[join(r.prefix, rel)] = e
+		if e.Type == submoduleType {
+			links = append(links, rel)
+		}
+	}
+	if len(links) == 0 {
+		return nil
+	}
+	names, err := r.objects.submoduleNames(ctx, r.prefix, listed)
+	if err != nil {
+		return err
+	}
+	slices.Sort(links)
+	for _, rel := range links {
+		child, err := r.submodule(rel, listed[rel].ID, names, len(t.repos)-1)
+		if err != nil {
+			return err
+		}
+		link := t.Entries[child.prefix]
+		link.repo = child.prefix
+		t.Entries[child.prefix] = link
+		if err := t.splice(ctx, child); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func join(prefix, rel string) string {
+	if prefix == "" {
+		return rel
+	}
+	return prefix + "/" + rel
 }
 
 func (t Tree) Blob(ctx context.Context, path string) ([]byte, error) {
@@ -66,7 +115,11 @@ func (t Tree) Has(path string) bool {
 }
 
 func (t Tree) IsDir(path string) bool {
-	return t.Entries[path].Type == treeType
+	switch t.Entries[path].Type {
+	case treeType, submoduleType:
+		return true
+	}
+	return false
 }
 
 func (t Tree) Files() int {

@@ -23,6 +23,7 @@ const DeclarationPath = ".cockpit/project.yaml"
 type RejectKind string
 
 const (
+	RejectSubmodule   RejectKind = "submodule"
 	RejectMissing     RejectKind = "missing"
 	RejectUnreadable  RejectKind = "unreadable"
 	RejectSchema      RejectKind = "schema"

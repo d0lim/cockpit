@@ -1,11 +1,13 @@
 package compose
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/d0lim/cockpit/internal/compose/composetest"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
@@ -17,6 +19,7 @@ var confineMutations = []porttest.Mutation{
 	{"names are unique within their group", "drop the seen map in confine", "red: two runner sources named fixtures pass", "TestNameFieldsWithASlashDotsOrUppercaseAreRejectedAndPatternNamesPass"},
 	{"suites and collectors stay inside scripts.dir", "drop the scripts.dir prefix check", "red: suites outside scripts.dir pass", "TestSuitesOrCollectorsOutsideTheScriptsDirectoryAreRejected"},
 	{"compose.projectDirectory names a directory of the commit", "add compose.projectDirectory with mustDir false", "red: a file or a missing directory passes as the project directory", "TestProjectDirectoryThatIsAFileOrMissingIsRejectedAndACommittedDirectoryPasses"},
+	{"a submodule root is a directory of the run commit, not a file", "make Tree.IsDir true only for tree entries", "red: compose.projectDirectory mock is not a directory and compose.files mock passes as a file", "TestPathsInsideASubmoduleAndASubmoduleRootAsADirectoryPassAndASubmoduleRootAsAComposeFileIsRejected"},
 }
 
 func TestConfineMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -214,5 +217,37 @@ func TestProjectDirectoryThatIsAFileOrMissingIsRejectedAndACommittedDirectoryPas
 	}
 	if rejected != len(bad) || accepted != 4 {
 		t.Fatalf("evaluated %d rejected and %d accepted directories", rejected, accepted)
+	}
+}
+
+func TestPathsInsideASubmoduleAndASubmoduleRootAsADirectoryPassAndASubmoduleRootAsAComposeFileIsRejected(t *testing.T) {
+	dir, _ := toyRepo(t, func(d string) {
+		writeFile(t, filepath.Join(d, "mock", "deploy", "compose.e2e.yaml"), "services: {}\n")
+		if err := os.Symlink(".", filepath.Join(d, "mock", "linked")); err != nil {
+			t.Fatal(err)
+		}
+	})
+	composetest.Submodule(t, dir, "mock", "mock")
+	tree, err := Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "rev-parse", "HEAD"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	inside := toyDeclaration(t)
+	inside.Compose.ProjectDirectory = "mock"
+	inside.Compose.Files = append(inside.Compose.Files, "mock/deploy/compose.e2e.yaml")
+	inside.Inputs.RunnerSources[0].Path = "mock/deploy"
+	inside.Images[0].Inputs = []contract.RelPath{"mock", "mock/main.go"}
+	if err := confine(inside, tree); err != nil {
+		t.Fatalf("paths inside the submodule were rejected: %v", err)
+	}
+	root := toyDeclaration(t)
+	root.Compose.Files[0] = "mock"
+	if r := rejection(t, confine(root, tree)); r.Kind != RejectConfinement || r.Field != "compose.files[0]" || !strings.Contains(r.Message, "not a file") {
+		t.Fatalf("the submodule root as a compose file: %v", r)
+	}
+	linked := toyDeclaration(t)
+	linked.Inputs.Dirty[0] = "mock/linked/main.go"
+	if r := rejection(t, confine(linked, tree)); r.Kind != RejectConfinement || !strings.Contains(r.Message, "symbolic link mock/linked") {
+		t.Fatalf("a path through a link inside the submodule: %v", r)
 	}
 }
