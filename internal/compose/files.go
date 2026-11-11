@@ -76,6 +76,14 @@ func Files(l Layout, decl contract.Declaration) ([]string, error) {
 	return files, nil
 }
 
+func ReadFiles(l Layout, m Model) []string {
+	files := make([]string, 0, len(m.Files)+1)
+	for _, f := range m.Files {
+		files = append(files, filepath.Join(l.Src, filepath.FromSlash(f)))
+	}
+	return append(files, l.Harness())
+}
+
 func projectDir(l Layout, decl contract.Declaration) string {
 	return filepath.Join(l.Src, filepath.FromSlash(string(decl.Compose.ProjectDirectory)))
 }

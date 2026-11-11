@@ -78,7 +78,7 @@ func renderToy(ctx context.Context, t *testing.T) map[string]any {
 	if err := compose.MakeWorkTree(root, decl); err != nil {
 		t.Fatal(err)
 	}
-	keys, err := compose.ImageKeys(decl, loaded.Tree)
+	keys, err := compose.ImageKeys(loaded)
 	if err != nil {
 		t.Fatal(err)
 	}

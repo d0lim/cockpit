@@ -88,7 +88,7 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsAndPortsOnlyOnTheEdge
 	if err := MakeWorkTree(root, decl); err != nil {
 		t.Fatal(err)
 	}
-	keys, err := ImageKeys(decl, loaded.Tree)
+	keys, err := ImageKeys(loaded)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,7 +28,7 @@ func LoadModel(ctx context.Context, tree Tree, decl contract.Declaration) (Model
 	for _, f := range decl.Compose.Files {
 		m.read(string(f))
 	}
-	w := walk{ctx: ctx, tree: tree, outputs: decl.Env.Outputs, model: &m, chain: map[composeFile]bool{}}
+	w := walk{ctx: ctx, tree: tree, outputs: decl.Env.Outputs, forbidden: decl.Compose.Forbidden, model: &m, chain: map[composeFile]bool{}}
 	for i, f := range decl.Compose.Files {
 		if err := w.visit(fmt.Sprintf("compose.files[%d]", i), composeFile{path: string(f), base: string(decl.Compose.ProjectDirectory)}); err != nil {
 			return Model{}, err

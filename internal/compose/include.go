@@ -42,12 +42,13 @@ type includeItem struct {
 }
 
 type walk struct {
-	ctx     context.Context
-	tree    Tree
-	outputs []contract.RelPath
-	model   *Model
-	chain   map[composeFile]bool
-	reads   int
+	ctx       context.Context
+	tree      Tree
+	outputs   []contract.RelPath
+	forbidden []string
+	model     *Model
+	chain     map[composeFile]bool
+	reads     int
 }
 
 func (w *walk) visit(field string, f composeFile) error {
@@ -147,6 +148,9 @@ func (w *walk) confine(holder, base string, v includeValue) (string, *Rejection)
 	case includePath:
 		if !w.file(resolved) {
 			return refuse("%q resolves to %q, which is not a file in the commit", v.value, resolved)
+		}
+		if AssertSealedFiles([]string{resolved}, w.forbidden) != nil {
+			return refuse("%q resolves to %q, whose name contains an entry of compose.forbidden", v.value, resolved)
 		}
 	case includeProjectDirectory:
 		if resolved != "" && !w.tree.IsDir(resolved) {

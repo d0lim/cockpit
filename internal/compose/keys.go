@@ -6,18 +6,16 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-
-	"github.com/d0lim/cockpit/internal/contract"
 )
 
 const imageKeyLength = 12
 
-func KeyInputs(decl contract.Declaration) map[string][]string {
+func KeyInputs(loaded Loaded) map[string][]string {
 	out := map[string][]string{}
-	for _, img := range decl.Images {
+	for _, img := range loaded.Declaration.Images {
 		set := map[string]bool{}
-		for _, f := range decl.Compose.Files {
-			set[string(f)] = true
+		for _, f := range loaded.Model.Files {
+			set[f] = true
 		}
 		for _, p := range img.Inputs {
 			set[string(p)] = true
@@ -27,9 +25,10 @@ func KeyInputs(decl contract.Declaration) map[string][]string {
 	return out
 }
 
-func ImageKeys(decl contract.Declaration, tree Tree) (map[string]string, error) {
+func ImageKeys(loaded Loaded) (map[string]string, error) {
 	keys := map[string]string{}
-	for key, paths := range KeyInputs(decl) {
+	tree := loaded.Tree
+	for key, paths := range KeyInputs(loaded) {
 		ids := make([]string, 0, len(paths))
 		for _, p := range paths {
 			e, ok := tree.Entries[p]

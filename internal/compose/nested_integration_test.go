@@ -112,7 +112,7 @@ func prepareNested(ctx context.Context, t *testing.T) (*os.Root, Layout, Loaded)
 	if err := MakeWorkTree(root, decl); err != nil {
 		t.Fatal(err)
 	}
-	keys, err := ImageKeys(decl, loaded.Tree)
+	keys, err := ImageKeys(loaded)
 	if err != nil {
 		t.Fatal(err)
 	}

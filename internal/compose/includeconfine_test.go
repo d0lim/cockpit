@@ -18,6 +18,7 @@ var includeConfineMutations = []porttest.Mutation{
 	{"an include env_file is a committed file or an env output", "drop the file and env.outputs check for includeEnvFile in walk.confine", "red: env_file missing.env passes", "TestIncludeValuesThatLeaveTheCommitOrCannotBeResolvedAreRejectedAtTheirFieldAndInsideValuesPass"},
 	{"the .env an included project reads is not a committed link", "skip the includeDotenv confinement in walk.include", "red: the committed link stack/.env passes", "TestIncludeValuesThatLeaveTheCommitOrCannotBeResolvedAreRejectedAtTheirFieldAndInsideValuesPass"},
 	{"an include item holds only path, project_directory and env_file", "ignore other keys in parseItem", "red: the unknown key profiles passes", "TestIncludeValuesThatLeaveTheCommitOrCannotBeResolvedAreRejectedAtTheirFieldAndInsideValuesPass"},
+	{"an included file named by compose.forbidden rejects the declaration", "drop the compose.forbidden check in walk.confine", "red: stack/Relay-TUNNEL.yaml is included and the declaration passes", "TestIncludeValuesThatLeaveTheCommitOrCannotBeResolvedAreRejectedAtTheirFieldAndInsideValuesPass"},
 }
 
 func TestIncludeConfineMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -67,6 +68,8 @@ var deniedIncludes = []includeCase{
 	{name: "an item without a path", include: "include:\n  - {project_directory: stack}\n", files: stacked("", nil), field: "compose.files[0] include[0]", says: "names no path"},
 	{name: "an include that is not a list", include: "include: stack/compose.yaml\n", files: stacked("", nil), field: "compose.files[0] include", says: "not a list"},
 	{name: "a path that is a mapping", include: "include:\n  - {path: {file: x}}\n", field: "compose.files[0] include[0].path", says: "not a string"},
+	{name: "an included file named by compose.forbidden", include: "include:\n  - stack/compose.yaml\n", files: stacked("include:\n  - Relay-TUNNEL.yaml\n", map[string]string{"stack/Relay-TUNNEL.yaml": "services: {}\n"}),
+		field: "compose.files[0] include[0] include[0]", says: "compose.forbidden"},
 }
 
 var allowedIncludes = []includeCase{
@@ -75,6 +78,7 @@ var allowedIncludes = []includeCase{
 	{name: "the commit root as project directory", include: "include:\n  - {path: stack/compose.yaml, project_directory: .}\n", files: stacked("", nil), field: "stack/compose.yaml"},
 	{name: "a parent segment that stays inside", include: "include:\n  - stack/compose.yaml\n", files: stacked("include:\n  - ../shared/compose.yaml\n", map[string]string{"shared/compose.yaml": "services: {}\n"}), field: "shared/compose.yaml"},
 	{name: "a committed .env file in the included project", include: "include:\n  - stack/compose.yaml\n", files: stacked("", map[string]string{"stack/.env": "QUEUE=1\n"}), field: "stack/compose.yaml"},
+	{name: "an included file under a name compose.forbidden does not hold", include: "include:\n  - stack/compose.yaml\n", files: stacked("include:\n  - relay.yaml\n", map[string]string{"stack/relay.yaml": "services: {}\n"}), field: "stack/relay.yaml"},
 	{name: "a committed .env link that env_file replaces", include: "include:\n  - {path: stack/compose.yaml, env_file: stack/run.env}\n", files: stacked("", nil), links: map[string]string{"stack/.env": "run.env"}, field: "stack/compose.yaml"},
 }
 
@@ -93,8 +97,8 @@ func TestIncludeValuesThatLeaveTheCommitOrCannotBeResolvedAreRejectedAtTheirFiel
 		}
 		passed++
 	}
-	if passed != 6 {
-		t.Fatalf("%d of 6 allowed includes passed", passed)
+	if passed != 7 {
+		t.Fatalf("%d of 7 allowed includes passed", passed)
 	}
 	denied := 0
 	for _, c := range deniedIncludes {
@@ -102,7 +106,7 @@ func TestIncludeValuesThatLeaveTheCommitOrCannotBeResolvedAreRejectedAtTheirFiel
 		includeRejected(t, c, err)
 		denied++
 	}
-	if denied != 20 {
-		t.Fatalf("%d denied includes ran, want 20", denied)
+	if denied != 21 {
+		t.Fatalf("%d denied includes ran, want 21", denied)
 	}
 }
