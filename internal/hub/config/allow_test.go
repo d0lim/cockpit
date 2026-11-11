@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/compose/composetest"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
@@ -55,6 +56,14 @@ func TestWorktreesOfAnAllowedRepositoryPassAndUnlistedNestedOrNonGitPathsAreReje
 	git(t, allowed, "worktree", "add", "-q", worktree)
 	other := repo(t, filepath.Join(base, "other"))
 	nested := repo(t, filepath.Join(allowed, "nested"))
+	submodule := filepath.Join(allowed, "vendor", "lib")
+	if err := os.MkdirAll(submodule, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(submodule, "file.txt"), []byte("x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	composetest.Submodule(t, allowed, "vendor/lib", "lib")
 	plain := filepath.Join(base, "plain")
 	if err := os.Mkdir(plain, 0o755); err != nil {
 		t.Fatal(err)
@@ -62,7 +71,7 @@ func TestWorktreesOfAnAllowedRepositoryPassAndUnlistedNestedOrNonGitPathsAreReje
 	cfg := config.Config{AllowedRepositories: []string{allowed}}
 	ctx := context.Background()
 	pass := []string{allowed, filepath.Join(allowed, "sub"), worktree, filepath.Join(worktree, "sub")}
-	deny := []string{other, nested, filepath.Join(nested, "sub"), plain}
+	deny := []string{other, nested, filepath.Join(nested, "sub"), submodule, plain}
 	var common string
 	for _, p := range pass {
 		got, err := cfg.Allow(ctx, compose.CommonDirOf, p)
