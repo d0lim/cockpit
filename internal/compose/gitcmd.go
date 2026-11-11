@@ -133,28 +133,3 @@ func (g Git) ResolveCommit(ctx context.Context, ref string) (string, error) {
 	}
 	return sha, nil
 }
-
-func (g Git) Dirty(ctx context.Context, paths []string) ([]string, error) {
-	top, err := g.TopLevel(ctx)
-	if err != nil {
-		return nil, err
-	}
-	args := append([]string{"status", "--porcelain", "-z", "--untracked-files=normal", "--"}, paths...)
-	out, err := Git{Dir: top}.Run(ctx, args...)
-	if err != nil {
-		return nil, err
-	}
-	fields := strings.Split(string(out), "\x00")
-	var files []string
-	for i := 0; i < len(fields); i++ {
-		f := fields[i]
-		if len(f) < 4 {
-			continue
-		}
-		files = append(files, f[3:])
-		if strings.ContainsAny(f[:2], "RC") {
-			i++
-		}
-	}
-	return files, nil
-}

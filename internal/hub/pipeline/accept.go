@@ -45,7 +45,7 @@ func (h *Hub) Accept(ctx context.Context, in scheduler.SubmitInput) (scheduler.A
 	if err != nil {
 		return scheduler.Accepted{}, rejected(scheduler.KindDeclaration, "%s", err.Error())
 	}
-	dirty, err := git.Dirty(ctx, inputPaths(loaded))
+	dirty, err := git.Dirty(ctx, loaded.Tree, inputPaths(loaded))
 	if err != nil {
 		return scheduler.Accepted{}, err
 	}
