@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/d0lim/cockpit/internal/compose/composetest"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
 
@@ -15,6 +16,7 @@ var worktreeMutations = []porttest.Mutation{
 	{"run directory writes cannot follow a committed link out of the run", "write with os.WriteFile on joined paths instead of the os.Root", "red: a write through src/escape lands outside the run directory", "TestWritesThroughACommittedLinkCannotLeaveTheRunDirectory"},
 	{"runner sources never carry links into the work tree", "copy symlinks instead of refusing them", "red: a runner source with a link is copied", "TestWorkTreeRefusesALinkInsideARunnerSourceAndCopiesCleanSources"},
 	{"the private env in the work tree is 600 in a 700 directory", "write the private env with os.WriteFile 0644", "red: work/e2e/e2e.private.env.json is 644", "TestWorkTreeHoldsScriptsDeclarationSourcesAndAPrivateEnvAt600"},
+	{"each pinned submodule commit is extracted under its path and counted on its own", "extract only the root repository in Extract", "red: src/mock/main.go is absent and a phantom file of mock passes", "TestExtractWritesEverySubmoduleFileUnderItsPathIntoSrcAndBuildAndCountsEachRepository"},
 }
 
 func TestWorktreeMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -35,7 +37,7 @@ func extracted(t *testing.T, mutate func(dir string)) (Layout, *os.Root, Loaded)
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { root.Close() })
-	if err := Extract(context.Background(), g, loaded.Tree, root); err != nil {
+	if err := Extract(context.Background(), loaded.Tree, root); err != nil {
 		t.Fatal(err)
 	}
 	return l, root, loaded
@@ -83,7 +85,7 @@ func TestExtractWritesEveryCommitFileIntoSrcAndBuildAndRefusesAStrayTree(t *test
 		t.Fatal(err)
 	}
 	defer root2.Close()
-	if err := Extract(context.Background(), g, tree, root2); err == nil || !strings.Contains(err.Error(), "extracted") {
+	if err := Extract(context.Background(), tree, root2); err == nil || !strings.Contains(err.Error(), "extracted") {
 		t.Fatalf("a count mismatch passed: %v", err)
 	}
 }
@@ -155,5 +157,46 @@ func TestWorkTreeHoldsScriptsDeclarationSourcesAndAPrivateEnvAt600(t *testing.T)
 	_, root3, loaded3 := extracted(t, nil)
 	if err := MakeWorkTree(root3, loaded3.Declaration); err == nil {
 		t.Fatal("a declared private env output that was never generated passed")
+	}
+}
+
+func TestExtractWritesEverySubmoduleFileUnderItsPathIntoSrcAndBuildAndCountsEachRepository(t *testing.T) {
+	dir, _ := toyRepo(t, func(d string) { writeFile(t, filepath.Join(d, "mock", "inner", "lib.txt"), "inner\n") })
+	composetest.Submodule(t, dir, "mock", "mock")
+	composetest.Submodule(t, filepath.Join(dir, "mock"), "inner", "inner")
+	g := Git{Dir: dir}
+	loaded, err := ReadDeclaration(context.Background(), g, commit(t, dir, func() {}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := testLayout(t)
+	root, err := OpenRun(l.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	if err := Extract(context.Background(), loaded.Tree, root); err != nil {
+		t.Fatal(err)
+	}
+	want := len(strings.Fields(gitT(t, dir, "ls-files", "--recurse-submodules")))
+	for _, d := range []string{l.Src, l.Build} {
+		if got := countFiles(t, d); got != want || got != loaded.Tree.Files() {
+			t.Errorf("%s holds %d files, ls-files --recurse-submodules %d", d, got, want)
+		}
+		for _, p := range []string{"mock/main.go", "mock/inner/lib.txt"} {
+			if !exists(filepath.Join(d, p)) || readFile(t, filepath.Join(d, p)) != readFile(t, filepath.Join(dir, p)) {
+				t.Errorf("%s is missing or differs in %s", p, d)
+			}
+		}
+	}
+	loaded.Tree.Entries["mock/phantom.txt"] = Entry{Mode: "100644", Type: "blob", ID: loaded.Tree.SHA, repo: "mock"}
+	l2 := testLayout(t)
+	root2, err := OpenRun(l2.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root2.Close()
+	if err := Extract(context.Background(), loaded.Tree, root2); err == nil || !strings.Contains(err.Error(), "into src/mock") {
+		t.Fatalf("a missing file of mock passed: %v", err)
 	}
 }

@@ -66,7 +66,7 @@ func renderToy(ctx context.Context, t *testing.T) map[string]any {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	if err := compose.Extract(ctx, g, loaded.Tree, root); err != nil {
+	if err := compose.Extract(ctx, loaded.Tree, root); err != nil {
 		t.Fatal(err)
 	}
 	for name, data := range map[string]string{".env": fixtureDotenv, compose.PrivateEnvName: `{"local":{}}`} {

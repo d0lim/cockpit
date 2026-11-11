@@ -19,7 +19,7 @@ var gitMutations = []porttest.Mutation{
 	{"inherited GIT_ variables do not redirect git", "pass os.Environ() unfiltered in gitEnv", "red: GIT_DIR from the hub environment makes the hub read another repository", "TestInheritedGitDirDoesNotRedirectHubGitButRedirectsPlainGit"},
 	{"hub git starts no background maintenance that outlives the call", "drop the maintenance.auto and gc.auto settings from HardenedArgs", "red: the hub commit traces git maintenance run --auto --detach", "TestHubGitAndTestGitStartNoDetachedMaintenanceWhilePlainGitCommitDoes"},
 	{"commit input resolves only to a commit", "drop the ^{commit} suffix in ResolveCommit", "red: HEAD:mock resolves to a tree id and is accepted as a commit", "TestResolveCommitRejectsEmptyAndOptionLikeInputAndResolvesRefsToFullShas"},
-	{"untracked files count as dirty whatever the repository config says", "drop --untracked-files=normal from Dirty", "red: scripts/new.ts is not listed with status.showUntrackedFiles=no", "TestDirtyListsTrackedEditsAndUntrackedFilesUnderDeclaredPathsOnlyEvenWhenUntrackedDisplayIsOff"},
+	{"untracked files count as dirty whatever the repository config says", "drop --untracked-files=normal from Git.status", "red: scripts/new.ts is not listed with status.showUntrackedFiles=no", "TestDirtyListsTrackedEditsAndUntrackedFilesUnderDeclaredPathsOnlyEvenWhenUntrackedDisplayIsOff"},
 	{"links in the commit tree are visible to confinement", "make Tree.Link always return false", "red: linked/main.go is not reported as passing through a link", "TestTreeListingKnowsLinksDirectoriesAndFileCounts"},
 }
 
@@ -51,7 +51,7 @@ func TestDirtyCheckDoesNotRunAPlantedFsmonitorCommandThatPlainGitRuns(t *testing
 		t.Fatal("canary: plain git status did not run the planted fsmonitor command")
 	}
 	os.Remove(marker)
-	if _, err := (Git{Dir: dir}).Dirty(context.Background(), nil); err != nil {
+	if _, err := (Git{Dir: dir}).Dirty(context.Background(), Tree{}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if exists(marker) {
@@ -77,7 +77,7 @@ func TestHooksPlantedInTheRepositoryDoNotRunUnderTheHubGitAndDoUnderPlainGit(t *
 	if exists(marker) {
 		t.Fatal("the planted hook ran under the hardened arguments")
 	}
-	if _, err := (Git{Dir: dir}).Dirty(context.Background(), nil); err != nil || exists(marker) {
+	if _, err := (Git{Dir: dir}).Dirty(context.Background(), Tree{}, nil); err != nil || exists(marker) {
 		t.Fatalf("dirty check: err %v, hook ran %v", err, exists(marker))
 	}
 }
@@ -152,11 +152,15 @@ func TestResolveCommitRejectsEmptyAndOptionLikeInputAndResolvesRefsToFullShas(t 
 }
 
 func TestDirtyListsTrackedEditsAndUntrackedFilesUnderDeclaredPathsOnlyEvenWhenUntrackedDisplayIsOff(t *testing.T) {
-	dir, _ := toyRepo(t, nil)
+	dir, sha := toyRepo(t, nil)
 	gitT(t, dir, "config", "status.showUntrackedFiles", "no")
 	g := Git{Dir: dir}
+	tree, err := g.ListTree(context.Background(), sha)
+	if err != nil {
+		t.Fatal(err)
+	}
 	paths := []string{"mock", "scripts"}
-	clean, err := g.Dirty(context.Background(), paths)
+	clean, err := g.Dirty(context.Background(), tree, paths)
 	if err != nil || len(clean) != 0 {
 		t.Fatalf("fresh repository is dirty: %v %v", clean, err)
 	}
@@ -164,7 +168,7 @@ func TestDirtyListsTrackedEditsAndUntrackedFilesUnderDeclaredPathsOnlyEvenWhenUn
 	writeFile(t, filepath.Join(dir, "scripts", "new.ts"), "export {};\n")
 	writeFile(t, filepath.Join(dir, "notes.txt"), "outside\n")
 	writeFile(t, filepath.Join(dir, ".env"), "IGNORED=1\n")
-	got, err := (Git{Dir: filepath.Join(dir, "mock")}).Dirty(context.Background(), paths)
+	got, err := (Git{Dir: filepath.Join(dir, "mock")}).Dirty(context.Background(), tree, paths)
 	if err != nil {
 		t.Fatal(err)
 	}

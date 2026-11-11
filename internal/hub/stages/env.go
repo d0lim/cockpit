@@ -34,7 +34,6 @@ func (f *Failed) Error() string { return f.Message }
 
 type Env struct {
 	RunID        string
-	Repo         compose.Git
 	Loaded       compose.Loaded
 	Layout       compose.Layout
 	Root         *os.Root
@@ -89,7 +88,7 @@ func RunMasker(patterns []string, src mask.Sources) (*mask.Masker, error) {
 }
 
 func (e *Env) Extract(ctx context.Context) error {
-	return compose.Extract(ctx, e.Repo, e.Loaded.Tree, e.Root)
+	return compose.Extract(ctx, e.Loaded.Tree, e.Root)
 }
 
 func (e *Env) GenerateEnv(ctx context.Context) error {

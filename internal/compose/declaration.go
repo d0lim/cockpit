@@ -23,6 +23,7 @@ const DeclarationPath = ".cockpit/project.yaml"
 type RejectKind string
 
 const (
+	RejectSubmodule   RejectKind = "submodule"
 	RejectMissing     RejectKind = "missing"
 	RejectUnreadable  RejectKind = "unreadable"
 	RejectSchema      RejectKind = "schema"
@@ -73,7 +74,7 @@ func ReadDeclaration(ctx context.Context, git Git, sha string) (Loaded, error) {
 	if entry.Type != "blob" {
 		return Loaded{}, reject(RejectUnreadable, "", "%s is not a regular file in the commit", DeclarationPath)
 	}
-	raw, err := git.Blob(ctx, entry.ID)
+	raw, err := tree.Blob(ctx, DeclarationPath)
 	if err != nil {
 		return Loaded{}, reject(RejectUnreadable, "", "cannot read %s: %v", DeclarationPath, err)
 	}
@@ -99,7 +100,7 @@ func ReadDeclaration(ctx context.Context, git Git, sha string) (Loaded, error) {
 	if err := checkDatabasePorts(decl); err != nil {
 		return Loaded{}, err
 	}
-	model, err := LoadModel(ctx, git, tree, decl.Compose.Files)
+	model, err := LoadModel(ctx, tree, decl.Compose.Files)
 	if err != nil {
 		return Loaded{}, err
 	}

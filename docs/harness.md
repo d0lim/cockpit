@@ -4,18 +4,19 @@ This page holds the rules the hub follows between reading a commit's declaration
 
 ## Reading the declaration
 
-The hub reads `.cockpit/project.yaml` from the git object of the submitted commit (`git cat-file`), never from the work tree. The checks run in this order, and the first failure rejects the run with its kind and the field it concerns:
+The hub reads `.cockpit/project.yaml` from the git object of the submitted commit (`git cat-file`), never from the work tree. The commit's tree includes every pinned submodule commit, recursively, under its path (see [Git](#git)), so declared paths cross into submodules as if they were directories. The checks run in this order, and the first failure rejects the run with its kind and the field it concerns:
 
 | Order | Kind | Rejects |
 | --- | --- | --- |
-| 1 | `missing` | a commit without the file |
-| 2 | `unreadable` | a link, a non-file, a file over 1 MiB, or invalid YAML |
-| 3 | `schema` | a document that fails `schema/declaration.json` or carries unknown fields |
-| 4 | `confinement` | a path that is not a clean relative path, passes through a committed symbolic link, or is missing where a file or directory is required; a name outside `^[a-z0-9][a-z0-9-]{0,62}$` or used twice; suites or collectors outside `scripts.dir` |
-| 5 | `host-api` | a `hostApi` outside the set this hub serves; the message names the served set and the cockpit version |
-| 6 | `secrets` | an empty `secrets.sources` |
-| 7 | `ports` | an offset outside `0..99`, on the reserved offset 99, or taken twice; a port outside `1..65535`; a port on a service that `compose.files` does not define; a `databases[].port` that names no entry of `ports` |
-| 8 | `compose` | a consumer service whose image uses the `cockpit-runner` repository, a builder or expected service that `compose.files` does not define, or a consumer service named `edge`, `runner`, `probe` or `probe-control`, or a network named `egress` |
+| 1 | `submodule` | a gitlink whose path is not a clean relative path, that has no entry in its repository's `.gitmodules` or is claimed by two; a `.gitmodules` that is a link, not a file or not git config; a submodule name that is not a clean relative path or resolves outside `modules/`; a submodule not initialized in the main repository; a pinned commit its repository does not hold; more than 64 submodules in one commit |
+| 2 | `missing` | a commit without the file |
+| 3 | `unreadable` | a link, a non-file, a file over 1 MiB, or invalid YAML |
+| 4 | `schema` | a document that fails `schema/declaration.json` or carries unknown fields |
+| 5 | `confinement` | a path that is not a clean relative path, passes through a committed symbolic link, or is missing where a file or directory is required (a submodule root is a directory); a name outside `^[a-z0-9][a-z0-9-]{0,62}$` or used twice; suites or collectors outside `scripts.dir` |
+| 6 | `host-api` | a `hostApi` outside the set this hub serves; the message names the served set and the cockpit version |
+| 7 | `secrets` | an empty `secrets.sources` |
+| 8 | `ports` | an offset outside `0..99`, on the reserved offset 99, or taken twice; a port outside `1..65535`; a port on a service that `compose.files` does not define; a `databases[].port` that names no entry of `ports` |
+| 9 | `compose` | a consumer service whose image uses the `cockpit-runner` repository, a builder or expected service that `compose.files` does not define, or a consumer service named `edge`, `runner`, `probe` or `probe-control`, or a network named `egress` |
 
 ## Allowed repositories
 
@@ -25,13 +26,17 @@ The hub reads `.cockpit/project.yaml` from the git object of the submitted commi
 
 Every git call of the hub passes `-c core.fsmonitor=false`, `-c core.hooksPath=<empty temporary directory>`, `-c maintenance.auto=false`, `-c maintenance.autoDetach=false`, `-c gc.auto=0`, `-c gc.autoDetach=false` and `--no-optional-locks`, and runs without inherited `GIT_*` variables. The maintenance and gc settings matter because git commands such as `commit` start `git maintenance run --auto --detach`, a child that leaves the call and writes `objects/maintenance.lock` into the repository afterwards; the hub must not leave a git process writing into a consumer repository. Tests that build repositories with plain git set the same four settings through `GIT_CONFIG_COUNT`. Commit input resolves through `<ref>^{commit}` to a full sha before any other call uses it.
 
+A gitlink in the commit stands for the pinned commit of its submodule, and the hub reads that commit as part of the run. The submodule's repository is `<git common dir>/modules/<name>`, and a nested one lies under its parent's (`<git common dir>/modules/<a>/modules/<b>`), which is where git keeps them for the main checkout. The name comes from `submodule.<name>.path` in the `.gitmodules` blob of the same commit, read with `git config -z --no-includes --blob <id> --list`, so an `[include]` in a committed `.gitmodules` is never followed. The name must be a clean relative path, and it is resolved through `os.Root` on `modules/`, so `..`, an absolute name or a link cannot lead out of it. Object reads (`ls-tree`, `cat-file`, `archive`, `config --blob`) run in the git directory with `--git-dir=. --work-tree=.`, so a submodule's `core.worktree` is never followed and the objects stay readable after its checkout is removed. The hub never fetches, never runs `git submodule`, and never reads a linked worktree's `worktrees/<name>/modules/`, so submodules must be initialized in the main checkout (`git submodule update --init --recursive`). Every gitlink must resolve, including one that no declared path touches, and a commit may pin at most 64 submodules in all.
+
+The dirty check runs `git status --porcelain -z --untracked-files=normal --ignore-submodules=dirty` in the worktree and in each checked-out submodule that a declared path lies in or contains, each with the declared paths relative to that checkout. Each such submodule's path is added to its parent's status, so a submodule checked out at a commit other than the one its parent records is dirty whatever `ignore=` in `.gitmodules` says; changes inside a submodule come from the hub's own status in that submodule. A submodule whose directory is missing or empty is not checked out and has nothing uncommitted; a non-empty directory that is not its own checkout is dirty.
+
 ## Run directory
 
-The hub opens each run directory with `os.Root`. It holds `src/` and `build/` (two extractions of the commit, checked against the file count of the tree), `work/` (the runner's view), `env/` (`run.env` and the kit README) and `harness.yaml`. Directories the hub creates for credentials are 700 and their files 600.
+The hub opens each run directory with `os.Root`. It holds `src/` and `build/` (two extractions of the commit and of every pinned submodule commit under its path, each repository's archive checked against its file count in the tree), `work/` (the runner's view), `env/` (`run.env` and the kit README) and `harness.yaml`. Directories the hub creates for credentials are 700 and their files 600.
 
 - **Environment generation**: `env.command` runs in `docker run --rm --network none` with the digest-pinned `env.image`, a non-root user, a read-only root, all capabilities dropped, only `src/` bound at `/src`, and only `COMPOSE_PROJECT_NAME` in its environment, under `umask 077`. Every output must then be a regular file, and the hub sets it to 600. A failure removes the outputs that did not exist before and reports the exit code with the masked end of stderr. Every output is a value source of the run redactor; `secrets.sources` adds more.
 - **Work tree**: `work/scripts` copies `scripts.dir`, `work/.cockpit/project.yaml` copies the declaration, and `work/source/<name>` copies each `inputs.runnerSources` entry. A symbolic link inside a copied tree fails the copy. `work/e2e/e2e.private.env.json` is the env output of that name, or `{"local": {}}` when none is declared.
-- **Image keys**: each key in `images` hashes the sorted git object ids of its inputs plus the declared compose files (sha256, first 12 hex characters). The runner image has no key; it belongs to the cockpit version.
+- **Image keys**: each key in `images` hashes the sorted git object ids of its inputs plus the declared compose files (sha256, first 12 hex characters). An input that is a submodule root counts as its pinned commit id, and an input inside a submodule as its own object id. The runner image has no key; it belongs to the cockpit version.
 - **run.env**: `RUN_ID`, `RUN_SRC`, `RUN_BUILD`, `RUN_WORK`, one `RUN_PORT_<NAME>` per port offset and one line per image key.
 
 ## Compose calls

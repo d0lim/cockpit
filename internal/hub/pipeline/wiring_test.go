@@ -6,8 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/d0lim/cockpit/internal/compose/composetest"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	"github.com/d0lim/cockpit/internal/hub/lease"
+	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/hub/ticker"
@@ -20,6 +22,8 @@ var wiringMutations = []porttest.Mutation{
 	{"submissions pass the allowed repository, dirty, host API, suite and collector checks", "accept every submission in Accept", "red: an unlisted, dirty, hostApi 2, unknown-suite or runner-collector commit is queued", "TestSubmissionFromAnUnlistedRepositoryADirtyTreeAnUnservedHostAPIAnUnknownSuiteOrAReservedCollectorIsRefused"},
 	{"a refused declaration stops at the submission and never reaches a run directory, tree extraction or docker", "ignore the ReadDeclaration error in Accept", "red: the refusal no longer names project.expectedServices", "TestARefusedDeclarationNeverReachesARunDirectoryTreeExtractionOrDocker"},
 	{"the runner user reaches the generated harness while work/e2e and the private env stay owner-only", "drop RunnerUser from the stage Env", "red: the harness runner has no user", "TestRunnerUserReachesTheHarnessAndTheRunDirectoryStaysOwnerOnly"},
+	{"a gitlink the main repository cannot resolve refuses the submit before a run exists", "skip a gitlink whose module or pinned commit cannot be read in compose splice", "red: the umbrella with an uninitialized submodule is queued", "TestAnUmbrellaWhoseSubmoduleIsMissingFromTheMainRepositoryIsRefusedAtSubmitAndALinkedWorktreeSubmitExtractsItFromTheCommonDir"},
+	{"submodules resolve from the common dir, so a submit from a linked worktree reaches the run directory with their files", "list the root through the worktree's own git dir instead of CommonDir in compose ListTree", "red: the linked worktree's submission is refused as an uninitialized submodule", "TestAnUmbrellaWhoseSubmoduleIsMissingFromTheMainRepositoryIsRefusedAtSubmitAndALinkedWorktreeSubmitExtractsItFromTheCommonDir"},
 }
 
 func TestWiringMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -150,5 +154,43 @@ func TestRunnerUserReachesTheHarnessAndTheRunDirectoryStaysOwnerOnly(t *testing.
 	}
 	if evaluated != 2 {
 		t.Fatalf("evaluated %d", evaluated)
+	}
+}
+
+func TestAnUmbrellaWhoseSubmoduleIsMissingFromTheMainRepositoryIsRefusedAtSubmitAndALinkedWorktreeSubmitExtractsItFromTheCommonDir(t *testing.T) {
+	missing := newWorld(t, nil, nil)
+	composetest.Submodule(t, missing.repo, "mock", "mock")
+	composetest.Git(t, missing.repo, "submodule", "deinit", "-q", "-f", "mock")
+	if err := os.RemoveAll(filepath.Join(missing.repo, ".git", "modules", "mock")); err != nil {
+		t.Fatal(err)
+	}
+	if f := refused(t, missing, missing.repo); f == nil || f.Code != ticker.CodeRejectedNoHarness || !strings.Contains(f.Reason, "declaration rejected (submodule) at mock") || !strings.Contains(f.Reason, "not initialized") {
+		t.Fatalf("an uninitialized submodule: %+v", f)
+	}
+	if st, err := missing.hub.Store().CurrentState(); err != nil || len(st.Queue) != 0 || len(st.Leases) != 0 {
+		t.Fatalf("the refused umbrella left a run: %+v %v", st, err)
+	}
+
+	w := newWorld(t, nil, nil)
+	origin := composetest.Submodule(t, w.repo, "mock", "mock")
+	linked := filepath.Join(t.TempDir(), "linked")
+	composetest.Git(t, w.repo, "worktree", "add", "-q", linked)
+	res := w.sched.Submit(t.Context(), scheduler.SubmitInput{Worktree: linked, Submitter: "tester"})
+	if res.Fail != nil {
+		t.Fatalf("a clean umbrella submitted from a linked worktree was refused: %+v", res.Fail)
+	}
+	w.sched.Tick()
+	w.sched.Idle()
+	m := w.meta(res.ID)
+	dir, _ := w.hub.Store().RunDir(m.ID)
+	want, err := os.ReadFile(filepath.Join(origin, "main.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.ReadFile(filepath.Join(dir, "src", "mock", "main.go")); err != nil || string(got) != string(want) || m.Verdict != lifecycle.VerdictPassed {
+		t.Fatalf("src/mock/main.go: %v, verdict %q", err, m.Verdict)
+	}
+	if common, _ := filepath.EvalSymlinks(filepath.Join(w.repo, ".git")); m.Repository != common {
+		t.Fatalf("the run records %s, not the common dir %s", m.Repository, common)
 	}
 }

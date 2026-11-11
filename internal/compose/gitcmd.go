@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -60,6 +61,10 @@ func (g Git) Run(ctx context.Context, args ...string) ([]byte, error) {
 }
 
 func (g Git) Stream(ctx context.Context, stdout io.Writer, args ...string) error {
+	return g.stream(ctx, stdout, nil, args)
+}
+
+func (g Git) stream(ctx context.Context, stdout io.Writer, global, args []string) error {
 	if !filepath.IsAbs(g.Dir) {
 		return fmt.Errorf("git directory must be absolute, got %q", g.Dir)
 	}
@@ -70,7 +75,7 @@ func (g Git) Stream(ctx context.Context, stdout io.Writer, args ...string) error
 	defer os.RemoveAll(hooks)
 	ctx, cancel := context.WithTimeout(ctx, gitTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "git", HardenedArgs(g.Dir, hooks, args...)...)
+	cmd := exec.CommandContext(ctx, "git", HardenedArgs(g.Dir, hooks, slices.Concat(global, args)...)...)
 	cmd.Env = gitEnv()
 	cmd.Stdout = stdout
 	var stderr bytes.Buffer
@@ -127,65 +132,4 @@ func (g Git) ResolveCommit(ctx context.Context, ref string) (string, error) {
 		return "", fmt.Errorf("%w: %q does not resolve to a commit", ErrCommitInput, ref)
 	}
 	return sha, nil
-}
-
-func (g Git) Dirty(ctx context.Context, paths []string) ([]string, error) {
-	top, err := g.TopLevel(ctx)
-	if err != nil {
-		return nil, err
-	}
-	args := append([]string{"status", "--porcelain", "-z", "--untracked-files=normal", "--"}, paths...)
-	out, err := Git{Dir: top}.Run(ctx, args...)
-	if err != nil {
-		return nil, err
-	}
-	fields := strings.Split(string(out), "\x00")
-	var files []string
-	for i := 0; i < len(fields); i++ {
-		f := fields[i]
-		if len(f) < 4 {
-			continue
-		}
-		files = append(files, f[3:])
-		if strings.ContainsAny(f[:2], "RC") {
-			i++
-		}
-	}
-	return files, nil
-}
-
-func (g Git) Archive(ctx context.Context, sha string, w io.Writer) error {
-	if !shaPattern.MatchString(sha) {
-		return fmt.Errorf("%w: archive needs a resolved sha, got %q", ErrCommitInput, sha)
-	}
-	return g.Stream(ctx, w, "archive", "--format=tar", sha)
-}
-
-func (g Git) Blob(ctx context.Context, id string) ([]byte, error) {
-	if !shaPattern.MatchString(id) {
-		return nil, fmt.Errorf("not an object id: %q", id)
-	}
-	var buf bytes.Buffer
-	w := &capWriter{buf: &buf, max: maxBlobBytes}
-	if err := g.Stream(ctx, w, "cat-file", "blob", id); err != nil {
-		return nil, err
-	}
-	if w.over {
-		return nil, fmt.Errorf("object %s exceeds %d bytes", id[:12], maxBlobBytes)
-	}
-	return buf.Bytes(), nil
-}
-
-type capWriter struct {
-	buf  *bytes.Buffer
-	max  int
-	over bool
-}
-
-func (w *capWriter) Write(p []byte) (int, error) {
-	if w.buf.Len()+len(p) > w.max {
-		w.over = true
-		return len(p), nil
-	}
-	return w.buf.Write(p)
 }

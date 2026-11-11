@@ -77,7 +77,7 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsAndPortsOnlyOnTheEdge
 		t.Fatal(err)
 	}
 	defer root.Close()
-	if err := Extract(ctx, g, loaded.Tree, root); err != nil {
+	if err := Extract(ctx, loaded.Tree, root); err != nil {
 		t.Fatal(err)
 	}
 	decl := loaded.Declaration

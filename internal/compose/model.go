@@ -22,11 +22,11 @@ func (m Model) ServiceNames() []string {
 	return sortedKeys(m.Services)
 }
 
-func LoadModel(ctx context.Context, git Git, tree Tree, files []contract.RelPath) (Model, error) {
+func LoadModel(ctx context.Context, tree Tree, files []contract.RelPath) (Model, error) {
 	m := Model{Services: map[string]string{}, Volumes: map[string]bool{}, Networks: map[string]bool{}}
 	for i, f := range files {
 		field := fmt.Sprintf("compose.files[%d]", i)
-		raw, err := git.Blob(ctx, tree.Entries[string(f)].ID)
+		raw, err := tree.Blob(ctx, string(f))
 		if err != nil {
 			return Model{}, reject(RejectCompose, field, "cannot read %s: %v", f, err)
 		}

@@ -102,7 +102,7 @@ func (r *run) prepare(ctx context.Context) bool {
 			return "", err
 		}
 		r.loaded = loaded
-		dirty, err := git.Dirty(ctx, relPaths(loaded.Declaration.Inputs.Dirty))
+		dirty, err := git.Dirty(ctx, loaded.Tree, relPaths(loaded.Declaration.Inputs.Dirty))
 		if err != nil {
 			return "", err
 		}

@@ -59,7 +59,6 @@ func (r *run) runDirectory(ctx context.Context) (string, error) {
 		return "", err
 	}
 	e.RunID, e.Loaded, e.Base, e.Image = r.runID, r.loaded, r.base, r.image.Tag
-	e.Repo = compose.Git{Dir: r.opts.Project}
 	e.Log = func(line string) { fmt.Fprintln(r.log, line) }
 	if err := e.Extract(ctx); err != nil {
 		return dir, err

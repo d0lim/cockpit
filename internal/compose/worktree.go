@@ -22,34 +22,42 @@ const (
 	execFileMode   = 0o755
 )
 
-func Extract(ctx context.Context, git Git, tree Tree, root *os.Root) error {
+func Extract(ctx context.Context, tree Tree, root *os.Root) error {
 	for _, dir := range []string{srcDir, buildDir} {
 		if err := root.Mkdir(dir, publicDirMode); err != nil {
 			return fmt.Errorf("cannot create %s: %w", dir, err)
 		}
-		pr, pw := io.Pipe()
-		done := make(chan error, 1)
-		go func() {
-			err := git.Archive(ctx, tree.SHA, pw)
-			pw.CloseWithError(err)
-			done <- err
-		}()
-		n, err := untar(root, dir, pr)
-		if err == nil {
-			_, err = io.Copy(io.Discard, pr)
-		}
-		pr.CloseWithError(errors.New("extraction stopped"))
-		if archiveErr := <-done; err == nil && archiveErr != nil {
-			err = archiveErr
-		}
-		if err != nil {
-			return fmt.Errorf("cannot extract commit %s into %s: %w", tree.SHA[:12], dir, err)
-		}
-		if want := tree.Files(); n != want {
-			return fmt.Errorf("extracted %d files into %s, but commit %s has %d", n, dir, tree.SHA[:12], want)
+		for _, repo := range tree.repositories() {
+			into := path.Join(dir, repo.prefix)
+			n, err := extractRepository(ctx, repo, root, dir)
+			if err != nil {
+				return fmt.Errorf("cannot extract commit %s into %s: %w", repo.commit[:12], into, err)
+			}
+			if want := tree.filesOf(repo.prefix); n != want {
+				return fmt.Errorf("extracted %d files into %s, but commit %s has %d", n, into, repo.commit[:12], want)
+			}
 		}
 	}
 	return nil
+}
+
+func extractRepository(ctx context.Context, repo repository, root *os.Root, dir string) (int, error) {
+	pr, pw := io.Pipe()
+	done := make(chan error, 1)
+	go func() {
+		err := repo.objects.archive(ctx, repo.commit, repo.prefix, pw)
+		pw.CloseWithError(err)
+		done <- err
+	}()
+	n, err := untar(root, dir, pr)
+	if err == nil {
+		_, err = io.Copy(io.Discard, pr)
+	}
+	pr.CloseWithError(errors.New("extraction stopped"))
+	if archiveErr := <-done; err == nil && archiveErr != nil {
+		err = archiveErr
+	}
+	return n, err
 }
 
 func untar(root *os.Root, dir string, r io.Reader) (int, error) {
