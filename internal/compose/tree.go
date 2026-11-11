@@ -10,34 +10,43 @@ type Entry struct {
 	Mode string
 	Type string
 	ID   string
+	repo string
 }
 
 type Tree struct {
 	SHA     string
 	Entries map[string]Entry
+	repos   map[string]repository
+}
+
+type repository struct {
+	prefix  string
+	commit  string
+	objects objects
 }
 
 func (g Git) ListTree(ctx context.Context, sha string) (Tree, error) {
 	if !shaPattern.MatchString(sha) {
 		return Tree{}, fmt.Errorf("%w: tree listing needs a resolved sha, got %q", ErrCommitInput, sha)
 	}
-	out, err := g.Run(ctx, "ls-tree", "-r", "-t", "-z", "--full-tree", sha)
+	common, err := g.CommonDir(ctx)
 	if err != nil {
 		return Tree{}, err
 	}
-	t := Tree{SHA: sha, Entries: map[string]Entry{}}
-	for _, rec := range strings.Split(string(out), "\x00") {
-		if rec == "" {
-			continue
-		}
-		meta, path, ok := strings.Cut(rec, "\t")
-		parts := strings.Fields(meta)
-		if !ok || len(parts) != 3 {
-			return Tree{}, fmt.Errorf("unexpected ls-tree record %q", rec)
-		}
-		t.Entries[path] = Entry{Mode: parts[0], Type: parts[1], ID: parts[2]}
+	root := repository{commit: sha, objects: objects{dir: common}}
+	listed, err := root.objects.list(ctx, sha)
+	if err != nil {
+		return Tree{}, err
 	}
-	return t, nil
+	return Tree{SHA: sha, Entries: listed, repos: map[string]repository{root.prefix: root}}, nil
+}
+
+func (t Tree) Blob(ctx context.Context, path string) ([]byte, error) {
+	e, ok := t.Entries[path]
+	if !ok {
+		return nil, fmt.Errorf("%s is not in the commit", path)
+	}
+	return t.repos[e.repo].objects.blob(ctx, e.ID)
 }
 
 func (t Tree) Link(path string) (string, bool) {
@@ -64,16 +73,6 @@ func (t Tree) Files() int {
 	n := 0
 	for _, e := range t.Entries {
 		if e.Type != treeType && e.Type != submoduleType {
-			n++
-		}
-	}
-	return n
-}
-
-func (t Tree) Under(dir string) int {
-	n := 0
-	for path, e := range t.Entries {
-		if e.Type != treeType && e.Type != submoduleType && strings.HasPrefix(path, dir+"/") {
 			n++
 		}
 	}

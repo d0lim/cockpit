@@ -79,7 +79,7 @@ func declaredHostAPI(ctx context.Context, git compose.Git, sha string) int {
 	if err != nil {
 		return 0
 	}
-	raw, err := git.Blob(ctx, tree.Entries[compose.DeclarationPath].ID)
+	raw, err := tree.Blob(ctx, compose.DeclarationPath)
 	if err != nil {
 		return 0
 	}

@@ -102,7 +102,7 @@ func prepareNested(ctx context.Context, t *testing.T) (*os.Root, Layout, Loaded)
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { root.Close() })
-	if err := Extract(ctx, g, loaded.Tree, root); err != nil {
+	if err := Extract(ctx, loaded.Tree, root); err != nil {
 		t.Fatal(err)
 	}
 	decl := loaded.Declaration

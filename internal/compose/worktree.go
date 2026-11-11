@@ -22,7 +22,8 @@ const (
 	execFileMode   = 0o755
 )
 
-func Extract(ctx context.Context, git Git, tree Tree, root *os.Root) error {
+func Extract(ctx context.Context, tree Tree, root *os.Root) error {
+	repo := tree.repos[""]
 	for _, dir := range []string{srcDir, buildDir} {
 		if err := root.Mkdir(dir, publicDirMode); err != nil {
 			return fmt.Errorf("cannot create %s: %w", dir, err)
@@ -30,7 +31,7 @@ func Extract(ctx context.Context, git Git, tree Tree, root *os.Root) error {
 		pr, pw := io.Pipe()
 		done := make(chan error, 1)
 		go func() {
-			err := git.Archive(ctx, tree.SHA, pw)
+			err := repo.objects.archive(ctx, tree.SHA, repo.prefix, pw)
 			pw.CloseWithError(err)
 			done <- err
 		}()

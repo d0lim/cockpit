@@ -35,7 +35,7 @@ func extracted(t *testing.T, mutate func(dir string)) (Layout, *os.Root, Loaded)
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { root.Close() })
-	if err := Extract(context.Background(), g, loaded.Tree, root); err != nil {
+	if err := Extract(context.Background(), loaded.Tree, root); err != nil {
 		t.Fatal(err)
 	}
 	return l, root, loaded
@@ -83,7 +83,7 @@ func TestExtractWritesEveryCommitFileIntoSrcAndBuildAndRefusesAStrayTree(t *test
 		t.Fatal(err)
 	}
 	defer root2.Close()
-	if err := Extract(context.Background(), g, tree, root2); err == nil || !strings.Contains(err.Error(), "extracted") {
+	if err := Extract(context.Background(), tree, root2); err == nil || !strings.Contains(err.Error(), "extracted") {
 		t.Fatalf("a count mismatch passed: %v", err)
 	}
 }

@@ -46,7 +46,7 @@ func (l *live) ensureLoaded(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	l.env.Loaded, l.env.Repo, l.loaded = loaded, compose.Git{Dir: m.Repository}, true
+	l.env.Loaded, l.loaded = loaded, true
 	l.st = store.Open(l.h.store.Home(), compose.SecretFilePatterns(loaded.Declaration)...)
 	l.env.Docker = l.h.o.DockerFor(l.h.ops.PgidHooks(l.st, l.id))
 	return nil
