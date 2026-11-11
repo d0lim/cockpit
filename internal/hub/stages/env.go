@@ -106,7 +106,7 @@ func (e *Env) WriteRunFiles() error {
 	if err := compose.MakeWorkTree(e.Root, decl); err != nil {
 		return err
 	}
-	keys, err := compose.ImageKeys(decl, e.Loaded.Tree)
+	keys, err := compose.ImageKeys(e.Loaded)
 	if err != nil {
 		return err
 	}
@@ -160,12 +160,8 @@ func (e *Env) SealStatic(ctx context.Context) error {
 	}
 	e.Config = config
 	decl := e.Loaded.Declaration
-	files, err := compose.Files(e.Layout, decl)
-	if err != nil {
-		return err
-	}
 	e.Static = seal.Static(seal.Input{
-		Config: config, Files: files, Forbidden: decl.Compose.Forbidden, RunID: e.RunID, RunDir: e.Layout.Root,
+		Config: config, Files: compose.ReadFiles(e.Layout, e.Loaded.Model), Forbidden: decl.Compose.Forbidden, RunID: e.RunID, RunDir: e.Layout.Root,
 		Layout: e.Layout, PortBase: e.Base, Ports: decl.Ports, Builder: decl.Project.Builder, RunnerImage: e.Image,
 	})
 	if err := e.WriteSeal(); err != nil {

@@ -18,7 +18,7 @@ func toyKeys(t *testing.T, dir, sha string) map[string]string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	keys, err := ImageKeys(loaded.Declaration, loaded.Tree)
+	keys, err := ImageKeys(loaded)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,9 +52,29 @@ func TestImageKeyChangesWhenOneInputTreeChangesAndStaysWhenAFileOutsideTheInputs
 	}
 }
 
+func TestImageKeyHashesEveryIncludedComposeFileAndMovesWhenOnlyAnIncludedFileChanges(t *testing.T) {
+	c := includeCase{include: "include:\n  - stack/compose.yaml\n", files: map[string]string{"stack/compose.yaml": "include:\n  - extra.yaml\n" + queueStack, "stack/extra.yaml": "services: {}\n"}}
+	dir, base := toyRepo(t, c.mutate(t))
+	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(KeyInputs(loaded)["IMG_APP"], ","); got != "compose.sealed-app.yaml,compose.yaml,mock,stack/compose.yaml,stack/extra.yaml" {
+		t.Fatalf("inputs %s", got)
+	}
+	first := toyKeys(t, dir, base)
+	if got := toyKeys(t, dir, commit(t, dir, func() { writeFile(t, filepath.Join(dir, "README.md"), "toy\n") })); got["IMG_APP"] != first["IMG_APP"] {
+		t.Fatalf("canary: a README change moved the key: %v -> %v", first, got)
+	}
+	nested := commit(t, dir, func() { writeFile(t, filepath.Join(dir, "stack", "extra.yaml"), "services: {}\nvolumes: {}\n") })
+	if got := toyKeys(t, dir, nested); got["IMG_APP"] == first["IMG_APP"] {
+		t.Fatal("a change to an included compose file kept the key")
+	}
+}
+
 func TestImageKeyIsTheFirst12HexOfSha256OverSortedTreeIdsWithoutARunnerKey(t *testing.T) {
 	loaded := mustLoadToy(t)
-	inputs := KeyInputs(loaded.Declaration)
+	inputs := KeyInputs(loaded)
 	if got := strings.Join(inputs["IMG_APP"], ","); got != "compose.sealed-app.yaml,compose.yaml,mock" {
 		t.Fatalf("inputs %s", got)
 	}
@@ -64,7 +84,7 @@ func TestImageKeyIsTheFirst12HexOfSha256OverSortedTreeIdsWithoutARunnerKey(t *te
 	}
 	slices.Sort(ids)
 	sum := sha256.Sum256([]byte(strings.Join(ids, "\n")))
-	keys, err := ImageKeys(loaded.Declaration, loaded.Tree)
+	keys, err := ImageKeys(loaded)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +101,7 @@ func TestImageKeyIsTheFirst12HexOfSha256OverSortedTreeIdsWithoutARunnerKey(t *te
 		t.Fatalf("run.env %q %v", env, err)
 	}
 	loaded.Declaration.Images[0].Inputs = append(loaded.Declaration.Images[0].Inputs, "missing-dir")
-	if _, err := ImageKeys(loaded.Declaration, loaded.Tree); err == nil || !strings.Contains(err.Error(), "missing-dir") {
+	if _, err := ImageKeys(loaded); err == nil || !strings.Contains(err.Error(), "missing-dir") {
 		t.Fatalf("an absent input: %v", err)
 	}
 }

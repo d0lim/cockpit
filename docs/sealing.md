@@ -19,7 +19,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | # | Name | Expectation |
 | --- | --- | --- |
 | 1 | `roles.present` | Exactly one service holds each harness role (`edge`, `runner`, `probe`, `probe-control`, and `builder` when declared), and every service carries the run labels. Without this, an empty or partial render would pass the rest vacuously. |
-| 2 | `files.overlays` | No compose file in the set matches an entry of `compose.forbidden`. |
+| 2 | `files.overlays` | No compose file the render reads (the declared files, every file they include, and the harness) matches an entry of `compose.forbidden`. |
 | 3 | `networks.set` | `default` and `egress` exist, and no network is external. |
 | 4 | `networks.internal` | Every network other than `egress` is internal. |
 | 5 | `services.networks` | The edge joins every internal network and `egress`; the builder and `probe-control` join only `egress`; every other service joins only internal networks. |

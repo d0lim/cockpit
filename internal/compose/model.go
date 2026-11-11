@@ -16,22 +16,22 @@ type Model struct {
 	Services map[string]string
 	Volumes  map[string]bool
 	Networks map[string]bool
+	Files    []string
 }
 
 func (m Model) ServiceNames() []string {
 	return sortedKeys(m.Services)
 }
 
-func LoadModel(ctx context.Context, tree Tree, files []contract.RelPath) (Model, error) {
+func LoadModel(ctx context.Context, tree Tree, decl contract.Declaration) (Model, error) {
 	m := Model{Services: map[string]string{}, Volumes: map[string]bool{}, Networks: map[string]bool{}}
-	for i, f := range files {
-		field := fmt.Sprintf("compose.files[%d]", i)
-		raw, err := tree.Blob(ctx, string(f))
-		if err != nil {
-			return Model{}, reject(RejectCompose, field, "cannot read %s: %v", f, err)
-		}
-		if err := m.add(raw); err != nil {
-			return Model{}, reject(RejectCompose, field, "%s: %v", f, err)
+	for _, f := range decl.Compose.Files {
+		m.read(string(f))
+	}
+	w := walk{ctx: ctx, tree: tree, outputs: decl.Env.Outputs, forbidden: decl.Compose.Forbidden, model: &m, chain: map[composeFile]bool{}}
+	for i, f := range decl.Compose.Files {
+		if err := w.visit(fmt.Sprintf("compose.files[%d]", i), composeFile{path: string(f), base: string(decl.Compose.ProjectDirectory)}); err != nil {
+			return Model{}, err
 		}
 	}
 	return m, nil
@@ -40,25 +40,37 @@ func LoadModel(ctx context.Context, tree Tree, files []contract.RelPath) (Model,
 func ParseModel(files ...[]byte) (Model, error) {
 	m := Model{Services: map[string]string{}, Volumes: map[string]bool{}, Networks: map[string]bool{}}
 	for _, raw := range files {
-		if err := m.add(raw); err != nil {
+		root, err := parseRoot(raw)
+		if err != nil {
 			return Model{}, err
 		}
+		m.add(root)
 	}
 	return m, nil
 }
 
-func (m *Model) add(raw []byte) error {
+func (m *Model) read(file string) {
+	if !slices.Contains(m.Files, file) {
+		m.Files = append(m.Files, file)
+	}
+}
+
+func parseRoot(raw []byte) (*yaml.Node, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return fmt.Errorf("not valid YAML: %w", err)
+		return nil, fmt.Errorf("not valid YAML: %w", err)
 	}
 	if len(doc.Content) == 0 {
-		return nil
+		return nil, nil
 	}
 	root := deref(doc.Content[0])
 	if root.Kind != yaml.MappingNode {
-		return fmt.Errorf("the top level is not a mapping")
+		return nil, fmt.Errorf("the top level is not a mapping")
 	}
+	return root, nil
+}
+
+func (m *Model) add(root *yaml.Node) {
 	for name, svc := range pairs(lookup(root, "services")) {
 		image := ""
 		if n := lookup(svc, "image"); n != nil && n.Kind == yaml.ScalarNode {
@@ -76,7 +88,6 @@ func (m *Model) add(raw []byte) error {
 	for name, net := range pairs(lookup(root, "networks")) {
 		m.Networks[name] = m.Networks[name] || external(net)
 	}
-	return nil
 }
 
 func external(n *yaml.Node) bool {
