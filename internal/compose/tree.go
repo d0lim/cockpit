@@ -131,3 +131,21 @@ func (t Tree) Files() int {
 	}
 	return n
 }
+
+func (t Tree) repositories() []repository {
+	out := make([]repository, 0, len(t.repos))
+	for _, prefix := range sortedKeys(t.repos) {
+		out = append(out, t.repos[prefix])
+	}
+	return out
+}
+
+func (t Tree) filesOf(prefix string) int {
+	n := 0
+	for _, e := range t.Entries {
+		if e.repo == prefix && e.Type != treeType && e.Type != submoduleType {
+			n++
+		}
+	}
+	return n
+}
