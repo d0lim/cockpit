@@ -8,7 +8,7 @@ This page holds the five seals, the static assertion table and the rules of the 
 | --- | --- |
 | Fresh state | Every run gets a new compose project named after the run id, with its own volumes, networks and run directory. Credentials are generated inside the run tree by `env.command` in a networkless one-shot container. Destruction removes the volumes (`down -v`). |
 | Isolation between sessions | Each run leases its own port block, its own project name and labels (`io.cockpit.managed`, `io.cockpit.run-id`), and its own run directory opened through `os.Root`. Edge ports bind `127.0.0.1` only. |
-| Pinned commit | The source, the suite, the declaration and the consumer overlays come from the git objects of one commit, extracted twice (`src/`, `build/`) and checked against the tree's file count. The harness and the runner come from the cockpit version. |
+| Pinned commit | The source, the suite, the declaration and the consumer overlays come from the git objects of one commit and of the submodule commits it pins, extracted twice (`src/`, `build/`) and checked against each repository's file count in the tree. The harness and the runner come from the cockpit version. |
 | Independence from host tools | The hub runs no consumer code on the host: environment generation, building, probing and the suite all run in containers, and every hub git call is hardened against repository configuration. |
 | Zero external communication at runtime | The default network and every project network are internal. Among long-running services only the edge joins `egress`, and it proxies only to service names of the project on declared offset ports. The static assertions prove the configuration, and the probes prove the network. |
 

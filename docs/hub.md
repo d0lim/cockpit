@@ -23,7 +23,7 @@ allowedRepositories:
   - /Users/me/src/shop
 ```
 
-The path is compared after resolving links, against the repository's git common directory, so worktrees of a listed repository pass. On macOS `/tmp` is `/private/tmp`; either spelling works because both resolve the same way. The same file holds the hub limits; the keys and defaults are in [harness](harness.md#allowed-repositories). Then:
+The path is compared after resolving links, against the repository's git common directory, so worktrees of a listed repository pass. A submodule checkout is a repository of its own (its common directory is under the umbrella's `.git/modules/`), so list and submit the umbrella. On macOS `/tmp` is `/private/tmp`; either spelling works because both resolve the same way. The same file holds the hub limits; the keys and defaults are in [harness](harness.md#allowed-repositories). Then:
 
 ```sh
 cockpit hub
@@ -85,7 +85,7 @@ databases:
   - { name: library, driver: mysql, port: mysql, readSchemas: [library], database: library, rootSecret: MYSQL_ROOT_PASSWORD }
 ```
 
-Every path is relative to the repository root. The fields an adopter usually gets wrong:
+Every path is relative to the repository root, and a path may lead into a git submodule: the hub reads each submodule's pinned commit as a directory of the repository (see [section 7](#7-submit-and-read-the-result)). The fields an adopter usually gets wrong:
 
 - **`project.expectedServices`** are the services the boot stage waits for. Leave out services that only run under a profile.
 - **`compose.files`** is the whole file set, in order. A consumer keeps its own `compose.yaml` and adds an overlay for what only the sealed run needs (fakes, healthchecks, env overrides). Do not add the runner overlay that `cockpit init` writes: the hub generates its own harness, and it removes every published `ports:` entry of the consumer.
@@ -169,6 +169,8 @@ export default collector({
 
 Commit first: the hub reads only the commit, and it refuses a submit when a path listed in `inputs.dirty` has uncommitted changes.
 
+An umbrella repository whose services live in git submodules runs like any other: the run's `src/` holds the umbrella's files and each pinned submodule commit's files under its path. Initialize the submodules in the main checkout (`git submodule update --init --recursive`). The hub reads each one from the repository's `.git/modules/<name>` and never fetches, so a submodule initialized only in a linked worktree, or a pinned commit its module does not hold, refuses the submit as `submodule`. Commit first applies inside submodules too: an edit under a declared path inside a submodule, or a submodule under a declared path checked out at a commit the umbrella does not record, refuses the submit as `dirty`.
+
 ```sh
 cockpit runs submit --wait
 ```
@@ -183,7 +185,8 @@ cockpit runs submit --wait
 | Refusal | Fix |
 | --- | --- |
 | the repository is not allowed | add its path to `allowedRepositories` and restart the hub |
-| `dirty` | commit the listed files |
+| `dirty` | commit the listed files; inside a submodule, commit there and then commit the new pin in the umbrella |
+| `submodule` | run `git submodule update --init --recursive` in the main checkout of the allowed repository; the message names the gitlink |
 | `missing`, `schema`, `confinement`, `host-api`, `ports`, `compose` | the field the message names; see [harness](harness.md#reading-the-declaration) |
 | a suite name is needed | pass `--suite`; the message lists the commit's suites |
 | the seal check fails | a service reaches outside the run or binds a path outside it; the report's seal result names the assertion ([sealing](sealing.md)) |
