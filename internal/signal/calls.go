@@ -36,6 +36,9 @@ func callSpans(root spanRoot, st contract.ResultStep) []contract.Signal {
 	out := make([]contract.Signal, 0, len(st.Calls))
 	for i, c := range st.Calls {
 		attrs := contract.Attrs{"method": c.Method, "host": c.Host, "path": c.Path}
+		if c.SpanID != "" {
+			attrs["spanId"] = c.SpanID
+		}
 		status := contract.SpanStatusError
 		if c.Status != nil {
 			attrs["status"] = *c.Status
