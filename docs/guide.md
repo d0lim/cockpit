@@ -141,9 +141,11 @@ const { value } = await poll(
 ## Running
 
 ```sh
-docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run <suite>
-docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run <suite> --flow <id> [--flow <id>]...
+docker compose -f compose.yaml -f compose.cockpit.yaml run --rm cockpit-runner run <suite>
+docker compose -f compose.yaml -f compose.cockpit.yaml run --rm cockpit-runner run <suite> --flow <id> [--flow <id>]...
 ```
+
+An overlay written by an older `cockpit init` names the service `runner`, so those commands say `run --rm runner`. It keeps working under that name, because the hub never reads this overlay; rename the service to `cockpit-runner` if you want the commands above to match.
 
 A full run executes every flow in order and writes `manifest.json` when it starts and `result.json` as each step finishes. It does not consult the ledger before starting, so run it against a fresh environment: a new compose project and an empty state directory.
 
