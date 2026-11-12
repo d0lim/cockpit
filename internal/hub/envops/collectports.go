@@ -146,7 +146,7 @@ func (o *Ops) runConfig(id string, r *Run, c *collected, stream *signal.Stream, 
 		},
 	}
 	if len(r.Decl.Telemetry.OTLP.Services) > 0 {
-		c.otlp = &observer.OTLP{RunID: id, Lister: dport, Docker: docker, Stream: stream, Mask: m, Log: o.log(), Now: o.Now}
+		c.otlp = &observer.OTLP{RunID: id, Lister: dport, Docker: docker, Stream: stream, Mask: m, Log: o.log()}
 		cfg.Observers = append(cfg.Observers, c.otlp)
 	}
 	return cfg, closers, nil

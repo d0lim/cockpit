@@ -181,7 +181,7 @@ func (l *live) drainOTLP(ctx context.Context) {
 		l.h.o.Log.Info("otlp drained", "run", l.id, "waited", d.Waited.String(), "quiet", d.Quiet)
 	}
 	switch {
-	case !ok:
+	case !ok, ctx.Err() != nil:
 	case d.Quiet:
 		l.say(fmt.Sprintf("otlp drained after %s", d.Waited.Round(100*time.Millisecond)))
 	default:

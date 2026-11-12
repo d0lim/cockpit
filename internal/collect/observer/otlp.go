@@ -46,7 +46,6 @@ type OTLP struct {
 	Log       *slog.Logger
 	Poll      time.Duration
 	SaveEvery time.Duration
-	Now       func() time.Time
 
 	once   sync.Once
 	mu     sync.Mutex
@@ -77,9 +76,6 @@ func (o *OTLP) defaults() {
 		}
 		if o.SaveEvery <= 0 {
 			o.SaveEvery = time.Second
-		}
-		if o.Now == nil {
-			o.Now = time.Now
 		}
 		o.mu.Lock()
 		o.registerTrace(runTraceID(o.RunID), o.RunID)
@@ -132,7 +128,6 @@ func (o *OTLP) follow(ctx context.Context, id string) {
 	}
 	out := &lineWriter{emit: o.line, max: OTLPMaxLine}
 	_, _ = o.Docker.Run(ctx, compose.Command{Args: append(args, id), Stdout: out, Stderr: io.Discard})
-	out.flush()
 	o.save()
 }
 
@@ -140,7 +135,8 @@ func (o *OTLP) line(raw string) {
 	stamp, text, ok := strings.Cut(raw, " ")
 	at, err := time.Parse(time.RFC3339Nano, stamp)
 	if !ok || err != nil {
-		at, text = o.Now().UTC(), raw
+		o.count(DropUnparsed)
+		return
 	}
 	o.mu.Lock()
 	if !o.floor.IsZero() && !at.After(o.floor) {

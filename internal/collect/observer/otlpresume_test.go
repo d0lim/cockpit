@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/signal"
 	"github.com/d0lim/cockpit/internal/tracectx"
@@ -126,5 +127,36 @@ func TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComi
 	waited, quiet = obs.Settle(context.Background(), 150*time.Millisecond, 400*time.Millisecond)
 	if n := stop(); quiet || waited < 400*time.Millisecond || waited > 2*time.Second || n < 5 {
 		t.Fatalf("with %d spans coming the settle waited %s (quiet %v)", n, waited, quiet)
+	}
+}
+
+func TestACancelledFollowLeavesAPartLineForTheNextFollow(t *testing.T) {
+	trace := "w3c:" + tracectx.TraceID(runID)
+	whole := serviceSpan(t, trace, "w3c:0000000000000002", "", map[string]any{"service": "app"})
+	first := newOTLPWorld(t, []string{otlpPS("running")}, func(int, string) ([]string, bool) {
+		return []string{serviceSpan(t, trace, "w3c:0000000000000001", "", map[string]any{"service": "app"})}, true
+	})
+	first.d.handle = func(ctx context.Context, cmd compose.Command) (compose.Result, error) {
+		fmt.Fprintf(cmd.Stdout, "%s %s\n%s %s", stamp(1), serviceSpan(t, trace, "w3c:0000000000000001", "", map[string]any{"service": "app"}), stamp(2), whole[:len(whole)/2])
+		<-ctx.Done()
+		return compose.Result{}, nil
+	}
+	first.start(t)
+	first.waitSignals(t, 1)
+	time.Sleep(50 * time.Millisecond)
+	first.stop(t)
+	state, err := first.s.KVGet(signal.OTLPCollector)
+	if err != nil || state["cursor"] != stamp(1) {
+		t.Fatalf("after the cut the state is %v (%v)", state, err)
+	}
+	second := newOTLPWorld(t, []string{otlpPS("running")}, func(int, string) ([]string, bool) {
+		return []string{serviceSpan(t, trace, "w3c:0000000000000001", "", map[string]any{"service": "app"}), whole}, true
+	})
+	second.s = first.s
+	second.start(t)
+	got := byID(second.waitSignals(t, 2))
+	second.stop(t)
+	if _, ok := got["w3c:0000000000000002"]; !ok || len(got) != 2 {
+		t.Fatalf("after the next follow the stream holds %v", got)
 	}
 }
