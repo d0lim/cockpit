@@ -108,7 +108,9 @@ ctx.capture("transferId", tx.id);
 ctx.ref("transaction", tx.id);
 ```
 
-The runner also records every request a step sends: method, host, path (never the query or a body), status, duration and start time, at most 50 per step. Paths pass the runner masker, so an id appears in a path only after the flow marked it with `ref`.
+The runner also records every request a step sends: method, host, path (never the query or a body), status, duration, start time and the span id of its `traceparent`, at most 50 per step. Paths pass the runner masker, so an id appears in a path only after the flow marked it with `ref`.
+
+Every request carries a W3C `traceparent` header whose trace id belongs to the run, so a service that exports traces can have its spans shown under the request that caused them ([Trace context](signals.md#trace-context)). To send a request under a trace of your own, set `traceparent` in `headers`: your value goes out unchanged, and the request records its span id when it parses. The runner adds its own `traceparent` only when the hub passes `COCKPIT_TRACE_ID`, so a runner started by hand sends none. Spans that a service starts on its own, such as scheduled jobs, have no request behind them and follow the service's own sampling.
 
 The hub turns refs into attributes `ref.<name>` of the step's span and each request into a span under it (`docs/signals.md`). Collectors that put the same values in their own `ref.<name>` attributes let the screen link a database row, a notification or a log line back to the step and request that caused it ([Running on the hub](hub.md#collectors)).
 
