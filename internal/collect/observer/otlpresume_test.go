@@ -3,6 +3,7 @@ package observer
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -102,12 +103,17 @@ func TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComi
 	if !quiet || waited < 150*time.Millisecond || waited > time.Second {
 		t.Fatalf("after an earlier span the settle waited %s (quiet %v)", waited, quiet)
 	}
-	stop := feed(obs, func(n int) string { return deltaPoint(t, n) })
-	waited, quiet = obs.Settle(context.Background(), 150*time.Millisecond, 2*time.Second)
-	if n := stop(); !quiet || waited < 150*time.Millisecond || waited > time.Second || n < 5 {
-		t.Fatalf("with %d metric lines coming the settle waited %s (quiet %v)", n, waited, quiet)
+	foreign := func(n int) string {
+		return serviceSpan(t, "w3c:"+strings.Repeat("cd", 16), fmt.Sprintf("w3c:%016x", n), "", map[string]any{"service": "app"})
 	}
-	stop = feed(obs, span)
+	for what, line := range map[string]func(int) string{"metric lines": func(n int) string { return deltaPoint(t, n) }, "spans of a foreign trace": foreign} {
+		stop := feed(obs, line)
+		waited, quiet = obs.Settle(context.Background(), 150*time.Millisecond, 2*time.Second)
+		if n := stop(); !quiet || waited < 150*time.Millisecond || waited > time.Second || n < 5 {
+			t.Fatalf("with %d %s coming the settle waited %s (quiet %v)", n, what, waited, quiet)
+		}
+	}
+	stop := feed(obs, span)
 	waited, quiet = obs.Settle(context.Background(), 150*time.Millisecond, 400*time.Millisecond)
 	if n := stop(); quiet || waited < 400*time.Millisecond || waited > 2*time.Second || n < 5 {
 		t.Fatalf("with %d spans coming the settle waited %s (quiet %v)", n, waited, quiet)

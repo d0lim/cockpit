@@ -36,13 +36,13 @@ func (o *OTLP) TraceExec(name string) {
 	o.registerTrace(signal.W3CPrefix+tracectx.ExecTraceID(o.RunID, name), signal.ExecTrace(o.RunID, name))
 }
 
-func (o *OTLP) traceFor(w3c string) string {
+func (o *OTLP) traceFor(w3c string) (string, bool) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if trace, ok := o.traces[w3c]; ok {
-		return trace
+		return trace, true
 	}
-	return w3c
+	return w3c, false
 }
 
 func (o *OTLP) count(reason string) {

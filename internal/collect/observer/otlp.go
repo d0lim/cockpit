@@ -149,12 +149,12 @@ func (o *OTLP) line(raw string) {
 		o.state.cursor = at
 	}
 	o.mu.Unlock()
-	sig, ok := o.parse(text)
+	sig, traced, ok := o.parse(text)
 	switch {
 	case !ok:
 		o.count(DropUnparsed)
 	default:
-		if sig.Span != nil {
+		if traced {
 			o.heard.Store(time.Now().UnixNano())
 		}
 		if _, err := o.Stream.Append(sig); err != nil {
@@ -165,22 +165,22 @@ func (o *OTLP) line(raw string) {
 	o.saveIfDue()
 }
 
-func (o *OTLP) parse(text string) (contract.Signal, bool) {
+func (o *OTLP) parse(text string) (sig contract.Signal, traced, ok bool) {
 	if len(text) > OTLPMaxLine {
-		return contract.Signal{}, false
+		return contract.Signal{}, false, false
 	}
 	var l otlpLine
 	if err := json.Unmarshal([]byte(text), &l); err != nil || l.V != otlpVersion || l.Signal == nil {
-		return contract.Signal{}, false
+		return contract.Signal{}, false, false
 	}
-	sig := *l.Signal
+	sig = *l.Signal
 	sig.Seq, sig.Collector = 0, signal.OTLPCollector
 	if sig.Span != nil {
 		span := *sig.Span
-		span.TraceID = o.traceFor(span.TraceID)
+		span.TraceID, traced = o.traceFor(span.TraceID)
 		sig.Span = &span
 	}
-	return sig, true
+	return sig, traced, true
 }
 
 func (o *OTLP) gap() {
