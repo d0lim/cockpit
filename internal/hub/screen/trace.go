@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/signal"
 )
+
+const maxServiceTraces = 20
 
 type traceSummary struct {
 	id       string
@@ -17,6 +20,7 @@ type traceSummary struct {
 	status   contract.SpanStatus
 	spans    int
 	exec     bool
+	service  bool
 }
 
 type spanRow struct {
@@ -93,7 +97,7 @@ func traceList(signals []contract.Signal) []traceSummary {
 	var out []traceSummary
 	for _, id := range order {
 		spans := byTrace[id]
-		t := traceSummary{id: id, root: id, status: contract.SpanStatusOK, spans: len(spans), exec: strings.Contains(id, "/exec/")}
+		t := traceSummary{id: id, root: id, status: contract.SpanStatusOK, spans: len(spans), exec: strings.Contains(id, "/exec/"), service: strings.HasPrefix(id, signal.W3CPrefix)}
 		var first, last int64
 		var hasFirst, hasLast bool
 		for _, s := range spans {
@@ -120,11 +124,8 @@ func traceList(signals []contract.Signal) []traceSummary {
 		out = append(out, t)
 	}
 	slices.SortStableFunc(out, func(a, b traceSummary) int {
-		if a.exec != b.exec {
-			if a.exec {
-				return -1
-			}
-			return 1
+		if ra, rb := a.rank(), b.rank(); ra != rb {
+			return ra - rb
 		}
 		if c := strings.Compare(b.start, a.start); c != 0 {
 			return c
@@ -132,6 +133,32 @@ func traceList(signals []contract.Signal) []traceSummary {
 		return strings.Compare(a.id, b.id)
 	})
 	return out
+}
+
+func (t traceSummary) rank() int {
+	switch {
+	case t.exec:
+		return 0
+	case t.service:
+		return 2
+	}
+	return 1
+}
+
+func listedTraces(traces []traceSummary, picked string) ([]traceSummary, int) {
+	var out []traceSummary
+	services, hidden := 0, 0
+	for _, t := range traces {
+		if t.service {
+			services++
+			if services > maxServiceTraces && t.id != picked {
+				hidden++
+				continue
+			}
+		}
+		out = append(out, t)
+	}
+	return out, hidden
 }
 
 func spanRows(spans []contract.Signal) []spanRow {
