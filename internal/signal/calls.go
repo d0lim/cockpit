@@ -31,6 +31,10 @@ func callEnd(c contract.StepCall) string {
 	return t.Add(time.Duration(c.DurationMs) * time.Millisecond).UTC().Format("2006-01-02T15:04:05.000Z")
 }
 
+func callID(st contract.ResultStep, i int) string {
+	return "call:" + st.Flow + "/" + st.ID + "/" + strconv.Itoa(i+1)
+}
+
 func callSpans(root spanRoot, st contract.ResultStep) []contract.Signal {
 	parent := "step:" + st.Flow + "/" + st.ID
 	out := make([]contract.Signal, 0, len(st.Calls))
@@ -46,8 +50,7 @@ func callSpans(root spanRoot, st contract.ResultStep) []contract.Signal {
 				status = contract.SpanStatusOK
 			}
 		}
-		id := "call:" + st.Flow + "/" + st.ID + "/" + strconv.Itoa(i+1)
-		out = append(out, span(root, id, parent, c.Method+" "+c.Path, c.StartedAt, callEnd(c), status, attrs, nil))
+		out = append(out, span(root, callID(st, i), parent, c.Method+" "+c.Path, c.StartedAt, callEnd(c), status, attrs, nil))
 	}
 	return out
 }

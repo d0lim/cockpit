@@ -12,7 +12,6 @@ import (
 const (
 	cursorKey  = "cursor"
 	droppedKey = "dropped"
-	w3cPrefix  = "w3c:"
 	settleTick = 50 * time.Millisecond
 )
 
@@ -21,7 +20,7 @@ type otlpState struct {
 	dropped map[string]int64
 }
 
-func runTraceID(runID string) string { return w3cPrefix + tracectx.TraceID(runID) }
+func runTraceID(runID string) string { return signal.W3CPrefix + tracectx.TraceID(runID) }
 
 func (o *OTLP) registerTrace(w3c, trace string) {
 	if o.traces == nil {
@@ -34,7 +33,7 @@ func (o *OTLP) TraceExec(name string) {
 	o.defaults()
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	o.registerTrace(w3cPrefix+tracectx.ExecTraceID(o.RunID, name), o.RunID+"/exec/"+name)
+	o.registerTrace(signal.W3CPrefix+tracectx.ExecTraceID(o.RunID, name), o.RunID+"/exec/"+name)
 }
 
 func (o *OTLP) traceFor(w3c string) string {
