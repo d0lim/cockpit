@@ -92,6 +92,9 @@ func (o *Ops) Resume(ctx context.Context, id string) ticker.Result {
 		return ticker.Failed(404, ticker.CodeNotFound, err.Error(), nil)
 	}
 	defer r.Close()
+	if r.Meta.HarnessVersion != compose.HarnessVersion {
+		return o.giveUp(r, 409, ticker.CodeConflictState, lifecycle.HarnessNotice(r.Meta.HarnessVersion, compose.HarnessVersion))
+	}
 	if r.Decl == nil || r.Meta.Slot == nil {
 		return o.giveUp(r, 500, ticker.CodeOpFailed, "resume failed: the run has no declaration copy or port block record")
 	}

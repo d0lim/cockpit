@@ -85,6 +85,10 @@ func (o *Ops) Transition(t store.Transition) {
 	before := t.Before
 	hook := lifecycle.HookFor(&before, t.Event, t.Detail, t.After.State)
 	ctx := context.Background()
+	if hook.Action == lifecycle.HookArm && t.After.HarnessVersion != compose.HarnessVersion {
+		o.log().Warn("collectors and observers are not armed on a run of another harness", "run", id, "notice", lifecycle.HarnessNotice(t.After.HarnessVersion, compose.HarnessVersion))
+		return
+	}
 	if hook.Action == lifecycle.HookArm {
 		if err := o.register(ctx, id); err != nil {
 			o.log().Warn("collectors cannot be registered", "run", id, "err", o.Mask(id, err.Error()))

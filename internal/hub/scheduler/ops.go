@@ -67,12 +67,23 @@ func (s *Scheduler) unserved(m store.Meta) *ticker.Result {
 	return &r
 }
 
+func (s *Scheduler) otherHarness(m store.Meta) *ticker.Result {
+	if m.HarnessVersion == s.d.Harness || !pool.InPool(m) {
+		return nil
+	}
+	r := ticker.Conflict(lifecycle.HarnessNotice(m.HarnessVersion, s.d.Harness), &m)
+	return &r
+}
+
 func (s *Scheduler) Resume(id string, _ Actor) ticker.Result {
 	m := s.find(id)
 	if m == nil {
 		return notFound(id)
 	}
 	if refused := s.unserved(*m); refused != nil {
+		return *refused
+	}
+	if refused := s.otherHarness(*m); refused != nil {
 		return *refused
 	}
 	if _, err := lifecycle.Transition(&m.State, lifecycle.Resume, lifecycle.Detail{}); err != nil {
@@ -121,6 +132,9 @@ func (s *Scheduler) Exec(id, flow string, _ Actor) ExecResponse {
 		return ExecResponse{Fail: notFound(id).Fail}
 	}
 	if refused := s.unserved(*m); refused != nil {
+		return ExecResponse{Fail: refused.Fail}
+	}
+	if refused := s.otherHarness(*m); refused != nil {
 		return ExecResponse{Fail: refused.Fail}
 	}
 	var resp ExecResponse

@@ -133,7 +133,7 @@ func New(o Options) (*scheduler.Scheduler, *Hub, error) {
 		Deps: ticker.Deps{
 			Store: st, Docker: o.Probe, Env: ops, Lease: h.Lease, Pipeline: h.Pipeline,
 			Limits: ConfigLimits(o.Config), StopOnDone: o.StopOnDone, TickInterval: o.TickInterval,
-			Now: o.Now, BootTime: o.BootTime, Served: compose.ServedHostAPIs, CockpitVersion: version.String(), Log: o.Log,
+			Now: o.Now, BootTime: o.BootTime, Served: compose.ServedHostAPIs, CockpitVersion: version.String(), Harness: compose.HarnessVersion, Log: o.Log,
 		},
 		Accept: h.Accept,
 		Exec:   &exec.Execer{Ops: ops, Now: o.Now},

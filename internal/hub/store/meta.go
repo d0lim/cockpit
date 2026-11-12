@@ -33,6 +33,7 @@ type Meta struct {
 	Repository     string                  `json:"repository,omitempty"`
 	Suite          string                  `json:"suite"`
 	HostAPI        int                     `json:"hostApi"`
+	HarnessVersion int                     `json:"harnessVersion,omitempty"`
 	CockpitVersion string                  `json:"cockpitVersion"`
 	RunnerImage    *contract.RunnerImage   `json:"runnerImage,omitempty"`
 	Submitter      string                  `json:"submitter"`

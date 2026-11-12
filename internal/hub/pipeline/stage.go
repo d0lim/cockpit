@@ -83,7 +83,7 @@ func prepare(ctx context.Context, l *live) (outcome, error) {
 		return outcome{}, err
 	}
 	keys := l.env.Keys
-	if _, err := l.st.PatchMeta(l.id, func(m *store.Meta) { m.ImageKeys = keys }); err != nil {
+	if _, err := l.st.PatchMeta(l.id, func(m *store.Meta) { m.ImageKeys, m.HarnessVersion = keys, compose.HarnessVersion }); err != nil {
 		return outcome{}, err
 	}
 	if err := l.env.SealStatic(ctx); err != nil {

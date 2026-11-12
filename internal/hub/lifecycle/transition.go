@@ -100,6 +100,16 @@ func Serves(served []int, api int) bool {
 	return slices.Contains(served, api)
 }
 
+const FirstRecordedHarness = 8
+
+func HarnessNotice(run, hub int) string {
+	made := strconv.Itoa(run)
+	if run == 0 {
+		made = strconv.Itoa(FirstRecordedHarness-1) + " or earlier"
+	}
+	return fmt.Sprintf("this run's environment was made by harness version %s, and this hub runs harness version %d; it cannot address the services of another harness: destroy the run and submit again", made, hub)
+}
+
 func HostAPINotice(api int, served []int, cockpitVersion string) string {
 	parts := make([]string, len(served))
 	for i, v := range served {
