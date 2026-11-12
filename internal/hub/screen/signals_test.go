@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -105,19 +106,53 @@ func TestTheSignalCacheForgetsRunsNobodyReadForTenMinutes(t *testing.T) {
 	}
 }
 
-func TestLatestRevisionsKeepOneVersionPerIdButEveryMetricAndUnnamedSignal(t *testing.T) {
+func TestLatestRevisionsKeepOneVersionPerIdForEventsAndMetricsAndEveryUnnamedSignal(t *testing.T) {
 	a1 := contract.Signal{Seq: 1, Kind: contract.SignalKindEvent, Collector: "c", ID: "a", Rev: 1}
 	a2 := contract.Signal{Seq: 2, Kind: contract.SignalKindEvent, Collector: "c", ID: "a", Rev: 2}
-	m1 := contract.Signal{Seq: 3, Kind: contract.SignalKindMetric, Collector: "c", ID: "m"}
-	m2 := contract.Signal{Seq: 4, Kind: contract.SignalKindMetric, Collector: "c", ID: "m"}
-	plain := contract.Signal{Seq: 5, Kind: contract.SignalKindEvent, Collector: "c"}
-	got := latestRevisions([]contract.Signal{a1, a2, m1, m2, plain})
+	m1 := contract.Signal{Seq: 3, Kind: contract.SignalKindMetric, Collector: "c", ID: "m", Rev: 2}
+	m2 := contract.Signal{Seq: 4, Kind: contract.SignalKindMetric, Collector: "c", ID: "m", Rev: 1}
+	n1 := contract.Signal{Seq: 5, Kind: contract.SignalKindMetric, Collector: "c"}
+	n2 := contract.Signal{Seq: 6, Kind: contract.SignalKindMetric, Collector: "c"}
+	plain := contract.Signal{Seq: 7, Kind: contract.SignalKindEvent, Collector: "c"}
 	var seqs []int64
-	for _, s := range got {
+	for _, s := range latestRevisions([]contract.Signal{a1, a2, m1, m2, n1, n2, plain}) {
 		seqs = append(seqs, s.Seq)
 	}
-	if len(seqs) != 4 || seqs[0] != 2 || seqs[3] != 5 {
+	if !slices.Equal(seqs, []int64{2, 3, 5, 6, 7}) {
 		t.Fatalf("%v", seqs)
+	}
+}
+
+func metricRow(table, id string, rev int, value float64) contract.Signal {
+	return contract.Signal{Kind: contract.SignalKindMetric, Collector: "toy-db", ID: id, Rev: rev, TS: "2026-10-19T01:00:05.000Z",
+		Attrs: contract.Attrs{"table": table}, Metric: &contract.MetricBody{Name: id, Value: value}}
+}
+
+func TestTheTableShowsTheWinningMetricRevisionAndAHistogramCount(t *testing.T) {
+	f := newFixture(t)
+	finished(f)
+	for rev := 1; rev <= 5; rev++ {
+		f.signals.add(metricRow("series", "requests", rev, float64(rev*10)))
+	}
+	latency := metricRow("latency", "latency", 1, 0.6)
+	latency.Metric.Unit, latency.Metric.Type = "s", contract.MetricTypeHistogram
+	latency.Metric.Histogram = &contract.HistogramBody{Count: 3, Sum: 0.6, Bounds: []float64{0.1, 0.5}, Counts: []uint64{1, 1, 1}}
+	f.signals.add(latency)
+	_, _, body := f.get("/runs/" + rid(1) + "/signals/table")
+	series := body[strings.Index(body, `aria-label="table series"`):strings.Index(body, `aria-label="table latency"`)]
+	hist := body[strings.Index(body, `aria-label="table latency"`):]
+	for _, want := range []string{"latest 1 of 1 rows", "<td>50</td>"} {
+		if !strings.Contains(series, want) {
+			t.Errorf("series table: missing %q", want)
+		}
+	}
+	if strings.Contains(series, "<td>40</td>") || strings.Contains(series, "<th>count</th>") {
+		t.Errorf("the series table shows a superseded revision or histogram columns:\n%s", series)
+	}
+	for _, want := range []string{"<th>count</th>", "<th>sum</th>", "<th>unit</th>", "<td>3</td>", "<td>0.6</td>", "<td>s</td>"} {
+		if !strings.Contains(hist, want) {
+			t.Errorf("histogram table: missing %q", want)
+		}
 	}
 }
 

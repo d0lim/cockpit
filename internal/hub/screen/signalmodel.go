@@ -52,7 +52,7 @@ func revKey(s contract.Signal) string {
 }
 
 func latestRevisions(signals []contract.Signal) []contract.Signal {
-	versioned := func(s contract.Signal) bool { return s.ID != "" && s.Kind != contract.SignalKindMetric }
+	versioned := func(s contract.Signal) bool { return s.ID != "" }
 	winners := map[string]contract.Signal{}
 	for _, s := range signals {
 		if !versioned(s) {
