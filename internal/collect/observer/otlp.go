@@ -194,16 +194,17 @@ func (o *OTLP) parse(text string) (sig contract.Signal, traced, ok bool) {
 
 func (o *OTLP) gap() {
 	o.mu.Lock()
-	from := "its first line"
+	body := "the otlp receiver output ended before the hub read a line; the hub follows it again from its start once the receiver runs"
 	attrs := contract.Attrs{"status": "gap", "tone": string(contract.ToneWarn)}
 	if !o.state.cursor.IsZero() {
-		from = o.state.cursor.UTC().Format(time.RFC3339Nano)
+		from := o.state.cursor.UTC().Format(time.RFC3339Nano)
 		attrs["from"] = from
+		body = "the otlp receiver output ended after " + from + "; the hub follows it again from there once the receiver runs"
 	}
 	o.mu.Unlock()
 	_, err := o.Stream.Append(contract.Signal{
 		Kind: contract.SignalKindEvent, Collector: signal.OTLPCollector, TSSource: contract.TimeSourceHost, Attrs: attrs,
-		Event: &contract.EventBody{Body: "the otlp receiver output ended after " + from + "; the hub follows it again from there once the receiver runs"},
+		Event: &contract.EventBody{Body: body},
 	})
 	if err != nil {
 		o.Log.Warn("cannot record the end of the otlp receiver output", "run", o.RunID, "err", o.Mask(err.Error()))

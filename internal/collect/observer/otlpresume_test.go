@@ -69,6 +69,13 @@ func TestARestartedObserverResumesFromItsSavedCursor(t *testing.T) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
+	state, err := second.s.KVGet(signal.OTLPCollector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dropped, ok := state["dropped"].(map[string]any); !ok || len(dropped) != 0 || state["cursor"] != stamp(5) {
+		t.Fatalf("state %v", state)
+	}
 	if len(values) != 5 || values[2] != 3 || values[3] != 4 || len(sinces) != 1 || sinces[0] != stamp(3) {
 		t.Fatalf("values %v sinces %v", values, sinces)
 	}

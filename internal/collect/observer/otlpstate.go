@@ -79,10 +79,9 @@ func (o *OTLP) load() {
 
 func (o *OTLP) save() {
 	o.mu.Lock()
-	value := map[string]any{droppedKey: maps.Clone(o.state.dropped)}
-	if value[droppedKey] == nil {
-		value[droppedKey] = map[string]int64{}
-	}
+	dropped := map[string]int64{}
+	maps.Copy(dropped, o.state.dropped)
+	value := map[string]any{droppedKey: dropped}
 	if !o.state.cursor.IsZero() {
 		value[cursorKey] = o.state.cursor.UTC().Format(time.RFC3339Nano)
 	}
