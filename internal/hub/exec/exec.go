@@ -18,6 +18,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/hub/ticker"
 	"github.com/d0lim/cockpit/internal/signal"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 var FlowID = regexp.MustCompile(`^[a-z][a-z0-9-]{1,40}$`)
@@ -158,7 +159,7 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 		return fail("exec failed: " + r.Mask(err.Error()))
 	}
 	name := OutName(x.Now(), flow)
-	env := []string{"E2E_EXEC_OUT=" + path.Join(runfiles.ContainerE2E, runfiles.ExecDir, name)}
+	env := []string{"E2E_EXEC_OUT=" + path.Join(runfiles.ContainerE2E, runfiles.ExecDir, name), "COCKPIT_TRACE_ID=" + tracectx.ExecTraceID(m.ID, strings.TrimSuffix(name, ".json"))}
 	res, err := r.Project.RunRunner(ctx, []string{"run", m.Suite, "--flow", flow}, env, x.Ops.Limits.Suite)
 	exited := x.Now()
 	if err != nil {

@@ -3,6 +3,7 @@ package pipeline
 import (
 	"encoding/json"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 var execMutations = []porttest.Mutation{
@@ -131,8 +133,12 @@ func TestExecRunsTheFlowWithThePinnedImageAndReadsOnlyItsOwnResultFile(t *testin
 	if !slices.Equal(run[len(run)-4:], []string{"run", "smoke", "--flow", "health"}) {
 		t.Fatalf("runner args %q", run)
 	}
-	if len(env) != 1 || !strings.HasPrefix(env[0], "E2E_EXEC_OUT=/work/e2e/exec/") || !strings.HasSuffix(env[0], "-health.json") {
+	if len(env) != 2 || !strings.HasPrefix(env[0], "E2E_EXEC_OUT=/work/e2e/exec/") || !strings.HasSuffix(env[0], "-health.json") {
 		t.Fatalf("runner env %q", env)
+	}
+	name := strings.TrimSuffix(path.Base(env[0]), ".json")
+	if env[1] != "COCKPIT_TRACE_ID="+tracectx.ExecTraceID(m.ID, name) || env[1] == "COCKPIT_TRACE_ID="+tracectx.TraceID(m.ID) {
+		t.Fatalf("exec trace id %q, want the exec trace of %s", env[1], name)
 	}
 }
 

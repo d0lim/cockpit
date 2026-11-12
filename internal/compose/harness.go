@@ -9,7 +9,7 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-const HarnessVersion = 5
+const HarnessVersion = 6
 
 const (
 	LabelManaged     = "io.cockpit.managed"
@@ -120,7 +120,7 @@ func Harness(in HarnessInput) ([]byte, error) {
 	runner["networks"] = inner
 	runner["tmpfs"] = []string{"/tmp"}
 	runner["volumes"] = runnerBinds(in.Layout, decl.Inputs.RunnerSources)
-	runner["environment"] = map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}"}
+	runner["environment"] = map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}", "COCKPIT_TRACE_ID": "${COCKPIT_TRACE_ID:-}"}
 	if in.RunnerUser != "" {
 		runner["user"] = in.RunnerUser
 	}
