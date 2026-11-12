@@ -8,12 +8,13 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/d0lim/cockpit/internal/runner/otlp"
 )
 
-func otlpMain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+func otlpMain(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {
 	if len(args) != 1 {
 		fmt.Fprintln(stderr, "otlp takes exactly one listen address, such as :4318")
 		return 2
@@ -32,6 +33,9 @@ func otlpMain(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 2
+	}
+	if getenv("GOMEMLIMIT") == "" {
+		debug.SetMemoryLimit(otlp.MemoryLimit)
 	}
 	log := slog.New(slog.NewJSONHandler(stderr, nil))
 	log.Info("otlp receiver listening", "addr", ln.Addr().String())

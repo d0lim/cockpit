@@ -37,7 +37,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 	case "edge":
 		return edgeMain(ctx, args[1:], stderr)
 	case "otlp":
-		return otlpMain(ctx, args[1:], stdout, stderr)
+		return otlpMain(ctx, args[1:], getenv, stdout, stderr)
 	}
 	fmt.Fprintln(stderr, usage)
 	return 2

@@ -20,6 +20,7 @@ import (
 
 const (
 	MaxBody         = 4 << 20
+	MemoryLimit     = 256 << 20
 	contentProtobuf = "application/x-protobuf"
 	contentJSON     = "application/json"
 	shutdownGrace   = 5 * time.Second

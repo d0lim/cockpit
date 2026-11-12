@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"net"
+	"runtime/debug"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/d0lim/cockpit/internal/runner/otlp"
 )
 
 func call(args ...string) (int, string, string) {
@@ -99,5 +103,31 @@ func TestOTLPExitsTwoWhenItsAddressIsTaken(t *testing.T) {
 	defer ln.Close()
 	if code, _, errOut := call("otlp", ln.Addr().String()); code != 2 || errOut == "" {
 		t.Fatalf("exit %d stderr %q", code, errOut)
+	}
+}
+
+func TestOTLPSetsASoftMemoryLimitUnlessTheEnvironmentSetsOne(t *testing.T) {
+	before := debug.SetMemoryLimit(-1)
+	t.Cleanup(func() { debug.SetMemoryLimit(before) })
+	serve := func(env string) int64 {
+		debug.SetMemoryLimit(math.MaxInt64)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		var out, errOut bytes.Buffer
+		if code := run(ctx, []string{"otlp", "127.0.0.1:0"}, func(k string) string {
+			if k == "GOMEMLIMIT" {
+				return env
+			}
+			return ""
+		}, &out, &errOut); code != 0 {
+			t.Fatalf("exit %d stderr %q", code, errOut.String())
+		}
+		return debug.SetMemoryLimit(-1)
+	}
+	if got := serve(""); got != otlp.MemoryLimit {
+		t.Fatalf("soft memory limit %d without GOMEMLIMIT, want %d", got, otlp.MemoryLimit)
+	}
+	if got := serve("1GiB"); got != math.MaxInt64 {
+		t.Fatalf("soft memory limit %d with GOMEMLIMIT set, want the runtime's own value left alone", got)
 	}
 }
