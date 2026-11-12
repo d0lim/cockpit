@@ -40,6 +40,7 @@ type RunItem struct {
 	Redaction      *store.Redaction        `json:"redaction,omitempty"`
 	PhaseLabel     string                  `json:"phaseLabel"`
 	VerdictLabel   *string                 `json:"verdictLabel"`
+	StageStartedAt string                  `json:"stageStartedAt,omitempty"`
 }
 
 type ServicePort struct {
@@ -109,6 +110,7 @@ func Item(v scheduler.RunView) RunItem {
 		Slot: m.Slot, Position: v.Position, WaitReason: m.WaitReason, StopReason: m.StopReason,
 		DestroyReason: m.DestroyReason, FailedStage: m.FailedStage, Notice: m.Notice, Recreate: m.Recreate,
 		Redaction: m.Redaction, PhaseLabel: lifecycle.Label(m.State), VerdictLabel: labels.Verdict(m.Verdict),
+		StageStartedAt: m.StageStart(),
 	}
 }
 

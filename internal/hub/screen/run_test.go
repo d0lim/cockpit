@@ -197,3 +197,26 @@ func (r runItem) item() api.RunItem {
 	}
 	return it
 }
+
+func TestTheOverviewOfAnActiveRunSaysWhenItsCurrentStageStartedAndFallsBackToTheRunStart(t *testing.T) {
+	f := newFixture(t)
+	booting := lifecycle.State{Phase: lifecycle.Booting, Env: lifecycle.EnvAbsent}
+	f.seed(runMeta(1, booting, func(m *store.Meta) {
+		m.StartedAt = "2026-10-19T01:00:01.000Z"
+		m.Stages = []store.StageTime{
+			{Stage: lifecycle.Preparing, Start: "2026-10-19T01:00:01.000Z", End: "2026-10-19T01:02:00.000Z", Outcome: "ok"},
+			{Stage: lifecycle.Booting, Start: "2026-10-19T01:05:00.000Z"},
+		}
+	}))
+	f.seed(runMeta(2, booting, func(m *store.Meta) { m.StartedAt = "2026-10-19T01:00:02.000Z" }))
+	stageStart, runStart := stamp("2026-10-19T01:05:00.000Z"), stamp("2026-10-19T01:00:01.000Z")
+	if stageStart == runStart {
+		t.Fatalf("canary: the stage start %q and the run start read the same", stageStart)
+	}
+	if _, _, body := f.get("/runs/" + rid(1)); !strings.Contains(body, "Running the boot stage since "+stageStart+".") {
+		t.Fatalf("the overview does not name the boot stage start %q", stageStart)
+	}
+	if _, _, body := f.get("/runs/" + rid(2)); !strings.Contains(body, "Running the boot stage since "+stamp("2026-10-19T01:00:02.000Z")+".") {
+		t.Fatal("a run without stage times does not fall back to its start")
+	}
+}

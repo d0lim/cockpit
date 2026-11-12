@@ -53,6 +53,31 @@ type Meta struct {
 	DestroyReason  lifecycle.DestroyReason `json:"destroyReason,omitempty"`
 	Recreate       bool                    `json:"recreate,omitempty"`
 	Redaction      *Redaction              `json:"redaction,omitempty"`
+	Stages         []StageTime             `json:"stages,omitempty"`
+}
+
+type StageTime struct {
+	Stage   lifecycle.Phase     `json:"stage"`
+	Start   string              `json:"start"`
+	End     string              `json:"end,omitempty"`
+	Outcome contract.SpanStatus `json:"outcome,omitempty"`
+}
+
+func (m *Meta) StartStage(stage lifecycle.Phase, at string) {
+	m.Stages = append(m.Stages, StageTime{Stage: stage, Start: at})
+}
+
+func (m *Meta) EndStage(at string, outcome contract.SpanStatus) {
+	if n := len(m.Stages); n > 0 && m.Stages[n-1].End == "" {
+		m.Stages[n-1].End, m.Stages[n-1].Outcome = at, outcome
+	}
+}
+
+func (m Meta) StageStart() string {
+	if n := len(m.Stages); n > 0 && m.Stages[n-1].Stage == m.Phase && m.Stages[n-1].End == "" {
+		return m.Stages[n-1].Start
+	}
+	return ""
 }
 
 func Timestamp(t time.Time) string {
