@@ -14,6 +14,7 @@ import (
 	"github.com/d0lim/cockpit/internal/engine"
 	"github.com/d0lim/cockpit/internal/ports"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 const planted = "PLANTED-token-7f3a9c"
@@ -28,9 +29,17 @@ var httpMutations = []porttest.Mutation{
 	{"body size limit", "remove LimitReader", "red: a body over the limit comes back as is", "TestBodyOverTheLimitIsPortLimitAndBodyWithinItIsNotTruncated"},
 	{"error messages are masked", "build the rejection message without mask", "red: the value planted in the path shows in the error message", "TestDenialAndFailureMessagesPassTheMaskerAndOmitTheQuery"},
 	{"proxy environment variables are ignored", "set Transport.Proxy to ProxyFromEnvironment", "red: with HTTP_PROXY set, requests go to the proxy", "TestOnlyAllowedServiceNamesPassAndOtherHostsIPsHTTPSOrRelativePathsArePortDenied"},
+	{"every call carries the run trace id and records the span id it sent", "record a fresh span id instead of the one put in the header", "red: the recorded span id differs from the one the server received", "TestEveryCallSendsATraceparentWithTheRunTraceID"},
+	{"a script traceparent goes out unchanged", "set the runner traceparent without looking at the script headers", "red: the server receives the run trace id instead of the script value", "TestAScriptTraceparentWinsAndItsSpanIDIsRecorded"},
+	{"no trace id means no traceparent", "remove the empty trace id check", "red: a traceparent without a trace id reaches the server", "TestNoTraceIDMeansNoTraceparent"},
 }
 
 func server(t *testing.T) (*Client, *httptest.Server) {
+	t.Helper()
+	return tracedServer(t, "")
+}
+
+func tracedServer(t *testing.T, traceID string) (*Client, *httptest.Server) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -38,6 +47,7 @@ func server(t *testing.T) (*Client, *httptest.Server) {
 			body, _ := io.ReadAll(r.Body)
 			w.Header().Set("X-Echo-Content-Type", r.Header.Get("Content-Type"))
 			w.Header().Set("X-Echo-Auth", r.Header.Get("Authorization"))
+			w.Header()["X-Echo-Traceparent"] = r.Header.Values("Traceparent")
 			w.Header().Add("X-Multi", "a")
 			w.Header().Add("X-Multi", "b")
 			w.WriteHeader(201)
@@ -70,6 +80,7 @@ func server(t *testing.T) (*Client, *httptest.Server) {
 			}
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		},
+		TraceID: traceID,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -184,6 +195,59 @@ func TestDenialAndFailureMessagesPassTheMaskerAndOmitTheQuery(t *testing.T) {
 	}
 	if _, err := New(Options{Allowed: []string{"app:8080"}, Mask: ports.Identity}); err == nil {
 		t.Fatal("allowed origin without a scheme")
+	}
+}
+
+func echoedTraceparent(t *testing.T, c *Client, headers map[string]string) (string, Call) {
+	t.Helper()
+	res, err := c.Send(context.Background(), Request{Method: "GET", URL: "http://app:8080/echo", Headers: headers})
+	calls := c.TakeCalls()
+	if err != nil || res.Status != 201 || len(calls) != 1 {
+		t.Fatalf("echo: %+v %v %+v", res, err, calls)
+	}
+	return res.Headers["x-echo-traceparent"], calls[0]
+}
+
+func TestEveryCallSendsATraceparentWithTheRunTraceID(t *testing.T) {
+	runTrace := tracectx.TraceID("run-20261012-153001-997a37e")
+	c, _ := tracedServer(t, runTrace)
+	seen := map[string]bool{}
+	for range 3 {
+		header, call := echoedTraceparent(t, c, map[string]string{"Authorization": "Bearer x"})
+		trace, span, ok := tracectx.Parse(header)
+		if !ok || trace != runTrace || span != call.SpanID || header != tracectx.Format(runTrace, span) || seen[span] {
+			t.Fatalf("traceparent %q, recorded span id %q, earlier %v", header, call.SpanID, seen)
+		}
+		seen[span] = true
+	}
+	if len(seen) != 3 {
+		t.Fatalf("%d distinct span ids", len(seen))
+	}
+}
+
+func TestAScriptTraceparentWinsAndItsSpanIDIsRecorded(t *testing.T) {
+	c, _ := tracedServer(t, tracectx.TraceID("run-20261012-153001-997a37e"))
+	script := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+	if header, call := echoedTraceparent(t, c, map[string]string{"traceparent": script}); header != script || call.SpanID != "00f067aa0ba902b7" {
+		t.Fatalf("script traceparent: sent %q, recorded %q", header, call.SpanID)
+	}
+	if header, call := echoedTraceparent(t, c, map[string]string{"Traceparent": "not-a-traceparent"}); header != "not-a-traceparent" || call.SpanID != "" {
+		t.Fatalf("malformed script traceparent: sent %q, recorded %q", header, call.SpanID)
+	}
+	if header, call := echoedTraceparent(t, c, nil); call.SpanID == "" || header != tracectx.Format(tracectx.TraceID("run-20261012-153001-997a37e"), call.SpanID) {
+		t.Fatalf("a later call without a script value: sent %q, recorded %q", header, call.SpanID)
+	}
+}
+
+func TestNoTraceIDMeansNoTraceparent(t *testing.T) {
+	c, _ := server(t)
+	res, err := c.Send(context.Background(), Request{Method: "GET", URL: "http://app:8080/echo", Headers: map[string]string{"Authorization": "Bearer x"}})
+	calls := c.TakeCalls()
+	if err != nil || res.Headers["x-echo-auth"] != "Bearer x" || len(calls) != 1 {
+		t.Fatalf("echo: %+v %v %+v", res, err, calls)
+	}
+	if header, has := res.Headers["x-echo-traceparent"]; has || calls[0].SpanID != "" {
+		t.Fatalf("a client without a trace id sent %q and recorded %q", header, calls[0].SpanID)
 	}
 }
 

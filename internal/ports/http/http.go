@@ -3,6 +3,8 @@ package httpport
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +17,7 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/ports"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 type Dialer func(ctx context.Context, network, addr string) (net.Conn, error)
@@ -25,6 +28,7 @@ type Options struct {
 	MaxBody int64
 	Mask    ports.Mask
 	Dial    Dialer
+	TraceID string
 }
 
 type Request struct {
@@ -56,6 +60,7 @@ type Call struct {
 	Status   int
 	Started  time.Time
 	Duration time.Duration
+	SpanID   string
 }
 
 const maxCalls = 1000
@@ -65,6 +70,7 @@ type Client struct {
 	timeout time.Duration
 	maxBody int64
 	mask    ports.Mask
+	traceID string
 	client  *http.Client
 	mu      sync.Mutex
 	counter Counter
@@ -72,7 +78,7 @@ type Client struct {
 }
 
 func New(opts Options) (*Client, error) {
-	c := &Client{allowed: map[string]bool{}, timeout: opts.Timeout, maxBody: opts.MaxBody, mask: opts.Mask}
+	c := &Client{allowed: map[string]bool{}, timeout: opts.Timeout, maxBody: opts.MaxBody, mask: opts.Mask, traceID: opts.TraceID}
 	if c.mask == nil {
 		c.mask = ports.Identity
 	}
@@ -207,9 +213,10 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 	if err != nil {
 		return Response{}, ports.BadArgs(c.mask, "failed to build the request — "+target(req.Method, u))
 	}
+	spanID := c.traceparent(headers)
 	hreq.Header = headers
 	c.sent()
-	call := Call{Method: req.Method, Host: u.Hostname(), Path: u.Path, Started: time.Now()}
+	call := Call{Method: req.Method, Host: u.Hostname(), Path: u.Path, Started: time.Now(), SpanID: spanID}
 	defer func() {
 		call.Duration = time.Since(call.Started)
 		c.record(call)
@@ -236,6 +243,27 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 		hdrs[strings.ToLower(name)] = strings.Join(values, ", ")
 	}
 	return Response{Method: req.Method, URL: req.URL, Status: res.StatusCode, Headers: hdrs, Body: string(data)}, nil
+}
+
+func (c *Client) traceparent(headers http.Header) string {
+	if sent := headers.Values(tracectx.Header); len(sent) > 0 {
+		_, spanID, _ := tracectx.Parse(sent[0])
+		return spanID
+	}
+	if c.traceID == "" {
+		return ""
+	}
+	spanID := newSpanID()
+	headers.Set(tracectx.Header, tracectx.Format(c.traceID, spanID))
+	return spanID
+}
+
+func newSpanID() string {
+	var b [8]byte
+	for b == [8]byte{} {
+		rand.Read(b[:])
+	}
+	return hex.EncodeToString(b[:])
 }
 
 func (c *Client) failure(ctx context.Context, err error, timeout time.Duration, at string) error {
