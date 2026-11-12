@@ -152,19 +152,29 @@ func TestRestartReplaysTheSameWinnersAndKeepsUnchangedReemissionsANoOp(t *testin
 
 func TestAnUnchangedMetricTotalReSentAfterTheFreezeKeepsItsFrozenWinner(t *testing.T) {
 	dir := runDir(t)
-	s, _, frozenSeq := armed(t, dir)
-	winner := mustAppend(t, s, series("requests", 1, 7))
-	if _, err := s.Freeze(t.TempDir()); err != ErrAlreadyFrozen {
-		t.Fatalf("canary: the stream was not frozen: %v", err)
+	s := openAt(t, dir, DefaultCaps(), masker(t))
+	mustAppend(t, s, series("requests", 0, 6))
+	winner := mustAppend(t, s, series("requests", 0, 7))
+	bundle := filepath.Join(t.TempDir(), "report.partial")
+	if _, err := s.Freeze(bundle); err != nil {
+		t.Fatal(err)
 	}
 	before := streamBytes(t, dir)
-	if seq := mustAppend(t, s, series("requests", 1, 7)); seq != winner {
-		t.Fatalf("the unchanged total returned %d, want the winner %d (frozen at %d)", seq, winner, frozenSeq)
+	if seq := mustAppend(t, s, series("requests", 0, 7)); seq != winner {
+		t.Fatalf("the unchanged total returned %d, want the frozen winner %d", seq, winner)
 	}
 	if string(streamBytes(t, dir)) != string(before) {
 		t.Fatal("the unchanged total wrote a record")
 	}
-	if changed := mustAppend(t, s, series("requests", 1, 8)); changed == winner {
-		t.Fatal("canary: a changed total returned the old winner")
+	got := readAll(t, s, 0)
+	if len(got.Signals) != 1 || got.Signals[0].Seq != winner || got.Next != winner {
+		t.Fatalf("read %v next %d, want only the frozen winner %d", seqs(got), got.Next, winner)
+	}
+	frozen, err := ReadFrozen(bundle, masker(t), ReadRequest{})
+	if err != nil || len(frozen.Signals) != 1 || frozen.Signals[0].Seq != winner {
+		t.Fatalf("frozen copy %v: %v", seqs(frozen), err)
+	}
+	if changed := mustAppend(t, s, series("requests", 0, 8)); changed == winner || !slices.Equal(metricValues(readAll(t, s, 0)), []float64{8}) {
+		t.Fatal("canary: a changed total without a rev does not win")
 	}
 }
