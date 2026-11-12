@@ -7,8 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 type order struct {
@@ -39,9 +41,19 @@ func main() {
 		writeJSON(w, http.StatusOK, map[string]int64{"created": s.created.Load(), "rejected": s.rejected.Load()})
 	})
 	slog.Info("toy app listening", "addr", ":8080")
+	var handler http.Handler = mux
+	if t := newTelemetry(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")); t != nil {
+		interval, err := strconv.Atoi(os.Getenv("OTEL_METRIC_EXPORT_INTERVAL"))
+		if err != nil || interval <= 0 {
+			interval = 2000
+		}
+		go t.export(time.Duration(interval) * time.Millisecond)
+		handler = t.wrap(mux)
+		slog.Info("toy app exports OTLP", "endpoint", t.endpoint)
+	}
 	logged := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slog.Info("request", "method", r.Method, "path", r.URL.Path)
-		mux.ServeHTTP(w, r)
+		handler.ServeHTTP(w, r)
 	})
 	if err := http.ListenAndServe(":8080", logged); err != nil {
 		slog.Error("toy app stopped", "err", err)
