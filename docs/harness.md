@@ -100,6 +100,7 @@ Each entry of `databases` names, in `port`, the offset whose edge port publishes
 | another `Content-Type`, or a `Content-Encoding` other than `gzip` or `identity` | 415 |
 | another method on either path | 405 |
 | any other path, `/v1/logs` included | 404 |
+| an export whose lines cannot be written to stdout | 503 |
 
 A trace export decodes into `TracesData` and a metric export into `MetricsData` of `go.opentelemetry.io/proto/otlp`. Both hold the resource list as field 1, the same wire layout as the collector's export requests, so the runner links no grpc code; a build test fails when `go version -m` on the runner shows `google.golang.org/grpc`. OTLP/JSON writes `traceId`, `spanId` and `parentSpanId` as hex, so before the JSON decode each such key whose value is 32 or 16 hex characters is rewritten to base64, wherever it appears (span links and exemplars included). A plain `protojson` decode would read 32 hex characters as base64 and return 24 wrong bytes without an error.
 
