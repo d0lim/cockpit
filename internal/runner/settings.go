@@ -16,7 +16,7 @@ import (
 )
 
 type settings struct {
-	dir, privPath, envPath, execOut, scripts, sources, declaration, image string
+	dir, privPath, envPath, execOut, scripts, sources, declaration, image, traceID string
 }
 
 func loadSettings(getenv func(string) string) settings {
@@ -35,6 +35,7 @@ func loadSettings(getenv func(string) string) settings {
 	s.sources = or("COCKPIT_SOURCES", "/work/source")
 	s.declaration = or("COCKPIT_DECLARATION", "/work/.cockpit/project.yaml")
 	s.image = getenv("COCKPIT_RUNNER_IMAGE")
+	s.traceID = getenv("COCKPIT_TRACE_ID")
 	return s
 }
 

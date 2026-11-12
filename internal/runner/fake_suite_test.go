@@ -80,6 +80,7 @@ type world struct {
 	env     map[string]string
 	mu      sync.Mutex
 	calls   []string
+	parents []string
 	during  func(path string)
 	addr    string
 }
@@ -112,6 +113,7 @@ func newWorld(t *testing.T, specs []flowSpec, fail []string) *world {
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		w.mu.Lock()
 		w.calls = append(w.calls, r.URL.Path)
+		w.parents = append(w.parents, r.Header.Get("Traceparent"))
 		n++
 		id := n
 		during := w.during
