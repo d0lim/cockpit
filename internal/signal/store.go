@@ -191,8 +191,7 @@ func (s *Stream) Append(sig contract.Signal) (int64, error) {
 }
 
 func (s *Stream) record(sig contract.Signal, offset int64) {
-	container, _ := sig.Attrs[ContainerAttr].(string)
-	b := s.lim.bucketFor(sig.Collector, container, sig.Seq)
+	b := s.lim.bucketFor(sig, sig.Seq)
 	s.ix.put(sig.Seq, offset, b)
 	if sig.ID != "" {
 		key := sigKey(sig)

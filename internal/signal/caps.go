@@ -1,9 +1,17 @@
 package signal
 
+import "github.com/d0lim/cockpit/internal/contract"
+
+const (
+	OTLPCollector = "otlp"
+	ServiceAttr   = "service"
+)
+
 const (
 	DefaultTail         = 50_000
 	DefaultPerCollector = 20_000
 	DefaultPerContainer = 10_000
+	DefaultPerService   = 20_000
 	defaultCompactMin   = 4096
 	maxBuckets          = 1<<15 - 1
 )
@@ -12,22 +20,24 @@ const (
 	ReasonTailCap        = "tail-cap"
 	ReasonCollectorQuota = "collector-quota"
 	ReasonContainerQuota = "container-quota"
+	ReasonOTLPQuota      = "otlp-quota"
 )
 
 type Caps struct {
 	Tail         int
 	PerCollector int
 	PerContainer int
+	PerService   int
 	CompactMin   int
 }
 
 func DefaultCaps() Caps {
-	return Caps{Tail: DefaultTail, PerCollector: DefaultPerCollector, PerContainer: DefaultPerContainer, CompactMin: defaultCompactMin}
+	return Caps{Tail: DefaultTail, PerCollector: DefaultPerCollector, PerContainer: DefaultPerContainer, PerService: DefaultPerService, CompactMin: defaultCompactMin}
 }
 
 type bucket struct {
 	quota  int
-	log    bool
+	reason string
 	live   int
 	cursor int64
 }
@@ -47,10 +57,15 @@ func newLimiter(c Caps) *limiter {
 	return &limiter{caps: c, byName: map[string]uint16{}, dropped: map[string]int64{}}
 }
 
-func (l *limiter) bucketFor(collector, container string, from int64) uint16 {
-	name, quota, log := "c:"+collector, l.caps.PerCollector, false
-	if collector == LogCollector {
-		name, quota, log = "l:"+container, l.caps.PerContainer, true
+func (l *limiter) bucketFor(sig contract.Signal, from int64) uint16 {
+	name, quota, reason := "c:"+sig.Collector, l.caps.PerCollector, ReasonCollectorQuota
+	switch sig.Collector {
+	case LogCollector:
+		container, _ := sig.Attrs[ContainerAttr].(string)
+		name, quota, reason = "l:"+container, l.caps.PerContainer, ReasonContainerQuota
+	case OTLPCollector:
+		service, _ := sig.Attrs[ServiceAttr].(string)
+		name, quota, reason = "o:"+service, l.caps.PerService, ReasonOTLPQuota
 	}
 	if i, ok := l.byName[name]; ok {
 		return i
@@ -60,7 +75,7 @@ func (l *limiter) bucketFor(collector, container string, from int64) uint16 {
 	}
 	i := uint16(len(l.buckets))
 	l.byName[name] = i
-	l.buckets = append(l.buckets, &bucket{quota: quota, log: log, cursor: from})
+	l.buckets = append(l.buckets, &bucket{quota: quota, reason: reason, cursor: from})
 	return i
 }
 
@@ -87,16 +102,12 @@ func (l *limiter) admit(ix *index, seq int64, b uint16) {
 	if l.frozen {
 		l.tailN++
 	}
-	reason := ReasonCollectorQuota
-	if bk.log {
-		reason = ReasonContainerQuota
-	}
 	for bk.quota > 0 && bk.live > bk.quota {
 		s, ok := l.oldest(ix, &bk.cursor, b, false)
 		if !ok {
 			break
 		}
-		l.drop(ix, s, reason)
+		l.drop(ix, s, bk.reason)
 	}
 	for l.frozen && l.caps.Tail > 0 && l.tailN > l.caps.Tail {
 		s, ok := l.oldest(ix, &l.tailCursor, 0, true)
