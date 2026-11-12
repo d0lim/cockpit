@@ -1,6 +1,8 @@
 package signal
 
 import (
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/contract"
@@ -169,5 +171,49 @@ func TestStageSpansHangUnderAPipelineRootThatCoversThemAndTakesTheirWorstStatus(
 	}
 	if got := StageSpans(runID, nil); got != nil {
 		t.Fatalf("no ended stage still gives spans %+v", got)
+	}
+}
+
+func tracedCallResult(path string) contract.Result {
+	ok := 200
+	st := step("order", "place", contract.StepStatusPassed, "2026-10-12T07:00:01Z", "2026-10-12T07:00:02Z")
+	st.Calls = []contract.StepCall{
+		{Method: "POST", Host: "app", Path: path, Status: &ok, StartedAt: "2026-10-12T07:00:01.100Z", DurationMs: 25, SpanID: "00f067aa0ba902b7"},
+		{Method: "GET", Host: "app", Path: "/orders", Status: &ok, StartedAt: "2026-10-12T07:00:01.200Z", DurationMs: 5},
+	}
+	return contract.Result{SchemaVersion: 2, Suite: "smoke", Complete: true, StartedAt: "2026-10-12T07:00:00Z", FinishedAt: "2026-10-12T07:00:03Z", Steps: []contract.ResultStep{st}}
+}
+
+func TestACallSpanCarriesTheSpanIDAttribute(t *testing.T) {
+	signals := RunSpans(runID, tracedCallResult("/orders"), "")
+	if first := spanByID(t, signals, "call:order/place/1"); first.Attrs["spanId"] != "00f067aa0ba902b7" || first.Attrs["path"] != "/orders" {
+		t.Fatalf("a call with a span id has attrs %v", first.Attrs)
+	}
+	if second := spanByID(t, signals, "call:order/place/2"); second.Attrs["method"] != "GET" {
+		t.Fatalf("canary: the second call has attrs %v", second.Attrs)
+	} else if v, has := second.Attrs["spanId"]; has {
+		t.Fatalf("a call without a span id carries spanId %v", v)
+	}
+}
+
+func TestASpanIDReadsBackUnmaskedFromTheStreamAndTheFrozenCopyNextToAMaskedPlantedSecret(t *testing.T) {
+	s := openAt(t, runDir(t), DefaultCaps(), masker(t, planted))
+	for _, sig := range RunSpans(runID, tracedCallResult("/orders/"+planted), "") {
+		mustAppend(t, s, sig)
+	}
+	bundle := filepath.Join(t.TempDir(), "report")
+	if _, err := s.Freeze(bundle); err != nil {
+		t.Fatal(err)
+	}
+	frozen, err := ReadFrozen(bundle, masker(t, planted), ReadRequest{After: 0, Limit: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for where, got := range map[string][]contract.Signal{"stream": readAll(t, s, 0).Signals, "frozen copy": frozen.Signals} {
+		call := spanByID(t, got, "call:order/place/1")
+		path, _ := call.Attrs["path"].(string)
+		if call.Attrs["spanId"] != "00f067aa0ba902b7" || strings.Contains(path, planted) || !strings.Contains(path, "****") {
+			t.Fatalf("%s: call attrs %v", where, call.Attrs)
+		}
 	}
 }

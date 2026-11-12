@@ -41,6 +41,8 @@ var runnerMutations = []porttest.Mutation{
 	{"a private value shorter than the masker minimum blocks no ref", "Secret refuses any value containing a private value", "red: the refuse step fails on id-5432-ab", "TestARefOfAPrivateValueOrACredentialShapeIsRefusedAndAShortPrivateValueBlocksNothing"},
 	{"records belong to one step", "TakeCalls keeps the calls it returned", "red: the quiet step carries calls", "TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs"},
 	{"poll stops at the deadline", "skip the deadline check after a failed attempt", "red: the delta step never finishes or reports another attempt count", "TestPollGivesUpAtTheDeadlineAndReportsTheAttemptCount"},
+	{"the recorded span id is the one the request carried", "takeRecords leaves SpanID out of the step call", "red: the recorded span id is empty while the server received a traceparent", "TestTheStepCallCarriesTheSpanIDThatWasSent"},
+	{"a malformed COCKPIT_TRACE_ID is refused", "delete the IsTraceID check in Main", "red: the runner exits 0 and sends requests with the malformed trace id", "TestARunnerWithoutATraceIDSendsNoTraceparentAndAMalformedTraceIDRefusesToStart"},
 }
 
 func TestHostAPIMismatchExitsTwoBeforeManifestAndNamesBothValues(t *testing.T) {

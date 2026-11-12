@@ -10,6 +10,7 @@ import (
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/seal"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 func OpenProject(runID string, l compose.Layout, decl contract.Declaration, d compose.Docker, mask func(string) string, log func(string)) (compose.Project, error) {
@@ -125,5 +126,5 @@ func (e *Env) Boot(ctx context.Context) error {
 }
 
 func (e *Env) RunSuite(ctx context.Context, suite string) (compose.RunnerResult, error) {
-	return e.Project.RunRunner(ctx, []string{"run", suite}, nil, e.Limits.Suite)
+	return e.Project.RunRunner(ctx, []string{"run", suite}, []string{"COCKPIT_TRACE_ID=" + tracectx.TraceID(e.RunID)}, e.Limits.Suite)
 }

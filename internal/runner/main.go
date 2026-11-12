@@ -23,6 +23,7 @@ import (
 	"github.com/d0lim/cockpit/internal/ports/runnerctx"
 	"github.com/d0lim/cockpit/internal/ports/source"
 	"github.com/d0lim/cockpit/internal/ports/totp"
+	"github.com/d0lim/cockpit/internal/tracectx"
 	"github.com/d0lim/cockpit/internal/version"
 )
 
@@ -127,7 +128,10 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		return fail(err.Error())
 	}
 	defer reader.Close()
-	client, err := httpport.New(httpport.Options{Allowed: allowedOrigins(publicEnv), Timeout: requestTimeout, MaxBody: maxBody, Mask: maskText, Dial: deps.Dial})
+	if s.traceID != "" && !tracectx.IsTraceID(s.traceID) {
+		return fail("COCKPIT_TRACE_ID is not a trace id of 32 lowercase hex characters")
+	}
+	client, err := httpport.New(httpport.Options{Allowed: allowedOrigins(publicEnv), Timeout: requestTimeout, MaxBody: maxBody, Mask: maskText, Dial: deps.Dial, TraceID: s.traceID})
 	if err != nil {
 		return fail("could not build the allowlist from public env addresses: " + err.Error())
 	}

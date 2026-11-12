@@ -3,12 +3,14 @@ package pipeline
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 var pipelineMutations = []porttest.Mutation{
@@ -51,6 +53,11 @@ func TestHappyRunWalksPrepareBuildSealBootRunReportAndPassesWithThePinnedImage(t
 			t.Fatalf("%q missing after position %d in %v", v, last, verbs)
 		}
 		last += at + 1
+	}
+	for _, c := range w.fake.Calls() {
+		if fakedocker.Verb(c.Args) == "compose run runner" && !slices.Equal(c.Env, []string{"COCKPIT_TRACE_ID=" + tracectx.TraceID(m.ID)}) {
+			t.Fatalf("suite runner env %q", c.Env)
+		}
 	}
 	dir, _ := w.hub.Store().RunDir(m.ID)
 	if _, err := os.Stat(filepath.Join(dir, "seal.json")); err != nil {

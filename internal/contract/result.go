@@ -17,6 +17,7 @@ type StepCall struct {
 	Status     *int   `json:"status,omitempty"`
 	StartedAt  string `json:"startedAt"`
 	DurationMs int64  `json:"durationMs"`
+	SpanID     string `json:"spanId,omitempty"`
 }
 
 type StepRef struct {

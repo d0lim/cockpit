@@ -199,7 +199,7 @@ func TestRunnerBindsOnlyWorkTreePathsAndOnlyE2EIsWritable(t *testing.T) {
 		t.Fatalf("%d binds, %d writable", len(binds), writable)
 	}
 	env := service(t, doc, RoleRunner)["environment"].(map[string]any)
-	if env["COCKPIT_RUNNER_IMAGE"] != in.RunnerImage {
+	if env["COCKPIT_RUNNER_IMAGE"] != in.RunnerImage || env["E2E_EXEC_OUT"] != "${E2E_EXEC_OUT:-}" || env["COCKPIT_TRACE_ID"] != "${COCKPIT_TRACE_ID:-}" || len(env) != 3 {
 		t.Fatalf("runner environment %v", env)
 	}
 }
