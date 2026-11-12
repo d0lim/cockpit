@@ -12,7 +12,7 @@ import (
 	"github.com/d0lim/cockpit/internal/version"
 )
 
-const usage = "usage: cockpit-runner run <suite> [--flow <id>]... | probe <canary-port> | edge [<port>=<host>:<port>...] | --version"
+const usage = "usage: cockpit-runner run <suite> [--flow <id>]... | probe <canary-port> | edge [<port>=<host>:<port>...] | otlp <listen address> | --version"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -36,6 +36,8 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		return probeMain(ctx, args[1:], stdout, stderr)
 	case "edge":
 		return edgeMain(ctx, args[1:], stderr)
+	case "otlp":
+		return otlpMain(ctx, args[1:], stdout, stderr)
 	}
 	fmt.Fprintln(stderr, usage)
 	return 2
