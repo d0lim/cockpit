@@ -12,6 +12,7 @@ import (
 
 var renderMutations = []porttest.Mutation{
 	{"every role is present exactly once before any assertion runs", "make AssertRoles return nil", "red: configs without a builder, with two runners or with an unlabeled service pass", "TestRenderedConfigWithEveryRolePassesAndMissingDuplicatedOrUnlabeledRolesFail"},
+	{"otlp is a required role exactly when telemetry is declared", "drop the otlp branch in requiredRoles", "red: a render without otlp passes while telemetry is declared", "TestTheOTLPRoleIsRequiredWhenTelemetryIsDeclaredAndNotOtherwise"},
 	{"compose config failures are masked", "build the failure message from raw stderr", "red: the planted value appears in the error", "TestComposeConfigFailureIsMaskedAndKeepsTheExitCode"},
 }
 
@@ -36,7 +37,7 @@ func allRoles() map[string]string {
 }
 
 func TestRenderedConfigWithEveryRolePassesAndMissingDuplicatedOrUnlabeledRolesFail(t *testing.T) {
-	if err := AssertRoles(rendered("builder", allRoles()), runID, "builder"); err != nil {
+	if err := AssertRoles(rendered("builder", allRoles()), runID, "builder", false); err != nil {
 		t.Fatalf("complete config failed: %v", err)
 	}
 	cases := map[string]func(m map[string]string) (Rendered, string){
@@ -61,15 +62,35 @@ func TestRenderedConfigWithEveryRolePassesAndMissingDuplicatedOrUnlabeledRolesFa
 	}
 	for name, build := range cases {
 		r, says := build(allRoles())
-		err := AssertRoles(r, runID, "builder")
+		err := AssertRoles(r, runID, "builder", false)
 		if err == nil || !strings.Contains(err.Error(), says) {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
 	noBuilder := allRoles()
 	delete(noBuilder, "builder")
-	if err := AssertRoles(rendered("", noBuilder), runID, ""); err != nil {
+	if err := AssertRoles(rendered("", noBuilder), runID, "", false); err != nil {
 		t.Fatalf("a project without a builder failed: %v", err)
+	}
+}
+
+func TestTheOTLPRoleIsRequiredWhenTelemetryIsDeclaredAndNotOtherwise(t *testing.T) {
+	without := allRoles()
+	if err := AssertRoles(rendered("builder", without), runID, "builder", false); err != nil {
+		t.Fatalf("a render without telemetry failed: %v", err)
+	}
+	err := AssertRoles(rendered("builder", without), runID, "builder", true)
+	if err == nil || !strings.Contains(err.Error(), RoleOTLP+" (found 0)") {
+		t.Fatalf("a render without otlp passed while telemetry is declared: %v", err)
+	}
+	with := allRoles()
+	with[RoleOTLP] = RoleOTLP
+	if err := AssertRoles(rendered("builder", with), runID, "builder", true); err != nil {
+		t.Fatalf("a render with otlp failed: %v", err)
+	}
+	with["otlp-2"] = RoleOTLP
+	if err := AssertRoles(rendered("builder", with), runID, "builder", true); err == nil || !strings.Contains(err.Error(), RoleOTLP+" (found 2)") {
+		t.Fatalf("two otlp services passed: %v", err)
 	}
 }
 

@@ -2,6 +2,7 @@ package compose
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,9 +64,11 @@ stat -c %a env.txt; } > probe.txt`
 	}
 }
 
-func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsAndPortsOnlyOnTheEdge(t *testing.T) {
+func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsPortsOnlyOnTheEdgeAndOTLPVariablesOnlyOnNamedServices(t *testing.T) {
 	ctx := integration(t)
-	dir, sha := toyRepo(t, nil)
+	dir, sha := toyRepo(t, func(d string) {
+		replaceIn(t, filepath.Join(d, "compose.yaml"), "      CACHE_ADDR: cache:6379\n", "      CACHE_ADDR: cache:6379\n      OTEL_EXPORTER_OTLP_ENDPOINT: http://elsewhere:4318\n")
+	})
 	g := Git{Dir: dir}
 	loaded, err := ReadDeclaration(ctx, g, sha)
 	if err != nil {
@@ -115,11 +118,32 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsAndPortsOnlyOnTheEdge
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := AssertRoles(r, runID, decl.Project.Builder); err != nil {
+	if err := AssertRoles(r, runID, decl.Project.Builder, OTLPDeclared(decl)); err != nil {
 		t.Fatal(err)
 	}
-	if want := len(loaded.Model.Services) + len(HarnessServices); want != 9 || len(r.Services) != want || r.Services["app"].Image != "toy/app:"+keys["IMG_APP"] {
-		t.Fatalf("services %d, app image %q", len(r.Services), r.Services["app"].Image)
+	want := len(loaded.Model.Services) + len(requiredRoles("", OTLPDeclared(decl)))
+	if _, ok := r.Services[RoleOTLP]; !ok || len(r.Services) != want || r.Services["app"].Image != "toy/app:"+keys["IMG_APP"] {
+		t.Fatalf("services %d, want %d, app image %q", len(r.Services), want, r.Services["app"].Image)
+	}
+	envs := renderedEnvironments(ctx, t, args)
+	for key, value := range OTLPEnvironment {
+		if envs["app"][key] != value {
+			t.Errorf("app %s = %q, want %q", key, envs["app"][key], value)
+		}
+	}
+	otel := 0
+	for name, env := range envs {
+		for key := range env {
+			if strings.HasPrefix(key, "OTEL_") && name != "app" {
+				t.Errorf("%s carries %s", name, key)
+			}
+			if strings.HasPrefix(key, "OTEL_") {
+				otel++
+			}
+		}
+	}
+	if otel != len(OTLPEnvironment) || len(envs) != want {
+		t.Fatalf("%d OTEL variables across %d services", otel, len(envs))
 	}
 	if !r.Networks[DefaultNetwork].Internal || r.Networks[EgressNetwork].Internal {
 		t.Fatalf("networks %+v", r.Networks)
@@ -134,4 +158,30 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsAndPortsOnlyOnTheEdge
 	if published != len(decl.Ports) {
 		t.Fatalf("%d ports published, %d declared", published, len(decl.Ports))
 	}
+}
+
+func renderedEnvironments(ctx context.Context, t *testing.T, args []string) map[string]map[string]string {
+	t.Helper()
+	res, err := CLI{}.Run(ctx, Command{Args: append(append([]string{}, args...), "--profile", "*", "config", "--format", "json")})
+	if err != nil || res.Code != 0 {
+		t.Fatalf("compose config: exit %d %v", res.Code, err)
+	}
+	var config struct {
+		Services map[string]struct {
+			Environment map[string]*string `json:"environment"`
+		} `json:"services"`
+	}
+	if err := json.Unmarshal(res.Stdout, &config); err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]map[string]string{}
+	for name, svc := range config.Services {
+		out[name] = map[string]string{}
+		for key, value := range svc.Environment {
+			if value != nil {
+				out[name][key] = *value
+			}
+		}
+	}
+	return out
 }

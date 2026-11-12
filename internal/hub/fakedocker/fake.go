@@ -245,6 +245,7 @@ func (f *Fake) ps() string {
 		{"Service": "cache", "ID": "ccc", "State": "running", "Health": "healthy"},
 		{"Service": "seed", "ID": "eee", "State": "exited", "Health": "", "ExitCode": f.SeedExit},
 		{"Service": "edge", "ID": "ddd", "State": "running", "Health": ""},
+		{"Service": "otlp", "ID": "fff", "State": "running", "Health": ""},
 	}
 	data, _ := json.Marshal(rows)
 	return string(data)

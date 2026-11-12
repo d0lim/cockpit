@@ -13,6 +13,8 @@ import (
 var staticMutations = []porttest.Mutation{
 	{"the harness roles are present before any other assertion", "drop roles() from Static", "red: the count is 23 and a render without the edge role passes", "TestToyRenderPassesAll24AssertionsInTheDocumentedOrder"},
 	{"each assertion catches its own violation", "make any one assertion function return no violation", "red: that assertion's violating copy stays green", "TestEachViolatingCopyTurnsOnlyItsOwnAssertionRed"},
+	{"otlp is a harness service: no port, no bind, no egress", "remove compose.RoleOTLP from compose.HarnessServices", "red: an otlp bind under src passes mounts.binds", "TestAnOTLPServiceThatPublishesAPortBindsAPathOrJoinsEgressTurnsOnlyThatAssertionRed"},
+	{"otlp is a required role exactly when telemetry is declared", "pass false for the otlp flag in roles()", "red: a render without the otlp service passes while telemetry is declared", "TestTheOTLPRoleIsRequiredOnlyWhenTheRunDeclaresTelemetry"},
 	{"bind sources are judged by real path", "use the bind source string instead of Realpath in mountChecks", "red: a runner bind through a link out of work passes", "TestRunnerBindThroughALinkOutOfTheWorkTreeIsRejectedAndAPlainWorkBindPasses"},
 	{"unresolvable paths are violations", "return the path unchanged on errors other than not-exist, or drop the dangling-link check", "red: a path under a regular file or through a dangling link resolves", "TestRealPathResolvesThroughTheNearestExistingAncestorAndRefusesDanglingLinksAndRelativePaths"},
 }
@@ -141,6 +143,60 @@ func TestEachViolatingCopyTurnsOnlyItsOwnAssertionRed(t *testing.T) {
 	}
 	if evaluated != len(assertionNames) || len(cases) != len(assertionNames) {
 		t.Fatalf("evaluated %d copies for %d assertions (%d copies defined)", evaluated, len(assertionNames), len(cases))
+	}
+}
+
+func TestAnOTLPServiceThatPublishesAPortBindsAPathOrJoinsEgressTurnsOnlyThatAssertionRed(t *testing.T) {
+	if got := failing(Static(toyInput(t))); len(got) != 0 || !toyInput(t).OTLP {
+		t.Fatalf("the toy render with telemetry fails %v", got)
+	}
+	otlp := func(in *Input) map[string]any { return svc(t, *in, "otlp") }
+	cases := map[string]func(in *Input){
+		"services.ports": func(in *Input) {
+			otlp(in)["ports"] = []any{map[string]any{"host_ip": "127.0.0.1", "published": "4318", "target": 4318.0}}
+		},
+		"mounts.binds": func(in *Input) {
+			otlp(in)["volumes"] = []any{map[string]any{"type": "bind", "source": fixtureRun + "/src/db", "target": "/data"}}
+		},
+		"services.networks": func(in *Input) { record(otlp(in)["networks"])["egress"] = nil },
+	}
+	evaluated := 0
+	for name, mutate := range cases {
+		in := toyInput(t)
+		mutate(&in)
+		if got := failing(Static(in)); !slices.Equal(got, []string{name}) {
+			t.Errorf("otlp violating %s turned %v red", name, got)
+		}
+		evaluated++
+	}
+	if evaluated != 3 {
+		t.Fatalf("evaluated %d copies", evaluated)
+	}
+}
+
+func TestTheOTLPRoleIsRequiredOnlyWhenTheRunDeclaresTelemetry(t *testing.T) {
+	cases := map[string]struct {
+		otlp   bool
+		mutate func(in *Input)
+		red    []string
+	}{
+		"declared and present":    {true, func(in *Input) {}, nil},
+		"declared and missing":    {true, func(in *Input) { delete(record(in.Config["services"]), "otlp") }, []string{"roles.present"}},
+		"declared and unlabelled": {true, func(in *Input) { delete(record(svc(t, *in, "otlp")["labels"]), "io.cockpit.role") }, []string{"roles.present"}},
+		"undeclared and absent":   {false, func(in *Input) { delete(record(in.Config["services"]), "otlp") }, nil},
+	}
+	evaluated := 0
+	for name, c := range cases {
+		in := toyInput(t)
+		in.OTLP = c.otlp
+		c.mutate(&in)
+		if got := failing(Static(in)); !slices.Equal(got, c.red) {
+			t.Errorf("%s: %v red, want %v", name, got, c.red)
+		}
+		evaluated++
+	}
+	if evaluated != 4 {
+		t.Fatalf("evaluated %d cases", evaluated)
 	}
 }
 

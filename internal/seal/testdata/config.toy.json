@@ -191,6 +191,32 @@
         "no-new-privileges:true"
       ]
     },
+    "otlp": {
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": [
+        "otlp",
+        ":4318"
+      ],
+      "entrypoint": null,
+      "image": "cockpit-runner:0123456789ab",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.role": "otlp",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "mem_limit": "1073741824",
+      "networks": {
+        "default": null
+      },
+      "pids_limit": 512,
+      "pull_policy": "never",
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ]
+    },
     "probe": {
       "cap_drop": [
         "ALL"

@@ -18,7 +18,8 @@ var declarationMutations = []porttest.Mutation{
 	{"offsets stay inside the block and off reserved offsets", "drop the range and reserved checks in checkOffsets", "red: offsets 100, -1 and 99 pass", "TestOffsetsOutsideTheBlockOnTheReservedCanaryOrTakenTwiceAreRejectedAndInBlockOffsetsPass"},
 	{"a database names the offset that publishes it", "drop checkDatabasePorts from ReadDeclaration", "red: a database port naming no offset is accepted", "TestDatabasePortNamingNoOffsetIsRejectedAtItsFieldAndANamedOffsetPasses"},
 	{"consumer services cannot use the runner repository", "make usesRunnerRepository return false", "red: a service on cockpit-runner:abc is accepted", "TestConsumerServiceOnTheRunnerRepositoryIsRejectedAndOtherImagesPass"},
-	{"harness names and missing services are rejected", "drop the reserved-name and service checks in Model.check", "red: a consumer edge service or an unknown builder passes", "TestReservedHarnessNamesAndServicesMissingFromComposeAreRejected"},
+	{"harness names and missing services are rejected", "drop the reserved-name and service checks in Model.check", "red: a consumer edge or otlp service or an unknown builder passes", "TestReservedHarnessNamesAndServicesMissingFromComposeAreRejected"},
+	{"telemetry names only project services", "drop the telemetry loop in Model.check", "red: an unknown telemetry service and the builder as one pass", "TestATelemetryServiceThatIsNotInTheModelOrIsTheBuilderIsRefused"},
 }
 
 func TestDeclarationMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -153,6 +154,7 @@ func TestReservedHarnessNamesAndServicesMissingFromComposeAreRejected(t *testing
 		field string
 	}{
 		{"consumer edge service", "compose.yaml", "\n  cache:\n    image:", "\n  edge:\n    image: docker.io/library/alpine:3.22\n  cache:\n    image:", RejectCompose, "services.edge"},
+		{"consumer otlp service", "compose.yaml", "\n  cache:\n    image:", "\n  otlp:\n    image: docker.io/library/alpine:3.22\n  cache:\n    image:", RejectCompose, "services.otlp"},
 		{"consumer egress network", "compose.yaml", "volumes:\n  db-data:\n", "volumes:\n  db-data:\nnetworks:\n  egress: {}\n", RejectCompose, "networks.egress"},
 		{"unknown builder", DeclarationPath, "builder: builder", "builder: compiler", RejectCompose, "project.builder"},
 		{"unknown expected service", DeclarationPath, "expectedServices: [app, db, cache, seed]", "expectedServices: [app, db, queue, seed]", RejectCompose, "project.expectedServices[2]"},
@@ -167,5 +169,24 @@ func TestReservedHarnessNamesAndServicesMissingFromComposeAreRejected(t *testing
 	loaded := mustLoadToy(t)
 	if got := strings.Join(loaded.Model.ServiceNames(), ","); got != "app,builder,cache,db,seed" {
 		t.Fatalf("toy services %s", got)
+	}
+}
+
+func TestATelemetryServiceThatIsNotInTheModelOrIsTheBuilderIsRefused(t *testing.T) {
+	cases := map[string]string{"unknown service": "services: [app, queue]", "builder": "services: [builder]", "harness role": "services: [otlp]"}
+	fields := map[string]string{"unknown service": "telemetry.otlp.services[1]", "builder": "telemetry.otlp.services[0]", "harness role": "telemetry.otlp.services[0]"}
+	evaluated := 0
+	for name, services := range cases {
+		_, err := loadToy(t, func(d string) { replaceIn(t, filepath.Join(d, DeclarationPath), "services: [app]", services) })
+		if r := rejection(t, err); r.Kind != RejectCompose || r.Field != fields[name] {
+			t.Errorf("%s: %v, want compose at %s", name, r, fields[name])
+		}
+		evaluated++
+	}
+	if evaluated != 3 {
+		t.Fatalf("evaluated %d cases", evaluated)
+	}
+	if got := mustLoadToy(t).Declaration.Telemetry.OTLP.Services; strings.Join(got, ",") != "app" {
+		t.Fatalf("toy telemetry services %v", got)
 	}
 }

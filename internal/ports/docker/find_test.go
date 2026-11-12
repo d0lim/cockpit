@@ -14,7 +14,7 @@ import (
 
 var findMutations = []porttest.Mutation{
 	{"containers outside the run are refused", "drop the project and run-id comparison in list", "red: logs of intruder or stale come back", "TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied"},
-	{"harness roles are refused by name and by label", "remove the harness map and the role check in target", "red: logs of edge, probe, toolbox or sneaky come back", "TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied"},
+	{"harness roles are refused by name and by label", "remove the harness map and the role check in target", "red: logs of edge, probe, otlp, toolbox or sneaky come back", "TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied"},
 	{"the listing filters by the run labels", "drop the label filters from the ps arguments", "red: the ps call lacks the project or run-id filter", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
 	{"ps hides the harness and other runs", "return every listed container from PS", "red: edge, intruder or stale appear in ps", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
 	{"the last listed container keeps its empty role column", "TrimSpace the ps output before splitting lines", "red: the last target service is missing from ps and Containers", "TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept"},
@@ -31,7 +31,7 @@ func TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessAreP
 	if err != nil || out.Text != "line from c-app\n" || out.Truncated {
 		t.Fatalf("%+v %v", out, err)
 	}
-	denied := []string{"intruder", "stale", "edge", "probe", "runner", "probe-control", "builder", "toolbox", "sneaky", "missing"}
+	denied := []string{"intruder", "stale", "edge", "probe", "runner", "probe-control", "otlp", "builder", "toolbox", "sneaky", "missing"}
 	ran := 0
 	for _, svc := range denied {
 		_, err := p.Logs(context.Background(), LogsRequest{Service: svc})
@@ -40,7 +40,7 @@ func TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessAreP
 		}
 		ran++
 	}
-	if ran != 10 || ran != len(denied) {
+	if ran != 11 || ran != len(denied) {
 		t.Fatalf("ran %d cases", ran)
 	}
 	if logs := f.commands("logs"); len(logs) != 1 || logs[0][len(logs[0])-1] != "c-app" {

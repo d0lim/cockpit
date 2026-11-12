@@ -9,7 +9,7 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-const HarnessVersion = 5
+const HarnessVersion = 6
 
 const (
 	LabelManaged     = "io.cockpit.managed"
@@ -20,13 +20,27 @@ const (
 	RoleProbe        = "probe"
 	RoleProbeControl = "probe-control"
 	RoleBuilder      = "builder"
+	RoleOTLP         = "otlp"
 	DefaultNetwork   = "default"
 	EgressNetwork    = "egress"
 	runnerMemLimit   = "1g"
 	runnerPidsLimit  = 512
+	otlpPort         = "4318"
 )
 
-var HarnessServices = []string{RoleEdge, RoleRunner, RoleProbe, RoleProbeControl}
+var HarnessServices = []string{RoleEdge, RoleRunner, RoleProbe, RoleProbeControl, RoleOTLP}
+
+var OTLPEnvironment = map[string]string{
+	"OTEL_EXPORTER_OTLP_ENDPOINT": "http://" + RoleOTLP + ":" + otlpPort,
+	"OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+	"OTEL_METRIC_EXPORT_INTERVAL": "2000",
+	"OTEL_BSP_SCHEDULE_DELAY":     "500",
+	"OTEL_TRACES_SAMPLER":         "parentbased_always_on",
+}
+
+func OTLPDeclared(d contract.Declaration) bool {
+	return len(d.Telemetry.OTLP.Services) > 0
+}
 
 type HarnessInput struct {
 	RunID       string
@@ -107,6 +121,13 @@ func Harness(in HarnessInput) ([]byte, error) {
 		}
 		services[name] = svc
 	}
+	for _, name := range decl.Telemetry.OTLP.Services {
+		svc, ok := services[name].(map[string]any)
+		if !ok || name == decl.Project.Builder {
+			return nil, fmt.Errorf("telemetry service %q is not a project service of the model", name)
+		}
+		svc["environment"] = OTLPEnvironment
+	}
 	image := func(role string) map[string]any {
 		return map[string]any{"image": in.RunnerImage, "pull_policy": "never", "labels": labels(in.RunID, role)}
 	}
@@ -131,6 +152,12 @@ func Harness(in HarnessInput) ([]byte, error) {
 		probe["networks"] = nets
 		probe["command"] = []string{"probe", strconv.Itoa(CanaryPort(in.PortBase))}
 		services[role] = probe
+	}
+	if OTLPDeclared(decl) {
+		otlp := hardened(image(RoleOTLP))
+		otlp["command"] = []string{RoleOTLP, ":" + otlpPort}
+		otlp["networks"] = inner
+		services[RoleOTLP] = otlp
 	}
 	doc := map[string]any{"services": services, "networks": networks}
 	if len(volumes) > 0 {

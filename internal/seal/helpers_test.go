@@ -59,6 +59,7 @@ func toyInput(t *testing.T) Input {
 		PortBase:    22000,
 		Ports:       decl.Ports,
 		Builder:     decl.Project.Builder,
+		OTLP:        compose.OTLPDeclared(decl),
 		RunnerImage: fixtureRunner,
 		Realpath:    identityPath,
 	}
