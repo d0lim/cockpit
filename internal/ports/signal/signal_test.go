@@ -20,6 +20,7 @@ var signalMutations = []porttest.Mutation{
 	{"the runner time source is reserved", "drop the runner tsSource check", "red: a script span with runner time is stored", "TestRunnerTimeSourceIsDeniedAndHostOrContainerTimePasses"},
 	{"oversized signals are refused", "drop the MaxBytes check", "red: a 100 KiB event is stored", "TestSignalOverTheSizeLimitIsPortLimitAndOneWithinItIsStored"},
 	{"refusals pass the masker", "build the refusal without mask", "red: the planted value shows in the error", "TestRefusalMessagesPassTheMasker"},
+	{"the port carries a metric's unit, type and histogram", "build MetricBody from the name and the value only", "red: the stored metric has no histogram", "TestACollectorHistogramIsStoredWithItsCountAndSum"},
 	{"bodies are checked per kind", "skip the metric and span field checks", "red: a metric without a value is stored", "TestIncompleteBodiesAndUnknownMethodsAreBadArgs"},
 }
 
@@ -82,6 +83,28 @@ func TestMetricEventAndSpanAreStoredUnderThePortsCollector(t *testing.T) {
 	}
 	if got[0].Metric.Value != 3 || got[1].Event.Body != "order paid" || got[1].Rev != 2 || got[2].Span.TraceID != "t1" {
 		t.Fatalf("%+v", got)
+	}
+}
+
+func TestACollectorHistogramIsStoredWithItsCountAndSum(t *testing.T) {
+	s := stream(t)
+	p := &Port{Collector: "toy-db", Store: s}
+	histogram := `{"name":"latency","value":0.6,"unit":"s","type":"histogram","id":"latency","rev":1,"histogram":{"count":3,"sum":0.6,"bounds":[0.1,0.5],"counts":[1,1,1]}}`
+	if _, err := p.Call(context.Background(), "metric", raw(histogram)); err != nil {
+		t.Fatal(err)
+	}
+	got := read(t, s)
+	if len(got) != 1 || got[0].Metric == nil {
+		t.Fatalf("%+v", got)
+	}
+	m := got[0].Metric
+	if m.Unit != "s" || m.Type != contract.MetricTypeHistogram || m.Histogram == nil || m.Histogram.Count != 3 || m.Histogram.Sum != 0.6 ||
+		len(m.Histogram.Bounds) != 2 || len(m.Histogram.Counts) != 3 || got[0].ID != "latency" {
+		t.Fatalf("stored %+v %+v", m, m.Histogram)
+	}
+	_, err := p.Call(context.Background(), "metric", raw(`{"name":"latency","value":9,"type":"histogram","histogram":{"count":3,"sum":0.6}}`))
+	if codeOf(err) != engine.PortBadArgs || !strings.Contains(err.Error(), "must equal its sum") || len(read(t, s)) != 1 {
+		t.Fatalf("a histogram whose value is not its sum: %v", err)
 	}
 }
 
