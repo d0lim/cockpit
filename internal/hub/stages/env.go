@@ -14,15 +14,17 @@ import (
 )
 
 type Limits struct {
-	Build time.Duration
-	Boot  time.Duration
-	Suite time.Duration
-	Call  time.Duration
-	Poll  time.Duration
+	Build     time.Duration
+	Boot      time.Duration
+	Suite     time.Duration
+	Call      time.Duration
+	Poll      time.Duration
+	OTLPQuiet time.Duration
+	OTLPDrain time.Duration
 }
 
 func DefaultLimits() Limits {
-	return Limits{Build: 60 * time.Minute, Boot: 10 * time.Minute, Suite: 20 * time.Minute, Call: 2 * time.Minute, Poll: 2 * time.Second}
+	return Limits{Build: 60 * time.Minute, Boot: 10 * time.Minute, Suite: 20 * time.Minute, Call: 2 * time.Minute, Poll: 2 * time.Second, OTLPQuiet: 2500 * time.Millisecond, OTLPDrain: 10 * time.Second}
 }
 
 type Failed struct {

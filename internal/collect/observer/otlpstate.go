@@ -33,7 +33,7 @@ func (o *OTLP) TraceExec(name string) {
 	o.defaults()
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	o.registerTrace(signal.W3CPrefix+tracectx.ExecTraceID(o.RunID, name), o.RunID+"/exec/"+name)
+	o.registerTrace(signal.W3CPrefix+tracectx.ExecTraceID(o.RunID, name), signal.ExecTrace(o.RunID, name))
 }
 
 func (o *OTLP) traceFor(w3c string) string {

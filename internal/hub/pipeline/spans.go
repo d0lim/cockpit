@@ -15,7 +15,8 @@ func reportSpans(in envops.ReportInput, res *contract.Result) []report.Unread {
 		return nil
 	}
 	spans := stageSpans(in.Meta)
-	if res != nil && res.SchemaVersion >= contract.SchemaVersion2 && res.StartedAt != "" {
+	traced := res != nil && res.SchemaVersion >= contract.SchemaVersion2 && res.StartedAt != ""
+	if traced {
 		exited := in.RunnerExit
 		if exited.IsZero() {
 			exited = in.Now
@@ -24,12 +25,20 @@ func reportSpans(in envops.ReportInput, res *contract.Result) []report.Unread {
 	}
 	for i, sig := range spans {
 		if _, err := in.Stream.Append(sig); err != nil {
-			detail := err.Error()
-			if in.Masker != nil {
-				detail = in.Masker.Mask(detail)
-			}
-			return []report.Unread{{Source: stageSpansSource, Detail: detail, Count: len(spans) - i}}
+			return []report.Unread{{Source: stageSpansSource, Detail: maskedDetail(in, err), Count: len(spans) - i}}
+		}
+	}
+	if traced {
+		if _, err := signal.Reparent(in.Stream, in.Meta.ID, signal.CallParents(*res)); err != nil {
+			return []report.Unread{{Source: stageSpansSource, Detail: maskedDetail(in, err), Count: 1}}
 		}
 	}
 	return nil
+}
+
+func maskedDetail(in envops.ReportInput, err error) string {
+	if in.Masker == nil {
+		return err.Error()
+	}
+	return in.Masker.Mask(err.Error())
 }

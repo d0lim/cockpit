@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/d0lim/cockpit/internal/collect"
+	"github.com/d0lim/cockpit/internal/collect/observer"
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
@@ -22,6 +23,7 @@ type collected struct {
 	defs    []compose.CollectorDef
 	closers []func() error
 	live    bool
+	otlp    *observer.OTLP
 }
 
 func (o *Ops) log() *slog.Logger {

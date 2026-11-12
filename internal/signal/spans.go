@@ -121,9 +121,11 @@ func RunSpans(runID string, res contract.Result, exitedAt string) []contract.Sig
 	return build(spanRoot{traceID: runID, id: RunSpanID, parent: SuiteStageSpanID, name: res.Suite}, res, exitedAt)
 }
 
+func ExecTrace(runID, execName string) string { return runID + "/exec/" + execName }
+
 func ExecSpans(runID, execName string, res contract.ExecResult, exitedAt string) []contract.Signal {
 	root := spanRoot{
-		traceID: runID + "/exec/" + execName,
+		traceID: ExecTrace(runID, execName),
 		id:      ExecSpanID,
 		name:    res.Target,
 		links:   []contract.SpanLink{{TraceID: runID, SpanID: RunSpanID}},

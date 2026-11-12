@@ -67,6 +67,9 @@ type Fake struct {
 	OnVerb          func(verb string)
 	ContainerSecret string
 	RunnerDelay     time.Duration
+	OTLP            func(runID string) []OTLPLine
+	otlpRun         atomic.Value
+	doneAt          atomic.Int64
 }
 
 func (f *Fake) SetCanaryPort(port int) { f.canaryPort.Store(int64(port)) }
@@ -175,6 +178,7 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 			return compose.Result{Code: -1}, ctx.Err()
 		case <-time.After(f.RunnerDelay):
 		}
+		f.doneAt.CompareAndSwap(0, time.Now().UnixNano())
 		f.runnerDone.Store(true)
 		return out(strconv.Itoa(f.RunnerCode)), nil
 	case "exec":
@@ -183,12 +187,16 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 			return compose.Result{Code: -1}, ctx.Err()
 		}
 	case "logs":
+		if slices.Contains(cmd.Args, "--follow") && cmd.Args[len(cmd.Args)-1] == OTLPContainerID {
+			return f.otlpLogs(ctx, cmd)
+		}
 		if slices.Contains(cmd.Args, "--follow") {
 			return f.containerLogs(ctx, cmd)
 		}
 		return compose.Result{Stdout: []byte(f.RunnerLogs)}, nil
 	case "ps":
 		if slices.Contains(cmd.Args, "--format") {
+			f.otlpRun.Store(filterLabel(cmd.Args, compose.LabelRunID))
 			return out(containerTable(cmd.Args)), nil
 		}
 	case "inspect":

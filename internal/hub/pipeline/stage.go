@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
@@ -166,7 +167,23 @@ func runSuite(ctx context.Context, l *live) (outcome, error) {
 	case res.TimedOut:
 		return outcome{}, &stages.Failed{Message: fmt.Sprintf("the suite passed its limit of %s", l.env.Limits.Suite)}
 	}
+	l.drainOTLP(ctx)
+	if ctx.Err() != nil {
+		return outcome{}, errAborted
+	}
 	return outcome{event: lifecycle.Tested}, nil
+}
+
+func (l *live) drainOTLP(ctx context.Context) {
+	limits := l.env.Limits
+	d, ok := l.h.ops.DrainOTLP(ctx, l.id, limits.OTLPQuiet, limits.OTLPDrain)
+	switch {
+	case !ok:
+	case d.Quiet:
+		l.say(fmt.Sprintf("otlp drained after %s", d.Waited.Round(100*time.Millisecond)))
+	default:
+		l.say(fmt.Sprintf("otlp drain stopped at its limit of %s", limits.OTLPDrain))
+	}
 }
 
 func reportStage(ctx context.Context, l *live) (outcome, error) {
