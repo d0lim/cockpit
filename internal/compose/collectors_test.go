@@ -11,6 +11,7 @@ import (
 
 var collectorMutations = []porttest.Mutation{
 	{"collector ids reserved for the hub are refused", "drop the ReservedCollectorIDs check", "red: collectors named runner, logs, services and supervisor pass", "TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersPass"},
+	{"the collector id pipeline is reserved for the hub stage spans", "drop pipeline from ReservedCollectorIDs", "red: a collector file named pipeline passes", "TestACollectorNamedPipelineIsRejectedWithTheReservedIDsNamedAndOneNamedPipelinesPasses"},
 	{"collector ids are path-safe names", "drop the namePattern check in checkCollectors", "red: a collector file named Bad_Name passes", "TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersPass"},
 	{"secret source names become credential file patterns", "return no patterns from SecretFilePatterns", "red: a meta value naming app/.secrets.json is accepted", "TestSecretSourceAndEnvOutputNamesBecomeCredentialFilePatterns"},
 }
@@ -42,6 +43,21 @@ func TestCollectorsNamedRunnerOrLogsOrOutsideTheNamePatternAreRejectedAndOthersP
 		writeFile(t, filepath.Join(d, "scripts", "collectors", "runner-stats.ts"), "export {};\n")
 	}); err != nil {
 		t.Fatalf("a collector named runner-stats was rejected: %v", err)
+	}
+}
+
+func TestACollectorNamedPipelineIsRejectedWithTheReservedIDsNamedAndOneNamedPipelinesPasses(t *testing.T) {
+	_, err := loadToy(t, func(d string) {
+		writeFile(t, filepath.Join(d, "scripts", "collectors", "pipeline.ts"), "export {};\n")
+	})
+	r := rejection(t, err)
+	if r.Kind != RejectConfinement || r.Field != "scripts/collectors/pipeline.ts" || !strings.Contains(r.Error(), `"pipeline" is reserved for the hub`) {
+		t.Fatalf("%v", r)
+	}
+	if _, err := loadToy(t, func(d string) {
+		writeFile(t, filepath.Join(d, "scripts", "collectors", "pipelines.ts"), "export {};\n")
+	}); err != nil {
+		t.Fatalf("a collector named pipelines was rejected: %v", err)
 	}
 }
 
