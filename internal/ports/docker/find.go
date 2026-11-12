@@ -146,3 +146,17 @@ func (p *Port) Containers(ctx context.Context) ([]Container, error) {
 	}
 	return out, nil
 }
+
+func (p *Port) RoleContainers(ctx context.Context, role string) ([]Container, error) {
+	cs, err := p.list(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := []Container{}
+	for _, c := range cs {
+		if role != "" && c.role == role {
+			out = append(out, Container{ID: c.id, Service: c.service, State: c.state})
+		}
+	}
+	return out, nil
+}

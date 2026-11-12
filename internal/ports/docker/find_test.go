@@ -18,6 +18,7 @@ var findMutations = []porttest.Mutation{
 	{"the listing filters by the run labels", "drop the label filters from the ps arguments", "red: the ps call lacks the project or run-id filter", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
 	{"ps hides the harness and other runs", "return every listed container from PS", "red: edge, intruder or stale appear in ps", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
 	{"the last listed container keeps its empty role column", "TrimSpace the ps output before splitting lines", "red: the last target service is missing from ps and Containers", "TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept"},
+	{"the role listing returns only this run's containers of that role", "return every listed container from RoleContainers", "red: app, edge or the otlp container of another run comes back for the otlp role", "TestTheRoleListingReturnsOnlyThisRunsContainerOfThatRoleAndTheTargetListingStillHidesIt"},
 	{"service names are compose names", "remove the serviceName check", "red: a name with a slash or a flag reaches docker", "TestServiceNamesThatAreNotComposeNamesArePortBadArgs"},
 }
 
@@ -96,6 +97,27 @@ func TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept(t *testing.T) {
 	cs, err := p.Containers(context.Background())
 	if err != nil || len(cs) != 1 || cs[0] != (Container{ID: "c-app", Service: "app", State: "running"}) {
 		t.Fatalf("%+v %v", cs, err)
+	}
+}
+
+func TestTheRoleListingReturnsOnlyThisRunsContainerOfThatRoleAndTheTargetListingStillHidesIt(t *testing.T) {
+	f := &fakeDocker{ps: append(standardPS(), psLine("c-otlp-other", "otlp", "running", "Up", "other-project", "run-2", compose.RoleOTLP))}
+	p, _ := newPort(t, f, Options{})
+	got, err := p.RoleContainers(context.Background(), compose.RoleOTLP)
+	if err != nil || !reflect.DeepEqual(got, []Container{{ID: "c-otlp", Service: "otlp", State: "running"}}) {
+		t.Fatalf("otlp role: %+v %v", got, err)
+	}
+	if none, err := p.RoleContainers(context.Background(), ""); err != nil || len(none) != 0 {
+		t.Fatalf("the empty role lists %+v %v", none, err)
+	}
+	targets, err := p.Containers(context.Background())
+	if err != nil || len(targets) != 3 {
+		t.Fatalf("canary: targets %+v %v", targets, err)
+	}
+	for _, c := range targets {
+		if c.Service == "otlp" {
+			t.Fatalf("the target listing holds the otlp container: %+v", targets)
+		}
 	}
 }
 
