@@ -10,8 +10,11 @@ import (
 
 	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/hub/envops"
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+	"github.com/d0lim/cockpit/internal/hub/store"
+	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 	"github.com/d0lim/cockpit/internal/signal"
 	"github.com/d0lim/cockpit/internal/tracectx"
@@ -20,6 +23,7 @@ import (
 var otlpPipelineMutations = []porttest.Mutation{
 	{"the suite waits for the OTLP stream to go quiet", "drop the drainOTLP call in runSuite", "red: the spans and the metric total written after the runner exit are missing from the frozen copy", "TestTheSuiteWaitsForTheOTLPStreamToGoQuiet"},
 	{"service spans move under their call before the freeze", "drop the Reparent call in reportSpans", "red: the frozen service spans keep their w3c parents", "TestServiceSpansAreReparentedUnderTheirCallBeforeTheFreeze"},
+	{"a reparent failure reaches the report through the run masker", "pass err.Error() in place of maskedDetail(in, err) after Reparent in reportSpans", "red: the unread detail holds the planted value", "TestAReparentFailureBecomesAnUnreadSpansEntryWithThePlantedValueMasked"},
 	{"a run without the OTLP observer waits no drain", "make DrainOTLP sleep the quiet window when the run has no observer", "red: a run with NoCollection writes an otlp drain line", "TestARunWithoutCollectionHasNoOTLPDrainAndNoOTLPSignals"},
 }
 
@@ -212,5 +216,30 @@ func waitExecServiceSpans(t *testing.T, h *Hub, runID string) int {
 			t.Fatalf("no otlp span reached an exec trace of %s", runID)
 		}
 		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+func TestAReparentFailureBecomesAnUnreadSpansEntryWithThePlantedValueMasked(t *testing.T) {
+	const planted, runID = "PLANTED-reparent-T3+/<&q8x", "run-20261019-010000-abcdef0"
+	m, err := mask.New(mask.Options{Mode: mask.Hub, Known: []string{planted}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := signal.Open(t.TempDir(), signal.Options{Masker: func() *mask.Masker { return m }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	if err := s.RefuseReads("the bundle was discarded near token " + planted); err != nil {
+		t.Fatal(err)
+	}
+	res := &contract.Result{SchemaVersion: contract.SchemaVersion2, StartedAt: "2026-10-19T01:00:01.000Z", Steps: tracedSteps()}
+	in := envops.ReportInput{Meta: store.Meta{ID: runID}, Stream: s, Masker: m, Now: time.Date(2026, 10, 19, 1, 0, 9, 0, time.UTC)}
+	unread := reportSpans(in, res)
+	if len(unread) != 1 || unread[0].Source != stageSpansSource || unread[0].Count != 1 || !strings.Contains(unread[0].Detail, "refused") {
+		t.Fatalf("the reparent failure must leave one unread spans entry, got %+v", unread)
+	}
+	if strings.Contains(unread[0].Detail, planted) || !strings.Contains(unread[0].Detail, "****") {
+		t.Fatalf("the unread detail must hold **** in place of the planted value: %q", unread[0].Detail)
 	}
 }

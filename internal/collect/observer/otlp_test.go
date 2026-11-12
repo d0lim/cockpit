@@ -36,10 +36,14 @@ var otlpMutations = []porttest.Mutation{
 	{"the settle waits a quiet window counted from its own start", "start the quiet window at the last span heard even before the wait", "red: the settle after an earlier span returns before the quiet window", "TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComing"},
 	{"only spans of the run's traces extend the settle", "store the heard time for every parsed line in OTLP.line", "red: the settle runs to its limit while metric lines keep coming", "TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComing"},
 	{"spans of a foreign trace do not extend the settle", "store the heard time for every parsed span in OTLP.line", "red: the settle runs to its limit while spans of a foreign trace keep coming", "TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComing"},
+	{"the warn for a refused signal passes the run masker", "log err.Error() in place of o.Mask(err.Error()) in OTLP.line", "red: the warn line holds the planted value", "TestARefusedOTLPSignalLogsAWarnWithThePlantedValueMasked"},
+	{"the warn for a gap the stream refuses passes the run masker", "log err.Error() in place of o.Mask(err.Error()) in OTLP.gap", "red: the warn line holds the planted value", "TestAGapEventTheStreamRefusesLogsAWarnWithThePlantedValueMasked"},
+	{"the warn for an unreadable cursor passes the run masker", "log err.Error() in place of o.Mask(err.Error()) in OTLP.load", "red: the warn line holds the planted value", "TestACursorThatCannotBeReadLogsAWarnWithThePlantedValueMasked"},
+	{"the warn for an unsaved cursor passes the run masker", "log err.Error() in place of o.Mask(err.Error()) in OTLP.save", "red: the warn line holds the planted value", "TestACursorThatCannotBeSavedLogsAWarnWithThePlantedValueMasked"},
 }
 
 func TestOTLPMutationRecordMatchesTestsInTheseFiles(t *testing.T) {
-	porttest.AssertMutationRecordAcross(t, []string{"otlp_test.go", "otlpresume_test.go"}, otlpMutations)
+	porttest.AssertMutationRecordAcross(t, []string{"otlp_test.go", "otlpresume_test.go", "otlpmask_test.go"}, otlpMutations)
 }
 
 func storeIn(t *testing.T, dir string) *signal.Stream {
