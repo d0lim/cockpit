@@ -164,3 +164,53 @@ func TestARunWithoutCollectionHasNoOTLPDrainAndNoOTLPSignals(t *testing.T) {
 		t.Fatalf("canary: the runner lines are missing from\n%s", w.eventText())
 	}
 }
+
+func otlpTree(t *testing.T, signals []contract.Signal, trace string) (underCalls, series int) {
+	t.Helper()
+	inTrace := spansOf(signals, trace)
+	for _, sig := range inTrace {
+		if sig.Collector == signal.OTLPCollector && inTrace[sig.Span.ParentID].Collector == signal.RunnerSource && strings.HasPrefix(sig.Span.ParentID, "call:") {
+			underCalls++
+		}
+	}
+	records := map[string]int{}
+	for _, sig := range signals {
+		if sig.Collector == signal.OTLPCollector && sig.Metric != nil && sig.ID != "" {
+			records[sig.ID]++
+		}
+	}
+	for id, n := range records {
+		if n != 1 {
+			t.Errorf("the metric series %s has %d records", id, n)
+		}
+	}
+	return underCalls, len(records)
+}
+
+func waitExecServiceSpans(t *testing.T, h *Hub, runID string) int {
+	t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		stream, err := h.Streams().Get(runID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := stream.Read(signal.ReadRequest{Limit: 1 << 20})
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for _, sig := range resp.Signals {
+			if sig.Collector == signal.OTLPCollector && sig.Span != nil && strings.HasPrefix(sig.Span.TraceID, runID+"/exec/") {
+				n++
+			}
+		}
+		if n > 0 {
+			return n
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no otlp span reached an exec trace of %s", runID)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
