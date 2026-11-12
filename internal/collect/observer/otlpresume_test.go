@@ -94,7 +94,9 @@ func feed(obs *OTLP, line func(n int) string) func() int {
 
 func TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComing(t *testing.T) {
 	trace := "w3c:" + tracectx.TraceID(runID)
-	span := func(n int) string { return serviceSpan(t, trace, fmt.Sprintf("w3c:%016x", n), "", map[string]any{"service": "app"}) }
+	span := func(n int) string {
+		return serviceSpan(t, trace, fmt.Sprintf("w3c:%016x", n), "", map[string]any{"service": "app"})
+	}
 	obs := &OTLP{RunID: runID, Stream: store(t, signal.DefaultCaps())}
 	obs.defaults()
 	obs.line(stamp(1) + " " + span(1))
