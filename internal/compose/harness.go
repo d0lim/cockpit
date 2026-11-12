@@ -9,18 +9,20 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-const HarnessVersion = 7
+const HarnessVersion = 8
 
 const (
 	LabelManaged     = "io.cockpit.managed"
 	LabelRunID       = "io.cockpit.run-id"
 	LabelRole        = "io.cockpit.role"
-	RoleEdge         = "edge"
-	RoleRunner       = "runner"
-	RoleProbe        = "probe"
-	RoleProbeControl = "probe-control"
+	RoleEdge         = "cockpit-edge"
+	RoleRunner       = "cockpit-runner"
+	RoleProbe        = "cockpit-probe"
+	RoleProbeControl = "cockpit-probe-control"
 	RoleBuilder      = "builder"
-	RoleOTLP         = "otlp"
+	RoleOTLP         = "cockpit-otlp"
+	ProfileRunner    = "runner"
+	ProfileProbe     = "probe"
 	DefaultNetwork   = "default"
 	EgressNetwork    = "egress"
 	runnerMemLimit   = "1g"
@@ -137,7 +139,7 @@ func Harness(in HarnessInput) ([]byte, error) {
 	edge["ports"] = edgePublished(in.PortBase, decl.Ports)
 	services[RoleEdge] = edge
 	runner := hardened(image(RoleRunner))
-	runner["profiles"] = []string{RoleRunner}
+	runner["profiles"] = []string{ProfileRunner}
 	runner["networks"] = inner
 	runner["tmpfs"] = []string{"/tmp"}
 	runner["volumes"] = runnerBinds(in.Layout, decl.Inputs.RunnerSources)
@@ -148,14 +150,14 @@ func Harness(in HarnessInput) ([]byte, error) {
 	services[RoleRunner] = runner
 	for role, nets := range map[string][]string{RoleProbe: {DefaultNetwork}, RoleProbeControl: {EgressNetwork}} {
 		probe := hardened(image(role))
-		probe["profiles"] = []string{RoleProbe}
+		probe["profiles"] = []string{ProfileProbe}
 		probe["networks"] = nets
 		probe["command"] = []string{"probe", strconv.Itoa(CanaryPort(in.PortBase))}
 		services[role] = probe
 	}
 	if OTLPDeclared(decl) {
 		otlp := hardened(image(RoleOTLP))
-		otlp["command"] = []string{RoleOTLP, ":" + otlpPort}
+		otlp["command"] = []string{"otlp", ":" + otlpPort}
 		otlp["networks"] = inner
 		services[RoleOTLP] = otlp
 	}

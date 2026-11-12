@@ -109,7 +109,7 @@ func TestStatsReadsOneSnapshotWithoutStreaming(t *testing.T) {
 	if len(calls) != 1 || !slices.Contains(calls[0], "--no-stream") || calls[0][len(calls[0])-1] != "c-app" {
 		t.Fatalf("%v", calls)
 	}
-	if _, err := p.Stats(context.Background(), "edge"); codeOf(err) != engine.PortDenied {
+	if _, err := p.Stats(context.Background(), "cockpit-edge"); codeOf(err) != engine.PortDenied {
 		t.Fatalf("harness stats: %v", err)
 	}
 }

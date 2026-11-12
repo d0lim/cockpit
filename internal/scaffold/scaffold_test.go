@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/d0lim/cockpit/internal/runner"
 	"github.com/d0lim/cockpit/internal/sdkbin"
 )
@@ -61,6 +63,25 @@ func TestInitWritesTheQuickStartFilesWithTheirModes(t *testing.T) {
 		if err != nil || info.Mode().Perm() != want {
 			t.Fatalf("%s: mode %v err %v", path, info.Mode().Perm(), err)
 		}
+	}
+}
+
+func TestTheInitOverlayNamesItsRunnerServiceCockpitRunnerUnderTheRunnerProfile(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := Write(dir, "http://web"); err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		Services map[string]struct {
+			Profiles []string `yaml:"profiles"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal([]byte(read(t, filepath.Join(dir, "compose.cockpit.yaml"))), &doc); err != nil {
+		t.Fatal(err)
+	}
+	svc, ok := doc.Services["cockpit-runner"]
+	if !ok || len(doc.Services) != 1 || len(svc.Profiles) != 1 || svc.Profiles[0] != "runner" {
+		t.Fatalf("overlay services %+v", doc.Services)
 	}
 }
 

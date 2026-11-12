@@ -33,7 +33,7 @@ func rendered(builder string, roles map[string]string) Rendered {
 }
 
 func allRoles() map[string]string {
-	return map[string]string{"edge": RoleEdge, "runner": RoleRunner, "probe": RoleProbe, "probe-control": RoleProbeControl, "builder": RoleBuilder, "app": ""}
+	return map[string]string{RoleEdge: RoleEdge, RoleRunner: RoleRunner, RoleProbe: RoleProbe, RoleProbeControl: RoleProbeControl, "builder": RoleBuilder, "app": ""}
 }
 
 func TestRenderedConfigWithEveryRolePassesAndMissingDuplicatedOrUnlabeledRolesFail(t *testing.T) {
@@ -45,10 +45,13 @@ func TestRenderedConfigWithEveryRolePassesAndMissingDuplicatedOrUnlabeledRolesFa
 			delete(m, "builder")
 			return rendered("builder", m), "builder"
 		},
-		"edge missing": func(m map[string]string) (Rendered, string) { delete(m, "edge"); return rendered("builder", m), "edge" },
+		"edge missing": func(m map[string]string) (Rendered, string) {
+			delete(m, RoleEdge)
+			return rendered("builder", m), RoleEdge + " (found 0)"
+		},
 		"two runners": func(m map[string]string) (Rendered, string) {
 			m["runner-2"] = RoleRunner
-			return rendered("builder", m), "runner (found 2)"
+			return rendered("builder", m), RoleRunner + " (found 2)"
 		},
 		"builder unlabeled": func(m map[string]string) (Rendered, string) {
 			m["builder"] = ""

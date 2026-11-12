@@ -61,7 +61,7 @@ func storeIn(t *testing.T, dir string) *signal.Stream {
 }
 
 func otlpPS(state string) string {
-	return strings.Join([]string{"c-otlp", project + "-otlp-1", state, "Up", project, "otlp", runID, compose.RoleOTLP}, "\t")
+	return strings.Join([]string{"c-otlp", project + "-" + compose.RoleOTLP + "-1", state, "Up", project, compose.RoleOTLP, runID, compose.RoleOTLP}, "\t")
 }
 
 func otlpOut(t *testing.T, sig map[string]any) string {

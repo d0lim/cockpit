@@ -251,7 +251,7 @@ func TestNamedServicesGetTheOTLPVariablesAndOthersDoNot(t *testing.T) {
 	doc, _, in := harnessDoc(t, nil)
 	env := service(t, doc, "app")["environment"].(map[string]any)
 	want := map[string]string{
-		"OTEL_EXPORTER_OTLP_ENDPOINT": "http://otlp:4318",
+		"OTEL_EXPORTER_OTLP_ENDPOINT": "http://cockpit-otlp:4318",
 		"OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
 		"OTEL_METRIC_EXPORT_INTERVAL": "2000",
 		"OTEL_BSP_SCHEDULE_DELAY":     "500",

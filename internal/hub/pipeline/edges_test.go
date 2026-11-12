@@ -132,7 +132,7 @@ func TestAPortTakenBeforeTheSealClosesAsErrorNamingThePortWithoutLeasingAgain(t 
 	if !strings.Contains(m.Notice, strconv.Itoa(w.base)) || !strings.Contains(m.Notice, "not leased again") {
 		t.Fatalf("notice %q", m.Notice)
 	}
-	if indexOf(w.verbs(), "compose run probe") >= 0 || m.Slot == nil || *m.Slot != 0 {
+	if indexOf(w.verbs(), "compose run cockpit-probe") >= 0 || m.Slot == nil || *m.Slot != 0 {
 		t.Fatalf("probes ran or the block moved: slot %v verbs %v", m.Slot, w.verbs())
 	}
 }
@@ -186,7 +186,7 @@ func TestAStageFailingWithACredentialInItsOutputLeavesOnlyTheMaskedFormInTheNoti
 }
 
 func TestARunnerThatFailsToStartClosesAsErrorWithTheEnvironmentStillUp(t *testing.T) {
-	w := newWorld(t, func(f *fakedocker.Fake) { f.FailVerb = map[string]bool{"compose run runner": true} }, nil)
+	w := newWorld(t, func(f *fakedocker.Fake) { f.FailVerb = map[string]bool{"compose run cockpit-runner": true} }, nil)
 	m := w.submit()
 	closedState(t, m, lifecycle.VerdictError, lifecycle.EnvUp, lifecycle.Testing)
 	if !w.leased(m.ID) || indexOf(w.verbs(), "compose stop") >= 0 {

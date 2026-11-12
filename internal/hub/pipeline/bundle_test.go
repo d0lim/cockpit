@@ -113,7 +113,7 @@ func TestAPassingRunWritesAFormat3BundleWithOwnerOnlyModesAndNoPlaintextSecret(t
 	doc, _ := readSummary(t, dir)
 	runner, _ := doc["runner"].(map[string]any)
 	stages, _ := doc["stages"].(map[string]any)
-	if doc["verdict"] != "passed" || doc["harness"] != float64(7) || doc["hubCommit"] == "" || runner == nil || stages["runner.manifest.json"] == nil {
+	if doc["verdict"] != "passed" || doc["harness"] != float64(8) || doc["hubCommit"] == "" || runner == nil || stages["runner.manifest.json"] == nil {
 		t.Fatalf("summary verdict %v harness %v hubCommit %v runner %v stages %v", doc["verdict"], doc["harness"], doc["hubCommit"], runner, stages)
 	}
 	for _, name := range []string{"e2e/manifest.json", "e2e/result.json", "seal.json", "meta.json", "not-proven.md", "signals/stream.jsonl"} {

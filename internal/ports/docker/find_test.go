@@ -20,6 +20,7 @@ var findMutations = []porttest.Mutation{
 	{"the last listed container keeps its empty role column", "TrimSpace the ps output before splitting lines", "red: the last target service is missing from ps and Containers", "TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept"},
 	{"the role listing returns only this run's containers of that role", "return every listed container from RoleContainers", "red: app, edge or the otlp container of another run comes back for the otlp role", "TestTheRoleListingReturnsOnlyThisRunsContainerOfThatRoleAndTheTargetListingStillHidesIt"},
 	{"service names are compose names", "remove the serviceName check", "red: a name with a slash or a flag reaches docker", "TestServiceNamesThatAreNotComposeNamesArePortBadArgs"},
+	{"only the prefixed harness names are refused by name", "add edge, runner, probe, probe-control and otlp to the harness map", "red: logs of a consumer service named runner are denied", "TestConsumerServicesNamedEdgeRunnerProbeProbeControlOrOTLPWithoutARoleAreTargets"},
 }
 
 func TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied(t *testing.T) {
@@ -32,7 +33,7 @@ func TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessAreP
 	if err != nil || out.Text != "line from c-app\n" || out.Truncated {
 		t.Fatalf("%+v %v", out, err)
 	}
-	denied := []string{"intruder", "stale", "edge", "probe", "runner", "probe-control", "otlp", "builder", "toolbox", "sneaky", "missing"}
+	denied := []string{"intruder", "stale", "cockpit-edge", "cockpit-probe", "cockpit-runner", "cockpit-probe-control", "cockpit-otlp", "builder", "toolbox", "sneaky", "missing"}
 	ran := 0
 	for _, svc := range denied {
 		_, err := p.Logs(context.Background(), LogsRequest{Service: svc})
@@ -86,7 +87,7 @@ func TestServiceNamesThatAreNotComposeNamesArePortBadArgs(t *testing.T) {
 
 func TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept(t *testing.T) {
 	f := &fakeDocker{ps: []string{
-		psLine("c-edge", "edge", "running", "Up", project, runID, compose.RoleEdge),
+		psLine("c-edge", "cockpit-edge", "running", "Up", project, runID, compose.RoleEdge),
 		psLine("c-app", "app", "running", "Up", project, runID, ""),
 	}}
 	p, _ := newPort(t, f, Options{})
@@ -101,10 +102,10 @@ func TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept(t *testing.T) {
 }
 
 func TestTheRoleListingReturnsOnlyThisRunsContainerOfThatRoleAndTheTargetListingStillHidesIt(t *testing.T) {
-	f := &fakeDocker{ps: append(standardPS(), psLine("c-otlp-other", "otlp", "running", "Up", "other-project", "run-2", compose.RoleOTLP))}
+	f := &fakeDocker{ps: append(standardPS(), psLine("c-otlp-other", "cockpit-otlp", "running", "Up", "other-project", "run-2", compose.RoleOTLP))}
 	p, _ := newPort(t, f, Options{})
 	got, err := p.RoleContainers(context.Background(), compose.RoleOTLP)
-	if err != nil || !reflect.DeepEqual(got, []Container{{ID: "c-otlp", Service: "otlp", State: "running"}}) {
+	if err != nil || !reflect.DeepEqual(got, []Container{{ID: "c-otlp", Service: "cockpit-otlp", State: "running"}}) {
 		t.Fatalf("otlp role: %+v %v", got, err)
 	}
 	if none, err := p.RoleContainers(context.Background(), ""); err != nil || len(none) != 0 {
@@ -115,9 +116,37 @@ func TestTheRoleListingReturnsOnlyThisRunsContainerOfThatRoleAndTheTargetListing
 		t.Fatalf("canary: targets %+v %v", targets, err)
 	}
 	for _, c := range targets {
-		if c.Service == "otlp" {
+		if c.Service == "cockpit-otlp" {
 			t.Fatalf("the target listing holds the otlp container: %+v", targets)
 		}
+	}
+}
+
+func TestConsumerServicesNamedEdgeRunnerProbeProbeControlOrOTLPWithoutARoleAreTargets(t *testing.T) {
+	bare := []string{"edge", "runner", "probe", "probe-control", "otlp"}
+	ps := standardPS()
+	for _, name := range bare {
+		ps = append(ps, psLine("c-"+name, name, "running", "Up", project, runID, ""))
+	}
+	f := &fakeDocker{ps: ps, handle: func(_ context.Context, cmd compose.Command) (compose.Result, error) {
+		write(cmd, "line from "+cmd.Args[len(cmd.Args)-1]+"\n", "")
+		return compose.Result{}, nil
+	}}
+	p, _ := newPort(t, f, Options{})
+	reached := 0
+	for _, name := range bare {
+		out, err := p.Logs(context.Background(), LogsRequest{Service: name})
+		if err != nil || out.Text != "line from c-"+name+"\n" {
+			t.Errorf("%s: %+v %v", name, out, err)
+			continue
+		}
+		reached++
+	}
+	if reached != 5 {
+		t.Fatalf("reached %d of %d consumer services", reached, len(bare))
+	}
+	if _, err := p.Logs(context.Background(), LogsRequest{Service: compose.RoleRunner}); codeOf(err) != engine.PortDenied {
+		t.Fatalf("canary: the harness runner is a target: %v", err)
 	}
 }
 

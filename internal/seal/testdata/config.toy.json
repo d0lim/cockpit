@@ -102,44 +102,7 @@
         "default": null
       }
     },
-    "db": {
-      "command": null,
-      "entrypoint": null,
-      "environment": {},
-      "healthcheck": {
-        "interval": "2s",
-        "retries": 30,
-        "test": [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
-        ],
-        "timeout": "3s"
-      },
-      "image": "docker.io/library/postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193",
-      "labels": {
-        "io.cockpit.managed": "true",
-        "io.cockpit.run-id": "r-toy"
-      },
-      "networks": {
-        "default": null
-      },
-      "volumes": [
-        {
-          "source": "db-data",
-          "target": "/var/lib/postgresql/data",
-          "type": "volume",
-          "volume": {}
-        },
-        {
-          "bind": {},
-          "read_only": true,
-          "source": "/fixture/runs/r-toy/src/db/init.sql",
-          "target": "/docker-entrypoint-initdb.d/init.sql",
-          "type": "bind"
-        }
-      ]
-    },
-    "edge": {
+    "cockpit-edge": {
       "cap_drop": [
         "ALL"
       ],
@@ -153,7 +116,7 @@
       "image": "cockpit-runner:0123456789ab",
       "labels": {
         "io.cockpit.managed": "true",
-        "io.cockpit.role": "edge",
+        "io.cockpit.role": "cockpit-edge",
         "io.cockpit.run-id": "r-toy"
       },
       "mem_limit": "1073741824",
@@ -191,7 +154,7 @@
         "no-new-privileges:true"
       ]
     },
-    "otlp": {
+    "cockpit-otlp": {
       "cap_drop": [
         "ALL"
       ],
@@ -203,7 +166,7 @@
       "image": "cockpit-runner:0123456789ab",
       "labels": {
         "io.cockpit.managed": "true",
-        "io.cockpit.role": "otlp",
+        "io.cockpit.role": "cockpit-otlp",
         "io.cockpit.run-id": "r-toy"
       },
       "mem_limit": "1073741824",
@@ -217,7 +180,7 @@
         "no-new-privileges:true"
       ]
     },
-    "probe": {
+    "cockpit-probe": {
       "cap_drop": [
         "ALL"
       ],
@@ -229,7 +192,7 @@
       "image": "cockpit-runner:0123456789ab",
       "labels": {
         "io.cockpit.managed": "true",
-        "io.cockpit.role": "probe",
+        "io.cockpit.role": "cockpit-probe",
         "io.cockpit.run-id": "r-toy"
       },
       "mem_limit": "1073741824",
@@ -246,7 +209,7 @@
         "no-new-privileges:true"
       ]
     },
-    "probe-control": {
+    "cockpit-probe-control": {
       "cap_drop": [
         "ALL"
       ],
@@ -258,7 +221,7 @@
       "image": "cockpit-runner:0123456789ab",
       "labels": {
         "io.cockpit.managed": "true",
-        "io.cockpit.role": "probe-control",
+        "io.cockpit.role": "cockpit-probe-control",
         "io.cockpit.run-id": "r-toy"
       },
       "mem_limit": "1073741824",
@@ -275,7 +238,7 @@
         "no-new-privileges:true"
       ]
     },
-    "runner": {
+    "cockpit-runner": {
       "cap_drop": [
         "ALL"
       ],
@@ -285,7 +248,7 @@
       "image": "cockpit-runner:0123456789ab",
       "labels": {
         "io.cockpit.managed": "true",
-        "io.cockpit.role": "runner",
+        "io.cockpit.role": "cockpit-runner",
         "io.cockpit.run-id": "r-toy"
       },
       "mem_limit": "1073741824",
@@ -326,6 +289,43 @@
           "read_only": true,
           "source": "/fixture/runs/r-toy/work/source/fixtures",
           "target": "/work/source/fixtures",
+          "type": "bind"
+        }
+      ]
+    },
+    "db": {
+      "command": null,
+      "entrypoint": null,
+      "environment": {},
+      "healthcheck": {
+        "interval": "2s",
+        "retries": 30,
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ],
+        "timeout": "3s"
+      },
+      "image": "docker.io/library/postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193",
+      "labels": {
+        "io.cockpit.managed": "true",
+        "io.cockpit.run-id": "r-toy"
+      },
+      "networks": {
+        "default": null
+      },
+      "volumes": [
+        {
+          "source": "db-data",
+          "target": "/var/lib/postgresql/data",
+          "type": "volume",
+          "volume": {}
+        },
+        {
+          "bind": {},
+          "read_only": true,
+          "source": "/fixture/runs/r-toy/src/db/init.sql",
+          "target": "/docker-entrypoint-initdb.d/init.sql",
           "type": "bind"
         }
       ]

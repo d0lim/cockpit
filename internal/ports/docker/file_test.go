@@ -97,7 +97,7 @@ func TestRelativePathsAreBadArgsAndHarnessTargetsAreDeniedBeforeDockerCp(t *test
 			t.Errorf("%q: %v", r.Path, err)
 		}
 	}
-	for _, svc := range []string{"edge", "probe", "toolbox", "intruder"} {
+	for _, svc := range []string{"cockpit-edge", "cockpit-probe", "toolbox", "intruder"} {
 		if _, err := p.File(context.Background(), FileRequest{Service: svc, Path: "/etc/hosts"}); codeOf(err) != engine.PortDenied {
 			t.Errorf("%s: %v", svc, err)
 		}

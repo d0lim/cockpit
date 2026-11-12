@@ -37,7 +37,7 @@ func containerTable(args []string) string {
 		id := fmt.Sprintf("%064d", i+1)
 		rows = append(rows, strings.Join([]string{id, project + "-" + svc + "-1", "running", "Up 1 minute (healthy)", project, svc, runID, ""}, "\t"))
 	}
-	rows = append(rows, strings.Join([]string{OTLPContainerID, project + "-otlp-1", "running", "Up 1 minute", project, compose.RoleOTLP, runID, compose.RoleOTLP}, "\t"))
+	rows = append(rows, strings.Join([]string{OTLPContainerID, project + "-" + compose.RoleOTLP + "-1", "running", "Up 1 minute", project, compose.RoleOTLP, runID, compose.RoleOTLP}, "\t"))
 	return strings.Join(rows, "\n")
 }
 

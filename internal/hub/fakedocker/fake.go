@@ -151,13 +151,13 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 		return f.envgen(cmd.Args)
 	case "compose config":
 		return f.config(cmd.Args)
-	case "compose run probe":
+	case "compose run " + compose.RoleProbe:
 		rc := 1
 		if f.ProbeLeak {
 			rc = 0
 		}
 		return out(probeLines(rc)), nil
-	case "compose run probe-control":
+	case "compose run " + compose.RoleProbeControl:
 		if conn, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.FormatInt(f.canaryPort.Load(), 10))); err == nil {
 			conn.Close()
 			time.Sleep(20 * time.Millisecond)
@@ -165,7 +165,7 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 		return out(probeLines(0)), nil
 	case "compose ps":
 		return out(f.ps()), nil
-	case "compose run runner":
+	case "compose run " + compose.RoleRunner:
 		f.writeRunnerFiles(cmd.Args, cmd.Env)
 		return out("Creating\n" + ContainerID), nil
 	case "wait":
@@ -252,8 +252,8 @@ func (f *Fake) ps() string {
 		{"Service": "db", "ID": "bbb", "State": "running", "Health": dbHealth(f.Unhealthy)},
 		{"Service": "cache", "ID": "ccc", "State": "running", "Health": "healthy"},
 		{"Service": "seed", "ID": "eee", "State": "exited", "Health": "", "ExitCode": f.SeedExit},
-		{"Service": "edge", "ID": "ddd", "State": "running", "Health": ""},
-		{"Service": "otlp", "ID": "fff", "State": "running", "Health": ""},
+		{"Service": compose.RoleEdge, "ID": "ddd", "State": "running", "Health": ""},
+		{"Service": compose.RoleOTLP, "ID": "fff", "State": "running", "Health": ""},
 	}
 	data, _ := json.Marshal(rows)
 	return string(data)

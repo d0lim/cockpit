@@ -87,7 +87,7 @@ func TestRunnerIdentityDifferentFromThePinClosesAsErrorNamingBothValues(t *testi
 }
 
 func runnerStartAfter(verbs []string, before string) bool {
-	run := indexOf(verbs, "compose run runner")
+	run := indexOf(verbs, "compose run cockpit-runner")
 	at := slices.Index(verbs, before)
 	return at >= 0 && run > at
 }

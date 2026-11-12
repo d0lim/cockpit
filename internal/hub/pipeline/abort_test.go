@@ -87,7 +87,7 @@ func TestAnAbortWhileWaitingForTheBootCutsTheWaitAndKeepsTheEnvironmentStopped(t
 	if _, err := os.Stat(filepath.Join(dir, report.DirReport)); !os.IsNotExist(err) {
 		t.Fatalf("an aborted boot wrote a report: %v", err)
 	}
-	if indexOf(w.verbs(), "compose stop") < 0 || indexOf(w.verbs(), "compose run runner") >= 0 || !w.leased(id) {
+	if indexOf(w.verbs(), "compose stop") < 0 || indexOf(w.verbs(), "compose run cockpit-runner") >= 0 || !w.leased(id) {
 		t.Fatalf("leased %v verbs %v", w.leased(id), w.verbs())
 	}
 }

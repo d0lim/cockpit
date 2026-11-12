@@ -107,7 +107,7 @@ func TestContainerLogLinesBecomeMaskedEventsWithPerContainerDropsAndNoHarnessOrF
 	long := strings.Repeat("x", maxLine-5) + planted
 	d := &fakeDocker{ps: []string{
 		psLine("c-app", "app", project, runID, ""), psLine("c-db", "db", project, runID, ""),
-		psLine("c-edge", "edge", project, runID, "edge"), psLine("c-probe", "probe", project, runID, "probe"),
+		psLine("c-edge", compose.RoleEdge, project, runID, compose.RoleEdge), psLine("c-probe", compose.RoleProbe, project, runID, compose.RoleProbe),
 		psLine("c-intruder", "app", "other", "run-9", ""),
 	}}
 	d.handle = func(ctx context.Context, cmd compose.Command) (compose.Result, error) {

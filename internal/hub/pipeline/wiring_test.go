@@ -130,7 +130,7 @@ func harnessRunnerUser(t *testing.T, dir string) (string, bool) {
 	if err := yamlUnmarshal(data, &doc); err != nil {
 		t.Fatal(err)
 	}
-	user, ok := doc.Services["runner"]["user"].(string)
+	user, ok := doc.Services["cockpit-runner"]["user"].(string)
 	return user, ok
 }
 

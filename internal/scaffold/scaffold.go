@@ -22,7 +22,7 @@ const DefaultBaseURL = "http://app"
 const SDKDir = "e2e/.cockpit-sdk"
 
 const composeOverlay = `services:
-  runner:
+  cockpit-runner:
     image: ${COCKPIT_RUNNER_IMAGE:?run cockpit runner-image first}
     pull_policy: never
     profiles: ["runner"]

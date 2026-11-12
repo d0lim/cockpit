@@ -76,7 +76,7 @@ func svc(t *testing.T, in Input, name string) map[string]any {
 
 func edgePort(t *testing.T, in Input, i int) map[string]any {
 	t.Helper()
-	ports := list(svc(t, in, "edge")["ports"])
+	ports := list(svc(t, in, "cockpit-edge")["ports"])
 	if len(ports) <= i {
 		t.Fatalf("edge has %d ports", len(ports))
 	}
@@ -85,7 +85,7 @@ func edgePort(t *testing.T, in Input, i int) map[string]any {
 
 func setRoute(t *testing.T, in Input, i int, spec string) {
 	t.Helper()
-	command := list(svc(t, in, "edge")["command"])
+	command := list(svc(t, in, "cockpit-edge")["command"])
 	if len(command) <= i+1 {
 		t.Fatalf("edge has %d routes", len(command)-1)
 	}

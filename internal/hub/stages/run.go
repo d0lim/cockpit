@@ -23,7 +23,7 @@ func OpenProject(runID string, l compose.Layout, decl contract.Declaration, d co
 
 func ProbeRunner(p compose.Project) seal.RunProbe {
 	return func(ctx context.Context, service string) (seal.ProbeRun, error) {
-		res, err := p.RunService(ctx, compose.RoleProbe, service)
+		res, err := p.RunService(ctx, compose.ProfileProbe, service)
 		return seal.ProbeRun{Code: res.Code, Lines: strings.Split(string(res.Stdout), "\n")}, err
 	}
 }

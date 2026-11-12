@@ -73,14 +73,14 @@ func TestToyRenderPassesAll24AssertionsInTheDocumentedOrder(t *testing.T) {
 func violations(t *testing.T) map[string]func(in *Input) {
 	app := func(in *Input) map[string]any { return svc(t, *in, "app") }
 	return map[string]func(in *Input){
-		"roles.present":  func(in *Input) { delete(record(svc(t, *in, "edge")["labels"]), "io.cockpit.role") },
+		"roles.present":  func(in *Input) { delete(record(svc(t, *in, "cockpit-edge")["labels"]), "io.cockpit.role") },
 		"files.overlays": func(in *Input) { in.Files = append(in.Files, fixtureRun+"/src/compose.tunnel.yaml") },
 		"networks.set": func(in *Input) {
 			record(in.Config["networks"])["shared"] = map[string]any{"external": true, "internal": true}
 		},
 		"networks.internal": func(in *Input) { record(in.Config["networks"])["side"] = map[string]any{} },
 		"services.networks": func(in *Input) {
-			record(svc(t, *in, "runner")["networks"])["egress"] = nil
+			record(svc(t, *in, "cockpit-runner")["networks"])["egress"] = nil
 		},
 		"services.ports": func(in *Input) {
 			app(in)["ports"] = []any{map[string]any{"host_ip": "127.0.0.1", "published": "8080", "target": 8080.0}}
@@ -96,7 +96,7 @@ func violations(t *testing.T) map[string]func(in *Input) {
 		"edge.host-ip":   func(in *Input) { edgePort(t, *in, 0)["host_ip"] = "0.0.0.0" },
 		"edge.published": func(in *Input) { edgePort(t, *in, 0)["published"] = "23000" },
 		"mounts.binds": func(in *Input) {
-			for _, raw := range list(svc(t, *in, "runner")["volumes"]) {
+			for _, raw := range list(svc(t, *in, "cockpit-runner")["volumes"]) {
 				if strings.HasSuffix(text(record(raw)["target"]), "/scripts") {
 					record(raw)["source"] = "/home/someone/.ssh"
 				}
@@ -150,7 +150,7 @@ func TestAnOTLPServiceThatPublishesAPortBindsAPathOrJoinsEgressTurnsOnlyThatAsse
 	if got := failing(Static(toyInput(t))); len(got) != 0 || !toyInput(t).OTLP {
 		t.Fatalf("the toy render with telemetry fails %v", got)
 	}
-	otlp := func(in *Input) map[string]any { return svc(t, *in, "otlp") }
+	otlp := func(in *Input) map[string]any { return svc(t, *in, "cockpit-otlp") }
 	cases := map[string]func(in *Input){
 		"services.ports": func(in *Input) {
 			otlp(in)["ports"] = []any{map[string]any{"host_ip": "127.0.0.1", "published": "4318", "target": 4318.0}}
@@ -181,9 +181,9 @@ func TestTheOTLPRoleIsRequiredOnlyWhenTheRunDeclaresTelemetry(t *testing.T) {
 		red    []string
 	}{
 		"declared and present":    {true, func(in *Input) {}, nil},
-		"declared and missing":    {true, func(in *Input) { delete(record(in.Config["services"]), "otlp") }, []string{"roles.present"}},
-		"declared and unlabelled": {true, func(in *Input) { delete(record(svc(t, *in, "otlp")["labels"]), "io.cockpit.role") }, []string{"roles.present"}},
-		"undeclared and absent":   {false, func(in *Input) { delete(record(in.Config["services"]), "otlp") }, nil},
+		"declared and missing":    {true, func(in *Input) { delete(record(in.Config["services"]), "cockpit-otlp") }, []string{"roles.present"}},
+		"declared and unlabelled": {true, func(in *Input) { delete(record(svc(t, *in, "cockpit-otlp")["labels"]), "io.cockpit.role") }, []string{"roles.present"}},
+		"undeclared and absent":   {false, func(in *Input) { delete(record(in.Config["services"]), "cockpit-otlp") }, nil},
 	}
 	evaluated := 0
 	for name, c := range cases {
@@ -218,8 +218,8 @@ func TestRunnerBindThroughALinkOutOfTheWorkTreeIsRejectedAndAPlainWorkBindPasses
 	in := toyInput(t)
 	in.Realpath = RealPath
 	in.Layout.Work = filepath.Join(run, "work")
-	binds := list(svc(t, in, "runner")["volumes"])
-	in.Config["services"].(map[string]any)["runner"].(map[string]any)["volumes"] = []any{
+	binds := list(svc(t, in, "cockpit-runner")["volumes"])
+	in.Config["services"].(map[string]any)["cockpit-runner"].(map[string]any)["volumes"] = []any{
 		map[string]any{"type": "bind", "source": filepath.Join(run, "work", "scripts"), "target": "/work/scripts"},
 	}
 	byName := func() []string {
@@ -232,14 +232,14 @@ func TestRunnerBindThroughALinkOutOfTheWorkTreeIsRejectedAndAPlainWorkBindPasses
 		return out
 	}
 	for _, f := range byName() {
-		if strings.Contains(f, "runner") {
+		if strings.Contains(f, "cockpit-runner") {
 			t.Fatalf("a plain work bind was rejected: %s", f)
 		}
 	}
 	record(binds[0])["source"] = filepath.Join(run, "work", "escape", "x")
-	in.Config["services"].(map[string]any)["runner"].(map[string]any)["volumes"] = binds[:1]
+	in.Config["services"].(map[string]any)["cockpit-runner"].(map[string]any)["volumes"] = binds[:1]
 	found := byName()
-	if len(found) != 1 || !strings.Contains(found[0], "runner") || !strings.Contains(found[0], "outside work") {
+	if len(found) != 1 || !strings.Contains(found[0], "cockpit-runner") || !strings.Contains(found[0], "outside work") {
 		t.Fatalf("a bind through a link out of work: %v", found)
 	}
 }

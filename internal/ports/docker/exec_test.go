@@ -49,8 +49,8 @@ func TestAllowedPrefixRunsAndOtherArgvShellsAndHarnessTargetsArePortDenied(t *te
 		{Service: "app", Argv: []string{"env", "valkey-cli", "GET", "k"}},
 		{Service: "app", Argv: []string{"valkey-cli GET k"}},
 		{Service: "app", Argv: []string{"valkey-cli;FLUSHALL"}},
-		{Service: "edge", Argv: []string{"valkey-cli", "GET", "k"}},
-		{Service: "probe", Argv: []string{"valkey-cli", "GET", "k"}},
+		{Service: "cockpit-edge", Argv: []string{"valkey-cli", "GET", "k"}},
+		{Service: "cockpit-probe", Argv: []string{"valkey-cli", "GET", "k"}},
 		{Service: "intruder", Argv: []string{"valkey-cli", "GET", "k"}},
 	}
 	for _, r := range denied {
@@ -70,7 +70,7 @@ func TestEveryExecCallLeavesExactlyOneAuditEventWithMaskedArgv(t *testing.T) {
 	calls := []ExecRequest{
 		{Service: "app", Argv: []string{"valkey-cli", "GET", planted}},
 		{Service: "app", Argv: []string{"valkey-cli", "FLUSHALL", planted}},
-		{Service: "edge", Argv: []string{"valkey-cli", "GET", "k"}},
+		{Service: "cockpit-edge", Argv: []string{"valkey-cli", "GET", "k"}},
 		{Service: "app", Argv: nil},
 	}
 	for _, c := range calls {

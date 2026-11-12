@@ -86,7 +86,7 @@ func TestRunnerRunsDetachedThenWaitsReadsLogsChecksOOMAndRemovesInThatOrder(t *t
 		t.Fatalf("sequence %s", got)
 	}
 	start := d.calls[0]
-	if !slices.Equal(start[3:], []string{"--profile", "runner", "run", "-d", "-T", "--no-deps", "runner", "run", "smoke"}) {
+	if !slices.Equal(start[3:], []string{"--profile", "runner", "run", "-d", "-T", "--no-deps", "cockpit-runner", "run", "smoke"}) {
 		t.Fatalf("start %q", start)
 	}
 	if !slices.Contains(d.envs[0], "E2E_EXEC_OUT=/work/e2e/exec/x.json") {
@@ -151,7 +151,7 @@ func TestRunnerStartWithoutAContainerIDFailsAndRemovesTheRunnerOneOffs(t *testin
 		t.Fatal("docker wait ran without a container id")
 	}
 	ps := d.calls[1]
-	if ps[0] != "ps" || !slices.Contains(ps, "label=com.docker.compose.service=runner") {
+	if ps[0] != "ps" || !slices.Contains(ps, "label=com.docker.compose.service=cockpit-runner") {
 		t.Fatalf("one-off cleanup %q", ps)
 	}
 }

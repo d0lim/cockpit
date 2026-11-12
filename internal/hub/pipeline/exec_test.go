@@ -46,7 +46,7 @@ func writeLedger(t *testing.T, w *world, id string, flows map[string]contract.Fl
 func runnerStarts(w *world) int {
 	n := 0
 	for _, v := range w.verbs() {
-		if v == "compose run runner" {
+		if v == "compose run cockpit-runner" {
 			n++
 		}
 	}
@@ -120,7 +120,7 @@ func TestExecRunsTheFlowWithThePinnedImageAndReadsOnlyItsOwnResultFile(t *testin
 		switch fakedocker.Verb(c.Args) {
 		case "tag":
 			tagAt = i
-		case "compose run runner":
+		case "compose run cockpit-runner":
 			runAt, run, env = i, c.Args, c.Env
 		}
 	}
@@ -151,7 +151,7 @@ func TestExecReimportsAGonePinnedImageBeforeTheRunnerAndRefusesAHubThatEmbedsAno
 		t.Fatal(r.Fail)
 	}
 	since := w.fake.Calls()[calls:]
-	runAt := slices.IndexFunc(since, func(c fakedocker.Call) bool { return fakedocker.Verb(c.Args) == "compose run runner" })
+	runAt := slices.IndexFunc(since, func(c fakedocker.Call) bool { return fakedocker.Verb(c.Args) == "compose run cockpit-runner" })
 	if w.ensures != 2 || runAt < 0 || w.ensureAt[1] > calls+runAt {
 		t.Fatalf("re-import: ensures %d at %v, runner at %d", w.ensures, w.ensureAt, calls+runAt)
 	}
