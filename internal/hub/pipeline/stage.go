@@ -177,6 +177,9 @@ func runSuite(ctx context.Context, l *live) (outcome, error) {
 func (l *live) drainOTLP(ctx context.Context) {
 	limits := l.env.Limits
 	d, ok := l.h.ops.DrainOTLP(ctx, l.id, limits.OTLPQuiet, limits.OTLPDrain)
+	if ok {
+		l.h.o.Log.Info("otlp drained", "run", l.id, "waited", d.Waited.String(), "quiet", d.Quiet)
+	}
 	switch {
 	case !ok:
 	case d.Quiet:

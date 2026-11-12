@@ -135,7 +135,6 @@ func (o *OTLP) follow(ctx context.Context, id string) {
 }
 
 func (o *OTLP) line(raw string) {
-	o.heard.Store(time.Now().UnixNano())
 	stamp, text, ok := strings.Cut(raw, " ")
 	at, err := time.Parse(time.RFC3339Nano, stamp)
 	if !ok || err != nil {
@@ -155,6 +154,9 @@ func (o *OTLP) line(raw string) {
 	case !ok:
 		o.count(DropUnparsed)
 	default:
+		if sig.Span != nil {
+			o.heard.Store(time.Now().UnixNano())
+		}
 		if _, err := o.Stream.Append(sig); err != nil {
 			o.count(DropRefused)
 			o.Log.Warn("an OTLP signal was refused", "run", o.RunID, "err", o.Mask(err.Error()))

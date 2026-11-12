@@ -30,7 +30,8 @@ var otlpMutations = []porttest.Mutation{
 	{"a follow that ends while the receiver ran is recorded as a gap", "drop the gap call in OTLP.Run", "red: no gap event names the cursor", "TestAFollowThatEndsWhileTheReceiverRanRecordsAGapAndAnExitedReceiverIsReadOnce"},
 	{"the cursor survives a restart", "skip load in OTLP.Run", "red: the second observer follows without --since and stores the delta points twice", "TestARestartedObserverResumesFromItsSavedCursor"},
 	{"a resumed follow skips the lines at or before its floor", "skip the floor check in OTLP.line", "red: the delta point at the cursor is stored twice", "TestARestartedObserverResumesFromItsSavedCursor"},
-	{"the settle waits a quiet window counted from its own start", "start the quiet window at the last line heard even before the wait", "red: the settle after an earlier line returns before the quiet window", "TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileLinesKeepComing"},
+	{"the settle waits a quiet window counted from its own start", "start the quiet window at the last span heard even before the wait", "red: the settle after an earlier span returns before the quiet window", "TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComing"},
+	{"only spans extend the settle", "store the heard time for every parsed line in OTLP.line", "red: the settle runs to its limit while metric lines keep coming", "TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComing"},
 }
 
 func TestOTLPMutationRecordMatchesTestsInTheseFiles(t *testing.T) {

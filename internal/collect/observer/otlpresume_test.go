@@ -2,6 +2,7 @@ package observer
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -72,29 +73,43 @@ func TestARestartedObserverResumesFromItsSavedCursor(t *testing.T) {
 	}
 }
 
-func TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileLinesKeepComing(t *testing.T) {
-	obs := &OTLP{RunID: runID, Stream: store(t, signal.DefaultCaps())}
-	obs.defaults()
-	obs.line(stamp(1) + " not json")
-	time.Sleep(200 * time.Millisecond)
-	waited, quiet := obs.Settle(context.Background(), 150*time.Millisecond, 2*time.Second)
-	if !quiet || waited < 150*time.Millisecond || waited > time.Second {
-		t.Fatalf("after an earlier line the settle waited %s (quiet %v)", waited, quiet)
-	}
+func feed(obs *OTLP, line func(n int) string) func() int {
 	ctx, cancel := context.WithCancel(context.Background())
 	fed := make(chan int)
 	go func() {
 		n := 0
 		for ctx.Err() == nil {
-			obs.line(stamp(2) + " not json")
 			n++
+			obs.line(stamp(n) + " " + line(n))
 			time.Sleep(20 * time.Millisecond)
 		}
 		fed <- n
 	}()
+	return func() int {
+		cancel()
+		return <-fed
+	}
+}
+
+func TestSettleWaitsAQuietWindowFromItsStartAndStopsAtTheLimitWhileSpansKeepComing(t *testing.T) {
+	trace := "w3c:" + tracectx.TraceID(runID)
+	span := func(n int) string { return serviceSpan(t, trace, fmt.Sprintf("w3c:%016x", n), "", map[string]any{"service": "app"}) }
+	obs := &OTLP{RunID: runID, Stream: store(t, signal.DefaultCaps())}
+	obs.defaults()
+	obs.line(stamp(1) + " " + span(1))
+	time.Sleep(200 * time.Millisecond)
+	waited, quiet := obs.Settle(context.Background(), 150*time.Millisecond, 2*time.Second)
+	if !quiet || waited < 150*time.Millisecond || waited > time.Second {
+		t.Fatalf("after an earlier span the settle waited %s (quiet %v)", waited, quiet)
+	}
+	stop := feed(obs, func(n int) string { return deltaPoint(t, n) })
+	waited, quiet = obs.Settle(context.Background(), 150*time.Millisecond, 2*time.Second)
+	if n := stop(); !quiet || waited < 150*time.Millisecond || waited > time.Second || n < 5 {
+		t.Fatalf("with %d metric lines coming the settle waited %s (quiet %v)", n, waited, quiet)
+	}
+	stop = feed(obs, span)
 	waited, quiet = obs.Settle(context.Background(), 150*time.Millisecond, 400*time.Millisecond)
-	cancel()
-	if n := <-fed; quiet || waited < 400*time.Millisecond || waited > 2*time.Second || n < 5 {
-		t.Fatalf("with %d lines coming the settle waited %s (quiet %v)", n, waited, quiet)
+	if n := stop(); quiet || waited < 400*time.Millisecond || waited > 2*time.Second || n < 5 {
+		t.Fatalf("with %d spans coming the settle waited %s (quiet %v)", n, waited, quiet)
 	}
 }
