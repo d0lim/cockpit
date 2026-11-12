@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"strings"
 	"sync"
@@ -247,23 +248,25 @@ func (c *Client) Send(ctx context.Context, req Request) (Response, error) {
 
 func (c *Client) traceparent(headers http.Header) string {
 	if sent := headers.Values(tracectx.Header); len(sent) > 0 {
-		_, spanID, _ := tracectx.Parse(sent[0])
+		_, spanID, _ := tracectx.Parse(textproto.TrimString(sent[0]))
 		return spanID
 	}
 	if c.traceID == "" {
 		return ""
 	}
-	spanID := newSpanID()
+	spanID := c.newSpanID()
 	headers.Set(tracectx.Header, tracectx.Format(c.traceID, spanID))
 	return spanID
 }
 
-func newSpanID() string {
-	var b [8]byte
-	for b == [8]byte{} {
+func (c *Client) newSpanID() string {
+	for {
+		var b [8]byte
 		rand.Read(b[:])
+		if id := hex.EncodeToString(b[:]); b != [8]byte{} && c.mask(id) == id {
+			return id
+		}
 	}
-	return hex.EncodeToString(b[:])
 }
 
 func (c *Client) failure(ctx context.Context, err error, timeout time.Duration, at string) error {

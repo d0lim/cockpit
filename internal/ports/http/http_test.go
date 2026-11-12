@@ -31,15 +31,19 @@ var httpMutations = []porttest.Mutation{
 	{"proxy environment variables are ignored", "set Transport.Proxy to ProxyFromEnvironment", "red: with HTTP_PROXY set, requests go to the proxy", "TestOnlyAllowedServiceNamesPassAndOtherHostsIPsHTTPSOrRelativePathsArePortDenied"},
 	{"every call carries the run trace id and records the span id it sent", "record a fresh span id instead of the one put in the header", "red: the recorded span id differs from the one the server received", "TestEveryCallSendsATraceparentWithTheRunTraceID"},
 	{"a script traceparent goes out unchanged", "set the runner traceparent without looking at the script headers", "red: the server receives the run trace id instead of the script value", "TestAScriptTraceparentWinsAndItsSpanIDIsRecorded"},
+	{"a padded script traceparent records the span id of the trimmed value sent", "parse the script value without TrimString", "red: the padded value records no span id", "TestAScriptTraceparentWinsAndItsSpanIDIsRecorded"},
+	{"a fresh span id is one the masker leaves unchanged", "return the first random span id without asking the masker", "red: a span id with a masked character goes out", "TestAFreshSpanIDIsNeverOneTheMaskerWouldChange"},
 	{"no trace id means no traceparent", "remove the empty trace id check", "red: a traceparent without a trace id reaches the server", "TestNoTraceIDMeansNoTraceparent"},
 }
 
 func server(t *testing.T) (*Client, *httptest.Server) {
 	t.Helper()
-	return tracedServer(t, "")
+	return tracedServer(t, "", plantedMask)
 }
 
-func tracedServer(t *testing.T, traceID string) (*Client, *httptest.Server) {
+func plantedMask(s string) string { return strings.ReplaceAll(s, planted, "****") }
+
+func tracedServer(t *testing.T, traceID string, mask ports.Mask) (*Client, *httptest.Server) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -73,7 +77,7 @@ func tracedServer(t *testing.T, traceID string) (*Client, *httptest.Server) {
 		Allowed: []string{"http://app:8080", "http://mock:9090"},
 		Timeout: 100 * time.Millisecond,
 		MaxBody: 1024,
-		Mask:    func(s string) string { return strings.ReplaceAll(s, planted, "****") },
+		Mask:    mask,
 		Dial: func(ctx context.Context, network, dialed string) (net.Conn, error) {
 			if dialed != "app:8080" && dialed != "mock:9090" {
 				return nil, errors.New("unexpected dial " + dialed)
@@ -210,7 +214,7 @@ func echoedTraceparent(t *testing.T, c *Client, headers map[string]string) (stri
 
 func TestEveryCallSendsATraceparentWithTheRunTraceID(t *testing.T) {
 	runTrace := tracectx.TraceID("run-20261012-153001-997a37e")
-	c, _ := tracedServer(t, runTrace)
+	c, _ := tracedServer(t, runTrace, plantedMask)
 	seen := map[string]bool{}
 	for range 3 {
 		header, call := echoedTraceparent(t, c, map[string]string{"Authorization": "Bearer x"})
@@ -226,16 +230,30 @@ func TestEveryCallSendsATraceparentWithTheRunTraceID(t *testing.T) {
 }
 
 func TestAScriptTraceparentWinsAndItsSpanIDIsRecorded(t *testing.T) {
-	c, _ := tracedServer(t, tracectx.TraceID("run-20261012-153001-997a37e"))
+	c, _ := tracedServer(t, tracectx.TraceID("run-20261012-153001-997a37e"), plantedMask)
 	script := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
 	if header, call := echoedTraceparent(t, c, map[string]string{"traceparent": script}); header != script || call.SpanID != "00f067aa0ba902b7" {
 		t.Fatalf("script traceparent: sent %q, recorded %q", header, call.SpanID)
+	}
+	if header, call := echoedTraceparent(t, c, map[string]string{"traceparent": " " + script + "\t"}); header != script || call.SpanID != "00f067aa0ba902b7" {
+		t.Fatalf("padded script traceparent: sent %q, recorded %q", header, call.SpanID)
 	}
 	if header, call := echoedTraceparent(t, c, map[string]string{"Traceparent": "not-a-traceparent"}); header != "not-a-traceparent" || call.SpanID != "" {
 		t.Fatalf("malformed script traceparent: sent %q, recorded %q", header, call.SpanID)
 	}
 	if header, call := echoedTraceparent(t, c, nil); call.SpanID == "" || header != tracectx.Format(tracectx.TraceID("run-20261012-153001-997a37e"), call.SpanID) {
 		t.Fatalf("a later call without a script value: sent %q, recorded %q", header, call.SpanID)
+	}
+}
+
+func TestAFreshSpanIDIsNeverOneTheMaskerWouldChange(t *testing.T) {
+	runTrace := tracectx.TraceID("run-20261012-153001-997a37e")
+	c, _ := tracedServer(t, runTrace, func(s string) string { return strings.ReplaceAll(s, "0", "*") })
+	for range 20 {
+		header, call := echoedTraceparent(t, c, nil)
+		if _, span, ok := tracectx.Parse(header); !ok || span != call.SpanID || strings.Contains(span, "0") {
+			t.Fatalf("sent %q, recorded %q", header, call.SpanID)
+		}
 	}
 }
 
