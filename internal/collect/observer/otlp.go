@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
+	"maps"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -23,6 +24,7 @@ const (
 	DropRefused  = "refused"
 	otlpVersion  = 1
 	stateRunning = "running"
+	tableAttr    = "table"
 )
 
 type OTLPStream interface {
@@ -179,6 +181,13 @@ func (o *OTLP) parse(text string) (sig contract.Signal, traced, ok bool) {
 		span := *sig.Span
 		span.TraceID, traced = o.traceFor(span.TraceID)
 		sig.Span = &span
+	}
+	if sig.Metric != nil {
+		sig.Attrs = maps.Clone(sig.Attrs)
+		if sig.Attrs == nil {
+			sig.Attrs = contract.Attrs{}
+		}
+		sig.Attrs[tableAttr] = sig.Metric.Name
 	}
 	return sig, traced, true
 }

@@ -24,6 +24,7 @@ var otlpMutations = []porttest.Mutation{
 	{"OTLP signals reach the stream only through the masking Append", "make signal.Stream.Append store json.Marshal(sig) in place of maskSignal", "red: the stream file holds the planted value", "TestAPlantedCredentialInAServiceSpanAttributeIsMaskedWhileAPlainAttributeReadsBack"},
 	{"the run's W3C trace id maps to the run trace", "drop the registerTrace call in OTLP.defaults", "red: the span keeps the w3c trace id of the run", "TestAnOTLPLineBecomesASpanInTheRunTrace"},
 	{"the observer follows the container of the otlp role", "ask RoleContainers for the edge role in OTLP.Run", "red: c-otlp is never followed and no span arrives", "TestAnOTLPLineBecomesASpanInTheRunTrace"},
+	{"a metric gets the table of its name", "drop the table attribute in OTLP.parse", "red: the metric has no table attribute", "TestAnOTLPLineBecomesASpanInTheRunTrace"},
 	{"unknown trace ids keep their w3c form", "return the run id from traceFor for every unknown id", "red: the foreign span joins the run trace", "TestAnUnknownTraceIDKeepsItsOwnTraceAndARegisteredExecMapsToItsTrace"},
 	{"broken lines are counted by reason", "drop the count calls in OTLP.line", "red: the state holds no unparsed or refused counts", "TestABrokenLineIsCountedAndTheFollowContinues"},
 	{"a line over 64 KiB is not stored", "drop the length check in OTLP.parse", "red: the oversized span is stored", "TestABrokenLineIsCountedAndTheFollowContinues"},
@@ -164,7 +165,7 @@ func TestAnOTLPLineBecomesASpanInTheRunTrace(t *testing.T) {
 	if span.Collector != signal.OTLPCollector || span.Span == nil || span.Span.TraceID != runID || span.Span.ParentID != "w3c:00f067aa0ba902b7" || span.Attrs["service"] != "app" || span.TSSource != contract.TimeSourceContainer {
 		t.Fatalf("span %+v %+v", span, span.Span)
 	}
-	if m := got["metric:00ff"]; m.Collector != signal.OTLPCollector || m.Metric == nil || m.Metric.Value != 3 || m.Rev != 1760835601000 {
+	if m := got["metric:00ff"]; m.Collector != signal.OTLPCollector || m.Metric == nil || m.Metric.Value != 3 || m.Rev != 1760835601000 || m.Attrs["table"] != "app.requests" || m.Attrs["service"] != "app" {
 		t.Fatalf("canary: metric %+v", m)
 	}
 	followed := w.d.logsFor()
