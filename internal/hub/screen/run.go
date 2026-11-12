@@ -20,7 +20,7 @@ func standing(r api.RunItem) string {
 		}
 		return "Queued at position " + itoa(r.Position) + ". " + reason
 	case isActive(r):
-		return "Running the " + lifecycle.StageLabel(r.Phase) + " stage since " + stamp(orElse(r.StartedAt, r.CreatedAt)) + "."
+		return "Running the " + lifecycle.StageLabel(r.Phase) + " stage since " + stamp(orElse(r.StageStartedAt, orElse(r.StartedAt, r.CreatedAt))) + "."
 	case r.Phase == lifecycle.Stopping:
 		return "Stopping the environment."
 	case r.Phase == lifecycle.Resuming:
