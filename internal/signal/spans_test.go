@@ -128,3 +128,46 @@ func TestStepRefsBecomeRefAttributesAndCallsBecomeSpansUnderTheStep(t *testing.T
 		t.Fatalf("%d spans", len(signals))
 	}
 }
+
+func TestTheRunSpanSitsUnderTheSuiteStageAndTheExecRootHasNoParent(t *testing.T) {
+	res := contract.Result{SchemaVersion: 2, Suite: "smoke", Complete: true, StartedAt: "2026-10-12T07:00:00Z", FinishedAt: "2026-10-12T07:00:02Z", Steps: []contract.ResultStep{
+		step("health", "health-1", contract.StepStatusPassed, "2026-10-12T07:00:01Z", "2026-10-12T07:00:02Z"),
+	}}
+	if run := spanByID(t, RunSpans(runID, res, ""), RunSpanID); run.Span.ParentID != SuiteStageSpanID || SuiteStageSpanID != "stage:suite" {
+		t.Fatalf("run span parent %q", run.Span.ParentID)
+	}
+	exec := spanByID(t, ExecSpans(runID, "20261012-080000-health", contract.ExecResult{Target: "health", Result: res}, ""), ExecSpanID)
+	if exec.Span.ParentID != "" {
+		t.Fatalf("the exec root has the parent %q", exec.Span.ParentID)
+	}
+}
+
+func TestStageSpansHangUnderAPipelineRootThatCoversThemAndTakesTheirWorstStatus(t *testing.T) {
+	stages := []Stage{
+		{Name: "prepare", Start: "2026-10-12T07:00:00.000Z", End: "2026-10-12T07:00:03.000Z", Status: contract.SpanStatusOK},
+		{Name: "build", Start: "2026-10-12T07:00:03.000Z", End: "2026-10-12T07:00:09.500Z", Status: contract.SpanStatusError},
+	}
+	signals := StageSpans(runID, stages)
+	if len(signals) != 3 || signals[0].ID != PipelineSpanID {
+		t.Fatalf("spans %+v, want the root first and one per stage", signals)
+	}
+	root := signals[0]
+	if root.Span.ParentID != "" || root.Span.Start != stages[0].Start || root.Span.End != stages[1].End || root.Span.Status != contract.SpanStatusError || root.Span.Name != "pipeline" {
+		t.Fatalf("root %+v", root.Span)
+	}
+	build := spanByID(t, signals, "stage:build")
+	if build.Span.ParentID != PipelineSpanID || build.Span.Name != "build" || build.Span.Start != stages[1].Start || build.Span.End != stages[1].End || build.Span.Status != contract.SpanStatusError || build.Attrs["stage"] != "build" {
+		t.Fatalf("build stage %+v %v", build.Span, build.Attrs)
+	}
+	if prepare := spanByID(t, signals, "stage:prepare"); prepare.Span.Status != contract.SpanStatusOK {
+		t.Fatalf("canary: the prepare stage is %s", prepare.Span.Status)
+	}
+	for _, s := range signals {
+		if s.Collector != PipelineCollector || s.TSSource != contract.TimeSourceHost || s.Kind != contract.SignalKindSpan || s.Span.TraceID != runID {
+			t.Fatalf("%+v", s)
+		}
+	}
+	if got := StageSpans(runID, nil); got != nil {
+		t.Fatalf("no ended stage still gives spans %+v", got)
+	}
+}
