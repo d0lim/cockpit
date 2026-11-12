@@ -83,7 +83,9 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 - [ ] Edit `docs/signals.md` first. Add a "Stage spans" section and list every reserved collector id, which also closes today's gap where only `runner` and `logs` are named.
 - [ ] Edit `docs/screen.md` for the overview sentence and the trace tree root.
 - [ ] Edit `internal/hub/store/meta.go`.
-- [ ] Edit `internal/hub/pipeline/run.go` and `internal/hub/pipeline/spans.go`.
+- [ ] Edit `internal/hub/pipeline/run.go`, `internal/hub/pipeline/spans.go` and `internal/hub/pipeline/report.go`.
+- [ ] Edit `internal/hub/pipeline/spans_test.go`, where `TestARunnerResultBecomesRunFlowAndStepSpansInTheAPIReadAndTheFrozenCopyParentsFirst` and `TestARunnerKilledMidStepYieldsIncompleteSpansThatEndAtTheContainerExit` assert the old `run` parent.
+- [ ] Edit `internal/hub/reconcile` so a run closed by `closeInterrupted` ends its open stage entry.
 - [ ] Create `internal/hub/pipeline/stagespans.go` and `internal/hub/pipeline/stagespans_test.go`.
 - [ ] Edit `internal/signal/spans.go` so the runner's `run` span takes `stage:suite` as its parent.
 - [ ] Edit `internal/compose/collectors.go` to reserve the collector id `pipeline`.
@@ -92,7 +94,9 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 **Build.**
 
 - [ ] Add `Stages []StageTime` to `store.Meta`, where `StageTime` holds the stage label, start, end and outcome. `Hub.Pipeline` writes the start when it picks a stage with `stageFor` and the end when `ApplyEvent` or `failure` returns. The meta persists it, so a hub restart keeps the times.
-- [ ] In the report stage, next to `runSpans`, append one root span `pipeline` and one span `stage:<label>` per entry in `Meta.Stages`, all with the run id as the trace id and the collector `pipeline`. Append them before `Freeze`, so the frozen copy holds them. The report stage's own span ends after `Assemble` and goes to the tail.
+- [ ] In `DefaultReport`, before `runSpans`, append one root span `pipeline` and one span `stage:<label>` per finished entry in `Meta.Stages`, all with the run id as the trace id and the collector `pipeline`. `DefaultReport` is the report path for both the pipeline's `reportStage` and reconcile's `closeReporting`, so a run the hub closes after a restart gets its stage spans too. Appending before `runSpans` keeps every parent's seq before its child's, which `assertTree` checks. `Freeze` runs inside `report.Assemble`, so these spans reach the frozen copy.
+- [ ] `Hub.Pipeline` never resumes a run after a hub restart. Reconcile closes it through `closeInterrupted`, so reconcile writes the end and the outcome `error` of the open stage entry before the report runs.
+- [ ] Append `stage:report` after `Assemble` returns. It lands in the live tail and is not in the frozen copy, so a destroyed run reads five stage spans from its bundle and a kept run reads six live.
 - [ ] Do not open the stream during prepare. The masker is cached by `Ops.masker` and could go stale before `GenerateEnv`. Building the spans from the meta at report time avoids that path.
 - [ ] Set `ParentID` of the runner's `run` span to `stage:suite` in `signal.RunSpans`, so the tree reads pipeline, stage, run, flow, step, call.
 - [ ] Change the overview sentence to "Running the X stage since <stage start>".
@@ -105,6 +109,8 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 
 - [ ] `stagespans_test.go` gains `TestEveryStageTheLoopRanBecomesASpanUnderThePipelineRoot` and `TestAFailedStageEndsWithAnErrorSpanAndLaterStagesHaveNone`. Run `go test ./internal/hub/pipeline`.
 - [ ] `internal/hub/store` gains `TestStageTimesSurviveAHubRestart`. Run `go test ./internal/hub/store`.
+- [ ] `internal/hub/reconcile` gains `TestAnInterruptedRunEndsItsOpenStageWithAnError`. Run `go test ./internal/hub/reconcile`.
+- [ ] The two `spans_test.go` tests expect `stage:suite` as the parent of `run`. Run `go test ./internal/hub/pipeline`.
 - [ ] `internal/signal` spans tests gain a case where the `run` span's parent is `stage:suite`. Run `go test ./internal/signal`.
 - [ ] `internal/compose/collectors_test.go` gains a deny case for a consumer collector named `pipeline`, with the allow canary of a neighbouring id, and a row in its mutation record. Run `go test ./internal/compose`.
 - [ ] Run `make verify`.
@@ -113,12 +119,12 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 
 - [ ] Lane 1. Regression lane against trunk. Run one passing toy run at trunk and at head. Trunk has no stage spans, so record that and gate the head trace tree plus the passing verdict. Save `trace-tree.png`. Pass when the head verdict is pass and the tree shows six stage spans under `pipeline`.
 - [ ] Lane 2. Break the toy `Dockerfile` so the build fails. Save `build-failed.png`. Pass when `stage:build` has status error and no `stage:seal` or later span exists.
-- [ ] Lane 3. Restart the hub during the suite stage and let the run finish. Save `restart.json` from the signals route. Pass when every stage span has a start earlier than the restart and none is duplicated.
-- [ ] Lane 4. Destroy a finished run and read its signals. Save `after-destroy.json`. Pass when the response says `source: bundle` and holds the stage spans.
+- [ ] Lane 3. Restart the hub during the suite stage. Reconcile closes the run as an error. Save `restart.json` from the signals route. Pass when the stages before the restart are spans with their recorded times, `stage:suite` ends with status error, and no span is duplicated.
+- [ ] Lane 4. Destroy a finished run and read its signals. Save `after-destroy.json`. Pass when the response says `source: bundle` and holds the five stage spans from prepare to suite.
 - [ ] Lane 5. Run `bin/cockpit runs exec` on a kept run. Save `exec-trace.png`. Pass when the exec trace is unchanged and separate from the pipeline tree.
 - [ ] Lane 6. Watch the overview during the boot stage. Save `overview-boot.png`. Pass when the sentence shows the boot stage start, not the run start.
 - [ ] Lane 7. Stop and resume a kept run. Save `resume.json`. Pass when resuming adds no second set of stage spans.
-- [ ] Lane 8. Open the report bundle's `signals/stream.jsonl`. Save `bundle-stages.txt`. Pass when the stage spans are in the frozen copy with collector `pipeline`.
+- [ ] Lane 8. Open the report bundle's `signals/stream.jsonl`. Save `bundle-stages.txt`. Pass when the five stage spans before the report are in the frozen copy with collector `pipeline`, each listed after its parent.
 - [ ] Lane 9. Submit a consumer whose declaration names a collector `pipeline`. Save `reserved.txt`. Pass when the submission is refused with the reserved id named.
 - [ ] Lane 10. Open the trace view of a run with a failing step. Save `failing-step.png`. Pass when the failing step sits under `run`, under `stage:suite`, and keeps its error status.
 
@@ -153,16 +159,15 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 - [ ] Create `internal/tracectx/tracectx.go` and `internal/tracectx/tracectx_test.go`.
 - [ ] Edit `internal/ports/http/http.go` and `internal/ports/http/http_test.go`.
 - [ ] Edit `internal/runner/settings.go` and `internal/runner/records.go`.
-- [ ] Edit `internal/contract/result.go` and `internal/contract/docs.go`, then run `go generate ./...` for `schema/`.
+- [ ] Edit `internal/contract/result.go` and `internal/contract/docs.go`, then run `go generate ./...`. It changes `schema/result.json`, `schema/exec.json` and `schema/summary.json`, because `FlowStep.Calls` and the exec result also use `StepCall`.
 - [ ] Edit `internal/signal/calls.go`.
-- [ ] Edit `internal/compose/harness.go` and raise `HarnessVersion`.
-- [ ] Edit the hub code that starts the runner for a suite and for an exec, where `E2E_EXEC_OUT` is set today.
-- [ ] Regenerate `internal/seal/testdata/config.toy.json` with `make seal-fixture`.
+- [ ] Edit `internal/compose/harness.go` and raise `HarnessVersion`, since the render changes. The seal fixture does not change, because `fixture_normalize_test.go` clears every service's environment before comparing.
+- [ ] Edit `internal/hub/stages/run.go`, whose `RunRunner` call passes `nil` env today, and `internal/hub/exec/exec.go`, which already passes `E2E_EXEC_OUT`.
 
 **Build.**
 
 - [ ] `tracectx.TraceID(runID)` returns the first 16 bytes of SHA-256 over `cockpit/` plus the run id, as 32 lowercase hex characters. `tracectx.ExecTraceID(runID, name)` does the same over the exec trace name `<run id>/exec/<name>`. Both are pure, so the hub can compute them without asking the runner.
-- [ ] The hub passes the trace id to the runner container as `COCKPIT_TRACE_ID`, the same way it passes `E2E_EXEC_OUT`. The runner does not know its run id today, and `loadSettings` gains this one variable. The run id is not a secret, since it is already a compose label.
+- [ ] The hub passes the trace id to the runner container as `COCKPIT_TRACE_ID`, the same way exec passes `E2E_EXEC_OUT`. The value goes in the env slice of `RunRunner`, which becomes the docker CLI's process env, and compose interpolates it through `"COCKPIT_TRACE_ID": "${COCKPIT_TRACE_ID:-}"` in the runner service. The suite call must start passing an env slice. The runner does not know its run id today, and `loadSettings` gains this one variable. The run id is not a secret, since it is already a compose label.
 - [ ] `Client.Send` sets `traceparent` to `00-<trace id>-<span id>-01` after the script's headers, with a fresh random 8-byte span id per call. When the script already set `traceparent`, the script's value goes out unchanged and the call records the span id parsed from it. A value that does not parse goes out unchanged and records no span id.
 - [ ] `Call` gains `SpanID`. `Driver.takeRecords` copies it into a new optional field `contract.StepCall.SpanID` (`spanId,omitempty`). The field is additive, so `RunnerSchemaVersion` stays at 2 and the host API does not change, because `StepCall` is not in `sdk/`.
 - [ ] `callSpans` adds the attribute `spanId` to each call span. PR6 uses it to parent service spans.
@@ -219,7 +224,9 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 - [ ] Edit `internal/contract/signal.go`, then run `go generate ./...` for `schema/` and `sdk/`.
 - [ ] Edit `internal/contract/testdata/hostapi/1/` so it uses every new declared name.
 - [ ] Edit `internal/signal/store.go`, `internal/signal/tail.go`, `internal/signal/unchanged.go` and `internal/signal/index.go`.
+- [ ] Edit `internal/ports/signal/signal.go`. Its own `input` struct builds `MetricBody` from the name and the value only, so without this edit a collector's histogram type-checks and is then dropped.
 - [ ] Edit `internal/hub/screen/signalmodel.go` and `internal/hub/screen/signaltable.go`.
+- [ ] Rewrite `TestLatestRevisionsKeepOneVersionPerIdButEveryMetricAndUnnamedSignal` in `internal/hub/screen/signals_test.go`, which asserts that every metric is kept.
 - [ ] Edit `internal/signal/revision_test.go` and give it a mutation record.
 
 **Build.**
@@ -237,6 +244,7 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 - [ ] `revision_test.go` gains `TestAMetricWithAnIDKeepsOnlyItsHighestRevision` and `TestAMetricWithoutAnIDStaysAppendOnly`, and a mutation record whose results start with `red:`. Run `go test ./internal/signal`.
 - [ ] `supersede_test.go` and `restart_test.go` gain metric cases, so replay supersedes the same records after a restart. Run `go test ./internal/signal`.
 - [ ] `internal/contract` type-checks the host API fixture against the regenerated `sdk/`. Run `go test ./internal/contract`.
+- [ ] `internal/ports/signal` gains `TestACollectorHistogramIsStoredWithItsCountAndSum`, which calls the port with a histogram metric and reads the stored body back. Run `go test ./internal/ports/signal`.
 - [ ] `internal/hub/screen` gains `TestTheTableShowsTheWinningMetricRevisionAndAHistogramCount`. Run `go test ./internal/hub/screen`.
 - [ ] Run `make generate-check` and `make verify`.
 
@@ -279,15 +287,16 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 - [ ] Edit `cmd/cockpit-runner/main.go` and its `usage` constant.
 - [ ] Create `cmd/cockpit-runner/otlp.go`.
 - [ ] Create `internal/runner/otlp/` with the server, the trace converter, the metric converter, the JSON id fix and the line writer, each under 300 lines, plus tests and synthetic fixtures in `internal/runner/otlp/testdata/`.
-- [ ] Edit `go.mod` and `go.sum` to add `go.opentelemetry.io/proto/otlp` and `google.golang.org/protobuf` as direct dependencies.
+- [ ] Edit `go.mod` and `go.sum` to add `go.opentelemetry.io/proto/otlp` and `google.golang.org/protobuf` as direct dependencies. Import only `go.opentelemetry.io/proto/otlp/trace/v1`, `metrics/v1`, `common/v1` and `resource/v1`. The `collector/...` packages pull in `google.golang.org/grpc` and `grpc-gateway`.
 
 **Build.**
 
 - [ ] `cockpit-runner otlp <listen address>` follows the `edge` pattern. Bad arguments exit 2. It serves until the context ends and then returns 0.
 - [ ] It accepts `POST /v1/traces` and `POST /v1/metrics` with `application/x-protobuf` or `application/json`, and `Content-Encoding: gzip`. Bodies over 4 MiB get 413. Other paths get 404. Logs are out of scope for this program.
+- [ ] Decode a trace export into `tracev1.TracesData` and a metric export into `metricsv1.MetricsData`. Both carry the resource list as field 1, the same wire layout as the collector's export requests, so no grpc code is linked. Reply with an empty protobuf body, which is a valid empty export response.
 - [ ] JSON decoding converts `traceId`, `spanId` and `parentSpanId` from hex to base64 before `protojson.Unmarshal`. OTLP JSON writes these ids as hex, and a plain `protojson` decode reads a 32-character hex string as valid base64 and returns 24 wrong bytes without an error.
 - [ ] Each span becomes one output line with kind `span`, id `w3c:<span id>`, parent `w3c:<parent span id>`, trace id `w3c:<trace id>`, the service name from the resource attribute `service.name` in the attribute `service`, status `ok` or `error`, and the time source `container`. The hub maps the ids in PR6.
-- [ ] Each metric data point becomes one output line with kind `metric`. Its id is `metric:` plus a digest of the service, the metric name and the sorted point attributes, and `rev` counts up per series. Delta temporality sums are accumulated to cumulative in the receiver, so the latest revision is always the total. Exponential histograms and summaries keep only count and sum.
+- [ ] Each metric data point becomes one output line with kind `metric`. Its id is `metric:` plus a digest of the service, the metric name and the sorted point attributes, and its `rev` is the point's time in Unix milliseconds. A counter kept in memory would restart at 1 when the `otlp` container restarts and lose to the old revisions, while the point time keeps rising across restarts without any state. A cumulative series therefore keeps its latest total. A delta-temporality point carries no id and stays append-only, because a delta total cannot be rebuilt after a restart. Exponential histograms and summaries keep only count and sum.
 - [ ] Every string passes `mask.New(mask.Options{Mode: mask.Runner})` before any truncation. Attribute values are cut to 1 KiB after redaction, and each output line stays under 64 KiB. The receiver has no private env file, so only the pattern rules apply here. The hub masks again with the value list on append.
 - [ ] Output lines are JSON objects with a version field, `{"v":1,"signal":{...}}`, on stdout. Diagnostics go to stderr through `slog`.
 
@@ -297,7 +306,8 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 
 **Verify, unit.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `internal/runner/otlp` gains `TestAProtobufTraceExportBecomesOneLinePerSpan`, `TestAJSONTraceExportKeepsHexIDs`, `TestAGzipBodyDecodes`, `TestABodyOverTheLimitIsRefusedWith413`, `TestACumulativeSumKeepsOneSeriesWithRisingRevisions`, `TestADeltaSumIsAccumulated` and `TestAHistogramKeepsBoundsAndCounts`. Requests are built from the generated OTLP types, not from an SDK, so the license gate sees no new SDK dependency.
+- [ ] `internal/runner/otlp` gains `TestAProtobufTraceExportBecomesOneLinePerSpan`, `TestAJSONTraceExportKeepsHexIDs`, `TestAGzipBodyDecodes`, `TestABodyOverTheLimitIsRefusedWith413`, `TestACumulativeSumKeepsOneSeriesWhoseRevisionIsThePointTime`, `TestADeltaSumStaysAppendOnly` and `TestAHistogramKeepsBoundsAndCounts`. Requests are built from the generated OTLP data types, plus fixture bodies captured once from a Go OTel SDK client in a scratch module outside this repository and committed under `testdata/`, so the module gains no SDK dependency.
+- [ ] A build check runs `go version -m` on the runner binary and asserts that `google.golang.org/grpc` is not linked.
 - [ ] A redaction test plants `PLANTED` behind an `authorization` attribute and asserts in one assertion that the plaintext is absent and `****` is present, next to a canary attribute that passes unchanged. The file carries a mutation record for the redaction and the truncation order.
 - [ ] `cmd/cockpit-runner/main_test.go` gains `TestOTLPReturnsZeroWhenContextEnds` and an argument error case that exits 2.
 - [ ] Run `go test ./internal/runner/otlp ./cmd/cockpit-runner` and `make verify`, including the license gate.
@@ -339,8 +349,10 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 
 - [ ] Edit `docs/sealing.md`, `docs/harness.md` and `docs/guide.md` first. The `roles.present` text names `otlp`. The guide documents the `telemetry` declaration and the variables the hub sets.
 - [ ] Edit `internal/contract/declaration.go` and `internal/contract/declarationdocs.go`, then run `go generate ./...`.
-- [ ] Edit `internal/compose/harness.go`, `internal/compose/render.go` and `internal/compose/model.go`, and raise `HarnessVersion`.
-- [ ] Edit `internal/seal/static_test.go`, `internal/seal/fixture_normalize_test.go` and the seal fixture.
+- [ ] Edit `internal/compose/harness.go`, `internal/compose/render.go` and `internal/compose/model.go`, and raise `HarnessVersion`. The telemetry service check goes in `Model.check`, because `internal/compose` imports `internal/contract` and the reverse would be a cycle.
+- [ ] Edit `internal/seal/static.go`, so `seal.Input` carries whether telemetry is declared and `roles()` passes it on, and `internal/hub/stages/env.go`, the only caller of `seal.Static`.
+- [ ] Edit `internal/seal/static_test.go`, `internal/seal/helpers_test.go` (`toyInput`), `internal/seal/fixture_normalize_test.go` and the seal fixture.
+- [ ] Edit `internal/compose/integration_test.go`, where `TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsAndPortsOnlyOnTheEdge` hard-codes nine services.
 - [ ] Edit `internal/ports/docker/find_test.go` and `internal/hub/fakedocker/fake.go`.
 - [ ] Edit `testdata/toy-project/.cockpit/project.yaml` and `testdata/toy-project/mock/`.
 
@@ -349,7 +361,7 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 - [ ] The declaration gains `telemetry.otlp.services`, a list of compose service names. Validation refuses a name that is not a service of the model, and refuses the builder.
 - [ ] `RoleOTLP = "otlp"` joins `HarnessServices`, so a consumer service named `otlp` is refused from now on. `Harness` emits the `otlp` service only when the declaration names at least one service. It uses `hardened(image(RoleOTLP))`, the command `otlp :4318`, the `inner` networks, no ports, no binds and no profile, so it runs from boot like the edge.
 - [ ] For each named service, `Harness` adds `OTEL_EXPORTER_OTLP_ENDPOINT=http://otlp:4318`, `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, `OTEL_METRIC_EXPORT_INTERVAL=2000`, `OTEL_BSP_SCHEDULE_DELAY=500` and `OTEL_TRACES_SAMPLER=parentbased_always_on`. The harness file comes after the consumer files, so these keys win.
-- [ ] `requiredRoles` requires `otlp` only when the declaration names services. The existing network, mount, port and edge assertions already confine it. The static tests prove that with violating copies.
+- [ ] `requiredRoles` and `AssertRoles` take whether telemetry is declared next to the builder, and require `otlp` only then. The existing network, mount, port and edge assertions already confine it. The static tests prove that with violating copies.
 - [ ] The toy `mock` app, with no dependencies, reads `traceparent` on each request and posts one OTLP/JSON span per request with that parent and a counter and a histogram every 2 s to `OTEL_EXPORTER_OTLP_ENDPOINT`. The toy declaration names `app`.
 
 **You see.**
@@ -360,7 +372,8 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 
 - [ ] `internal/compose/harness_test.go` gains `TestTheOTLPRoleAppearsOnlyWhenTelemetryNamesAService` and `TestNamedServicesGetTheOTLPVariablesAndOthersDoNot`. Run `go test ./internal/compose`.
 - [ ] `internal/compose/model_test.go` gains a deny case for a consumer service named `otlp` with an allow canary. Run `go test ./internal/compose`.
-- [ ] `internal/contract` gains `TestATelemetryServiceThatIsNotInTheModelIsRefused`. Run `go test ./internal/contract`.
+- [ ] `internal/compose/model_test.go` gains `TestATelemetryServiceThatIsNotInTheModelIsRefused`. Run `go test ./internal/compose`.
+- [ ] `COCKPIT_INTEGRATION=1 go test ./internal/compose` passes with the service count computed from the render, not a fixed nine.
 - [ ] `internal/seal/static_test.go` gains violating copies where `otlp` publishes a port, binds a path, or joins `egress`, each failing its assertion, plus the passing toy render, and new rows in `staticMutations`. Run `go test ./internal/seal`.
 - [ ] `internal/ports/docker/find_test.go` proves the logs observer still skips the role-labelled `otlp` container. Run `go test ./internal/ports/docker`.
 - [ ] Run `make seal-fixture`, then `make verify`.
@@ -412,9 +425,9 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 
 **Build.**
 
-- [ ] `observer.OTLP` finds the container labelled `io.cockpit.role=otlp`, follows its stdout with `docker logs --follow`, reuses `lineWriter` and the cursor with a 64 KiB line limit, and appends each `{"v":1}` line with `Stream.Append` under the collector `otlp`. The logs observer cannot do this, because `target()` drops role-labelled containers. A line that does not parse counts as dropped with a reason and never stops the follow.
+- [ ] `observer.OTLP` finds the container labelled `io.cockpit.role=otlp`, follows its stdout with `docker logs --follow`, reuses `lineWriter` and the cursor with a 64 KiB line limit, and appends each `{"v":1}` line with `Stream.Append` under the collector `otlp`. The logs observer keeps its cursor in memory and starts from now after a restart, so lines written while the hub was down are lost. `observer.OTLP` saves its cursor in the collector state `kv/otlp.json` and starts its follow from it. Lines read twice at the boundary are harmless, because every span and every cumulative series carries an id and the store drops an unchanged repeat. The logs observer cannot do this, because `target()` drops role-labelled containers. A line that does not parse counts as dropped with a reason and never stops the follow.
 - [ ] The observer maps the trace id `w3c:<tracectx.TraceID(run id)>` to the run id, so service spans join the run trace. An unknown trace id keeps its `w3c:` form and forms its own trace. Exec trace ids map to `<run id>/exec/<name>` while that exec runs.
-- [ ] A new quota bucket keys OTLP records by their `service` attribute, with the reason `otlp-quota` and a default of 20,000 per service, replayed on restart like the other buckets.
+- [ ] A new quota bucket keys OTLP records by their `service` attribute, with the reason `otlp-quota` and a default of 20,000 per service, replayed on restart like the other buckets. The `bucket` struct carries its drop reason in place of today's `log bool`, since there are now three reasons.
 - [ ] Drain at the end of `runSuite`, before it returns `Tested`. The observers are cancelled on the Tested to Reporting transition, so a drain in `reportStage` is too late. Wait until the `otlp` observer has appended nothing for 2.5 s, which is longer than the 2 s metric interval PR5 sets, or 10 s at most.
 - [ ] In the report stage, after `runSpans`, build a map from each `StepCall.SpanID` to its `call:<flow>/<step>/<n>` id and append a revision of every `otlp` span whose parent is `w3c:<that span id>`, with the parent rewritten to the call span. Do this before `Freeze`, so the frozen copy holds the tree. The revision rule keeps the rewritten span as the winner.
 - [ ] With `Options.NoCollection` there is no observer, and the docs say so.
@@ -425,7 +438,7 @@ Each live lane runs on a Mac with Docker Desktop at the PR head, because the sea
 
 **Verify, unit.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `otlp_test.go` gains `TestAnOTLPLineBecomesASpanInTheRunTrace`, `TestAnUnknownTraceIDKeepsItsOwnTrace` and `TestABrokenLineIsCountedAndTheFollowContinues`, with a mutation record.
+- [ ] `otlp_test.go` gains `TestAnOTLPLineBecomesASpanInTheRunTrace`, `TestAnUnknownTraceIDKeepsItsOwnTrace`, `TestABrokenLineIsCountedAndTheFollowContinues` and `TestARestartedObserverResumesFromItsSavedCursor`, with a mutation record.
 - [ ] `otlp_test.go` gains a redaction test at the observer call site where a span attribute holds a planted run credential value, asserting in one assertion that the plaintext is absent and `****` is present, next to a plain attribute that reads back unchanged.
 - [ ] `internal/signal` caps tests gain `TestOTLPRecordsCountAgainstTheirServiceBucket` and a replay case. Run `go test ./internal/signal`.
 - [ ] `internal/hub/pipeline` gains `TestServiceSpansAreReparentedUnderTheirCallBeforeTheFreeze` and `TestTheSuiteWaitsForTheOTLPStreamToGoQuiet` against the fake docker world. Run `go test ./internal/hub/pipeline`.
@@ -479,7 +492,9 @@ The prototypes were throwaway scripts in a session scratch directory. They were 
 - Binary size. Measured with `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w"`. A bare `net/http` server was 5,439,648 bytes. The same server decoding with `go.opentelemetry.io/proto/otlp` v1.11.1 and `google.golang.org/protobuf` v1.36.12 was 12,124,320 bytes, with or without `protojson`. A decoder using only `protowire` was 6,095,008 bytes. The growth inside the runner, which already links `net/http`, is not measured, and PR4's perf box measures it.
 - Spring Boot 4.1 behaviour, read from the Spring Boot 4.1.0 reference documentation. OTLP tracing needs `spring-boot-starter-opentelemetry`. Spring Boot samples 10 percent of traces by default with a parent-based sampler. It maps a subset of the standard `OTEL_*` variables to its properties, and a signal-specific endpoint wins over `OTEL_EXPORTER_OTLP_ENDPOINT`, which gets `/v1/traces` or `/v1/metrics` appended. Which variables are in the subset is not proven, so Appendix D sets the Spring properties too.
 
-Unproven questions. The end-to-end export from a Spring Boot 4 service into the receiver has not been run. The runner size growth and the drain time on a real consumer are measured in PR4 and PR6.
+- An adversarial review on 2026-11-12 probed the plan against the tree at `00886dc` with throwaway tests and renders, and this revision folds in every finding it proved. A hub restart never resumes `Hub.Pipeline`, reconcile closes the run, and `DefaultReport` is the shared report path. `Freeze` runs inside `Assemble`, so `stage:report` cannot reach the bundle. Two `spans_test.go` tests and one screen test assert the old behavior. The suite's `RunRunner` call passes no env today. The seal fixture clears environments, so a new runner variable does not change it. The signal port drops new metric fields. A counter `rev` loses after a receiver restart. The logs cursor does not survive a hub restart. The OTLP collector packages link grpc, and the runner gz grew 1.30 MiB with grpc linked. Telemetry validation cannot live in `internal/contract`. `seal.Input` has no telemetry field. A compose integration test hard-codes nine services. Held under probe were the harness `environment` winning over map, list and `include` forms, each seal assertion catching a port, a bind or `egress` on `otlp`, metric revisions surviving compaction and reopen, a hub-written span revision winning in reads and in the frozen copy, the trace view nesting across collectors, and the maskers leaving `w3c:` ids, metric ids and `traceparent` unchanged.
+
+Unproven questions. The end-to-end export from a Spring Boot 4 service into the receiver has not been run. Decoding into `TracesData` and `MetricsData` in place of the collector request types is wire-compatible by the OTLP schema, and PR4 proves it with SDK-captured fixtures. The runner size growth and the drain time on a real consumer are measured in PR4 and PR6.
 
 ## Appendix B. Alternatives rejected
 
