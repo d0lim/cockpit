@@ -19,7 +19,7 @@ func sumOf(sig contract.Signal) contentSum {
 }
 
 func (s *Stream) unchangedWinner(sig contract.Signal) (int64, bool) {
-	if sig.ID == "" || sig.Kind == contract.SignalKindMetric {
+	if sig.ID == "" {
 		return 0, false
 	}
 	w, ok := s.revs[sigKey(sig)]

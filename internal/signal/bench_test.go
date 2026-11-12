@@ -44,6 +44,19 @@ func BenchmarkIndexMemoryAfterThreeHundredThousandAppends(b *testing.B) {
 	}
 }
 
+func BenchmarkAppendAMetricSeriesWithAnID(b *testing.B) {
+	s := openAt(b, runDir(b), DefaultCaps(), masker(b))
+	ids := []string{"s-0", "s-1", "s-2", "s-3", "s-4", "s-5", "s-6", "s-7", "s-8", "s-9"}
+	rev := 0
+	for b.Loop() {
+		rev++
+		sig := withID(metric("toy-db", float64(rev)), ids[rev%len(ids)], rev)
+		if _, err := s.Append(sig); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestTheReopenedIndexHoldsAtMostSixteenBytesPerRecord(t *testing.T) {
 	dir := runDir(t)
 	m := masker(t)

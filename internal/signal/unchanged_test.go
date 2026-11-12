@@ -15,6 +15,7 @@ var unchangedMutations = []porttest.Mutation{
 	{"a change in attributes or body is written", "leave attrs or the event body out of sumOf", "red: the changed row returns the frozen winner's seq", "TestAChangedRowStillSupersedesTheFrozenWinnerWhileUnchangedRowsStay"},
 	{"a higher revision is written even when unchanged", "drop the rev comparison in unchangedWinner", "red: a later lower revision wins over the dropped rev 3", "TestAHigherRevisionWithUnchangedContentIsRecordedSoALaterLowerRevisionStillLoses"},
 	{"a dropped winner is not a no-op target", "drop the alive check in unchangedWinner", "red: the re-emission returns the dropped seq and reads nothing", "TestAnUnchangedReemissionOfADroppedWinnerIsRecordedAgain"},
+	{"an unchanged metric total is a no-op", "restore the metric exclusion in unchangedWinner", "red: the re-sent total gets a new seq after the freeze", "TestAnUnchangedMetricTotalReSentAfterTheFreezeKeepsItsFrozenWinner"},
 	{"replay rebuilds the winner's content sum", "note an empty sum for replayed records", "red: after restart an unchanged row is written again", "TestRestartReplaysTheSameWinnersAndKeepsUnchangedReemissionsANoOp"},
 }
 
@@ -146,5 +147,24 @@ func TestRestartReplaysTheSameWinnersAndKeepsUnchangedReemissionsANoOp(t *testin
 	}
 	if string(streamBytes(t, dir)) != string(before) {
 		t.Fatal("after restart an unchanged re-emission wrote a record")
+	}
+}
+
+func TestAnUnchangedMetricTotalReSentAfterTheFreezeKeepsItsFrozenWinner(t *testing.T) {
+	dir := runDir(t)
+	s, _, frozenSeq := armed(t, dir)
+	winner := mustAppend(t, s, series("requests", 1, 7))
+	if _, err := s.Freeze(t.TempDir()); err != ErrAlreadyFrozen {
+		t.Fatalf("canary: the stream was not frozen: %v", err)
+	}
+	before := streamBytes(t, dir)
+	if seq := mustAppend(t, s, series("requests", 1, 7)); seq != winner {
+		t.Fatalf("the unchanged total returned %d, want the winner %d (frozen at %d)", seq, winner, frozenSeq)
+	}
+	if string(streamBytes(t, dir)) != string(before) {
+		t.Fatal("the unchanged total wrote a record")
+	}
+	if changed := mustAppend(t, s, series("requests", 1, 8)); changed == winner {
+		t.Fatal("canary: a changed total returned the old winner")
 	}
 }

@@ -2,10 +2,26 @@ package signal
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/ports/porttest"
 )
+
+var revisionMutations = []porttest.Mutation{
+	{"a re-emitted id supersedes the earlier winner", "admit every record in record instead of noting its revision", "red: both revisions of order-7 are read", "TestReemittingAnIDWithRevisionTwoIndexesARevisionAndReadsReturnOnlyTheLatest"},
+	{"a lower revision never replaces the winner", "let note take any rev as the winner", "red: the late rev 2 is read instead of rev 3", "TestOlderRevisionArrivingLateDoesNotReplaceTheLatest"},
+	{"the revision key holds the collector and the kind", "build revKey from the id alone", "red: the same id from another collector or kind collapses to one record", "TestSameIDFromAnotherCollectorOrKindIsNotARevision"},
+	{"a span revision stays inside its trace", "leave the trace id out of sigKey", "red: the exec spans with the same id supersede each other", "TestASpanIDIsARevisionOnlyWithinItsTraceAndReplaysTheSame"},
+	{"a metric with an id is a revision", "restore the metric exclusion in record", "red: the series reads back as six values instead of the rev 5 total", "TestAMetricWithAnIDKeepsOnlyItsHighestRevision"},
+	{"a metric without an id stays append only", "treat an empty id as an id in record", "red: five points without an id read back as one", "TestAMetricWithoutAnIDStaysAppendOnly"},
+	{"a metric body keeps its declared shape", "skip validateMetric in validate", "red: every malformed histogram is accepted", "TestAHistogramMetricIsStoredWithItsShapeAndAMalformedOneIsRefused"},
+}
+
+func TestRevisionMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
+	porttest.AssertMutationRecord(t, "revision_test.go", revisionMutations)
+}
 
 func withID(sig contract.Signal, id string, rev int) contract.Signal {
 	sig.ID, sig.Rev = id, rev
@@ -80,5 +96,86 @@ func TestASpanIDIsARevisionOnlyWithinItsTraceAndReplaysTheSame(t *testing.T) {
 	s.Close()
 	if got := ends(openAt(t, dir, DefaultCaps(), masker(t))); !slices.Equal(got, want) {
 		t.Fatalf("replayed %v", got)
+	}
+}
+
+func series(id string, rev int, v float64) contract.Signal {
+	sig := withID(metric("toy-db", v), id, rev)
+	sig.Attrs = contract.Attrs{"table": "series"}
+	return sig
+}
+
+func metricValues(resp ReadResponse) []float64 {
+	var out []float64
+	for _, sig := range resp.Signals {
+		if sig.Metric != nil {
+			out = append(out, sig.Metric.Value)
+		}
+	}
+	return out
+}
+
+func TestAMetricWithAnIDKeepsOnlyItsHighestRevision(t *testing.T) {
+	s := openAt(t, runDir(t), DefaultCaps(), masker(t))
+	for rev := 1; rev <= 5; rev++ {
+		mustAppend(t, s, series("requests", rev, float64(rev*10)))
+	}
+	mustAppend(t, s, series("requests", 3, 99))
+	if got := metricValues(readAll(t, s, 0)); !slices.Equal(got, []float64{50}) {
+		t.Fatalf("values %v", got)
+	}
+	if seq, n := s.Revisions("toy-db", contract.SignalKindMetric, "requests"); seq != 5 || n != 6 {
+		t.Fatalf("revisions %d %d", seq, n)
+	}
+}
+
+func TestAMetricWithoutAnIDStaysAppendOnly(t *testing.T) {
+	s := openAt(t, runDir(t), DefaultCaps(), masker(t))
+	for v := 1; v <= 5; v++ {
+		mustAppend(t, s, metric("toy-db", float64(v)))
+		mustAppend(t, s, series("requests", v, float64(v)))
+	}
+	got := metricValues(readAll(t, s, 0))
+	if !slices.Equal(got, []float64{1, 2, 3, 4, 5, 5}) {
+		t.Fatalf("values %v", got)
+	}
+}
+
+func histogramMetric(mutate func(*contract.MetricBody)) contract.Signal {
+	sig := metric("toy-db", 0.6)
+	sig.Metric.Name, sig.Metric.Unit, sig.Metric.Type = "latency", "s", contract.MetricTypeHistogram
+	sig.Metric.Histogram = &contract.HistogramBody{Count: 3, Sum: 0.6, Bounds: []float64{0.1, 0.5}, Counts: []uint64{1, 1, 1}}
+	mutate(sig.Metric)
+	return sig
+}
+
+func TestAHistogramMetricIsStoredWithItsShapeAndAMalformedOneIsRefused(t *testing.T) {
+	s := openAt(t, runDir(t), DefaultCaps(), masker(t))
+	mustAppend(t, s, histogramMetric(func(*contract.MetricBody) {}))
+	mustAppend(t, s, histogramMetric(func(m *contract.MetricBody) { m.Histogram.Bounds, m.Histogram.Counts = nil, nil }))
+	malformed := map[string]func(*contract.MetricBody){
+		"exactly when":   func(m *contract.MetricBody) { m.Type = contract.MetricTypeSum },
+		"exactly when ":  func(m *contract.MetricBody) { m.Histogram = nil },
+		"equal its sum":  func(m *contract.MetricBody) { m.Value = 1 },
+		"one count more": func(m *contract.MetricBody) { m.Histogram.Counts = []uint64{3} },
+		"must ascend":    func(m *contract.MetricBody) { m.Histogram.Bounds = []float64{0.5, 0.1} },
+		"unknown metric": func(m *contract.MetricBody) { m.Type = "rate" },
+	}
+	refused := 0
+	for want, mutate := range malformed {
+		if _, err := s.Append(histogramMetric(mutate)); err == nil || !strings.Contains(err.Error(), strings.TrimSpace(want)) {
+			t.Errorf("%s: %v", want, err)
+			continue
+		}
+		refused++
+	}
+	got := readAll(t, s, 0).Signals
+	if refused != 6 || len(got) != 2 {
+		t.Fatalf("refused %d, stored %d", refused, len(got))
+	}
+	m := got[0].Metric
+	if m.Unit != "s" || m.Type != contract.MetricTypeHistogram || m.Histogram == nil || m.Histogram.Count != 3 || m.Histogram.Sum != 0.6 ||
+		!slices.Equal(m.Histogram.Bounds, []float64{0.1, 0.5}) || !slices.Equal(m.Histogram.Counts, []uint64{1, 1, 1}) {
+		t.Fatalf("stored %+v %+v", m, m.Histogram)
 	}
 }

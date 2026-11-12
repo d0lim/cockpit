@@ -56,7 +56,7 @@ func remask(m *mask.Masker, raw []byte) ([]byte, error) {
 }
 
 func (s *Stream) superseded(sig contract.Signal) bool {
-	if sig.ID == "" || sig.Kind == contract.SignalKindMetric {
+	if sig.ID == "" {
 		return false
 	}
 	r, ok := s.revs[sigKey(sig)]

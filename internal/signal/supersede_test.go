@@ -18,6 +18,7 @@ var supersedeMutations = []porttest.Mutation{
 	{"superseded records are not a gap", "count superseded entries as a resync gap in Read", "red: the read starts with a resync marker", "TestThirtyThousandReemissionsOfTenIDsLeaveTenWinnersAndNoQuotaDrops"},
 	{"the quota still bites for distinct ids", "set every bucket quota to zero", "red: 30000 distinct ids keep 30000 records", "TestThirtyThousandDistinctIDsStillHitTheCollectorQuota"},
 	{"a frozen record is never superseded away", "drop the inFrozenSegment check in release", "red: the frozen winner disappears from the stream file", "TestARevisionOfAFrozenWinnerLeavesTheFrozenRecordAndTheFrozenCopyHoldsOnlyWinners"},
+	{"reads skip a frozen metric winner a later revision replaced", "restore the metric exclusion in superseded", "red: reads return both the frozen total and the later one", "TestARevisionOfAFrozenMetricWinnerStaysInTheFrozenCopyAndReadsReturnTheLaterWinner"},
 	{"compaction keeps superseded ranges as tombstones for restart", "write nothing for superseded entries in maybeCompact", "red: after restart the superseded seqs read as part of the resync gap", "TestRestartAfterCompactionReplaysTheSameWinnersCountersAndNextSeq"},
 	{"compaction weighs killed records against live ones", "compare against len(entries)-killed, which counts earlier removed seqs as retained", "red: compaction stops after the first rewrite and the file keeps over 1000 lines", "TestRestartAfterCompactionReplaysTheSameWinnersCountersAndNextSeq"},
 }
@@ -97,6 +98,28 @@ func TestARevisionOfAFrozenWinnerLeavesTheFrozenRecordAndTheFrozenCopyHoldsOnlyW
 		t.Fatal("the frozen winner was removed")
 	}
 	if got := bodies(readAll(t, s, 0)); !slices.Equal(got, []string{"shipped"}) {
+		t.Fatalf("read %v", got)
+	}
+}
+
+func TestARevisionOfAFrozenMetricWinnerStaysInTheFrozenCopyAndReadsReturnTheLaterWinner(t *testing.T) {
+	dir := runDir(t)
+	s := openAt(t, dir, DefaultCaps(), masker(t))
+	mustAppend(t, s, series("requests", 1, 10))
+	frozenWinner := mustAppend(t, s, series("requests", 2, 20))
+	bundle := filepath.Join(t.TempDir(), "report.partial")
+	if _, err := s.Freeze(bundle); err != nil {
+		t.Fatal(err)
+	}
+	copied := fileText(t, filepath.Join(bundle, Dir, streamFile))
+	if strings.Count(copied, "\n") != 1 || !strings.Contains(copied, `"value":20`) {
+		t.Fatalf("frozen copy %q", copied)
+	}
+	mustAppend(t, s, series("requests", 3, 30))
+	if !s.ix.alive(frozenWinner) {
+		t.Fatal("canary: the frozen winner was removed from the stream")
+	}
+	if got := metricValues(readAll(t, s, 0)); !slices.Equal(got, []float64{30}) {
 		t.Fatalf("read %v", got)
 	}
 }
