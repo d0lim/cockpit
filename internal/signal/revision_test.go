@@ -16,7 +16,7 @@ var revisionMutations = []porttest.Mutation{
 	{"a span revision stays inside its trace", "leave the trace id out of sigKey", "red: the exec spans with the same id supersede each other", "TestASpanIDIsARevisionOnlyWithinItsTraceAndReplaysTheSame"},
 	{"a metric with an id is a revision", "restore the metric exclusion in record", "red: the series reads back as six values instead of the rev 5 total", "TestAMetricWithAnIDKeepsOnlyItsHighestRevision"},
 	{"a metric without an id stays append only", "treat an empty id as an id in record", "red: five points without an id read back as one", "TestAMetricWithoutAnIDStaysAppendOnly"},
-	{"a metric body keeps its declared shape", "skip validateMetric in validate", "red: every malformed histogram is accepted", "TestAHistogramMetricIsStoredWithItsShapeAndAMalformedOneIsRefused"},
+	{"a metric body keeps its declared shape", "skip ValidateMetric in validate", "red: every malformed histogram is accepted", "TestAHistogramMetricIsStoredWithItsShapeAndAMalformedOneIsRefused"},
 }
 
 func TestRevisionMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {

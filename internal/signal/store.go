@@ -135,7 +135,7 @@ func validate(sig contract.Signal) error {
 		return fmt.Errorf("unknown time source %q", sig.TSSource)
 	}
 	if sig.Metric != nil {
-		if err := validateMetric(sig.Metric); err != nil {
+		if err := ValidateMetric(sig.Metric); err != nil {
 			return err
 		}
 	}

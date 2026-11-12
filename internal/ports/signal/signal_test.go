@@ -22,6 +22,7 @@ var signalMutations = []porttest.Mutation{
 	{"refusals pass the masker", "build the refusal without mask", "red: the planted value shows in the error", "TestRefusalMessagesPassTheMasker"},
 	{"the port carries a metric's unit, type and histogram", "build MetricBody from the name and the value only", "red: the stored metric has no histogram", "TestACollectorHistogramIsStoredWithItsCountAndSum"},
 	{"metric-only fields do not constrain events and spans", "move unit, type and histogram back into the shared input struct", "red: an event whose type is a number is PORT_BAD_ARGS", "TestAnEventOrSpanCarryingTypeOrHistogramKeysIsStoredAsBefore"},
+	{"collector metric fields that do not form a valid set fall back to the name and value", "refuse the metric when its unit, type and histogram do not decode or validate", "red: a Prometheus-style counter type is PORT_BAD_ARGS", "TestCollectorMetricFieldsThatDoNotFormAValidSetAreDroppedAndTheNameAndValueAreStored"},
 	{"bodies are checked per kind", "skip the metric and span field checks", "red: a metric without a value is stored", "TestIncompleteBodiesAndUnknownMethodsAreBadArgs"},
 }
 
@@ -103,9 +104,48 @@ func TestACollectorHistogramIsStoredWithItsCountAndSum(t *testing.T) {
 		len(m.Histogram.Bounds) != 2 || len(m.Histogram.Counts) != 3 || got[0].ID != "latency" {
 		t.Fatalf("stored %+v %+v", m, m.Histogram)
 	}
-	_, err := p.Call(context.Background(), "metric", raw(`{"name":"latency","value":9,"type":"histogram","histogram":{"count":3,"sum":0.6}}`))
-	if codeOf(err) != engine.PortBadArgs || !strings.Contains(err.Error(), "must equal its sum") || len(read(t, s)) != 1 {
-		t.Fatalf("a histogram whose value is not its sum: %v", err)
+}
+
+func TestCollectorMetricFieldsThatDoNotFormAValidSetAreDroppedAndTheNameAndValueAreStored(t *testing.T) {
+	cases := []struct {
+		in    string
+		name  string
+		value float64
+	}{
+		{`{"name":"http_requests_total","value":3,"type":"counter"}`, "http_requests_total", 3},
+		{`{"name":"up","value":1,"type":"untyped"}`, "up", 1},
+		{`{"name":"latency","value":5,"unit":5}`, "latency", 5},
+		{`{"name":"latency","value":5,"type":"histogram"}`, "latency", 5},
+	}
+	ran := 0
+	for _, c := range cases {
+		s := stream(t)
+		p := &Port{Collector: "toy-db", Store: s}
+		if _, err := p.Call(context.Background(), "metric", raw(c.in)); err != nil {
+			t.Fatalf("%s: %v", c.in, err)
+		}
+		got := read(t, s)
+		if len(got) != 1 || got[0].Metric == nil {
+			t.Fatalf("%s: stored %+v", c.in, got)
+		}
+		m := got[0].Metric
+		if m.Name != c.name || m.Value != c.value || m.Type != "" || m.Unit != "" || m.Histogram != nil {
+			t.Fatalf("%s: stored %+v", c.in, m)
+		}
+		ran++
+	}
+	if ran != 4 {
+		t.Fatalf("ran %d cases", ran)
+	}
+	s := stream(t)
+	p := &Port{Collector: "toy-db", Store: s}
+	valid := `{"name":"latency","value":0.6,"unit":"s","type":"histogram","histogram":{"count":3,"sum":0.6,"bounds":[0.1,0.5],"counts":[1,1,1]}}`
+	if _, err := p.Call(context.Background(), "metric", raw(valid)); err != nil {
+		t.Fatal(err)
+	}
+	got := read(t, s)
+	if len(got) != 1 || got[0].Metric == nil || got[0].Metric.Histogram == nil || got[0].Metric.Histogram.Count != 3 || got[0].Metric.Histogram.Sum != 0.6 || got[0].Metric.Unit != "s" {
+		t.Fatalf("canary: a valid histogram lost its body: %+v", got)
 	}
 }
 
@@ -121,9 +161,11 @@ func TestAnEventOrSpanCarryingTypeOrHistogramKeysIsStoredAsBefore(t *testing.T) 
 			t.Fatalf("%s: %v", method, err)
 		}
 	}
-	_, err := p.Call(context.Background(), "metric", raw(`{"name":"rows","value":1,"type":3}`))
-	if codeOf(err) != engine.PortBadArgs || len(read(t, s)) != 2 {
-		t.Fatalf("canary: a metric whose type is a number: %v, stored %d", err, len(read(t, s)))
+	if _, err := p.Call(context.Background(), "metric", raw(`{"name":"rows","value":1,"type":"gauge"}`)); err != nil {
+		t.Fatalf("canary: %v", err)
+	}
+	if got := read(t, s); len(got) != 3 || got[2].Metric == nil || got[2].Metric.Type != contract.MetricTypeGauge {
+		t.Fatalf("canary: the metric port did not read the type: %+v", got)
 	}
 }
 

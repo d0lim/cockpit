@@ -7,7 +7,7 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-func validateMetric(m *contract.MetricBody) error {
+func ValidateMetric(m *contract.MetricBody) error {
 	switch m.Type {
 	case "", contract.MetricTypeGauge, contract.MetricTypeSum, contract.MetricTypeHistogram, contract.MetricTypeSummary:
 	default:

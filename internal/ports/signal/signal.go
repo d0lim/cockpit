@@ -75,11 +75,7 @@ func (p *Port) Call(_ context.Context, method string, args []json.RawMessage) (a
 		if in.Value == nil || in.Name == "" {
 			return nil, ports.BadArgs(mask, "metric needs a name and a numeric value")
 		}
-		var m metricFields
-		if err := ports.Arg(args, 0, &m, mask, method+" input"); err != nil {
-			return nil, err
-		}
-		sig.Kind, sig.Metric = contract.SignalKindMetric, &contract.MetricBody{Name: in.Name, Value: *in.Value, Unit: m.Unit, Type: m.Type, Histogram: m.Histogram}
+		sig.Kind, sig.Metric = contract.SignalKindMetric, metricBody(in.Name, *in.Value, args[0])
 	case "event":
 		sig.Kind, sig.Event = contract.SignalKindEvent, &contract.EventBody{Body: in.Body}
 	case "span":
@@ -98,4 +94,17 @@ func (p *Port) Call(_ context.Context, method string, args []json.RawMessage) (a
 		return nil, ports.BadArgs(mask, method+": "+err.Error())
 	}
 	return nil, nil
+}
+
+func metricBody(name string, value float64, arg json.RawMessage) *contract.MetricBody {
+	plain := &contract.MetricBody{Name: name, Value: value}
+	var m metricFields
+	if json.Unmarshal(arg, &m) != nil {
+		return plain
+	}
+	full := &contract.MetricBody{Name: name, Value: value, Unit: m.Unit, Type: m.Type, Histogram: m.Histogram}
+	if signal.ValidateMetric(full) != nil {
+		return plain
+	}
+	return full
 }
