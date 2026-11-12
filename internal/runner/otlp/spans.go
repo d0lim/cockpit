@@ -6,8 +6,17 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-func spanSignals(td *tracev1.TracesData) []Signal {
-	var out []Signal
+func spanSignals(td *tracev1.TracesData) ([]Signal, error) {
+	n := 0
+	for _, rs := range td.GetResourceSpans() {
+		for _, ss := range rs.GetScopeSpans() {
+			n += len(ss.GetSpans())
+		}
+	}
+	if n > MaxSignals {
+		return nil, errTooMany
+	}
+	out := make([]Signal, 0, n)
 	for _, rs := range td.GetResourceSpans() {
 		service := serviceOf(rs.GetResource())
 		for _, ss := range rs.GetScopeSpans() {
@@ -16,7 +25,7 @@ func spanSignals(td *tracev1.TracesData) []Signal {
 			}
 		}
 	}
-	return out
+	return out, nil
 }
 
 func spanSignal(s *tracev1.Span, service string) Signal {

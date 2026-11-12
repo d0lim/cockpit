@@ -31,7 +31,19 @@ type shape struct {
 	points []point
 }
 
-func metricSignals(md *metricsv1.MetricsData) (out []Signal, dropped int) {
+func metricSignals(md *metricsv1.MetricsData) (out []Signal, dropped int, err error) {
+	n := 0
+	for _, rm := range md.GetResourceMetrics() {
+		for _, sm := range rm.GetScopeMetrics() {
+			for _, m := range sm.GetMetrics() {
+				n += pointCount(m)
+			}
+		}
+	}
+	if n > MaxSignals {
+		return nil, 0, errTooMany
+	}
+	out = make([]Signal, 0, n)
 	for _, rm := range md.GetResourceMetrics() {
 		service := serviceOf(rm.GetResource())
 		for _, sm := range rm.GetScopeMetrics() {
@@ -47,7 +59,23 @@ func metricSignals(md *metricsv1.MetricsData) (out []Signal, dropped int) {
 			}
 		}
 	}
-	return out, dropped
+	return out, dropped, nil
+}
+
+func pointCount(m *metricsv1.Metric) int {
+	switch d := m.GetData().(type) {
+	case *metricsv1.Metric_Gauge:
+		return len(d.Gauge.GetDataPoints())
+	case *metricsv1.Metric_Sum:
+		return len(d.Sum.GetDataPoints())
+	case *metricsv1.Metric_Histogram:
+		return len(d.Histogram.GetDataPoints())
+	case *metricsv1.Metric_ExponentialHistogram:
+		return len(d.ExponentialHistogram.GetDataPoints())
+	case *metricsv1.Metric_Summary:
+		return len(d.Summary.GetDataPoints())
+	}
+	return 0
 }
 
 func metricSignal(m *metricsv1.Metric, sh shape, p point, service string) Signal {

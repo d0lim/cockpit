@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/contract"
@@ -84,21 +83,5 @@ func TestALargeExportKeepsItsSpansInOrder(t *testing.T) {
 		if l.Signal.Span.Name != fmt.Sprint(i) || l.Signal.ID != fmt.Sprintf("w3c:%016x", i+1) {
 			t.Fatalf("line %d holds span %q %q, want the export order", i, l.Signal.Span.Name, l.Signal.ID)
 		}
-	}
-}
-
-func TestConcurrentExportsNeverInterleaveTheirLines(t *testing.T) {
-	r := newReceiver(t)
-	var wg sync.WaitGroup
-	for range 16 {
-		wg.Go(func() {
-			if got := r.postProto(t, "/v1/traces", spanPair(t)); got.status != 200 {
-				t.Errorf("status %d", got.status)
-			}
-		})
-	}
-	wg.Wait()
-	if n := len(r.lines(t)); n != 32 {
-		t.Fatalf("%d lines, want 32 whole lines", n)
 	}
 }

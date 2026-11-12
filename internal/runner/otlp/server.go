@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	metricsv1 "go.opentelemetry.io/proto/otlp/metrics/v1"
@@ -34,15 +35,15 @@ var routes = map[string]route{
 		if err := unmarshal(body, &td); err != nil {
 			return nil, 0, err
 		}
-		return spanSignals(&td), 0, nil
+		sigs, err := spanSignals(&td)
+		return sigs, 0, err
 	},
 	"/v1/metrics": func(body []byte, unmarshal func([]byte, proto.Message) error) ([]Signal, int, error) {
 		var md metricsv1.MetricsData
 		if err := unmarshal(body, &md); err != nil {
 			return nil, 0, err
 		}
-		sigs, dropped := metricSignals(&md)
-		return sigs, dropped, nil
+		return metricSignals(&md)
 	},
 }
 
@@ -60,8 +61,9 @@ var decoders = map[string]func([]byte, proto.Message) error{
 var emptyResponses = map[string][]byte{contentProtobuf: {}, contentJSON: []byte("{}")}
 
 type Handler struct {
-	Out *Writer
-	Log *slog.Logger
+	Out     *Writer
+	Log     *slog.Logger
+	exports sync.Mutex
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -87,22 +89,36 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.refuse(w, path, status)
 		return
 	}
-	sigs, dropped, err := convert(body, unmarshal)
-	if err != nil {
-		h.refuse(w, path, http.StatusBadRequest)
+	if status := h.export(path, body, convert, unmarshal); status != http.StatusOK {
+		h.refuse(w, path, status)
+		if status == http.StatusRequestEntityTooLarge {
+			io.WriteString(w, errTooMany.Error())
+		}
 		return
+	}
+	w.Header().Set("Content-Type", ctype)
+	w.WriteHeader(http.StatusOK)
+	w.Write(emptyResponses[ctype])
+}
+
+func (h *Handler) export(path string, body []byte, convert route, unmarshal func([]byte, proto.Message) error) int {
+	h.exports.Lock()
+	defer h.exports.Unlock()
+	sigs, dropped, err := convert(body, unmarshal)
+	if errors.Is(err, errTooMany) {
+		return http.StatusRequestEntityTooLarge
+	}
+	if err != nil {
+		return http.StatusBadRequest
 	}
 	if dropped > 0 {
 		h.Log.Warn("dropped data points that are not finite numbers", "path", path, "dropped", dropped)
 	}
 	if err := h.Out.Write(sigs); err != nil {
 		h.Log.Error("could not write output lines", "path", path, "lines", len(sigs), "err", err)
-		h.refuse(w, path, http.StatusServiceUnavailable)
-		return
+		return http.StatusServiceUnavailable
 	}
-	w.Header().Set("Content-Type", ctype)
-	w.WriteHeader(http.StatusOK)
-	w.Write(emptyResponses[ctype])
+	return http.StatusOK
 }
 
 func (h *Handler) refuse(w http.ResponseWriter, route string, status int) {

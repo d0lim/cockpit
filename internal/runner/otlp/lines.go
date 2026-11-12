@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	MaxString = 1 << 10
-	MaxLine   = 64 << 10
-	minChunk  = 64
+	MaxString    = 1 << 10
+	MaxLine      = 64 << 10
+	chunkSignals = 1024
+	minChunk     = 64
 )
 
 type Writer struct {
-	mu   sync.Mutex
 	out  io.Writer
 	mask *mask.Masker
 }
@@ -34,26 +34,38 @@ func NewWriter(out io.Writer) (*Writer, error) {
 }
 
 func (w *Writer) Write(sigs []Signal) error {
-	lines := make([][]byte, len(sigs)+1)
+	lines := make([][]byte, min(len(sigs), chunkSignals))
+	var buf bytes.Buffer
+	for from := 0; from < len(sigs); from += chunkSignals {
+		chunk := sigs[from:min(from+chunkSignals, len(sigs))]
+		if err := w.build(chunk, lines[:len(chunk)]); err != nil {
+			return err
+		}
+		buf.Reset()
+		for _, l := range lines[:len(chunk)] {
+			buf.Write(l)
+			buf.WriteByte('\n')
+		}
+		if _, err := w.out.Write(buf.Bytes()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (w *Writer) build(sigs []Signal, lines [][]byte) error {
 	errs := make([]error, len(sigs))
-	chunk := max(minChunk, (len(sigs)+runtime.GOMAXPROCS(0)-1)/runtime.GOMAXPROCS(0))
+	per := max(minChunk, (len(sigs)+runtime.GOMAXPROCS(0)-1)/runtime.GOMAXPROCS(0))
 	var wg sync.WaitGroup
-	for from := 0; from < len(sigs); from += chunk {
+	for from := 0; from < len(sigs); from += per {
 		wg.Go(func() {
-			for i := from; i < min(from+chunk, len(sigs)); i++ {
+			for i := from; i < min(from+per, len(sigs)); i++ {
 				lines[i], errs[i] = w.line(sigs[i])
 			}
 		})
 	}
 	wg.Wait()
-	if err := errors.Join(errs...); err != nil {
-		return err
-	}
-	buf := bytes.Join(lines, []byte{'\n'})
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	_, err := w.out.Write(buf)
-	return err
+	return errors.Join(errs...)
 }
 
 func (w *Writer) line(s Signal) ([]byte, error) {

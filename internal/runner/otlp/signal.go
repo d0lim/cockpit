@@ -2,6 +2,7 @@ package otlp
 
 import (
 	"encoding/hex"
+	"errors"
 	"time"
 
 	"github.com/d0lim/cockpit/internal/contract"
@@ -9,9 +10,12 @@ import (
 
 const (
 	LineVersion = 1
+	MaxSignals  = 50_000
 	ServiceAttr = "service"
 	idPrefix    = "w3c:"
 )
+
+var errTooMany = errors.New("export holds more than 50000 spans or data points")
 
 type Line struct {
 	V      int    `json:"v"`
