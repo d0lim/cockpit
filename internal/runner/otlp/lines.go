@@ -60,7 +60,7 @@ func (w *Writer) line(s Signal) ([]byte, error) {
 	s = w.redact(s)
 	line, err := json.Marshal(Line{V: LineVersion, Signal: s})
 	for _, shrink := range shrinks {
-		if err != nil || len(line) < MaxLine {
+		if err != nil || len(line)+1 < MaxLine {
 			break
 		}
 		shrink(&s)
