@@ -23,6 +23,12 @@ type point struct {
 	value float64
 	hist  *contract.HistogramBody
 	count *uint64
+	unfit bool
+}
+
+type drops struct {
+	points  int
+	buckets int
 }
 
 type shape struct {
@@ -31,7 +37,7 @@ type shape struct {
 	points []point
 }
 
-func metricSignals(md *metricsv1.MetricsData) (out []Signal, dropped int, err error) {
+func metricSignals(md *metricsv1.MetricsData) (out []Signal, dropped drops, err error) {
 	n := 0
 	for _, rm := range md.GetResourceMetrics() {
 		for _, sm := range rm.GetScopeMetrics() {
@@ -41,7 +47,7 @@ func metricSignals(md *metricsv1.MetricsData) (out []Signal, dropped int, err er
 		}
 	}
 	if n > MaxSignals {
-		return nil, 0, errTooMany
+		return nil, drops{}, errTooMany
 	}
 	out = make([]Signal, 0, n)
 	for _, rm := range md.GetResourceMetrics() {
@@ -51,8 +57,11 @@ func metricSignals(md *metricsv1.MetricsData) (out []Signal, dropped int, err er
 				sh := shapeOf(m)
 				for _, p := range sh.points {
 					if !finite(p) {
-						dropped++
+						dropped.points++
 						continue
+					}
+					if p.unfit {
+						dropped.buckets++
 					}
 					out = append(out, metricSignal(m, sh, p, service))
 				}
@@ -111,10 +120,11 @@ func shapeOf(m *metricsv1.Metric) shape {
 		var ps []point
 		for _, dp := range d.Histogram.GetDataPoints() {
 			h := &contract.HistogramBody{Count: dp.GetCount(), Sum: dp.GetSum()}
-			if buckets(dp.GetExplicitBounds(), dp.GetBucketCounts()) {
+			unfit := slices.ContainsFunc(dp.GetExplicitBounds(), notFinite)
+			if !unfit && buckets(dp.GetExplicitBounds(), dp.GetBucketCounts()) {
 				h.Bounds, h.Counts = dp.GetExplicitBounds(), dp.GetBucketCounts()
 			}
-			ps = append(ps, point{attrs: dp.GetAttributes(), time: dp.GetTimeUnixNano(), value: h.Sum, hist: h})
+			ps = append(ps, point{attrs: dp.GetAttributes(), time: dp.GetTimeUnixNano(), value: h.Sum, hist: h, unfit: unfit})
 		}
 		return shape{typ: contract.MetricTypeHistogram, series: cumulative(d.Histogram.GetAggregationTemporality()), points: ps}
 	case *metricsv1.Metric_ExponentialHistogram:
@@ -151,20 +161,23 @@ func buckets(bounds []float64, counts []uint64) bool {
 	if len(counts) != len(bounds)+1 {
 		return false
 	}
-	for i, b := range bounds {
-		if math.IsNaN(b) || math.IsInf(b, 0) || (i > 0 && b <= bounds[i-1]) {
+	for i := 1; i < len(bounds); i++ {
+		if bounds[i] <= bounds[i-1] {
 			return false
 		}
 	}
 	return true
 }
 
+func notFinite(f float64) bool {
+	return math.IsNaN(f) || math.IsInf(f, 0)
+}
+
 func finite(p point) bool {
-	ok := func(f float64) bool { return !math.IsNaN(f) && !math.IsInf(f, 0) }
-	if p.hist != nil && !ok(p.hist.Sum) {
+	if p.hist != nil && notFinite(p.hist.Sum) {
 		return false
 	}
-	return ok(p.value)
+	return !notFinite(p.value)
 }
 
 func seriesID(service, name string, kvs []*commonv1.KeyValue) string {

@@ -173,3 +173,35 @@ func TestOtherMetricShapesKeepCountAndSumAndUnfitBucketsAreLeftOut(t *testing.T)
 		t.Fatalf("the dropped point is not logged: %q", r.log.String())
 	}
 }
+
+func TestAHistogramWhoseBoundsAreNotFiniteKeepsCountAndSumWithoutBucketsAndIsLogged(t *testing.T) {
+	r := newReceiver(t)
+	sum := 9.0
+	histogram := func(name string, bounds ...float64) *metricsv1.Metric {
+		return &metricsv1.Metric{Name: name, Data: &metricsv1.Metric_Histogram{Histogram: &metricsv1.Histogram{
+			AggregationTemporality: metricsv1.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE,
+			DataPoints:             []*metricsv1.HistogramDataPoint{{TimeUnixNano: 1_794_457_309_000_000_000, Count: 2, Sum: &sum, ExplicitBounds: bounds, BucketCounts: []uint64{1, 1, 0}}},
+		}}}
+	}
+	if got := r.postProto(t, "/v1/metrics", metricExport(histogram("toy.open", 1, math.Inf(1)), histogram("toy.closed", 1, 5))); got.status != 200 {
+		t.Fatalf("status %d", got.status)
+	}
+	lines := r.lines(t)
+	open := byMetric(lines, "toy.open")
+	if len(open) != 1 || open[0].ID == "" || open[0].Metric.Value != 9 {
+		t.Fatalf("histogram with an infinite bound %+v, want one series line", open)
+	}
+	if h := open[0].Metric.Histogram; h.Count != 2 || h.Sum != 9 || h.Bounds != nil || h.Counts != nil {
+		t.Fatalf("histogram with an infinite bound %+v, want count and sum only", h)
+	}
+	closed := byMetric(lines, "toy.closed")
+	if len(closed) != 1 || !slices.Equal(closed[0].Metric.Histogram.Bounds, []float64{1, 5}) || !slices.Equal(closed[0].Metric.Histogram.Counts, []uint64{1, 1, 0}) {
+		t.Fatalf("histogram with finite bounds %+v, want its buckets", closed)
+	}
+	if !strings.Contains(r.log.String(), `"msg":"dropped the buckets of histogram points whose bounds are not finite numbers","path":"/v1/metrics","points":1`) {
+		t.Fatalf("the dropped buckets are not logged once: %q", r.log.String())
+	}
+	if strings.Contains(r.log.String(), `"dropped":`) {
+		t.Fatalf("the point with an infinite bound is logged as dropped: %q", r.log.String())
+	}
+}
