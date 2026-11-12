@@ -16,7 +16,7 @@ The hub reads `.cockpit/project.yaml` from the git object of the submitted commi
 | 6 | `host-api` | a `hostApi` outside the set this hub serves; the message names the served set and the cockpit version |
 | 7 | `secrets` | an empty `secrets.sources` |
 | 8 | `ports` | an offset outside `0..99`, on the reserved offset 99, or taken twice; a port outside `1..65535`; a port on a service that the compose files (with their includes) do not define; a `databases[].port` that names no entry of `ports` |
-| 9 | `compose` | a compose file that cannot be read or is not valid YAML; an `include` item or value that breaks the [include rules](#compose-includes), at its field (`compose.files[0] include[1].path[0]`); an include cycle; more than 64 compose file reads; a consumer service whose image uses the `cockpit-runner` repository, a builder or expected service that the compose files (with their includes) do not define, or a consumer service named `edge`, `runner`, `probe` or `probe-control`, or a network named `egress` |
+| 9 | `compose` | a compose file that cannot be read or is not valid YAML; an `include` item or value that breaks the [include rules](#compose-includes), at its field (`compose.files[0] include[1].path[0]`); an include cycle; more than 64 compose file reads; a consumer service whose image uses the `cockpit-runner` repository, a builder or expected service that the compose files (with their includes) do not define, a consumer service named `edge`, `runner`, `probe`, `probe-control` or `otlp`, or a network named `egress`; a `telemetry.otlp.services` entry that the compose files (with their includes) do not define or that names the builder |
 
 ## Compose includes
 
@@ -67,7 +67,7 @@ Every compose call of a run names the project `-p <run id>` and `--project-direc
 
 ## Generated harness
 
-`harness.yaml` is the last `-f` file after the declared `compose.files`, and the file set is refused when a declared name contains an entry of `compose.forbidden`; an included file with such a name rejects the declaration. It makes `default` and every non-external consumer network internal, adds `egress`, labels every service, network and volume of the model (included ones too) with `io.cockpit.managed` and `io.cockpit.run-id`, removes consumer `ports` with `!reset`, and moves the builder to `egress` only with `!override`. It adds four services on the runner image, each read-only, without capabilities and with memory and process limits:
+`harness.yaml` is the last `-f` file after the declared `compose.files`, and the file set is refused when a declared name contains an entry of `compose.forbidden`; an included file with such a name rejects the declaration. It makes `default` and every non-external consumer network internal, adds `egress`, labels every service, network and volume of the model (included ones too) with `io.cockpit.managed` and `io.cockpit.run-id`, removes consumer `ports` with `!reset`, and moves the builder to `egress` only with `!override`. It adds four services on the runner image, and a fifth, `otlp`, when `telemetry.otlp.services` names at least one service. Each is read-only, without capabilities and with memory and process limits:
 
 | Service | Mode | Networks | Notes |
 | --- | --- | --- | --- |
@@ -75,12 +75,25 @@ Every compose call of a run names the project `-p <run id>` and `--project-direc
 | `runner` | `run` (profile `runner`) | the internal networks | binds only `work/` paths; only `/work/e2e` is writable |
 | `probe` | `probe` (profile `probe`) | `default` | canary port `base + 99` |
 | `probe-control` | `probe` (profile `probe`) | `egress` | the positive control of the probe |
+| `otlp` | `otlp :4318` | the internal networks | the [OTLP receiver](#otlp-receiver); no ports, no binds and no profile, so it starts with the stack like the edge |
+
+For each service that `telemetry.otlp.services` names, the harness sets five variables in that service's `environment`:
+
+| Variable | Value |
+| --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://otlp:4318` |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` |
+| `OTEL_METRIC_EXPORT_INTERVAL` | `2000` |
+| `OTEL_BSP_SCHEDULE_DELAY` | `500` |
+| `OTEL_TRACES_SAMPLER` | `parentbased_always_on` |
+
+The harness file comes after the consumer files, so these keys win over the same keys in the consumer's `environment`, whether written as a map, a list or in an included file. Other services get none of them. The receiver is reachable only on the internal networks, and the seal assertions that confine every harness service (`services.ports`, `services.networks`, `mounts.binds`) confine it too.
 
 On Linux the `runner` service runs as the hub's uid:gid so it can write `work/e2e` (700) and read the private env (600) that the hub owns; a hub running as root keeps the image user `65532:65532`. On Docker Desktop (macOS) the file sharing layer maps ownership, so the image user stays.
 
 Collector ids are the `.ts` basenames under `scripts.collectors`. They must match `^[a-z][a-z0-9-]{1,40}$`, and `runner`, `logs`, `services` and `supervisor` are reserved for the hub's own signal sources. The secret sources and env outputs of the declaration are also treated as credential file names in the run record.
 
-Each carries `io.cockpit.role`, and so does the builder (`builder`). Before any seal assertion, the rendered config (`docker compose config --format json` with every profile) must hold exactly one service per role, and every service must carry the labels of the run.
+Each carries `io.cockpit.role`, and so does the builder (`builder`). Before any seal assertion, the rendered config (`docker compose config --format json` with every profile) must hold exactly one service per role (`otlp` only when telemetry is declared), and every service must carry the labels of the run.
 
 ## SQL port
 
@@ -90,7 +103,7 @@ Each entry of `databases` names, in `port`, the offset whose edge port publishes
 
 ## OTLP receiver
 
-`cockpit-runner otlp <listen address>` receives OTLP/HTTP exports from the services of a run and prints what it receives as JSON lines on stdout. The code lives in `internal/runner/otlp`. It takes exactly one argument, a listen address such as `:4318`; a missing, extra or malformed argument, or an address it cannot listen on, exits 2. It serves until it receives SIGTERM or an interrupt, waits up to 5 s for requests in flight, and exits 0.
+`cockpit-runner otlp <listen address>` receives OTLP/HTTP exports from the services of a run and prints what it receives as JSON lines on stdout. The harness runs it as the `otlp` service. The code lives in `internal/runner/otlp`. It takes exactly one argument, a listen address such as `:4318`; a missing, extra or malformed argument, or an address it cannot listen on, exits 2. It serves until it receives SIGTERM or an interrupt, waits up to 5 s for requests in flight, and exits 0.
 
 | Request | Answer |
 | --- | --- |

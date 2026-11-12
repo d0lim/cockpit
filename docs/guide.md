@@ -37,7 +37,7 @@ The runner image runs as uid `65532`. On Linux, make the state directory writabl
 hostApi: 1
 ```
 
-The runner exits with code 2 when the file is missing, has no `hostApi`, or names a different host API than the runner serves. The remaining declaration fields (compose files, services, secrets, port slots) belong to the sealed-run hub and are ignored by the runner; [Running on the hub](hub.md) explains them.
+The runner exits with code 2 when the file is missing, has no `hostApi`, or names a different host API than the runner serves. The remaining declaration fields (compose files, services, secrets, port slots, service telemetry) belong to the sealed-run hub and are ignored by the runner; [Running on the hub](hub.md) explains them.
 
 ## Public env and the request allowlist
 

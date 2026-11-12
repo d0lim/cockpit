@@ -76,6 +76,9 @@ scripts:
   dir: e2e
   suites: e2e/suites
   collectors: e2e/collectors
+telemetry:
+  otlp:
+    services: [api, worker]
 ```
 
 For MySQL the database entry differs only in what the names mean: `readSchemas` lists databases, `database` (optional) is the default database for unqualified table names and must be one of them, and `rootUser` defaults to `root`:
@@ -91,6 +94,7 @@ Every path is relative to the repository root, and a path may lead into a git su
 - **`compose.files`** is the whole file set, in order. A consumer keeps its own `compose.yaml` and adds an overlay for what only the sealed run needs (fakes, healthchecks, env overrides). Do not add the runner overlay that `cockpit init` writes: the hub generates its own harness, and it removes every published `ports:` entry of the consumer. A declared file may pull in other files with compose `include:`, such as the stacks of submodules. The hub follows them from the commit, a top-level include path resolves against `compose.projectDirectory`, and every include value must stay inside the commit ([harness](harness.md#compose-includes)).
 - **`ports`** publishes a service on the host. Offset `n` is reachable at `127.0.0.1:<base + n>` while the run's environment is up, and its name is how collectors reach it (`ctx.http`, `databases[].port`). Offset 99 is reserved for the seal probe.
 - **`databases`** lets collectors read a database through `ctx.sql.query(name, ...)`, where `name` is `databases[].name`. The database must also be published under `ports`. `rootSecret` is a key in a `dotenv` source of `secrets.sources`; the hub logs in as `rootUser` (default `postgres` or `root`) with that value only to create a read-only user for the run, and reads as that user. For PostgreSQL `readSchemas` are schemas inside `database` (default `postgres`), and the reader can select from the tables that exist when the collectors start; name the role that creates later tables in `ownerRole`. For MySQL `readSchemas` are databases.
+- **`telemetry.otlp.services`** names the compose services that export OpenTelemetry traces and metrics. The hub then adds the `otlp` receiver to the run and sets the standard `OTEL_*` variables in each named service, pointing its exporter at `http://otlp:4318` over HTTP with protobuf, with metrics every 2 s, spans batched every 500 ms and parent-based sampling that keeps every request the runner sends ([harness](harness.md#generated-harness) lists the five variables). A service whose OpenTelemetry SDK reads these variables needs nothing else; one that maps only some of them, such as Spring Boot, also sets its own properties in the overlay. Each name must be a service of the compose files, and not the builder. Telemetry never leaves the run's internal networks.
 - **`scripts`**: suites are `<scripts.suites>/<name>.ts`, collectors `<scripts.collectors>/<id>.ts`, and both directories sit inside `scripts.dir`, which is what the runner sees as `/work/scripts`. `env.json` lives at the top of `scripts.dir`.
 
 The hub checks the declaration in a fixed order and rejects a submit with the first problem's kind and field; the table is in [harness](harness.md#reading-the-declaration).

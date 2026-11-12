@@ -18,7 +18,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 
 | # | Name | Expectation |
 | --- | --- | --- |
-| 1 | `roles.present` | Exactly one service holds each harness role (`edge`, `runner`, `probe`, `probe-control`, and `builder` when declared), and every service carries the run labels. Without this, an empty or partial render would pass the rest vacuously. |
+| 1 | `roles.present` | Exactly one service holds each harness role (`edge`, `runner`, `probe`, `probe-control`, `otlp` when `telemetry.otlp.services` names a service, and `builder` when declared), and every service carries the run labels. Without this, an empty or partial render would pass the rest vacuously. |
 | 2 | `files.overlays` | No compose file the render reads (the declared files, every file they include, and the harness) matches an entry of `compose.forbidden`. |
 | 3 | `networks.set` | `default` and `egress` exist, and no network is external. |
 | 4 | `networks.internal` | Every network other than `egress` is internal. |
@@ -31,7 +31,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 11 | `edge.listen` | The edge listens only on the container ports of the declared offsets (`30000 + offset`). |
 | 12 | `edge.host-ip` | Every edge port binds `127.0.0.1`. |
 | 13 | `edge.published` | Published ports are the declared offsets inside the leased block, distinct, and as many as the targets. |
-| 14 | `mounts.binds` | Bind sources resolve by real path under `build/` for the builder, under `work/` for the runner, under `src/` for project services; the edge and the probes bind nothing. A path that cannot be resolved is a violation. |
+| 14 | `mounts.binds` | Bind sources resolve by real path under `build/` for the builder, under `work/` for the runner, under `src/` for project services; the edge, the probes and `otlp` bind nothing. A path that cannot be resolved is a violation. |
 | 15 | `mounts.sockets` | No socket is bound. |
 | 16 | `volumes.named` | Named volumes are project-owned (`local` driver, no `driver_opts`), and an external volume may serve only the builder. |
 | 17 | `privileges.privileged` | `privileged` appears nowhere. |
