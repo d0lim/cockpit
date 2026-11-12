@@ -21,6 +21,7 @@ var signalMutations = []porttest.Mutation{
 	{"oversized signals are refused", "drop the MaxBytes check", "red: a 100 KiB event is stored", "TestSignalOverTheSizeLimitIsPortLimitAndOneWithinItIsStored"},
 	{"refusals pass the masker", "build the refusal without mask", "red: the planted value shows in the error", "TestRefusalMessagesPassTheMasker"},
 	{"the port carries a metric's unit, type and histogram", "build MetricBody from the name and the value only", "red: the stored metric has no histogram", "TestACollectorHistogramIsStoredWithItsCountAndSum"},
+	{"metric-only fields do not constrain events and spans", "move unit, type and histogram back into the shared input struct", "red: an event whose type is a number is PORT_BAD_ARGS", "TestAnEventOrSpanCarryingTypeOrHistogramKeysIsStoredAsBefore"},
 	{"bodies are checked per kind", "skip the metric and span field checks", "red: a metric without a value is stored", "TestIncompleteBodiesAndUnknownMethodsAreBadArgs"},
 }
 
@@ -105,6 +106,24 @@ func TestACollectorHistogramIsStoredWithItsCountAndSum(t *testing.T) {
 	_, err := p.Call(context.Background(), "metric", raw(`{"name":"latency","value":9,"type":"histogram","histogram":{"count":3,"sum":0.6}}`))
 	if codeOf(err) != engine.PortBadArgs || !strings.Contains(err.Error(), "must equal its sum") || len(read(t, s)) != 1 {
 		t.Fatalf("a histogram whose value is not its sum: %v", err)
+	}
+}
+
+func TestAnEventOrSpanCarryingTypeOrHistogramKeysIsStoredAsBefore(t *testing.T) {
+	s := stream(t)
+	p := &Port{Collector: "toy-db", Store: s}
+	calls := map[string]string{
+		"event": `{"body":"row","type":3,"histogram":"wide","unit":7}`,
+		"span":  `{"traceId":"t1","name":"sync","start":"2026-10-12T07:00:00Z","status":"ok","type":["a"]}`,
+	}
+	for method, in := range calls {
+		if _, err := p.Call(context.Background(), method, raw(in)); err != nil {
+			t.Fatalf("%s: %v", method, err)
+		}
+	}
+	_, err := p.Call(context.Background(), "metric", raw(`{"name":"rows","value":1,"type":3}`))
+	if codeOf(err) != engine.PortBadArgs || len(read(t, s)) != 2 {
+		t.Fatalf("canary: a metric whose type is a number: %v, stored %d", err, len(read(t, s)))
 	}
 }
 

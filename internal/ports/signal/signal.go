@@ -24,23 +24,26 @@ type Port struct {
 }
 
 type input struct {
-	TS        string                  `json:"ts"`
-	TSSource  contract.TimeSource     `json:"tsSource"`
-	ID        string                  `json:"id"`
-	Rev       int                     `json:"rev"`
-	Attrs     contract.Attrs          `json:"attrs"`
-	Name      string                  `json:"name"`
-	Value     *float64                `json:"value"`
+	TS       string              `json:"ts"`
+	TSSource contract.TimeSource `json:"tsSource"`
+	ID       string              `json:"id"`
+	Rev      int                 `json:"rev"`
+	Attrs    contract.Attrs      `json:"attrs"`
+	Name     string              `json:"name"`
+	Value    *float64            `json:"value"`
+	Body     string              `json:"body"`
+	TraceID  string              `json:"traceId"`
+	ParentID string              `json:"parentId"`
+	Start    string              `json:"start"`
+	End      string              `json:"end"`
+	Status   contract.SpanStatus `json:"status"`
+	Links    []contract.SpanLink `json:"links"`
+}
+
+type metricFields struct {
 	Unit      string                  `json:"unit"`
 	Type      contract.MetricType     `json:"type"`
 	Histogram *contract.HistogramBody `json:"histogram"`
-	Body      string                  `json:"body"`
-	TraceID   string                  `json:"traceId"`
-	ParentID  string                  `json:"parentId"`
-	Start     string                  `json:"start"`
-	End       string                  `json:"end"`
-	Status    contract.SpanStatus     `json:"status"`
-	Links     []contract.SpanLink     `json:"links"`
 }
 
 func (p *Port) mask() ports.Mask {
@@ -72,7 +75,11 @@ func (p *Port) Call(_ context.Context, method string, args []json.RawMessage) (a
 		if in.Value == nil || in.Name == "" {
 			return nil, ports.BadArgs(mask, "metric needs a name and a numeric value")
 		}
-		sig.Kind, sig.Metric = contract.SignalKindMetric, &contract.MetricBody{Name: in.Name, Value: *in.Value, Unit: in.Unit, Type: in.Type, Histogram: in.Histogram}
+		var m metricFields
+		if err := ports.Arg(args, 0, &m, mask, method+" input"); err != nil {
+			return nil, err
+		}
+		sig.Kind, sig.Metric = contract.SignalKindMetric, &contract.MetricBody{Name: in.Name, Value: *in.Value, Unit: m.Unit, Type: m.Type, Histogram: m.Histogram}
 	case "event":
 		sig.Kind, sig.Event = contract.SignalKindEvent, &contract.EventBody{Body: in.Body}
 	case "span":
