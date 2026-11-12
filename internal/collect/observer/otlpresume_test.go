@@ -160,3 +160,23 @@ func TestACancelledFollowLeavesAPartLineForTheNextFollow(t *testing.T) {
 		t.Fatalf("after the next follow the stream holds %v", got)
 	}
 }
+
+func TestALineThatDockerSplitAt16KiBIsJoinedBeforeItIsParsed(t *testing.T) {
+	trace := "w3c:" + tracectx.TraceID(runID)
+	long := serviceSpan(t, trace, "w3c:0000000000000003", "", map[string]any{"service": "app", "pad": strings.Repeat("x", 40000)})
+	w := newOTLPWorld(t, []string{otlpPS("running")}, func(int, string) ([]string, bool) { return nil, true })
+	w.d.handle = func(ctx context.Context, cmd compose.Command) (compose.Result, error) {
+		fmt.Fprintf(cmd.Stdout, "%s %s%s %s%s %s\n", stamp(1), long[:partialSize], stamp(1), long[partialSize:2*partialSize], stamp(1), long[2*partialSize:])
+		<-ctx.Done()
+		return compose.Result{}, nil
+	}
+	w.start(t)
+	span := byID(w.waitSignals(t, 1))["w3c:0000000000000003"]
+	w.stop(t)
+	if pad, _ := span.Attrs["pad"].(string); len(pad) != 40000 || strings.Contains(pad, "2026") {
+		t.Fatalf("the joined span has a pad of %d bytes", len(pad))
+	}
+	if len(long) <= 2*partialSize {
+		t.Fatalf("canary: the line is %d bytes, under two parts", len(long))
+	}
+}

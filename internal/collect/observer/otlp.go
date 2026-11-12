@@ -24,6 +24,7 @@ const (
 	DropRefused  = "refused"
 	otlpVersion  = 1
 	stateRunning = "running"
+	partialSize  = 16 << 10
 	tableAttr    = "table"
 )
 
@@ -138,6 +139,7 @@ func (o *OTLP) line(raw string) {
 		o.count(DropUnparsed)
 		return
 	}
+	text = joinPartials(text)
 	o.mu.Lock()
 	if !o.floor.IsZero() && !at.After(o.floor) {
 		o.mu.Unlock()
@@ -205,4 +207,18 @@ func (o *OTLP) gap() {
 	if err != nil {
 		o.Log.Warn("cannot record the end of the otlp receiver output", "run", o.RunID, "err", o.Mask(err.Error()))
 	}
+}
+
+func joinPartials(text string) string {
+	var b strings.Builder
+	for len(text) > partialSize {
+		stamp, _, ok := strings.Cut(text[partialSize:min(len(text), partialSize+64)], " ")
+		if _, err := time.Parse(time.RFC3339Nano, stamp); !ok || err != nil {
+			break
+		}
+		b.WriteString(text[:partialSize])
+		text = text[partialSize+len(stamp)+1:]
+	}
+	b.WriteString(text)
+	return b.String()
 }
