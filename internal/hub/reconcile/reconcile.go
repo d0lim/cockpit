@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/store"
 )
@@ -200,10 +201,12 @@ func closeInterrupted(ctx context.Context, d Deps, m store.Meta, status string) 
 	if err != nil {
 		return err
 	}
+	ended := d.now()
 	next, err := d.Store.ApplyEvent(m.ID, lifecycle.Observed, lifecycle.Detail{Observation: s.observation}, func(x *store.Meta) {
 		x.FailedStage = m.Phase
 		x.Notice = strings.Join(notes, "; ")
 		x.Pgid = nil
+		x.EndStage(ended, contract.SpanStatusError)
 	})
 	if err != nil {
 		return nil
