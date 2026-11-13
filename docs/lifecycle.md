@@ -208,6 +208,7 @@ Each run records `cockpitVersion`, `hostApi` and, once the runner image is impor
 The prepare stage records `harnessVersion` in the run record, the `compose.HarnessVersion` of the harness it writes into the run directory; a run that never reached that step has none. The harness names the services and role labels of the environment, so a hub addresses a kept environment only when the run's harness version is its own. A run in the kept pool whose recorded version differs, or that has none because an older hub prepared it, is listed and can be kept, unkept, stopped and destroyed, but:
 
 - resume and exec are refused with 409 `CONFLICT_STATE` and the notice `this run's environment was made by harness version <run>, and this hub runs harness version <hub>; it cannot address the services of another harness: destroy the run and submit again`. A run with no recorded version reads `7 or earlier`, because 8 is the first version that records it;
+- its `allowedEvents` leave out `resume`, so the screen offers no resume that the hub would refuse;
 - the hub arms no collector or observer on it, so a reconciled `up` of such a run collects nothing and leaves one warning in the hub log;
 - reconciliation that finds it `resuming` closes the resume as failed with the same notice instead of doing it again.
 
