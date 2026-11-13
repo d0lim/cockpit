@@ -61,8 +61,12 @@ func Docs() map[string]string {
 			"numbers, booleans and null are accepted; `undefined`, holes, objects and arrays are PORT_BAD_ARGS, and so is a count " +
 			"that does not match the placeholders. At most 100 values and 64 KiB, counting the bytes of each string and 8 for any other value (PORT_LIMIT). Pass integers above " +
 			"2^53 as strings.",
+		"MetricBody.histogram": "Present exactly when `type` is `histogram`; `value` then equals its `sum`.",
+		"HistogramBody.bounds": "The ascending upper bounds of the buckets.",
+		"HistogramBody.counts": "The observations per bucket: one entry more than `bounds`, because the last bucket holds everything above the last bound, or both empty.",
 		"SignalPort": "Emits signals into this run's stream under the collector's id. Every string is masked before it is stored. " +
-			"The `runner` time source is reserved for the hub.",
+			"The `runner` time source is reserved for the hub. A signal with an `id` emitted again from the same collector and kind is a revision: " +
+			"reads return the highest `rev`, so a metric series re-sent every interval under one `id` keeps one record. A metric without an `id` keeps every point.",
 		"StatePort.get": "Reads a value this collector stored earlier in this run, or `undefined`.",
 		"StatePort.set": "Stores a string of at most 64 KiB under a key of at most 256 characters; the state survives hub restarts. " +
 			"The key and the value pass the run redactor first, so a credential is stored and read back masked. The redactor's key-name " +

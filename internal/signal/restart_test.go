@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/d0lim/cockpit/internal/contract"
 )
 
 func TestRestartRebuildsTheIndexFromTheFileAndCutsAnIncompleteLastLine(t *testing.T) {
@@ -109,5 +111,34 @@ func TestCompactionShrinksTheFileAndKeepsReadsCountersAndSeqsAcrossRestart(t *te
 	}
 	if resync := readAll(t, again, 1).Resync; resync == nil || resync.From != 2 {
 		t.Fatalf("compacted seqs do not resync: %+v", resync)
+	}
+}
+
+func TestRestartAfterCompactionReplaysOneWinnerPerMetricSeries(t *testing.T) {
+	dir := runDir(t)
+	m := masker(t)
+	c := Caps{Tail: DefaultTail, PerCollector: DefaultPerCollector, PerContainer: DefaultPerContainer, CompactMin: 100}
+	s := openAt(t, dir, c, m)
+	for rev := 1; rev <= 300; rev++ {
+		for _, id := range []string{"requests", "errors"} {
+			mustAppend(t, s, series(id, rev, float64(rev)))
+		}
+		mustAppend(t, s, metric("toy-db", float64(rev)))
+	}
+	before := readAll(t, s, 0)
+	if lines := strings.Count(fileText(t, filepath.Join(dir, Dir, streamFile)), "\n"); lines >= 900 {
+		t.Fatalf("canary: compaction never ran, %d lines", lines)
+	}
+	s.Close()
+	again := openAt(t, dir, c, m)
+	after := readAll(t, again, 0)
+	if !slices.Equal(seqs(after), seqs(before)) || len(after.Signals) != 302 || after.Resync != nil || len(after.Dropped) != 0 {
+		t.Fatalf("before %d %v, after %d %+v %v", len(before.Signals), seqs(before)[298:], len(after.Signals), after.Resync, after.Dropped)
+	}
+	if got := metricValues(after)[300:]; !slices.Equal(got, []float64{300, 300}) {
+		t.Fatalf("series winners %v", got)
+	}
+	if seq, _ := again.Revisions("toy-db", contract.SignalKindMetric, "requests"); seq != 898 {
+		t.Fatalf("winner after restart %d", seq)
 	}
 }

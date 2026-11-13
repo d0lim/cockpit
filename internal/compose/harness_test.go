@@ -16,6 +16,8 @@ var harnessMutations = []porttest.Mutation{
 	{"edge ports are published on loopback only", "publish edge ports without the 127.0.0.1 prefix", "red: an edge port binds every interface", "TestEdgePublishesEveryDeclaredOffsetOnLoopbackAndProxiesToTheDeclaredServicePort"},
 	{"consumer services publish no ports", "drop the !reset ports entry for consumer services", "red: a consumer service keeps its own ports", "TestConsumerServicesLoseTheirPortsAndCarryRunLabelsAndTheBuilderItsRole"},
 	{"runner mounts only work tree paths and only e2e is writable", "bind the run source tree into the runner", "red: a bind outside work/ or a writable scripts bind appears", "TestRunnerBindsOnlyWorkTreePathsAndOnlyE2EIsWritable"},
+	{"otlp runs only when telemetry names a service, on the internal networks with no ports or binds", "emit the otlp service whatever the declaration says, or add egress to its networks", "red: a declaration without telemetry renders otlp, or otlp joins egress", "TestTheOTLPRoleAppearsOnlyWhenTelemetryNamesAService"},
+	{"only named services get the OTLP variables", "set the variables on every consumer service", "red: db, cache or seed carries OTEL_EXPORTER_OTLP_ENDPOINT", "TestNamedServicesGetTheOTLPVariablesAndOthersDoNot"},
 	{"harness containers are confined", "drop read_only and cap_drop from hardened", "red: a harness service runs with a writable root or capabilities", "TestHarnessServicesRunReadOnlyWithoutCapabilitiesAndWithLimits"},
 }
 
@@ -197,7 +199,7 @@ func TestRunnerBindsOnlyWorkTreePathsAndOnlyE2EIsWritable(t *testing.T) {
 		t.Fatalf("%d binds, %d writable", len(binds), writable)
 	}
 	env := service(t, doc, RoleRunner)["environment"].(map[string]any)
-	if env["COCKPIT_RUNNER_IMAGE"] != in.RunnerImage {
+	if env["COCKPIT_RUNNER_IMAGE"] != in.RunnerImage || env["E2E_EXEC_OUT"] != "${E2E_EXEC_OUT:-}" || env["COCKPIT_TRACE_ID"] != "${COCKPIT_TRACE_ID:-}" || len(env) != 3 {
 		t.Fatalf("runner environment %v", env)
 	}
 }
@@ -215,5 +217,66 @@ func TestHarnessServicesRunReadOnlyWithoutCapabilitiesAndWithLimits(t *testing.T
 	}
 	if _, err := Harness(HarnessInput{RunID: runID}); err == nil {
 		t.Fatal("a harness without a runner image was generated")
+	}
+}
+
+func TestTheOTLPRoleAppearsOnlyWhenTelemetryNamesAService(t *testing.T) {
+	doc, _, _ := harnessDoc(t, withNetwork(t))
+	otlp := service(t, doc, RoleOTLP)
+	if got := strings.Join(strs(otlp["command"]), " "); got != "otlp :4318" || otlp["image"] != "cockpit-runner:0123456789ab" {
+		t.Fatalf("otlp command %q image %v", got, otlp["image"])
+	}
+	if got := strings.Join(strs(otlp["networks"]), ","); got != "default,backplane" {
+		t.Fatalf("otlp networks %s", got)
+	}
+	for _, field := range []string{"ports", "volumes", "profiles", "environment", "tmpfs"} {
+		if _, ok := otlp[field]; ok {
+			t.Errorf("otlp has %s: %v", field, otlp[field])
+		}
+	}
+	for name, decl := range map[string]string{"no telemetry block": "", "an empty service list": "telemetry:\n  otlp:\n    services: []\n"} {
+		doc, _, _ := harnessDoc(t, func(d string) {
+			replaceIn(t, d+"/"+DeclarationPath, "telemetry:\n  otlp:\n    services: [app]\n", decl)
+		})
+		if _, ok := doc["services"].(map[string]any)[RoleOTLP]; ok {
+			t.Errorf("%s rendered otlp", name)
+		}
+		if _, ok := service(t, doc, "app")["environment"]; ok {
+			t.Errorf("%s set app environment", name)
+		}
+	}
+}
+
+func TestNamedServicesGetTheOTLPVariablesAndOthersDoNot(t *testing.T) {
+	doc, _, in := harnessDoc(t, nil)
+	env := service(t, doc, "app")["environment"].(map[string]any)
+	want := map[string]string{
+		"OTEL_EXPORTER_OTLP_ENDPOINT": "http://cockpit-otlp:4318",
+		"OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+		"OTEL_METRIC_EXPORT_INTERVAL": "2000",
+		"OTEL_BSP_SCHEDULE_DELAY":     "500",
+		"OTEL_TRACES_SAMPLER":         "parentbased_always_on",
+	}
+	if len(env) != len(want) {
+		t.Fatalf("app environment %v", env)
+	}
+	for key, value := range want {
+		if env[key] != value {
+			t.Errorf("app %s = %v, want %s", key, env[key], value)
+		}
+	}
+	checked := 0
+	for name, raw := range doc["services"].(map[string]any) {
+		if e, ok := raw.(map[string]any)["environment"].(map[string]any); ok && name != "app" && e["OTEL_EXPORTER_OTLP_ENDPOINT"] != nil {
+			t.Errorf("%s carries the OTLP variables", name)
+		}
+		checked++
+	}
+	if checked != len(in.Loaded.Model.Services)+len(HarnessServices) {
+		t.Fatalf("checked %d services", checked)
+	}
+	in.Loaded.Declaration.Telemetry.OTLP.Services = []string{"queue"}
+	if _, err := Harness(in); err == nil || !strings.Contains(err.Error(), `"queue"`) {
+		t.Fatalf("a telemetry service outside the model: %v", err)
 	}
 }

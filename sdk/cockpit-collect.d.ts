@@ -4,10 +4,23 @@ declare module "cockpit:collect" {
 	export interface EventBody {
 		body?: string;
 	}
+	export interface HistogramBody {
+		count: number;
+		sum: number;
+		/** The ascending upper bounds of the buckets. */
+		bounds?: number[];
+		/** The observations per bucket: one entry more than `bounds`, because the last bucket holds everything above the last bound, or both empty. */
+		counts?: number[];
+	}
 	export interface MetricBody {
 		name: string;
 		value: number;
+		unit?: string;
+		type?: MetricType;
+		/** Present exactly when `type` is `histogram`; `value` then equals its `sum`. */
+		histogram?: HistogramBody;
 	}
+	export type MetricType = "gauge" | "sum" | "histogram" | "summary";
 	export interface ReservedAttrs {
 		table?: string;
 		status?: string;
@@ -95,7 +108,7 @@ declare module "cockpit:collect" {
 		/** Sends one GET or HEAD request to an edge port of this run and resolves with the response. The URL is http://<edge name>/path, where the edge name is an offset name from the project declaration; ports, IP addresses, other hosts and redirect responses are refused. */
 		send(method: "GET" | "HEAD", url: string, opts?: { headers?: Record<string, string>; timeoutMs?: number }): Promise<HttpResponse>;
 	}
-	/** Emits signals into this run's stream under the collector's id. Every string is masked before it is stored. The `runner` time source is reserved for the hub. */
+	/** Emits signals into this run's stream under the collector's id. Every string is masked before it is stored. The `runner` time source is reserved for the hub. A signal with an `id` emitted again from the same collector and kind is a revision: reads return the highest `rev`, so a metric series re-sent every interval under one `id` keeps one record. A metric without an `id` keeps every point. */
 	export interface SignalPort {
 		metric(input: SignalInput & MetricBody): void;
 		event(input: SignalInput & EventBody): void;

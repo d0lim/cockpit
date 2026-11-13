@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
@@ -82,7 +83,7 @@ func prepare(ctx context.Context, l *live) (outcome, error) {
 		return outcome{}, err
 	}
 	keys := l.env.Keys
-	if _, err := l.st.PatchMeta(l.id, func(m *store.Meta) { m.ImageKeys = keys }); err != nil {
+	if _, err := l.st.PatchMeta(l.id, func(m *store.Meta) { m.ImageKeys, m.HarnessVersion = keys, compose.HarnessVersion }); err != nil {
 		return outcome{}, err
 	}
 	if err := l.env.SealStatic(ctx); err != nil {
@@ -166,7 +167,26 @@ func runSuite(ctx context.Context, l *live) (outcome, error) {
 	case res.TimedOut:
 		return outcome{}, &stages.Failed{Message: fmt.Sprintf("the suite passed its limit of %s", l.env.Limits.Suite)}
 	}
+	l.drainOTLP(ctx)
+	if ctx.Err() != nil {
+		return outcome{}, errAborted
+	}
 	return outcome{event: lifecycle.Tested}, nil
+}
+
+func (l *live) drainOTLP(ctx context.Context) {
+	limits := l.env.Limits
+	d, ok := l.h.ops.DrainOTLP(ctx, l.id, limits.OTLPQuiet, limits.OTLPDrain)
+	if ok {
+		l.h.o.Log.Info("otlp drained", "run", l.id, "waited", d.Waited.String(), "quiet", d.Quiet)
+	}
+	switch {
+	case !ok, ctx.Err() != nil:
+	case d.Quiet:
+		l.say(fmt.Sprintf("otlp drained after %s", d.Waited.Round(100*time.Millisecond)))
+	default:
+		l.say(fmt.Sprintf("otlp drain stopped at its limit of %s", limits.OTLPDrain))
+	}
 }
 
 func reportStage(ctx context.Context, l *live) (outcome, error) {

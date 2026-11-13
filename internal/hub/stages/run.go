@@ -10,6 +10,7 @@ import (
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/seal"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 func OpenProject(runID string, l compose.Layout, decl contract.Declaration, d compose.Docker, mask func(string) string, log func(string)) (compose.Project, error) {
@@ -22,7 +23,7 @@ func OpenProject(runID string, l compose.Layout, decl contract.Declaration, d co
 
 func ProbeRunner(p compose.Project) seal.RunProbe {
 	return func(ctx context.Context, service string) (seal.ProbeRun, error) {
-		res, err := p.RunService(ctx, compose.RoleProbe, service)
+		res, err := p.RunService(ctx, compose.ProfileProbe, service)
 		return seal.ProbeRun{Code: res.Code, Lines: strings.Split(string(res.Stdout), "\n")}, err
 	}
 }
@@ -125,5 +126,5 @@ func (e *Env) Boot(ctx context.Context) error {
 }
 
 func (e *Env) RunSuite(ctx context.Context, suite string) (compose.RunnerResult, error) {
-	return e.Project.RunRunner(ctx, []string{"run", suite}, nil, e.Limits.Suite)
+	return e.Project.RunRunner(ctx, []string{"run", suite}, []string{"COCKPIT_TRACE_ID=" + tracectx.TraceID(e.RunID)}, e.Limits.Suite)
 }

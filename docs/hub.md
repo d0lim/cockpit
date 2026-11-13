@@ -76,6 +76,9 @@ scripts:
   dir: e2e
   suites: e2e/suites
   collectors: e2e/collectors
+telemetry:
+  otlp:
+    services: [api, worker]
 ```
 
 For MySQL the database entry differs only in what the names mean: `readSchemas` lists databases, `database` (optional) is the default database for unqualified table names and must be one of them, and `rootUser` defaults to `root`:
@@ -91,6 +94,7 @@ Every path is relative to the repository root, and a path may lead into a git su
 - **`compose.files`** is the whole file set, in order. A consumer keeps its own `compose.yaml` and adds an overlay for what only the sealed run needs (fakes, healthchecks, env overrides). Do not add the runner overlay that `cockpit init` writes: the hub generates its own harness, and it removes every published `ports:` entry of the consumer. A declared file may pull in other files with compose `include:`, such as the stacks of submodules. The hub follows them from the commit, a top-level include path resolves against `compose.projectDirectory`, and every include value must stay inside the commit ([harness](harness.md#compose-includes)).
 - **`ports`** publishes a service on the host. Offset `n` is reachable at `127.0.0.1:<base + n>` while the run's environment is up, and its name is how collectors reach it (`ctx.http`, `databases[].port`). Offset 99 is reserved for the seal probe.
 - **`databases`** lets collectors read a database through `ctx.sql.query(name, ...)`, where `name` is `databases[].name`. The database must also be published under `ports`. `rootSecret` is a key in a `dotenv` source of `secrets.sources`; the hub logs in as `rootUser` (default `postgres` or `root`) with that value only to create a read-only user for the run, and reads as that user. For PostgreSQL `readSchemas` are schemas inside `database` (default `postgres`), and the reader can select from the tables that exist when the collectors start; name the role that creates later tables in `ownerRole`. For MySQL `readSchemas` are databases.
+- **`telemetry.otlp.services`** names the compose services that export OpenTelemetry traces and metrics. The hub then adds the `cockpit-otlp` receiver to the run and sets the standard `OTEL_*` variables in each named service, pointing its exporter at `http://cockpit-otlp:4318` over HTTP with protobuf, with metrics every 2 s, spans batched every 500 ms and parent-based sampling that keeps every request the runner sends ([harness](harness.md#generated-harness) lists the five variables). A service whose OpenTelemetry SDK reads these variables needs nothing else; one that maps only some of them, such as Spring Boot, also sets its own properties in the overlay. Each name must be a service of the compose files, and not the builder. Telemetry never leaves the run's internal networks.
 - **`scripts`**: suites are `<scripts.suites>/<name>.ts`, collectors `<scripts.collectors>/<id>.ts`, and both directories sit inside `scripts.dir`, which is what the runner sees as `/work/scripts`. `env.json` lives at the top of `scripts.dir`.
 
 The hub checks the declaration in a fixed order and rejects a submit with the first problem's kind and field; the table is in [harness](harness.md#reading-the-declaration).
@@ -160,7 +164,7 @@ export default collector({
 ```
 
 - **When it runs**: first when the environment is ready, alongside the suite, then every `intervalMs` (1000 to 3600000) while the environment is up, and once more when the report is written. Without `intervalMs` it runs only at the report.
-- **Revisions**: an event with an `id` that is emitted again replaces the earlier one on reads, and an unchanged row is not stored twice, so emitting every row on every run is the intended pattern. Add `rev` to order revisions explicitly.
+- **Revisions**: an event or a metric with an `id` that is emitted again replaces the earlier one on reads, and an unchanged row is not stored twice, so emitting every row, or every series total, on every run is the intended pattern. Add `rev` to order revisions explicitly. A metric series that re-sends its total under one `id` needs no `rev`, because the later record wins a tie; a `rev` that starts again from 1 after a restart loses to the earlier highest one. A metric without an `id` keeps every point. A metric may also carry a `unit`, a `type` and a `histogram`, as [signals](signals.md#metric-bodies) describes.
 - **Attributes the screen reads**: `table` groups events into one table per name in the Table view, `status` and `tone` color the row, `label` titles it, and the keys of a JSON `body` become table columns. A `ref.<name>` attribute relates the row to the steps that marked the same id; declare only the ids that identify the row and keep parent ids in the body, as [correlation keys](guide.md#correlation-keys-and-request-records) explains.
 - **Ports**: `ctx.sql`, `ctx.http` (GET and HEAD to the declared port names), `ctx.docker` (logs, service states, and `exec` of argv prefixes listed in `exec.allow`) and `ctx.state` for a cursor between runs of the collector. The declarations in `@d0lim/cockpit-sdk` document each one.
 - **Where to see it**: the run's Signals screen lists each collector with its state and failure count, and `GET /api/runs/<id>/signals` returns the same under `collectors`. A passed verdict says nothing about collectors.
@@ -178,7 +182,7 @@ cockpit runs submit --wait
 `submit` sends the repository of the current directory at `HEAD` (or `--commit`), and with one suite in the commit picks it; otherwise name it with `--suite`. The exit code follows the verdict (`0` passed, `1` failed, `2` error; the full table is in [api](api.md#cli)). Then:
 
 - `cockpit runs report <id>` prints the flows and steps, and the screen at `/runs/<id>` shows the report, each flow's steps with their requests and refs, and the signals.
-- When the run ends its containers stop, and the environment stays in the kept pool. `cockpit runs resume <id>` brings it back, `cockpit runs exec <id> -- <flow>` reruns one flow against it, and `cockpit runs destroy <id>` removes it. The report bundle stays after a destroy.
+- When the run ends its containers stop, and the environment stays in the kept pool. `cockpit runs resume <id>` brings it back, `cockpit runs exec <id> -- <flow>` reruns one flow against it, and `cockpit runs destroy <id>` removes it. The report bundle stays after a destroy. A cockpit upgrade that changes the harness version keeps the runs of the old hub listed, but refuses to resume them or run exec in them: destroy them and submit again ([Harness version](lifecycle.md#harness-version)).
 
 ## Common refusals
 

@@ -40,3 +40,6 @@ kit:
   notes: |
     The app accepts orders only with the bearer token in `e2e.private.env.json` under `local.appToken`.
     Valkey keys are named `order:<id>`; read them with `valkey-cli GET order:<id>` inside the `cache` container.
+telemetry:
+  otlp:
+    services: [app]

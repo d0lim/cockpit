@@ -37,7 +37,7 @@ The runner image runs as uid `65532`. On Linux, make the state directory writabl
 hostApi: 1
 ```
 
-The runner exits with code 2 when the file is missing, has no `hostApi`, or names a different host API than the runner serves. The remaining declaration fields (compose files, services, secrets, port slots) belong to the sealed-run hub and are ignored by the runner; [Running on the hub](hub.md) explains them.
+The runner exits with code 2 when the file is missing, has no `hostApi`, or names a different host API than the runner serves. The remaining declaration fields (compose files, services, secrets, port slots, service telemetry) belong to the sealed-run hub and are ignored by the runner; [Running on the hub](hub.md) explains them.
 
 ## Public env and the request allowlist
 
@@ -108,7 +108,9 @@ ctx.capture("transferId", tx.id);
 ctx.ref("transaction", tx.id);
 ```
 
-The runner also records every request a step sends: method, host, path (never the query or a body), status, duration and start time, at most 50 per step. Paths pass the runner masker, so an id appears in a path only after the flow marked it with `ref`.
+The runner also records every request a step sends: method, host, path (never the query or a body), status, duration, start time and the span id of its `traceparent`, at most 50 per step. Paths pass the runner masker, so an id appears in a path only after the flow marked it with `ref`.
+
+Every request carries a W3C `traceparent` header whose trace id belongs to the run, so a service that exports traces can have its spans shown under the request that caused them ([Trace context](signals.md#trace-context)). To send a request under a trace of your own, set `traceparent` in `headers`: your value goes out unchanged, and the request records its span id when it parses. The runner adds its own `traceparent` only when the hub passes `COCKPIT_TRACE_ID`, so a runner started by hand sends none. Spans that a service starts on its own, such as scheduled jobs, have no request behind them and follow the service's own sampling.
 
 The hub turns refs into attributes `ref.<name>` of the step's span and each request into a span under it (`docs/signals.md`). Collectors that put the same values in their own `ref.<name>` attributes let the screen link a database row, a notification or a log line back to the step and request that caused it ([Running on the hub](hub.md#collectors)).
 
@@ -139,9 +141,11 @@ const { value } = await poll(
 ## Running
 
 ```sh
-docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run <suite>
-docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run <suite> --flow <id> [--flow <id>]...
+docker compose -f compose.yaml -f compose.cockpit.yaml run --rm cockpit-runner run <suite>
+docker compose -f compose.yaml -f compose.cockpit.yaml run --rm cockpit-runner run <suite> --flow <id> [--flow <id>]...
 ```
+
+An overlay written by an older `cockpit init` names the service `runner`, so those commands say `run --rm runner`. It keeps working under that name, because the hub never reads this overlay; rename the service to `cockpit-runner` if you want the commands above to match.
 
 A full run executes every flow in order and writes `manifest.json` when it starts and `result.json` as each step finishes. It does not consult the ledger before starting, so run it against a fresh environment: a new compose project and an empty state directory.
 

@@ -42,21 +42,29 @@ templ traceView(st *state, snap signalSnapshot, all []contract.Signal) {
 					<table class="grid-table">
 						<thead><tr><th>Root</th><th>Start</th><th>Length</th><th>Status</th><th>Spans</th></tr></thead>
 						<tbody>
-							for _, t := range traces {
-								<tr class={ templ.KV("row-on", t.id == picked) }>
-									<td>
-										<a class="link" href={ templ.SafeURL(st.href(map[string][]string{"trace": {t.id}, "span": nil})) }>{ t.root }</a>
-										if t.exec {
-											<span class="text-xs text-muted">exec</span>
-										}
-									</td>
-									<td>{ stamp(t.start) }</td>
-									<td>{ durationText(t.duration) }</td>
-									<td>
-										@badge(spanTone(t.status), string(t.status))
-									</td>
-									<td>{ itoa(t.spans) }</td>
-								</tr>
+							if listed, hidden := listedTraces(traces, picked); true {
+								for _, t := range listed {
+									<tr class={ templ.KV("row-on", t.id == picked) }>
+										<td>
+											<a class="link" href={ templ.SafeURL(st.href(map[string][]string{"trace": {t.id}, "span": nil})) }>{ t.root }</a>
+											if t.exec {
+												<span class="text-xs text-muted">exec</span>
+											}
+											if t.service {
+												<span class="text-xs text-muted">service</span>
+											}
+										</td>
+										<td>{ stamp(t.start) }</td>
+										<td>{ durationText(t.duration) }</td>
+										<td>
+											@badge(spanTone(t.status), string(t.status))
+										</td>
+										<td>{ itoa(t.spans) }</td>
+									</tr>
+								}
+								if hidden > 0 {
+									<tr><td colspan="5" class="text-sm text-muted">{ itoa(hidden) } older service traces are not listed</td></tr>
+								}
 							}
 						</tbody>
 					</table>

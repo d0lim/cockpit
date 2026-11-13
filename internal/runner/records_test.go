@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 const recordSuite = `import { type Ctx, flow, json, stage, step, suite } from "cockpit:flow";
@@ -44,11 +45,17 @@ export default suite({
 
 func recordSteps(t *testing.T) []contract.ResultStep {
 	t.Helper()
+	steps, _ := tracedRecordSteps(t, nil)
+	return steps
+}
+
+func tracedRecordSteps(t *testing.T, extra map[string]string) ([]contract.ResultStep, *world) {
+	t.Helper()
 	w := newWorld(t, core, nil)
 	if err := os.WriteFile(filepath.Join(w.scripts, "suites", "fake.ts"), []byte(recordSuite), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got := w.run(nil); got.code != 0 {
+	if got := w.run(extra); got.code != 0 {
 		t.Fatalf("exit %d stderr %v", got.code, got.stderr)
 	}
 	raw, _ := os.ReadFile(filepath.Join(w.dir, "result.json"))
@@ -57,7 +64,7 @@ func recordSteps(t *testing.T) []contract.ResultStep {
 	}
 	var result contract.Result
 	w.read("result.json", &result)
-	return result.Steps
+	return result.Steps, w
 }
 
 func TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs(t *testing.T) {
@@ -85,5 +92,37 @@ func TestARefOfAPrivateValueOrACredentialShapeIsRefusedAndAShortPrivateValueBloc
 	refuse := recordSteps(t)[2]
 	if refuse.Status != contract.StepStatusPassed || !slices.Equal(refuse.Refs, []contract.StepRef{{Name: "item", Value: "id-5432-ab"}}) {
 		t.Fatalf("refuse step %+v", refuse)
+	}
+}
+
+func TestTheStepCallCarriesTheSpanIDThatWasSent(t *testing.T) {
+	runTrace := tracectx.TraceID("run-20261012-153001-997a37e")
+	steps, w := tracedRecordSteps(t, map[string]string{"COCKPIT_TRACE_ID": runTrace})
+	calls := steps[0].Calls
+	if len(calls) != 4 || len(w.parents) != 4 {
+		t.Fatalf("%d calls recorded, %d requests received", len(calls), len(w.parents))
+	}
+	for i, c := range calls {
+		trace, span, ok := tracectx.Parse(w.parents[i])
+		if !ok || trace != runTrace || c.SpanID != span {
+			t.Fatalf("call %d recorded span id %q, the server received %q", i, c.SpanID, w.parents[i])
+		}
+	}
+}
+
+func TestARunnerWithoutATraceIDSendsNoTraceparentAndAMalformedTraceIDRefusesToStart(t *testing.T) {
+	steps, w := tracedRecordSteps(t, nil)
+	if len(steps[0].Calls) != 4 || len(w.parents) != 4 {
+		t.Fatalf("%d calls recorded, %d requests received", len(steps[0].Calls), len(w.parents))
+	}
+	for i, c := range steps[0].Calls {
+		if c.SpanID != "" || w.parents[i] != "" {
+			t.Fatalf("call %d without a trace id recorded %q and sent %q", i, c.SpanID, w.parents[i])
+		}
+	}
+	bad := newWorld(t, core, nil)
+	got := bad.run(map[string]string{"COCKPIT_TRACE_ID": strings.ToUpper(tracectx.TraceID("run-x"))})
+	if got.code != 2 || !strings.Contains(strings.Join(got.stderr, "\n"), "COCKPIT_TRACE_ID") || len(bad.calls) != 0 {
+		t.Fatalf("malformed trace id: exit %d stderr %v calls %v", got.code, got.stderr, bad.calls)
 	}
 }

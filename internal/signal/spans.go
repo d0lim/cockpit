@@ -5,15 +5,48 @@ import (
 )
 
 const (
-	RunSpanID  = "run"
-	ExecSpanID = "exec"
+	RunSpanID         = "run"
+	ExecSpanID        = "exec"
+	PipelineCollector = "pipeline"
+	PipelineSpanID    = "pipeline"
+	StageSpanPrefix   = "stage:"
+	SuiteStageSpanID  = StageSpanPrefix + "suite"
 )
 
 type spanRoot struct {
 	traceID string
 	id      string
+	parent  string
 	name    string
 	links   []contract.SpanLink
+}
+
+type Stage struct {
+	Name   string
+	Start  string
+	End    string
+	Status contract.SpanStatus
+}
+
+func hubSpan(sig contract.Signal) contract.Signal {
+	sig.Collector, sig.TSSource = PipelineCollector, contract.TimeSourceHost
+	return sig
+}
+
+func StageSpans(runID string, stages []Stage) []contract.Signal {
+	if len(stages) == 0 {
+		return nil
+	}
+	root := spanRoot{traceID: runID, id: PipelineSpanID, name: PipelineSpanID}
+	whole := Stage{Start: stages[0].Start, End: stages[0].End, Status: contract.SpanStatusOK}
+	out := make([]contract.Signal, 1, len(stages)+1)
+	for _, st := range stages {
+		whole.Start, whole.End, whole.Status = min(whole.Start, st.Start), max(whole.End, st.End), worse(whole.Status, st.Status)
+		attrs := contract.Attrs{"stage": st.Name, "status": string(st.Status)}
+		out = append(out, hubSpan(span(root, StageSpanPrefix+st.Name, root.id, st.Name, st.Start, st.End, st.Status, attrs, nil)))
+	}
+	out[0] = hubSpan(span(root, root.id, "", root.name, whole.Start, whole.End, whole.Status, contract.Attrs{"status": string(whole.Status)}, nil))
+	return out
 }
 
 func stepStatus(s contract.StepStatus) contract.SpanStatus {
@@ -80,17 +113,19 @@ func build(root spanRoot, res contract.Result, exitedAt string) []contract.Signa
 	if !res.Complete {
 		end, runStatus = exitedAt, contract.SpanStatusIncomplete
 	}
-	rootSpan := span(root, root.id, "", root.name, res.StartedAt, end, runStatus, contract.Attrs{"status": string(runStatus)}, root.links)
+	rootSpan := span(root, root.id, root.parent, root.name, res.StartedAt, end, runStatus, contract.Attrs{"status": string(runStatus)}, root.links)
 	return append(append([]contract.Signal{rootSpan}, out...), steps...)
 }
 
 func RunSpans(runID string, res contract.Result, exitedAt string) []contract.Signal {
-	return build(spanRoot{traceID: runID, id: RunSpanID, name: res.Suite}, res, exitedAt)
+	return build(spanRoot{traceID: runID, id: RunSpanID, parent: SuiteStageSpanID, name: res.Suite}, res, exitedAt)
 }
+
+func ExecTrace(runID, execName string) string { return runID + "/exec/" + execName }
 
 func ExecSpans(runID, execName string, res contract.ExecResult, exitedAt string) []contract.Signal {
 	root := spanRoot{
-		traceID: runID + "/exec/" + execName,
+		traceID: ExecTrace(runID, execName),
 		id:      ExecSpanID,
 		name:    res.Target,
 		links:   []contract.SpanLink{{TraceID: runID, SpanID: RunSpanID}},

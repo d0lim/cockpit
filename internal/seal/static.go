@@ -33,6 +33,7 @@ type Input struct {
 	PortBase    int
 	Ports       []contract.PortOffset
 	Builder     string
+	OTLP        bool
 	RunnerImage string
 	Realpath    func(path string) (string, bool)
 }
@@ -140,7 +141,7 @@ func roles(in Input) Result {
 		err = json.Unmarshal(data, &r)
 	}
 	if err == nil {
-		err = compose.AssertRoles(r, in.RunID, in.Builder)
+		err = compose.AssertRoles(r, in.RunID, in.Builder, in.OTLP)
 	}
 	if err != nil {
 		return result("roles.present", expected, []string{err.Error()})

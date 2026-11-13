@@ -7,10 +7,12 @@ import {
 	type DockerPort,
 	type EdgeHttpPort,
 	type EventBody,
+	type HistogramBody,
 	type ExecOutput,
 	type HttpResponse,
 	type LogOptions,
 	type MetricBody,
+	type MetricType,
 	type ReservedAttrKey,
 	type ReservedAttrs,
 	type ServiceState,
@@ -33,6 +35,7 @@ const keys: ReservedAttrKey[] = ["table", "status", "label", "tone"];
 const tones: Tone[] = ["ok", "warn", "bad", "idle", "info"];
 const sources: TimeSource[] = ["host", "container", "runner"];
 const statuses: SpanStatus[] = ["ok", "error", "incomplete"];
+const metricTypes: MetricType[] = ["gauge", "sum", "histogram", "summary"];
 const reserved: ReservedAttrs = { table: "orders", status: "open", label: "Orders", tone: "ok" };
 const attrs: Attrs = { ...reserved, extra: values[0] ?? "text", count: 2, flag: false };
 const input: SignalInput = { ts: "2026-10-15T00:00:00.000Z", tsSource: "container", id: "s-1", rev: 1, attrs };
@@ -89,6 +92,11 @@ function useSignal(signal: SignalPort, n: number): void {
 	const span: SpanBody = { traceId: "t-1", parentId: "s-0", name: "order", start: "2026-10-15T00:00:00.000Z", end: "2026-10-15T00:00:01.000Z", status: statuses[0] ?? "ok", links: [link] };
 	const emitted: void = signal.metric({ ...input, ...metric });
 	signal.metric(metric);
+	const histogram: HistogramBody = { count: 3, sum: 0.6, bounds: [0.1, 0.5], counts: [1, 1, 1] };
+	const latency: MetricBody = { name: "latency", value: histogram.sum, unit: "s", type: metricTypes[2] ?? "histogram", histogram };
+	signal.metric({ ...input, ...latency });
+	signal.metric({ name: "requests", value: n, unit: "1", type: "sum" });
+	signal.metric({ name: "empty", value: 0, type: "histogram", histogram: { count: 0, sum: 0 } });
 	signal.event({ ...input, ...event });
 	signal.event({});
 	signal.span({ ...input, ...span });

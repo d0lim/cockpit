@@ -25,7 +25,7 @@ func TestStagesMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 
 func TestDefaultLimitsAreSixtyMinutesBuildTenBootTwentySuiteAndTwoForOneShotCalls(t *testing.T) {
 	l := DefaultLimits()
-	if l.Build != 60*time.Minute || l.Boot != 10*time.Minute || l.Suite != 20*time.Minute || l.Call != 2*time.Minute || l.Poll <= 0 {
+	if l.Build != 60*time.Minute || l.Boot != 10*time.Minute || l.Suite != 20*time.Minute || l.Call != 2*time.Minute || l.Poll <= 0 || l.OTLPQuiet != 2500*time.Millisecond || l.OTLPDrain != 10*time.Second {
 		t.Fatalf("limits %+v", l)
 	}
 }

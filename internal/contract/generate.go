@@ -58,6 +58,7 @@ func Enums() []Enum {
 		enum(TimeSourceHost, TimeSourceContainer, TimeSourceRunner),
 		enum(ToneOK, ToneWarn, ToneBad, ToneIdle, ToneInfo),
 		enum(SpanStatusOK, SpanStatusError, SpanStatusIncomplete),
+		enum(MetricTypeGauge, MetricTypeSum, MetricTypeHistogram, MetricTypeSummary),
 	}
 }
 

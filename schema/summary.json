@@ -172,6 +172,9 @@
                       },
                       "durationMs": {
                         "type": "integer"
+                      },
+                      "spanId": {
+                        "type": "string"
                       }
                     },
                     "required": [

@@ -99,6 +99,11 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 		t.Fatalf("the frozen copy holds %d run trace spans, run span %+v", len(trace), run.Span)
 	}
 	t.Logf("run trace spans in the frozen copy: %d", len(trace))
+	underCalls, series := otlpTree(t, frozenSignals(t, hub, m.ID), m.ID)
+	t.Logf("frozen otlp spans under a call span: %d, otlp metric series: %d", underCalls, series)
+	if underCalls < 1 || series < 1 {
+		t.Fatalf("the frozen copy holds %d otlp spans under a call and %d otlp metric series", underCalls, series)
+	}
 	if strings.Contains(text, token) || !strings.Contains(summary, "token ****") {
 		t.Fatalf("the bundle holds the app token or the runner line is missing:\n%s", summary)
 	}
@@ -108,6 +113,8 @@ func TestIntegrationToySubmissionPassesThroughTheHubPipelineThenExecsStopsResume
 	} else {
 		t.Logf("exec health: %+v", r.Result)
 	}
+	execSpans := waitExecServiceSpans(t, hub, m.ID)
+	t.Logf("otlp spans in an exec trace: %d", execSpans)
 	frozen := fileText(t, filepath.Join(dir, "report", "signals", "stream.jsonl"))
 	for _, want := range []string{`"collector":"pulse"`, `"collector":"services"`, `"collector":"logs"`} {
 		if !strings.Contains(frozen, want) {

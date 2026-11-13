@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"net"
+	"runtime/debug"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/d0lim/cockpit/internal/runner/otlp"
 )
 
 func call(args ...string) (int, string, string) {
@@ -33,7 +37,7 @@ func TestNoArgumentsOrUnknownCommandPrintsUsageAndExitsTwo(t *testing.T) {
 }
 
 func TestSubcommandArgumentErrorsExitTwoWithReason(t *testing.T) {
-	cases := [][]string{{"run"}, {"run", "Bad/name"}, {"probe"}, {"probe", "x"}, {"probe", "70000"}, {"edge", "nope"}}
+	cases := [][]string{{"run"}, {"run", "Bad/name"}, {"probe"}, {"probe", "x"}, {"probe", "70000"}, {"edge", "nope"}, {"otlp"}, {"otlp", "4318"}, {"otlp", ":70000"}, {"otlp", ":4318", ":4319"}}
 	for _, args := range cases {
 		code, _, errOut := call(args...)
 		if code != 2 || errOut == "" {
@@ -70,5 +74,60 @@ func TestAnEdgeWithNoRoutesWaitsForTheContextAndReturnsZero(t *testing.T) {
 	cancel()
 	if code := <-done; code != 0 || errOut.Len() != 0 {
 		t.Fatalf("exit %d stderr %q", code, errOut.String())
+	}
+}
+
+func TestOTLPReturnsZeroWhenContextEnds(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	var out, errOut bytes.Buffer
+	go func() {
+		done <- run(ctx, []string{"otlp", "127.0.0.1:0"}, func(string) string { return "" }, &out, &errOut)
+	}()
+	select {
+	case code := <-done:
+		t.Fatalf("the receiver returned %d before its context ended: %q", code, errOut.String())
+	case <-time.After(50 * time.Millisecond):
+	}
+	cancel()
+	if code := <-done; code != 0 || out.Len() != 0 || !strings.Contains(errOut.String(), "otlp receiver listening") {
+		t.Fatalf("exit %d stdout %q stderr %q", code, out.String(), errOut.String())
+	}
+}
+
+func TestOTLPExitsTwoWhenItsAddressIsTaken(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	if code, _, errOut := call("otlp", ln.Addr().String()); code != 2 || errOut == "" {
+		t.Fatalf("exit %d stderr %q", code, errOut)
+	}
+}
+
+func TestOTLPSetsASoftMemoryLimitUnlessTheEnvironmentSetsOne(t *testing.T) {
+	before := debug.SetMemoryLimit(-1)
+	t.Cleanup(func() { debug.SetMemoryLimit(before) })
+	serve := func(env string) int64 {
+		debug.SetMemoryLimit(math.MaxInt64)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		var out, errOut bytes.Buffer
+		if code := run(ctx, []string{"otlp", "127.0.0.1:0"}, func(k string) string {
+			if k == "GOMEMLIMIT" {
+				return env
+			}
+			return ""
+		}, &out, &errOut); code != 0 {
+			t.Fatalf("exit %d stderr %q", code, errOut.String())
+		}
+		return debug.SetMemoryLimit(-1)
+	}
+	if got := serve(""); got != otlp.MemoryLimit {
+		t.Fatalf("soft memory limit %d without GOMEMLIMIT, want %d", got, otlp.MemoryLimit)
+	}
+	if got := serve("1GiB"); got != math.MaxInt64 {
+		t.Fatalf("soft memory limit %d with GOMEMLIMIT set, want the runtime's own value left alone", got)
 	}
 }

@@ -14,6 +14,7 @@ var legacyMutations = []porttest.Mutation{
 	{"an old state.json refuses the start", "drop the schemaVersion check", "red: a home with only the old state.json passes", "TestHomeWithThePreviousLayoutIsRefusedWithGuidance"},
 	{"old run meta refuses the start", "drop the harness field check", "red: a home with only old run meta passes", "TestHomeWithThePreviousLayoutIsRefusedWithGuidance"},
 	{"the current layout is accepted", "always return ErrLegacyLayout", "red: the current layout or an empty home is refused", "TestEmptyHomeAndTheCurrentLayoutAreAccepted"},
+	{"harnessVersion is not the legacy harness field", "match any field that starts with harness in hasHarnessField", "red: a current run meta with harnessVersion is refused", "TestEmptyHomeAndTheCurrentLayoutAreAccepted"},
 }
 
 func copyTree(t *testing.T, src, dst string) {
@@ -69,7 +70,12 @@ func TestEmptyHomeAndTheCurrentLayoutAreAccepted(t *testing.T) {
 		t.Fatalf("missing home refused: %v", err)
 	}
 	s := Open(homeFixture(t))
-	mustWriteMeta(t, s, fixture(runA))
+	current := fixture(runA)
+	current.HarnessVersion = 8
+	mustWriteMeta(t, s, current)
+	if data, err := os.ReadFile(filepath.Join(s.Home(), runsDir, runA, metaFile)); err != nil || !strings.Contains(string(data), `"harnessVersion": 8`) {
+		t.Fatalf("canary: the run meta lacks harnessVersion: %s %v", data, err)
+	}
 	if err := s.WriteState(EmptyState()); err != nil {
 		t.Fatal(err)
 	}

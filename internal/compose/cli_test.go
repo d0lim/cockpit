@@ -9,7 +9,7 @@ import (
 )
 
 const psArray = `[{"Service":"app","Name":"r-toy-app-1","ID":"aaa","State":"running","Health":"","ExitCode":0,"Labels":"com.docker.compose.project=r-toy"},
-{"Service":"runner","Name":"r-toy-runner-run-1","ID":"bbb","State":"exited","Health":"","ExitCode":1,"Labels":"com.docker.compose.oneoff=True,com.docker.compose.project=r-toy"},
+{"Service":"cockpit-runner","Name":"r-toy-cockpit-runner-run-1","ID":"bbb","State":"exited","Health":"","ExitCode":1,"Labels":"com.docker.compose.oneoff=True,com.docker.compose.project=r-toy"},
 {"Service":"db","Name":"r-toy-db-1","ID":"ccc","State":"running","Health":"healthy","ExitCode":0,"Labels":""}]`
 
 func TestComposePsParsesTheSameFromAnArrayAndFromJSONLines(t *testing.T) {

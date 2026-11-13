@@ -160,6 +160,15 @@ func (m Model) check(d contract.Declaration) error {
 			return reject(RejectPorts, fmt.Sprintf("ports[%d].service", i), "service %q is not defined in compose.files", p.Service)
 		}
 	}
+	for i, s := range d.Telemetry.OTLP.Services {
+		field := fmt.Sprintf("telemetry.otlp.services[%d]", i)
+		if !m.has(s) {
+			return reject(RejectCompose, field, "service %q is not defined in compose.files", s)
+		}
+		if s == d.Project.Builder {
+			return reject(RejectCompose, field, "service %q is the builder, which runs only in the build stage", s)
+		}
+	}
 	for _, name := range HarnessServices {
 		if m.has(name) {
 			return reject(RejectCompose, "services."+name, "service name %q is reserved for the hub harness", name)

@@ -9,24 +9,40 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-const HarnessVersion = 5
+const HarnessVersion = 8
 
 const (
 	LabelManaged     = "io.cockpit.managed"
 	LabelRunID       = "io.cockpit.run-id"
 	LabelRole        = "io.cockpit.role"
-	RoleEdge         = "edge"
-	RoleRunner       = "runner"
-	RoleProbe        = "probe"
-	RoleProbeControl = "probe-control"
+	RoleEdge         = "cockpit-edge"
+	RoleRunner       = "cockpit-runner"
+	RoleProbe        = "cockpit-probe"
+	RoleProbeControl = "cockpit-probe-control"
 	RoleBuilder      = "builder"
+	RoleOTLP         = "cockpit-otlp"
+	ProfileRunner    = "runner"
+	ProfileProbe     = "probe"
 	DefaultNetwork   = "default"
 	EgressNetwork    = "egress"
 	runnerMemLimit   = "1g"
 	runnerPidsLimit  = 512
+	otlpPort         = "4318"
 )
 
-var HarnessServices = []string{RoleEdge, RoleRunner, RoleProbe, RoleProbeControl}
+var HarnessServices = []string{RoleEdge, RoleRunner, RoleProbe, RoleProbeControl, RoleOTLP}
+
+var OTLPEnvironment = map[string]string{
+	"OTEL_EXPORTER_OTLP_ENDPOINT": "http://" + RoleOTLP + ":" + otlpPort,
+	"OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+	"OTEL_METRIC_EXPORT_INTERVAL": "2000",
+	"OTEL_BSP_SCHEDULE_DELAY":     "500",
+	"OTEL_TRACES_SAMPLER":         "parentbased_always_on",
+}
+
+func OTLPDeclared(d contract.Declaration) bool {
+	return len(d.Telemetry.OTLP.Services) > 0
+}
 
 type HarnessInput struct {
 	RunID       string
@@ -107,6 +123,13 @@ func Harness(in HarnessInput) ([]byte, error) {
 		}
 		services[name] = svc
 	}
+	for _, name := range decl.Telemetry.OTLP.Services {
+		svc, ok := services[name].(map[string]any)
+		if !ok || name == decl.Project.Builder {
+			return nil, fmt.Errorf("telemetry service %q is not a project service of the model", name)
+		}
+		svc["environment"] = OTLPEnvironment
+	}
 	image := func(role string) map[string]any {
 		return map[string]any{"image": in.RunnerImage, "pull_policy": "never", "labels": labels(in.RunID, role)}
 	}
@@ -116,21 +139,27 @@ func Harness(in HarnessInput) ([]byte, error) {
 	edge["ports"] = edgePublished(in.PortBase, decl.Ports)
 	services[RoleEdge] = edge
 	runner := hardened(image(RoleRunner))
-	runner["profiles"] = []string{RoleRunner}
+	runner["profiles"] = []string{ProfileRunner}
 	runner["networks"] = inner
 	runner["tmpfs"] = []string{"/tmp"}
 	runner["volumes"] = runnerBinds(in.Layout, decl.Inputs.RunnerSources)
-	runner["environment"] = map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}"}
+	runner["environment"] = map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}", "COCKPIT_TRACE_ID": "${COCKPIT_TRACE_ID:-}"}
 	if in.RunnerUser != "" {
 		runner["user"] = in.RunnerUser
 	}
 	services[RoleRunner] = runner
 	for role, nets := range map[string][]string{RoleProbe: {DefaultNetwork}, RoleProbeControl: {EgressNetwork}} {
 		probe := hardened(image(role))
-		probe["profiles"] = []string{RoleProbe}
+		probe["profiles"] = []string{ProfileProbe}
 		probe["networks"] = nets
 		probe["command"] = []string{"probe", strconv.Itoa(CanaryPort(in.PortBase))}
 		services[role] = probe
+	}
+	if OTLPDeclared(decl) {
+		otlp := hardened(image(RoleOTLP))
+		otlp["command"] = []string{"otlp", ":" + otlpPort}
+		otlp["networks"] = inner
+		services[RoleOTLP] = otlp
 	}
 	doc := map[string]any{"services": services, "networks": networks}
 	if len(volumes) > 0 {

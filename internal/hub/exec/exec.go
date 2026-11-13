@@ -18,6 +18,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/hub/ticker"
 	"github.com/d0lim/cockpit/internal/signal"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 var FlowID = regexp.MustCompile(`^[a-z][a-z0-9-]{1,40}$`)
@@ -158,7 +159,9 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 		return fail("exec failed: " + r.Mask(err.Error()))
 	}
 	name := OutName(x.Now(), flow)
-	env := []string{"E2E_EXEC_OUT=" + path.Join(runfiles.ContainerE2E, runfiles.ExecDir, name)}
+	execName := strings.TrimSuffix(name, ".json")
+	x.Ops.TraceExec(m.ID, execName)
+	env := []string{"E2E_EXEC_OUT=" + path.Join(runfiles.ContainerE2E, runfiles.ExecDir, name), "COCKPIT_TRACE_ID=" + tracectx.ExecTraceID(m.ID, execName)}
 	res, err := r.Project.RunRunner(ctx, []string{"run", m.Suite, "--flow", flow}, env, x.Ops.Limits.Suite)
 	exited := x.Now()
 	if err != nil {
@@ -185,7 +188,8 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 		view.Reason = "the result file cannot be read: " + r.Mask(err.Error())
 	default:
 		view.Flows = flowsOf(result.Steps, r.Mask)
-		x.Ops.AppendSpans(m.ID, signal.ExecSpans(m.ID, strings.TrimSuffix(name, ".json"), *result, store.Timestamp(exited)))
+		x.Ops.AppendSpans(m.ID, signal.ExecSpans(m.ID, execName, *result, store.Timestamp(exited)))
+		x.Ops.ReparentServiceSpans(m.ID, signal.ExecTrace(m.ID, execName), result.Result)
 	}
 	return scheduler.ExecResponse{Result: view}
 }

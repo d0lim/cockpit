@@ -8,25 +8,37 @@ import (
 	"github.com/d0lim/cockpit/internal/signal"
 )
 
-const stageSpans = "spans"
+const stageSpansSource = "spans"
 
-func runSpans(in envops.ReportInput, res *contract.Result) []report.Unread {
-	if in.Stream == nil || res == nil || res.SchemaVersion < contract.SchemaVersion2 || res.StartedAt == "" {
+func reportSpans(in envops.ReportInput, res *contract.Result) []report.Unread {
+	if in.Stream == nil {
 		return nil
 	}
-	exited := in.RunnerExit
-	if exited.IsZero() {
-		exited = in.Now
+	spans := stageSpans(in.Meta)
+	traced := res != nil && res.SchemaVersion >= contract.SchemaVersion2 && res.StartedAt != ""
+	if traced {
+		exited := in.RunnerExit
+		if exited.IsZero() {
+			exited = in.Now
+		}
+		spans = append(spans, signal.RunSpans(in.Meta.ID, *res, store.Timestamp(exited))...)
 	}
-	spans := signal.RunSpans(in.Meta.ID, *res, store.Timestamp(exited))
 	for i, sig := range spans {
 		if _, err := in.Stream.Append(sig); err != nil {
-			detail := err.Error()
-			if in.Masker != nil {
-				detail = in.Masker.Mask(detail)
-			}
-			return []report.Unread{{Source: stageSpans, Detail: detail, Count: len(spans) - i}}
+			return []report.Unread{{Source: stageSpansSource, Detail: maskedDetail(in, err), Count: len(spans) - i}}
+		}
+	}
+	if traced {
+		if _, err := signal.Reparent(in.Stream, in.Meta.ID, signal.CallParents(*res)); err != nil {
+			return []report.Unread{{Source: stageSpansSource, Detail: maskedDetail(in, err), Count: 1}}
 		}
 	}
 	return nil
+}
+
+func maskedDetail(in envops.ReportInput, err error) string {
+	if in.Masker == nil {
+		return err.Error()
+	}
+	return in.Masker.Mask(err.Error())
 }

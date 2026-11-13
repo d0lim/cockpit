@@ -25,7 +25,7 @@ func (d *Driver) takeRecords() ([]contract.StepCall, []contract.StepRef) {
 		if len(calls) == maxStepCalls {
 			break
 		}
-		call := contract.StepCall{Method: c.Method, Host: m.Mask(c.Host), Path: m.Mask(c.Path), StartedAt: iso(c.Started), DurationMs: max(c.Duration.Milliseconds(), 0)}
+		call := contract.StepCall{Method: c.Method, Host: m.Mask(c.Host), Path: m.Mask(c.Path), StartedAt: iso(c.Started), DurationMs: max(c.Duration.Milliseconds(), 0), SpanID: m.Mask(c.SpanID)}
 		if c.Status != 0 {
 			status := c.Status
 			call.Status = &status

@@ -31,6 +31,7 @@ type Deps struct {
 	BootTime       func() time.Time
 	Served         []int
 	CockpitVersion string
+	Harness        int
 	Log            *slog.Logger
 }
 

@@ -39,7 +39,7 @@ func lines(codes ...int) []string {
 
 func fakeProbes(c *fakeCanary, sealed, control ProbeRun, sealedKnocks, controlKnocks int) RunProbe {
 	return func(ctx context.Context, service string) (ProbeRun, error) {
-		if service == "probe" {
+		if service == "cockpit-probe" {
 			c.n += sealedKnocks
 			return sealed, nil
 		}
@@ -86,7 +86,7 @@ func TestMissingResultLinesOrAFailedControlMakeTheSealInconclusive(t *testing.T)
 		"control offline":              func(c *fakeCanary) RunProbe { return fakeProbes(c, sealed, ProbeRun{Lines: lines(1, 1, 1, 1)}, 0, 0) },
 		"control run failed": func(c *fakeCanary) RunProbe {
 			return func(ctx context.Context, s string) (ProbeRun, error) {
-				if s == "probe" {
+				if s == "cockpit-probe" {
 					return sealed, nil
 				}
 				return ProbeRun{}, errors.New("compose run failed")

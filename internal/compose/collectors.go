@@ -9,7 +9,7 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
-var ReservedCollectorIDs = []string{"runner", "logs", "services", "supervisor"}
+var ReservedCollectorIDs = []string{"runner", "logs", "services", "supervisor", "pipeline", "otlp"}
 
 func CollectorIDs(decl contract.Declaration, tree Tree) []string {
 	dir := string(decl.Scripts.Collectors)

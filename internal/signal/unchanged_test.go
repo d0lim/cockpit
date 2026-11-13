@@ -15,6 +15,7 @@ var unchangedMutations = []porttest.Mutation{
 	{"a change in attributes or body is written", "leave attrs or the event body out of sumOf", "red: the changed row returns the frozen winner's seq", "TestAChangedRowStillSupersedesTheFrozenWinnerWhileUnchangedRowsStay"},
 	{"a higher revision is written even when unchanged", "drop the rev comparison in unchangedWinner", "red: a later lower revision wins over the dropped rev 3", "TestAHigherRevisionWithUnchangedContentIsRecordedSoALaterLowerRevisionStillLoses"},
 	{"a dropped winner is not a no-op target", "drop the alive check in unchangedWinner", "red: the re-emission returns the dropped seq and reads nothing", "TestAnUnchangedReemissionOfADroppedWinnerIsRecordedAgain"},
+	{"an unchanged metric total is a no-op", "restore the metric exclusion in unchangedWinner", "red: the re-sent total gets a new seq after the freeze", "TestAnUnchangedMetricTotalReSentAfterTheFreezeKeepsItsFrozenWinner"},
 	{"replay rebuilds the winner's content sum", "note an empty sum for replayed records", "red: after restart an unchanged row is written again", "TestRestartReplaysTheSameWinnersAndKeepsUnchangedReemissionsANoOp"},
 }
 
@@ -146,5 +147,34 @@ func TestRestartReplaysTheSameWinnersAndKeepsUnchangedReemissionsANoOp(t *testin
 	}
 	if string(streamBytes(t, dir)) != string(before) {
 		t.Fatal("after restart an unchanged re-emission wrote a record")
+	}
+}
+
+func TestAnUnchangedMetricTotalReSentAfterTheFreezeKeepsItsFrozenWinner(t *testing.T) {
+	dir := runDir(t)
+	s := openAt(t, dir, DefaultCaps(), masker(t))
+	mustAppend(t, s, series("requests", 0, 6))
+	winner := mustAppend(t, s, series("requests", 0, 7))
+	bundle := filepath.Join(t.TempDir(), "report.partial")
+	if _, err := s.Freeze(bundle); err != nil {
+		t.Fatal(err)
+	}
+	before := streamBytes(t, dir)
+	if seq := mustAppend(t, s, series("requests", 0, 7)); seq != winner {
+		t.Fatalf("the unchanged total returned %d, want the frozen winner %d", seq, winner)
+	}
+	if string(streamBytes(t, dir)) != string(before) {
+		t.Fatal("the unchanged total wrote a record")
+	}
+	got := readAll(t, s, 0)
+	if len(got.Signals) != 1 || got.Signals[0].Seq != winner || got.Next != winner {
+		t.Fatalf("read %v next %d, want only the frozen winner %d", seqs(got), got.Next, winner)
+	}
+	frozen, err := ReadFrozen(bundle, masker(t), ReadRequest{})
+	if err != nil || len(frozen.Signals) != 1 || frozen.Signals[0].Seq != winner {
+		t.Fatalf("frozen copy %v: %v", seqs(frozen), err)
+	}
+	if changed := mustAppend(t, s, series("requests", 0, 8)); changed == winner || !slices.Equal(metricValues(readAll(t, s, 0)), []float64{8}) {
+		t.Fatal("canary: a changed total without a rev does not win")
 	}
 }

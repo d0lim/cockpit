@@ -3,12 +3,14 @@ package pipeline
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 var pipelineMutations = []porttest.Mutation{
@@ -43,7 +45,7 @@ func TestHappyRunWalksPrepareBuildSealBootRunReportAndPassesWithThePinnedImage(t
 		last = at
 	}
 	verbs := w.verbs()
-	order := []string{"run", "compose config", "compose run builder", "compose build", "compose run probe", "compose run probe-control", "compose up", "compose ps", "image inspect", "compose run runner", "wait", "logs", "inspect", "rm"}
+	order := []string{"run", "compose config", "compose run builder", "compose build", "compose run cockpit-probe", "compose run cockpit-probe-control", "compose up", "compose ps", "image inspect", "compose run cockpit-runner", "wait", "logs", "inspect", "rm"}
 	last = -1
 	for _, v := range order {
 		at := indexOf(verbs[last+1:], v)
@@ -51,6 +53,11 @@ func TestHappyRunWalksPrepareBuildSealBootRunReportAndPassesWithThePinnedImage(t
 			t.Fatalf("%q missing after position %d in %v", v, last, verbs)
 		}
 		last += at + 1
+	}
+	for _, c := range w.fake.Calls() {
+		if fakedocker.Verb(c.Args) == "compose run cockpit-runner" && !slices.Equal(c.Env, []string{"COCKPIT_TRACE_ID=" + tracectx.TraceID(m.ID)}) {
+			t.Fatalf("suite runner env %q", c.Env)
+		}
 	}
 	dir, _ := w.hub.Store().RunDir(m.ID)
 	if _, err := os.Stat(filepath.Join(dir, "seal.json")); err != nil {
@@ -103,7 +110,7 @@ func TestBuildFailureSealViolationAndBootFailureCloseAsErrorFailedAndErrorWithTh
 				t.Errorf("%s: src %v, leased %v, stop %d", c.name, srcErr, leased, indexOf(verbs, "compose stop"))
 			}
 		}
-		if indexOf(verbs, "compose run runner") >= 0 {
+		if indexOf(verbs, "compose run cockpit-runner") >= 0 {
 			t.Errorf("%s: the runner ran", c.name)
 		}
 		evaluated++

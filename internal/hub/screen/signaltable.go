@@ -31,7 +31,10 @@ func (st *state) markSteps(list []signalTable) []signalTable {
 	return list
 }
 
-var firstColumns = []string{"label", "status", "tone"}
+var (
+	firstColumns  = []string{"label", "status", "tone"}
+	metricColumns = []string{"value", "unit", "count", "sum"}
+)
 
 func tables(signals []contract.Signal) []signalTable {
 	var out []signalTable
@@ -83,8 +86,10 @@ func columnsOf(rows []contract.Signal, bodies []map[string]any) []string {
 				keys[k] = true
 			}
 		}
-		if s.Metric != nil {
-			keys["value"] = true
+		for _, k := range metricColumns {
+			if _, ok := metricCell(s.Metric, k); ok {
+				keys[k] = true
+			}
 		}
 	}
 	var out []string
@@ -142,13 +147,31 @@ func bodyKeys(s contract.Signal) []string {
 }
 
 func cellOf(s contract.Signal, body map[string]any, column string) string {
-	if column == "value" && s.Metric != nil {
-		return strconv.FormatFloat(s.Metric.Value, 'f', -1, 64)
+	if text, ok := metricCell(s.Metric, column); ok {
+		return text
 	}
 	if v, ok := s.Attrs[column]; ok {
 		return attrText(v)
 	}
 	return attrText(body[column])
+}
+
+func metricCell(m *contract.MetricBody, column string) (string, bool) {
+	if m == nil {
+		return "", false
+	}
+	h := m.Histogram
+	switch {
+	case column == "value":
+		return strconv.FormatFloat(m.Value, 'f', -1, 64), true
+	case column == "unit" && m.Unit != "":
+		return m.Unit, true
+	case column == "count" && h != nil:
+		return strconv.FormatUint(h.Count, 10), true
+	case column == "sum" && h != nil:
+		return strconv.FormatFloat(h.Sum, 'f', -1, 64), true
+	}
+	return "", false
 }
 
 type logSource struct {

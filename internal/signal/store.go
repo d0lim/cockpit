@@ -134,6 +134,11 @@ func validate(sig contract.Signal) error {
 	default:
 		return fmt.Errorf("unknown time source %q", sig.TSSource)
 	}
+	if sig.Metric != nil {
+		if err := ValidateMetric(sig.Metric); err != nil {
+			return err
+		}
+	}
 	if sig.Span != nil {
 		switch sig.Span.Status {
 		case contract.SpanStatusOK, contract.SpanStatusError, contract.SpanStatusIncomplete:
@@ -186,10 +191,9 @@ func (s *Stream) Append(sig contract.Signal) (int64, error) {
 }
 
 func (s *Stream) record(sig contract.Signal, offset int64) {
-	container, _ := sig.Attrs[ContainerAttr].(string)
-	b := s.lim.bucketFor(sig.Collector, container, sig.Seq)
+	b := s.lim.bucketFor(sig, sig.Seq)
 	s.ix.put(sig.Seq, offset, b)
-	if sig.ID != "" && sig.Kind != contract.SignalKindMetric {
+	if sig.ID != "" {
 		key := sigKey(sig)
 		prev, had := s.revs[key]
 		s.revs.note(key, sig.Seq, sig.Rev, sumOf(sig))

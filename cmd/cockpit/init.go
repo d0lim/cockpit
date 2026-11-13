@@ -38,7 +38,7 @@ Next:
   3. Start the stack and run the suite:
      export COCKPIT_RUNNER_IMAGE=$(cockpit runner-image)
      docker compose -f compose.yaml -f compose.cockpit.yaml up -d
-     docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run smoke
+     docker compose -f compose.yaml -f compose.cockpit.yaml run --rm cockpit-runner run smoke
 Results land in .e2e/. The usage guide is at https://github.com/d0lim/cockpit/blob/main/docs/guide.md
 To run sealed runs on the hub, the declaration needs more fields: https://github.com/d0lim/cockpit/blob/main/docs/hub.md
 `)

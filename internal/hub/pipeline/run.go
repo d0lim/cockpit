@@ -113,6 +113,9 @@ func (h *Hub) Pipeline(ctx context.Context, id string) error {
 			return nil
 		}
 		l.stage, l.lines = m.Phase, nil
+		if err := l.startStage(m.Phase); err != nil {
+			return err
+		}
 		l.say("stage " + lifecycle.StageLabel(m.Phase))
 		out, err := stage(ctx, l)
 		if err == nil && m.Phase != lifecycle.Reporting && ctx.Err() != nil {
@@ -121,7 +124,7 @@ func (h *Hub) Pipeline(ctx context.Context, id string) error {
 		if err != nil {
 			out = l.failure(ctx, err)
 		}
-		next, err := l.st.ApplyEvent(id, out.event, out.detail, out.extra)
+		next, err := l.st.ApplyEvent(id, out.event, out.detail, l.endingStage(out))
 		if err != nil {
 			return nil
 		}
@@ -176,6 +179,7 @@ func (l *live) settle(ctx context.Context, from lifecycle.Phase, next store.Meta
 	if next.FinishedAt == "" {
 		l.st.PatchMeta(l.id, func(m *store.Meta) { m.FinishedAt = store.Timestamp(l.h.o.Now()) })
 	}
+	l.h.ops.AppendSpans(l.id, stageSpans(next))
 	cleanup := context.WithoutCancel(ctx)
 	switch {
 	case next.Env == lifecycle.EnvAbsent:

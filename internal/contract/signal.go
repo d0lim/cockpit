@@ -51,9 +51,28 @@ type SignalInput struct {
 	Attrs    Attrs      `json:"attrs,omitempty"`
 }
 
+type MetricType string
+
+const (
+	MetricTypeGauge     MetricType = "gauge"
+	MetricTypeSum       MetricType = "sum"
+	MetricTypeHistogram MetricType = "histogram"
+	MetricTypeSummary   MetricType = "summary"
+)
+
+type HistogramBody struct {
+	Count  uint64    `json:"count"`
+	Sum    float64   `json:"sum"`
+	Bounds []float64 `json:"bounds,omitempty"`
+	Counts []uint64  `json:"counts,omitempty"`
+}
+
 type MetricBody struct {
-	Name  string  `json:"name"`
-	Value float64 `json:"value"`
+	Name      string         `json:"name"`
+	Value     float64        `json:"value"`
+	Unit      string         `json:"unit,omitempty"`
+	Type      MetricType     `json:"type,omitempty"`
+	Histogram *HistogramBody `json:"histogram,omitempty"`
 }
 
 type EventBody struct {

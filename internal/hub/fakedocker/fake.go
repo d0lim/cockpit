@@ -67,6 +67,9 @@ type Fake struct {
 	OnVerb          func(verb string)
 	ContainerSecret string
 	RunnerDelay     time.Duration
+	OTLP            func(runID string) []OTLPLine
+	otlpRun         atomic.Value
+	doneAt          atomic.Int64
 }
 
 func (f *Fake) SetCanaryPort(port int) { f.canaryPort.Store(int64(port)) }
@@ -148,13 +151,13 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 		return f.envgen(cmd.Args)
 	case "compose config":
 		return f.config(cmd.Args)
-	case "compose run probe":
+	case "compose run " + compose.RoleProbe:
 		rc := 1
 		if f.ProbeLeak {
 			rc = 0
 		}
 		return out(probeLines(rc)), nil
-	case "compose run probe-control":
+	case "compose run " + compose.RoleProbeControl:
 		if conn, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.FormatInt(f.canaryPort.Load(), 10))); err == nil {
 			conn.Close()
 			time.Sleep(20 * time.Millisecond)
@@ -162,7 +165,7 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 		return out(probeLines(0)), nil
 	case "compose ps":
 		return out(f.ps()), nil
-	case "compose run runner":
+	case "compose run " + compose.RoleRunner:
 		f.writeRunnerFiles(cmd.Args, cmd.Env)
 		return out("Creating\n" + ContainerID), nil
 	case "wait":
@@ -175,6 +178,7 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 			return compose.Result{Code: -1}, ctx.Err()
 		case <-time.After(f.RunnerDelay):
 		}
+		f.doneAt.CompareAndSwap(0, time.Now().UnixNano())
 		f.runnerDone.Store(true)
 		return out(strconv.Itoa(f.RunnerCode)), nil
 	case "exec":
@@ -183,12 +187,16 @@ func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, er
 			return compose.Result{Code: -1}, ctx.Err()
 		}
 	case "logs":
+		if slices.Contains(cmd.Args, "--follow") && cmd.Args[len(cmd.Args)-1] == OTLPContainerID {
+			return f.otlpLogs(ctx, cmd)
+		}
 		if slices.Contains(cmd.Args, "--follow") {
 			return f.containerLogs(ctx, cmd)
 		}
 		return compose.Result{Stdout: []byte(f.RunnerLogs)}, nil
 	case "ps":
 		if slices.Contains(cmd.Args, "--format") {
+			f.otlpRun.Store(filterLabel(cmd.Args, compose.LabelRunID))
 			return out(containerTable(cmd.Args)), nil
 		}
 	case "inspect":
@@ -244,7 +252,8 @@ func (f *Fake) ps() string {
 		{"Service": "db", "ID": "bbb", "State": "running", "Health": dbHealth(f.Unhealthy)},
 		{"Service": "cache", "ID": "ccc", "State": "running", "Health": "healthy"},
 		{"Service": "seed", "ID": "eee", "State": "exited", "Health": "", "ExitCode": f.SeedExit},
-		{"Service": "edge", "ID": "ddd", "State": "running", "Health": ""},
+		{"Service": compose.RoleEdge, "ID": "ddd", "State": "running", "Health": ""},
+		{"Service": compose.RoleOTLP, "ID": "fff", "State": "running", "Health": ""},
 	}
 	data, _ := json.Marshal(rows)
 	return string(data)

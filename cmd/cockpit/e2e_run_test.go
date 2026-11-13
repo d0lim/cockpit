@@ -47,6 +47,9 @@ func TestIntegrationHubAndRunsSubmitWaitPassTheToyConsumerKeepCollectingLiveWith
 			t.Errorf("the bundle stream lacks %s", want)
 		}
 	}
+	if underCalls, series := frozenOTLPTree(t, frozen, run.ID); underCalls < 1 || series < 1 {
+		t.Errorf("the frozen copy holds %d otlp spans under a call span and %d otlp metric series", underCalls, series)
+	}
 	noFailures := func(when string) collectorRead {
 		r := e.signals(run.ID)
 		for _, c := range r.Collectors {

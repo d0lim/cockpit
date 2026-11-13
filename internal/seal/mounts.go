@@ -49,7 +49,7 @@ func mountChecks(in Input, svcs []service) []Result {
 		}
 	}
 	return []Result{
-		result("mounts.binds", "bind sources resolve under build for the builder, under work for the runner, under src for project services, and the edge and probes bind nothing", outside),
+		result("mounts.binds", "bind sources resolve under build for the builder, under work for the runner, under src for project services, and the edge, the probes and otlp bind nothing", outside),
 		result("mounts.sockets", "no socket is bound", sockets),
 	}
 }

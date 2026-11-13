@@ -14,11 +14,13 @@ import (
 
 var findMutations = []porttest.Mutation{
 	{"containers outside the run are refused", "drop the project and run-id comparison in list", "red: logs of intruder or stale come back", "TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied"},
-	{"harness roles are refused by name and by label", "remove the harness map and the role check in target", "red: logs of edge, probe, toolbox or sneaky come back", "TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied"},
+	{"harness roles are refused by name and by label", "remove the harness map and the role check in target", "red: logs of edge, probe, otlp, toolbox or sneaky come back", "TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied"},
 	{"the listing filters by the run labels", "drop the label filters from the ps arguments", "red: the ps call lacks the project or run-id filter", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
 	{"ps hides the harness and other runs", "return every listed container from PS", "red: edge, intruder or stale appear in ps", "TestPSListsOnlyThisRunsTargetServicesWithTheirHealth"},
 	{"the last listed container keeps its empty role column", "TrimSpace the ps output before splitting lines", "red: the last target service is missing from ps and Containers", "TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept"},
+	{"the role listing returns only this run's containers of that role", "return every listed container from RoleContainers", "red: app, edge or the otlp container of another run comes back for the otlp role", "TestTheRoleListingReturnsOnlyThisRunsContainerOfThatRoleAndTheTargetListingStillHidesIt"},
 	{"service names are compose names", "remove the serviceName check", "red: a name with a slash or a flag reaches docker", "TestServiceNamesThatAreNotComposeNamesArePortBadArgs"},
+	{"only the prefixed harness names are refused by name", "add edge, runner, probe, probe-control and otlp to the harness map", "red: logs of a consumer service named runner are denied", "TestConsumerServicesNamedEdgeRunnerProbeProbeControlOrOTLPWithoutARoleAreTargets"},
 }
 
 func TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessArePortDenied(t *testing.T) {
@@ -31,7 +33,7 @@ func TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessAreP
 	if err != nil || out.Text != "line from c-app\n" || out.Truncated {
 		t.Fatalf("%+v %v", out, err)
 	}
-	denied := []string{"intruder", "stale", "edge", "probe", "runner", "probe-control", "builder", "toolbox", "sneaky", "missing"}
+	denied := []string{"intruder", "stale", "cockpit-edge", "cockpit-probe", "cockpit-runner", "cockpit-probe-control", "cockpit-otlp", "builder", "toolbox", "sneaky", "missing"}
 	ran := 0
 	for _, svc := range denied {
 		_, err := p.Logs(context.Background(), LogsRequest{Service: svc})
@@ -40,7 +42,7 @@ func TestLogsOfAServiceInThisRunReturnAndServicesOutsideTheRunOrInTheHarnessAreP
 		}
 		ran++
 	}
-	if ran != 10 || ran != len(denied) {
+	if ran != 11 || ran != len(denied) {
 		t.Fatalf("ran %d cases", ran)
 	}
 	if logs := f.commands("logs"); len(logs) != 1 || logs[0][len(logs[0])-1] != "c-app" {
@@ -85,7 +87,7 @@ func TestServiceNamesThatAreNotComposeNamesArePortBadArgs(t *testing.T) {
 
 func TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept(t *testing.T) {
 	f := &fakeDocker{ps: []string{
-		psLine("c-edge", "edge", "running", "Up", project, runID, compose.RoleEdge),
+		psLine("c-edge", "cockpit-edge", "running", "Up", project, runID, compose.RoleEdge),
 		psLine("c-app", "app", "running", "Up", project, runID, ""),
 	}}
 	p, _ := newPort(t, f, Options{})
@@ -96,6 +98,55 @@ func TestLastListedTargetContainerWithAnEmptyRoleColumnIsKept(t *testing.T) {
 	cs, err := p.Containers(context.Background())
 	if err != nil || len(cs) != 1 || cs[0] != (Container{ID: "c-app", Service: "app", State: "running"}) {
 		t.Fatalf("%+v %v", cs, err)
+	}
+}
+
+func TestTheRoleListingReturnsOnlyThisRunsContainerOfThatRoleAndTheTargetListingStillHidesIt(t *testing.T) {
+	f := &fakeDocker{ps: append(standardPS(), psLine("c-otlp-other", "cockpit-otlp", "running", "Up", "other-project", "run-2", compose.RoleOTLP))}
+	p, _ := newPort(t, f, Options{})
+	got, err := p.RoleContainers(context.Background(), compose.RoleOTLP)
+	if err != nil || !reflect.DeepEqual(got, []Container{{ID: "c-otlp", Service: "cockpit-otlp", State: "running"}}) {
+		t.Fatalf("otlp role: %+v %v", got, err)
+	}
+	if none, err := p.RoleContainers(context.Background(), ""); err != nil || len(none) != 0 {
+		t.Fatalf("the empty role lists %+v %v", none, err)
+	}
+	targets, err := p.Containers(context.Background())
+	if err != nil || len(targets) != 3 {
+		t.Fatalf("canary: targets %+v %v", targets, err)
+	}
+	for _, c := range targets {
+		if c.Service == "cockpit-otlp" {
+			t.Fatalf("the target listing holds the otlp container: %+v", targets)
+		}
+	}
+}
+
+func TestConsumerServicesNamedEdgeRunnerProbeProbeControlOrOTLPWithoutARoleAreTargets(t *testing.T) {
+	bare := []string{"edge", "runner", "probe", "probe-control", "otlp"}
+	ps := standardPS()
+	for _, name := range bare {
+		ps = append(ps, psLine("c-"+name, name, "running", "Up", project, runID, ""))
+	}
+	f := &fakeDocker{ps: ps, handle: func(_ context.Context, cmd compose.Command) (compose.Result, error) {
+		write(cmd, "line from "+cmd.Args[len(cmd.Args)-1]+"\n", "")
+		return compose.Result{}, nil
+	}}
+	p, _ := newPort(t, f, Options{})
+	reached := 0
+	for _, name := range bare {
+		out, err := p.Logs(context.Background(), LogsRequest{Service: name})
+		if err != nil || out.Text != "line from c-"+name+"\n" {
+			t.Errorf("%s: %+v %v", name, out, err)
+			continue
+		}
+		reached++
+	}
+	if reached != 5 {
+		t.Fatalf("reached %d of %d consumer services", reached, len(bare))
+	}
+	if _, err := p.Logs(context.Background(), LogsRequest{Service: compose.RoleRunner}); codeOf(err) != engine.PortDenied {
+		t.Fatalf("canary: the harness runner is a target: %v", err)
 	}
 }
 

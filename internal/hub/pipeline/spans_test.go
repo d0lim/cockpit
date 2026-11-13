@@ -81,19 +81,49 @@ func frozenSignals(t *testing.T, h *Hub, id string) []contract.Signal {
 	return out
 }
 
-var runTree = map[string]string{"run": "", "flow:health": "run", "flow:orders": "run", "step:health/health-ok": "flow:health", "step:orders/create": "flow:orders", "step:orders/read": "flow:orders"}
+var runTree = map[string]string{"run": "stage:suite", "flow:health": "run", "flow:orders": "run", "step:health/health-ok": "flow:health", "step:orders/create": "flow:orders", "step:orders/read": "flow:orders"}
+
+var frozenStages = []string{"prepare", "build", "seal", "boot", "suite"}
+
+var liveStages = append(slices.Clone(frozenStages), "report")
+
+func pipelineTree(stages []string) map[string]string {
+	tree := maps.Clone(runTree)
+	tree[signal.PipelineSpanID] = ""
+	for _, name := range stages {
+		tree[signal.StageSpanPrefix+name] = signal.PipelineSpanID
+	}
+	return tree
+}
+
+func collectorOf(id string) string {
+	if id == signal.PipelineSpanID || strings.HasPrefix(id, signal.StageSpanPrefix) {
+		return signal.PipelineCollector
+	}
+	return signal.RunnerSource
+}
 
 func assertTree(t *testing.T, where string, spans map[string]contract.Signal, tree map[string]string) {
+	t.Helper()
+	assertShape(t, where, spans, tree, true)
+}
+
+func assertLiveTree(t *testing.T, where string, spans map[string]contract.Signal, tree map[string]string) {
+	t.Helper()
+	assertShape(t, where, spans, tree, false)
+}
+
+func assertShape(t *testing.T, where string, spans map[string]contract.Signal, tree map[string]string, parentsFirst bool) {
 	t.Helper()
 	if len(spans) != len(tree) {
 		t.Fatalf("%s: %d spans, want %d: %v", where, len(spans), len(tree), slices.Sorted(maps.Keys(spans)))
 	}
 	for id, parent := range tree {
 		sig, ok := spans[id]
-		if !ok || sig.Span.ParentID != parent || sig.Collector != signal.RunnerSource {
-			t.Fatalf("%s: span %s = %+v, want parent %q", where, id, sig.Span, parent)
+		if !ok || sig.Span.ParentID != parent || sig.Collector != collectorOf(id) {
+			t.Fatalf("%s: span %s = %+v from %q, want parent %q", where, id, sig.Span, sig.Collector, parent)
 		}
-		if parent != "" && spans[parent].Seq >= sig.Seq {
+		if parentsFirst && parent != "" && spans[parent].Seq >= sig.Seq {
 			t.Errorf("%s: parent %s (seq %d) is not before %s (seq %d)", where, parent, spans[parent].Seq, id, sig.Seq)
 		}
 	}
@@ -103,8 +133,8 @@ func TestARunnerResultBecomesRunFlowAndStepSpansInTheAPIReadAndTheFrozenCopyPare
 	w, url := spanWorld(t, false)
 	m := w.submit()
 	live := spansOf(readSignals(t, url, m.ID).Signals, m.ID)
-	assertTree(t, "API read", live, runTree)
-	assertTree(t, "frozen copy", spansOf(frozenSignals(t, w.hub, m.ID), m.ID), runTree)
+	assertLiveTree(t, "API read", live, pipelineTree(liveStages))
+	assertTree(t, "frozen copy", spansOf(frozenSignals(t, w.hub, m.ID), m.ID), pipelineTree(frozenStages))
 	for id, sig := range live {
 		if sig.Span.Status != contract.SpanStatusOK {
 			t.Errorf("span %s status %s, want ok", id, sig.Span.Status)
@@ -134,7 +164,7 @@ func TestAnExecAddsItsOwnTraceLinkedToTheRunSpan(t *testing.T) {
 	exec := spansOf(view, traces[0])
 	tree := map[string]string{"exec": ""}
 	for id, parent := range runTree {
-		if id != "run" {
+		if id != signal.RunSpanID {
 			tree[id] = parent
 			if parent == "run" {
 				tree[id] = "exec"
@@ -145,7 +175,7 @@ func TestAnExecAddsItsOwnTraceLinkedToTheRunSpan(t *testing.T) {
 	if links := exec["exec"].Span.Links; len(links) != 1 || links[0] != (contract.SpanLink{TraceID: m.ID, SpanID: signal.RunSpanID}) {
 		t.Fatalf("exec root links %+v", links)
 	}
-	if len(spansOf(view, m.ID)) != len(runTree) {
+	if len(spansOf(view, m.ID)) != len(pipelineTree(liveStages)) {
 		t.Fatalf("the exec changed the run trace: %d spans", len(spansOf(view, m.ID)))
 	}
 }
@@ -154,7 +184,7 @@ func TestARunnerKilledMidStepYieldsIncompleteSpansThatEndAtTheContainerExit(t *t
 	w, url := spanWorld(t, true)
 	m := w.submit()
 	spans := spansOf(readSignals(t, url, m.ID).Signals, m.ID)
-	assertTree(t, "API read", spans, runTree)
+	assertLiveTree(t, "API read", spans, pipelineTree(liveStages))
 	exit := spans["step:orders/read"].Span.End
 	dir, _ := w.hub.Store().RunDir(m.ID)
 	doc, _ := readSummary(t, dir)

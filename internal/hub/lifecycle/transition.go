@@ -78,11 +78,11 @@ func Transition(s *State, event Event, d Detail) (State, error) {
 	}, nil
 }
 
-func AllowedEvents(s *State, served bool) []Event {
+func AllowedEvents(s *State, resumable bool) []Event {
 	row := Transitions[tableKey(s)]
 	var out []Event
 	for _, e := range Events {
-		if e == Resume && !served {
+		if e == Resume && !resumable {
 			continue
 		}
 		if e == Observed && len(row.Observed) > 0 {
@@ -98,6 +98,16 @@ func AllowedEvents(s *State, served bool) []Event {
 
 func Serves(served []int, api int) bool {
 	return slices.Contains(served, api)
+}
+
+const FirstRecordedHarness = 8
+
+func HarnessNotice(run, hub int) string {
+	made := strconv.Itoa(run)
+	if run == 0 {
+		made = strconv.Itoa(FirstRecordedHarness-1) + " or earlier"
+	}
+	return fmt.Sprintf("this run's environment was made by harness version %s, and this hub runs harness version %d; it cannot address the services of another harness: destroy the run and submit again", made, hub)
 }
 
 func HostAPINotice(api int, served []int, cockpitVersion string) string {

@@ -38,7 +38,7 @@ Scaffold the suite and run it:
 cockpit init --base-url http://web
 export COCKPIT_RUNNER_IMAGE=$(cockpit runner-image)
 docker compose -f compose.yaml -f compose.cockpit.yaml up -d web
-docker compose -f compose.yaml -f compose.cockpit.yaml run --rm runner run smoke
+docker compose -f compose.yaml -f compose.cockpit.yaml run --rm cockpit-runner run smoke
 ```
 
 ```

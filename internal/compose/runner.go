@@ -36,7 +36,7 @@ func (p Project) masked(out []byte) []string {
 }
 
 func (p Project) RunRunner(ctx context.Context, args, env []string, limit time.Duration) (RunnerResult, error) {
-	sub := append([]string{"--profile", RoleRunner, "run", "-d", "-T", "--no-deps", RoleRunner}, args...)
+	sub := append([]string{"--profile", ProfileRunner, "run", "-d", "-T", "--no-deps", RoleRunner}, args...)
 	started, err := p.Docker.Run(ctx, Command{Args: append(slices.Clone(p.Args), sub...), Env: env})
 	lines := strings.Split(strings.TrimSpace(string(started.Stdout)), "\n")
 	id := strings.TrimSpace(lines[len(lines)-1])

@@ -109,17 +109,26 @@ type KitSection struct {
 	Notes string `json:"notes"`
 }
 
+type TelemetryOTLP struct {
+	Services []string `json:"services"`
+}
+
+type TelemetrySection struct {
+	OTLP TelemetryOTLP `json:"otlp"`
+}
+
 type Declaration struct {
-	HostAPI   int            `json:"hostApi"`
-	Project   ProjectSection `json:"project"`
-	Inputs    InputsSection  `json:"inputs,omitzero"`
-	Compose   ComposeSection `json:"compose"`
-	Ports     []PortOffset   `json:"ports,omitempty"`
-	Images    []ImageKey     `json:"images,omitempty"`
-	Env       EnvSection     `json:"env,omitzero"`
-	Secrets   SecretsSection `json:"secrets"`
-	Databases []Database     `json:"databases,omitempty"`
-	Exec      ExecSection    `json:"exec,omitzero"`
-	Scripts   ScriptsSection `json:"scripts"`
-	Kit       KitSection     `json:"kit,omitzero"`
+	HostAPI   int              `json:"hostApi"`
+	Project   ProjectSection   `json:"project"`
+	Inputs    InputsSection    `json:"inputs,omitzero"`
+	Compose   ComposeSection   `json:"compose"`
+	Ports     []PortOffset     `json:"ports,omitempty"`
+	Images    []ImageKey       `json:"images,omitempty"`
+	Env       EnvSection       `json:"env,omitzero"`
+	Secrets   SecretsSection   `json:"secrets"`
+	Databases []Database       `json:"databases,omitempty"`
+	Exec      ExecSection      `json:"exec,omitzero"`
+	Scripts   ScriptsSection   `json:"scripts"`
+	Kit       KitSection       `json:"kit,omitzero"`
+	Telemetry TelemetrySection `json:"telemetry,omitzero"`
 }
