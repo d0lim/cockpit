@@ -56,7 +56,7 @@ func DeclarationDocs() map[string]string {
 		"kit":                       "The handoff text for a person using the run's environment.",
 		"kit.notes":                 "Text added to the run's kit README, shown on the screen's Environment page and in `env/README.md`.",
 		"telemetry":                 "What the services of the run export about themselves. Nothing of it leaves the run's internal networks.",
-		"telemetry.otlp":            "OpenTelemetry export over OTLP/HTTP to the run's `otlp` receiver.",
+		"telemetry.otlp":            "OpenTelemetry export over OTLP/HTTP to the run's `cockpit-otlp` receiver.",
 		"telemetry.otlp.services": "The compose services that export traces and metrics. When it names at least one, the hub adds the `cockpit-otlp` service and sets `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_METRIC_EXPORT_INTERVAL`, `OTEL_BSP_SCHEDULE_DELAY` and `OTEL_TRACES_SAMPLER` in each of them. " +
 			"Each must be a service of the compose files and not the builder.",
 	}
