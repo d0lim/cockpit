@@ -251,7 +251,7 @@ func (s *Scheduler) AllowedEvents(m store.Meta) []lifecycle.Event {
 	if _, running := s.execs.Load(m.ID); running {
 		return []lifecycle.Event{lifecycle.Abort}
 	}
-	return lifecycle.AllowedEvents(&m.State, lifecycle.Serves(s.d.Served, m.HostAPI))
+	return lifecycle.AllowedEvents(&m.State, lifecycle.Serves(s.d.Served, m.HostAPI) && s.otherHarness(m) == nil)
 }
 
 func (s *Scheduler) Tick() { s.core.Tick() }

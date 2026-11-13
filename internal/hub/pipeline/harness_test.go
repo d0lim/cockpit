@@ -21,6 +21,7 @@ var harnessMutations = []porttest.Mutation{
 	{"exec refuses a kept run of another harness", "drop the otherHarness check in Exec", "red: the runner starts against the old harness", "TestAKeptRunOfAnOlderHarnessIsRefusedForResumeAndExecWithBothVersionsWhileStopAndDestroyWork"},
 	{"resume refuses a kept run of another harness before its state changes", "drop the otherHarness check in Resume", "red: the run passes through resuming and gets the notice from envops", "TestAKeptRunOfAnOlderHarnessIsRefusedForResumeAndExecWithBothVersionsWhileStopAndDestroyWork"},
 	{"a resume that reaches envops for another harness closes as failed", "drop the harness check in Ops.Resume", "red: the redo succeeds and starts the old harness", "TestAResumeOfAnOlderHarnessRunThatReachesTheEnvironmentClosesAsFailedWithTheNotice"},
+	{"allowed events leave out resume on a kept run of another harness", "drop the otherHarness check in Scheduler.AllowedEvents", "red: resume is offered on the stopped run of the older harness", "TestAKeptRunOfAnOlderHarnessIsRefusedForResumeAndExecWithBothVersionsWhileStopAndDestroyWork"},
 	{"arming skips a run of another harness", "drop the harness check before arming in Ops.Transition", "red: the collector of the old harness run is armed", "TestAReconciledUpRunOfAnOlderHarnessArmsNoCollectorWhileACurrentOneDoes"},
 }
 
@@ -70,6 +71,9 @@ func TestAPipelineRunRecordsTheCurrentHarnessVersionAndItsKeptEnvironmentResumes
 	if r := w.sched.Stop(m.ID, tester); r.Fail != nil {
 		t.Fatal(r.Fail)
 	}
+	if got := w.sched.AllowedEvents(w.meta(m.ID)); !slices.Contains(got, lifecycle.Resume) {
+		t.Fatalf("allowed events of the stopped current run lack resume: %v", got)
+	}
 	if r := w.sched.Resume(m.ID, tester); r.Fail != nil || r.Run.Env != lifecycle.EnvUp {
 		t.Fatalf("resume: %+v", r.Fail)
 	}
@@ -86,6 +90,9 @@ func TestAKeptRunOfAnOlderHarnessIsRefusedForResumeAndExecWithBothVersionsWhileS
 	}
 	if r := w.sched.Stop(m.ID, tester); r.Fail != nil || r.Run.Env != lifecycle.EnvStopped {
 		t.Fatalf("stop: %+v", r.Fail)
+	}
+	if got := w.sched.AllowedEvents(w.meta(m.ID)); slices.Contains(got, lifecycle.Resume) || !slices.Contains(got, lifecycle.Destroy) {
+		t.Fatalf("allowed events of the stopped older run: %v", got)
 	}
 	calls = len(w.fake.Calls())
 	assertHarnessNotice(t, "resume", w.sched.Resume(m.ID, tester).Fail)

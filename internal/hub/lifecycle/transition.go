@@ -78,11 +78,11 @@ func Transition(s *State, event Event, d Detail) (State, error) {
 	}, nil
 }
 
-func AllowedEvents(s *State, served bool) []Event {
+func AllowedEvents(s *State, resumable bool) []Event {
 	row := Transitions[tableKey(s)]
 	var out []Event
 	for _, e := range Events {
-		if e == Resume && !served {
+		if e == Resume && !resumable {
 			continue
 		}
 		if e == Observed && len(row.Observed) > 0 {
