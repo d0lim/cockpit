@@ -83,7 +83,7 @@ func TestThePlainScreenOpensOnTheFailedStepWithItsStepListAndRouteCounts(t *test
 	if got := strings.Join(rowSeqs(region), ","); got != "4,5,6,7" {
 		t.Fatalf("rows %s", got)
 	}
-	for _, want := range []string{"alpha › a2", "Outside any step", "orders · 3", "ledger · 4", "mail · 1", "Calls 1 to 4 of 4", `aria-current="true"`} {
+	for _, want := range []string{"alpha › a2", "Outside any step", `3 calls in this take">orders<`, `4 calls in this take">ledger<`, `1 call in this take">mail<`, "Calls 1 to 4 of 4", `aria-current="true"`} {
 		if !strings.Contains(region, want) {
 			t.Errorf("the region lacks %q", want)
 		}
@@ -181,7 +181,7 @@ func TestTheLiveRegionRendersFromTheIndexAndNeverReadsABody(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := string(raw)
-	if !strings.Contains(out, `data-seq="4"`) || strings.Contains(out, "cannot be read") || strings.Contains(out, "wire-call") {
+	if !strings.Contains(out, `data-seq="4"`) || strings.Contains(out, "cannot be read") || strings.Contains(out, `id="wire-call"`) {
 		t.Fatalf("region: %s", out)
 	}
 	if status, _, page := f.get(base + "?flow=alpha&step=a2&call=4"); status != http.StatusOK || !strings.Contains(page, "This call cannot be shown") {
@@ -271,5 +271,24 @@ func TestAPageOfManyCallsStaysWithinItsRowAndTimeBudget(t *testing.T) {
 	_, _, next := f.get(path + "?offset=200")
 	if got := rowSeqs(section(t, next, "wire")); len(got) != rowBudget || got[0] != "201" || !strings.Contains(next, "Earlier calls") {
 		t.Fatalf("page two starts at %v", got[:1])
+	}
+}
+
+var wireCallLink = regexp.MustCompile(`call=\d+[^"]*#wire-call"`)
+
+func TestACallLinkJumpsToThePickedCallAndTheSuiteTakeIsListedFirst(t *testing.T) {
+	f, base := seededWire(t)
+	wiretest.Store(t, f.runDir(rid(1)), wiretest.Take{Name: "2026-exec", Calls: wiretest.Calls("x")[:1], Routes: wiretest.Routes()})
+	_, _, body := f.get(base + "?flow=alpha&step=a2")
+	region := section(t, body, "wire")
+	if !wireCallLink.MatchString(region) {
+		t.Fatalf("no call link jumps to the panel: %s", region)
+	}
+	suite, exec := strings.Index(region, ">suite<"), strings.Index(region, ">2026-exec<")
+	if suite < 0 || exec < 0 || suite > exec {
+		t.Fatalf("the takes read suite at %d and the exec at %d", suite, exec)
+	}
+	if strings.Contains(region, "ledger ·") || !strings.Contains(region, `in this take">ledger<`) {
+		t.Fatalf("the route pill counts the whole take beside the calls of one step: %s", region)
 	}
 }

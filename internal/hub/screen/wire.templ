@@ -36,7 +36,7 @@ templ wireTakes(st *state, v api.WireView) {
 	if len(v.Takes) > 1 {
 		<nav class="flex flex-wrap items-center gap-1" aria-label="Takes">
 			<span class="mr-1 text-xs text-muted">Take</span>
-			for _, t := range v.Takes {
+			for _, t := range wireTakeOrder(v.Takes) {
 				<a href={ templ.SafeURL(st.wireTakeHref(t)) } class={ "pill", "font-mono", templ.KV("pill-on", t == v.Take) }>{ t }</a>
 			}
 		</nav>
@@ -53,7 +53,7 @@ templ wireStepList(st *state, v api.WireView) {
 						<a href={ templ.SafeURL(st.wireStepHref(s)) } class={ "step-row", templ.KV("step-on", wireStepOn(v, s)) } if wireStepOn(v, s) { aria-current="true" }>
 							<span class="flex items-center gap-2 text-sm">
 								<span class={ "dot", "tone-" + string(flowTone(string(s.Status))) } title={ statusLabel(string(s.Status)) }></span>
-								<span class="min-w-0 truncate">{ orElse(s.Title, s.Step) }</span>
+								<span class="min-w-0 truncate" title={ orElse(s.Title, s.Step) }>{ orElse(s.Title, s.Step) }</span>
 								<span class="ml-auto shrink-0 text-xs text-muted">{ itoa(s.Calls()) }</span>
 							</span>
 						</a>
@@ -83,7 +83,7 @@ templ wireSelection(st *state, v api.WireView) {
 		<nav class="flex flex-wrap gap-1" aria-label="Routes">
 			<a href={ templ.SafeURL(st.wireTargetHref("")) } class={ "pill", templ.KV("pill-on", st.query.Get("target") == "") }>All routes</a>
 			for _, r := range v.Routes {
-				<a href={ templ.SafeURL(st.wireTargetHref(r.Name)) } class={ "pill", templ.KV("pill-on", st.query.Get("target") == r.Name) }>{ r.Name } · { itoa(r.Calls) }</a>
+				<a href={ templ.SafeURL(st.wireTargetHref(r.Name)) } class={ "pill", templ.KV("pill-on", st.query.Get("target") == r.Name) } title={ wireCount(r.Calls) + " in this take" }>{ r.Name }</a>
 			}
 		</nav>
 	}

@@ -85,7 +85,7 @@ The registry changes only what the screen shows. The running cap counts every ru
 What a screen shows besides its run lives in its query, so a reload, a pasted URL and the live connection render the same thing:
 
 - Flow: `step`, the picked step; its line is marked in the code view and scrolled to once.
-- Wire: `take`, `flow` and `step` or `scope=outside`, `target`, `offset` and `call`. Without a selection the screen opens on the step the API picks (`docs/api.md`). The region `wire` holds the notices, the step list and the table and reads only the cached index; the picked call sits outside it, so a `runs` event never reads a body.
+- Wire: `take`, `flow` and `step` or `scope=outside`, `target`, `offset` and `call`. Without a selection the screen opens on the step the API picks (`docs/api.md`). The region `wire` holds the notices, the step list and the table and reads only the cached index; the picked call sits outside it, so a `runs` event never reads a body. A call's link jumps to the picked call, below a step list of any length. The route filters name the routes, with each route's count for the whole take in their title; the `suite` take is listed first.
 - Signals: `trace` and `span` for the trace view, `f` (repeatable, `key:value`), `q` (text search) and `event` for the events view, `hide` (repeatable, `<table>.<column>`) for the table view, `source` for the logs view.
 
 Signals are read once per run into a cache that keeps the latest 20,000 and reads only the new ones on each render; a run nobody reads for ten minutes leaves the cache. The events view shows the latest 500 events, a table the latest 500 rows, the logs view the latest 2,000 lines of one source.

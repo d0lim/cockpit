@@ -7,7 +7,7 @@ import (
 
 templ wireCallPanel(st *state) {
 	if st.query.Get("call") != "" {
-		<section id="wire-call" class="mt-6 space-y-4" aria-label="Picked call">
+		<section id={ wireCallPanelID } class="mt-6 space-y-4" aria-label="Picked call">
 			if c, err := st.wireCall(); err != nil {
 				<p class="notice tone-bad">This call cannot be shown: { err.Error() }</p>
 			} else if c == nil {

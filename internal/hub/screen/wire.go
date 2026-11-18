@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"cmp"
 	"net/http"
 	"slices"
 	"strconv"
@@ -11,6 +12,8 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/api"
 	"github.com/d0lim/cockpit/internal/wire"
 )
+
+const wireCallPanelID = "wire-call"
 
 func wireRecorded(st *state) (int, string) {
 	if !st.run.Wire {
@@ -143,7 +146,22 @@ func (st *state) wireTargetHref(target string) string {
 }
 
 func (st *state) wireCallHref(seq int64) string {
-	return st.href(map[string][]string{"call": {strconv.FormatInt(seq, 10)}})
+	return st.href(map[string][]string{"call": {strconv.FormatInt(seq, 10)}}) + "#" + wireCallPanelID
+}
+
+func wireTakeOrder(takes []string) []string {
+	out := slices.Clone(takes)
+	slices.SortStableFunc(out, func(a, b string) int {
+		return cmp.Compare(wireTakeRank(a), wireTakeRank(b))
+	})
+	return out
+}
+
+func wireTakeRank(take string) int {
+	if take == wire.SuiteTake {
+		return 0
+	}
+	return 1
 }
 
 func (st *state) wireOffsetHref(offset int) string {
