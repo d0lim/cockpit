@@ -49,5 +49,9 @@
   },
   "telemetry": {
     "otlp": { "services": ["app", "mock"] }
+  },
+  "wire": {
+    "routes": [{ "name": "app", "service": "app", "port": 8080 }],
+    "publicFields": [{ "key": "token", "value": "tok-[0-9a-f]{8,64}" }]
   }
 }

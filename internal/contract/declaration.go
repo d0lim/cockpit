@@ -117,6 +117,22 @@ type TelemetrySection struct {
 	OTLP TelemetryOTLP `json:"otlp"`
 }
 
+type WireRoute struct {
+	Name    Name   `json:"name"`
+	Service string `json:"service"`
+	Port    int    `json:"port"`
+}
+
+type WirePublicField struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type WireSection struct {
+	Routes       []WireRoute       `json:"routes,omitempty"`
+	PublicFields []WirePublicField `json:"publicFields,omitempty"`
+}
+
 type Declaration struct {
 	HostAPI   int              `json:"hostApi"`
 	Project   ProjectSection   `json:"project"`
@@ -131,4 +147,5 @@ type Declaration struct {
 	Scripts   ScriptsSection   `json:"scripts"`
 	Kit       KitSection       `json:"kit,omitzero"`
 	Telemetry TelemetrySection `json:"telemetry,omitzero"`
+	Wire      WireSection      `json:"wire,omitzero"`
 }

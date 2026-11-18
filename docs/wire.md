@@ -56,6 +56,8 @@ The runner expands only `${COCKPIT_WIRE_<NAME>:-<default>}`, and only in the str
 | `wire.publicFields[].key` | a credential-looking key of the `token`, `session` or `credential` family; a key naming a password, a secret, an API key, authorization or a cookie is refused | `secrets` |
 | `wire.publicFields[].value` | RE2 that must match the whole value, and must not match any of the built-in probes: the empty string, 16 lowercase letters, 16 capitals, 16 digits, 32 hex characters, 43 base64url characters, a UUID, a JWT and a mixed password | `secrets` |
 
+The schema carries the name pattern too, as it does for every name field, so a malformed name in a file is refused there first with the kind `schema`.
+
 ## The recorder
 
 With `wire` on, the harness adds `cockpit-wire`, a `cockpit-runner wire` process on the runner image. Like every harness service it is read-only, has no capabilities, publishes no port and binds nothing. It joins the internal networks and no other. Every consumer service except the builder gets `depends_on: {cockpit-wire: {condition: service_healthy}}`. A run without `wire` renders the harness of an earlier version byte for byte, so `HarnessVersion` does not change.

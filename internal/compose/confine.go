@@ -71,6 +71,9 @@ func declaredNames(d contract.Declaration) []declaredName {
 	for i, db := range d.Databases {
 		out = append(out, declaredName{fmt.Sprintf("databases[%d].name", i), string(db.Name), "databases"})
 	}
+	for i, r := range d.Wire.Routes {
+		out = append(out, declaredName{fmt.Sprintf("wire.routes[%d].name", i), string(r.Name), "wireRoutes"})
+	}
 	return out
 }
 

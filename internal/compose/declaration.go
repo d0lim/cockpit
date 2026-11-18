@@ -94,6 +94,9 @@ func ReadDeclaration(ctx context.Context, git Git, sha string) (Loaded, error) {
 	if len(decl.Secrets.Sources) == 0 {
 		return Loaded{}, reject(RejectSecrets, "secrets.sources", "the declaration names no secret sources; list the files that hold run credentials in secrets.sources")
 	}
+	if err := checkPublicFields(decl); err != nil {
+		return Loaded{}, err
+	}
 	if err := checkOffsets(decl.Ports); err != nil {
 		return Loaded{}, err
 	}
