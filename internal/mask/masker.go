@@ -33,6 +33,7 @@ type Masker struct {
 	rules    []*rule
 	declared []*rule
 	keys     *regexp.Regexp
+	public   []publicField
 }
 
 func New(opts Options) (*Masker, error) {
