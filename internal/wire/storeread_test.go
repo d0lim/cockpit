@@ -3,6 +3,7 @@ package wire
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestReadsKeepAnsweringWhileTheRecordMovesBetweenTheRunDirectoryAndTheBundle(t *testing.T) {
-	const cycles = 150
+	const cycles, readerCount = 150, 4
 	dir := t.TempDir()
 	s := OpenStore(dir)
 	storedTake(t, s, SuiteTake)
@@ -20,46 +21,53 @@ func TestReadsKeepAnsweringWhileTheRecordMovesBetweenTheRunDirectoryAndTheBundle
 	}
 	var moving atomic.Bool
 	moving.Store(true)
-	var reads atomic.Int64
+	var passes [readerCount]atomic.Int64
 	var failure atomic.Value
-	fail := func(what string, err any) { failure.CompareAndSwap(nil, what) }
+	fail := func(what string) { failure.CompareAndSwap(nil, what) }
 	var readers sync.WaitGroup
-	for range 4 {
+	for r := range readerCount {
 		readers.Go(func() {
 			for moving.Load() {
-				reads.Add(1)
 				takes, err := s.Takes()
 				if err != nil || !slices.Equal(takes, []string{"exec-1", SuiteTake}) {
-					fail("Takes", err)
+					fail("Takes")
 				}
 				if _, err := s.IndexVersion(SuiteTake); err != nil {
-					fail("IndexVersion", err)
+					fail("IndexVersion")
 				}
 				index, err := s.Index(SuiteTake)
 				if err != nil || len(index.Heads) != 1 {
-					fail("Index", err)
-					continue
+					fail("Index")
+				} else if _, err := s.CallAt(SuiteTake, index.Heads[0]); err != nil {
+					fail("CallAt")
 				}
-				if _, err := s.CallAt(SuiteTake, index.Heads[0]); err != nil {
-					fail("CallAt", err)
-				}
+				passes[r].Add(1)
 			}
 		})
+	}
+	settle := func() {
+		for r := range passes {
+			for target := passes[r].Load() + 2; passes[r].Load() < target && failure.Load() == nil; {
+				runtime.Gosched()
+			}
+		}
 	}
 	for range cycles {
 		if err := s.Attach(); err != nil {
 			t.Fatal(err)
 		}
+		settle()
 		if err := s.Detach(); err != nil {
 			t.Fatal(err)
 		}
+		settle()
 	}
 	moving.Store(false)
 	readers.Wait()
 	if what := failure.Load(); what != nil {
 		t.Fatalf("%v failed while the record moved", what)
 	}
-	if reads.Load() == 0 {
-		t.Fatal("no read ran while the record moved")
+	if passes[0].Load() < 2*cycles {
+		t.Fatalf("%d read passes", passes[0].Load())
 	}
 }
