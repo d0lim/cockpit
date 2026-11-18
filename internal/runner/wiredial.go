@@ -89,6 +89,7 @@ func (w wireRoutes) expandValue(v any) any {
 type wireValues struct {
 	dir       string
 	recording bool
+	withheld  bool
 	earlier   []string
 }
 
@@ -100,6 +101,8 @@ func loadWireValues(dir string, recording bool) (wireValues, error) {
 	path := filepath.Join(dir, contract.WireValuesFile)
 	raw, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
+		_, started := os.Lstat(filepath.Join(dir, fileManifest))
+		w.withheld = !errors.Is(started, fs.ErrNotExist)
 		return w, nil
 	}
 	var doc contract.WireValues
@@ -117,7 +120,7 @@ func loadWireValues(dir string, recording bool) (wireValues, error) {
 }
 
 func (w wireValues) update(known []string) error {
-	if !w.recording {
+	if !w.recording || w.withheld {
 		return nil
 	}
 	path := filepath.Join(w.dir, contract.WireValuesFile)
