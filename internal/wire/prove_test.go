@@ -27,6 +27,7 @@ var proveMutations = []porttest.Mutation{
 	{"a stub whose labels fail the scan loses them", "skip the label replacement in Prove", "red: a PEM pair in the labels is stored", "TestAStubWhoseLabelsFormAPEMPairLosesThem"},
 	{"the scan skips the numbers the recorder wrote", "scan the whole line in proven", "red: a known number inside a nanosecond timestamp withholds the call", "TestAKnownNumberInsideTheRecordersOwnFieldsLeavesTheCallProven"},
 	{"the scan still reads what a caller sent", "leave the path out of the scanned line too", "red: a PEM pair across the path and a body is stored", "TestAPEMPairAcrossThePathAndABodyIsWithheldThoughTheRecorderNumbersAreSkipped"},
+	{"a call that was not cleaned fails the fixed-point check", "drop the second Clean from proven", "red: the planted value is stored", "TestProvingACallThatWasNotCleanedWithholdsIt"},
 	{"a call that cannot be encoded is withheld", "treat an encoding failure as proven", "red: the unencodable call passes", "TestACallThatCannotBeEncodedIsWithheld"},
 }
 
@@ -261,4 +262,21 @@ func TestAPEMPairAcrossThePathAndABodyIsWithheldThoughTheRecorderNumbersAreSkipp
 	if !ok || kept.Withheld || !strings.Contains(kept.Path, "BEGIN") {
 		t.Fatalf("the same call without the END: %v %+v", ok, kept)
 	}
+}
+
+func TestProvingACallThatWasNotCleanedWithholdsIt(t *testing.T) {
+	m := newMasker(t)
+	raw := Call{Seq: 9, Caller: "orders", Target: "ledger", Method: "GET", Path: "/v1/entries", Started: callStart, Status: 200, Outcome: OutcomeAnswered, Response: Message{Body: Body{Kind: BodyJSON, JSON: map[string]any{"new_password": plantedCredential}}}}
+	if line := lineOf(t, raw); m.ValueScan().Mask(line) != line {
+		t.Fatal("the value scan already refuses the line, so the case proves nothing")
+	}
+	got, ok := proveCleaned(m, raw)
+	if ok || !got.Withheld || strings.Contains(lineOf(t, got), plantedCredential) {
+		t.Fatalf("proof %v, call %+v", ok, got)
+	}
+	clean, ok := proveCleaned(m, Clean(m, raw))
+	if !ok || clean.Withheld {
+		t.Fatalf("canary: the cleaned call: %v %+v", ok, clean)
+	}
+	assertMasked(t, "the cleaned call", lineOf(t, clean), plantedCredential)
 }

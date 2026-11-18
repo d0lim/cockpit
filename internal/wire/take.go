@@ -165,7 +165,7 @@ func (w taking) addLine(got *copied, text []byte, to io.Writer) bool {
 	}
 	clean := Clean(w.record, *line.Call)
 	got.skeleton = append(got.skeleton, Call{Seq: clean.Seq, Caller: clean.Caller, Target: clean.Target, Started: clean.Started, Replied: clean.Replied, Finished: clean.Finished, Span: clean.Span})
-	stored, proven := Prove(w.record, clean)
+	stored, proven := proveCleaned(w.record, clean)
 	if !proven {
 		got.withheld++
 	}

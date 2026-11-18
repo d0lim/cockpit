@@ -9,7 +9,10 @@ import (
 )
 
 func Prove(record *mask.Masker, c Call) (Call, bool) {
-	clean := Clean(record, c)
+	return proveCleaned(record, Clean(record, c))
+}
+
+func proveCleaned(record *mask.Masker, clean Call) (Call, bool) {
 	if !clean.Withheld && proven(record, clean) {
 		return clean, true
 	}
