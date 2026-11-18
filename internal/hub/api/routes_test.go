@@ -190,3 +190,31 @@ func TestFailuresCarryAStableCodeAndTheStatusTheCLIMapsToExitCodes(t *testing.T)
 		t.Fatal("case count")
 	}
 }
+
+func TestSubmitCarriesTheWireOptionToTheRunItemAndRefusesAnythingButABoolean(t *testing.T) {
+	f := newFixture(t, nil)
+	status, raw := f.post("/api/runs", map[string]any{"worktree": "/w", "commit": "c1", "suite": "toy", "wire": true})
+	if status != http.StatusAccepted {
+		t.Fatalf("submit %d %s", status, raw)
+	}
+	id := validate(t, reflect.TypeFor[Submitted](), raw)["id"].(string)
+	until(t, func() bool { v := f.sched.Get(id); return v != nil && v.Phase == lifecycle.Done })
+	_, detail := f.get("/api/runs/" + id)
+	if got := validate(t, reflect.TypeFor[RunDetail](), detail); got["wire"] != true {
+		t.Fatalf("run item %v", got["wire"])
+	}
+	status, raw = f.post("/api/runs", map[string]any{"worktree": "/w", "commit": "c2", "suite": "toy"})
+	if status != http.StatusAccepted {
+		t.Fatalf("plain submit %d %s", status, raw)
+	}
+	plain := validate(t, reflect.TypeFor[Submitted](), raw)["id"].(string)
+	until(t, func() bool { v := f.sched.Get(plain); return v != nil && v.Phase == lifecycle.Done })
+	_, detail = f.get("/api/runs/" + plain)
+	if got := validate(t, reflect.TypeFor[RunDetail](), detail); got["wire"] != nil || got["id"] != plain {
+		t.Fatalf("plain run item: wire %v id %v", got["wire"], got["id"])
+	}
+	status, raw = f.post("/api/runs", map[string]any{"worktree": "/w", "commit": "c3", "wire": "yes"})
+	if status != http.StatusBadRequest || !strings.Contains(string(raw), "wire is true or false") {
+		t.Fatalf("a text wire value: %d %s", status, raw)
+	}
+}

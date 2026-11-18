@@ -42,6 +42,7 @@ type Env struct {
 	Base         int
 	Image        string
 	RunnerUser   string
+	Wire         bool
 	Docker       compose.Docker
 	Masker       *mask.Masker
 	Project      compose.Project
@@ -103,6 +104,13 @@ func (e *Env) GenerateEnv(ctx context.Context) error {
 	return e.RefreshMasker()
 }
 
+func (e *Env) wireRoutes() []compose.WireRoute {
+	if !e.Wire {
+		return nil
+	}
+	return compose.WireRoutes(e.Loaded.Declaration)
+}
+
 func (e *Env) WriteRunFiles() error {
 	decl := e.Loaded.Declaration
 	if err := compose.MakeWorkTree(e.Root, decl); err != nil {
@@ -113,13 +121,13 @@ func (e *Env) WriteRunFiles() error {
 		return err
 	}
 	e.Keys = keys
-	if err := compose.WriteRunEnv(e.Root, compose.RunEnvInput{RunID: e.RunID, Layout: e.Layout, PortBase: e.Base, Ports: decl.Ports, Keys: keys}); err != nil {
+	if err := compose.WriteRunEnv(e.Root, compose.RunEnvInput{RunID: e.RunID, Layout: e.Layout, PortBase: e.Base, Ports: decl.Ports, Keys: keys, Wire: e.wireRoutes()}); err != nil {
 		return err
 	}
 	if err := compose.WriteKit(e.Root, compose.KitInput{RunID: e.RunID, PortBase: e.Base, Ports: decl.Ports, Notes: decl.Kit.Notes}); err != nil {
 		return err
 	}
-	harness := compose.HarnessInput{RunID: e.RunID, RunnerImage: e.Image, PortBase: e.Base, Layout: e.Layout, Loaded: e.Loaded, RunnerUser: e.RunnerUser}
+	harness := compose.HarnessInput{RunID: e.RunID, RunnerImage: e.Image, PortBase: e.Base, Layout: e.Layout, Loaded: e.Loaded, RunnerUser: e.RunnerUser, Wire: e.Wire}
 	if err := compose.WriteHarness(e.Root, harness); err != nil {
 		return err
 	}
@@ -165,6 +173,7 @@ func (e *Env) SealStatic(ctx context.Context) error {
 	e.Static = seal.Static(seal.Input{
 		Config: config, Files: compose.ReadFiles(e.Layout, e.Loaded.Model), Forbidden: decl.Compose.Forbidden, RunID: e.RunID, RunDir: e.Layout.Root,
 		Layout: e.Layout, PortBase: e.Base, Ports: decl.Ports, Builder: decl.Project.Builder, OTLP: compose.OTLPDeclared(decl), RunnerImage: e.Image,
+		Wire: e.Wire, WireRoutes: e.wireRoutes(),
 	})
 	if err := e.WriteSeal(); err != nil {
 		return err

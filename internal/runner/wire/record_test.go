@@ -10,7 +10,8 @@ import (
 )
 
 func TestARecordedCallCarriesItsRouteMethodQueryCallerAndParsedBodies(t *testing.T) {
-	r := startRig(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	r := startRig(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		io.Copy(io.Discard, req.Body)
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{"ok":true}`)
 	}), nil)

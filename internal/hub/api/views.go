@@ -25,6 +25,7 @@ type RunItem struct {
 	CockpitVersion string                  `json:"cockpitVersion"`
 	Submitter      string                  `json:"submitter"`
 	Keep           bool                    `json:"keep"`
+	Wire           bool                    `json:"wire,omitempty"`
 	CreatedAt      string                  `json:"createdAt"`
 	StartedAt      string                  `json:"startedAt,omitempty"`
 	FinishedAt     string                  `json:"finishedAt,omitempty"`
@@ -105,7 +106,7 @@ func Item(v scheduler.RunView) RunItem {
 	m := v.Meta
 	return RunItem{
 		ID: m.ID, Phase: m.Phase, Env: m.Env, Verdict: m.Verdict, Mark: m.Mark, SHA: m.SHA, Suite: m.Suite,
-		HostAPI: m.HostAPI, CockpitVersion: m.CockpitVersion, Submitter: m.Submitter, Keep: m.Keep,
+		HostAPI: m.HostAPI, CockpitVersion: m.CockpitVersion, Submitter: m.Submitter, Keep: m.Keep, Wire: m.Wire,
 		CreatedAt: m.CreatedAt, StartedAt: m.StartedAt, FinishedAt: m.FinishedAt, LastUpAt: m.LastUpAt,
 		Slot: m.Slot, Position: v.Position, WaitReason: m.WaitReason, StopReason: m.StopReason,
 		DestroyReason: m.DestroyReason, FailedStage: m.FailedStage, Notice: m.Notice, Recreate: m.Recreate,

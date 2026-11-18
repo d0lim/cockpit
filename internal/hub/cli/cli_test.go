@@ -214,3 +214,24 @@ func TestHelpPrintsTheUsageAndExitsZeroWithoutCallingTheHub(t *testing.T) {
 		t.Fatalf("a -h after -- is a flow argument, not help: %+v", got)
 	}
 }
+
+func TestSubmitSendsTheWireOptionOnlyWhenTheFlagIsGiven(t *testing.T) {
+	var bodies []map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(map[string]any{"id": id, "phase": "queued", "position": 1, "merged": false})
+	}))
+	t.Cleanup(srv.Close)
+	for _, argv := range [][]string{{"submit", "--wire"}, {"submit"}} {
+		if got := invoke(t, srv.URL, argv...); got.code != ExitOK {
+			t.Fatalf("%v: %+v", argv, got)
+		}
+	}
+	if len(bodies) != 2 || bodies[0]["wire"] != true || bodies[1]["wire"] != false {
+		t.Fatalf("bodies %+v", bodies)
+	}
+}

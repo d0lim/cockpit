@@ -49,7 +49,7 @@ func submitForm(st *state) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<p class=\"mb-3 text-xs text-muted\">The suites are the ones the repository declares at the commit you type.</p><form hx-post=\"/runs/submit\" hx-target=\"#submit-result\" hx-swap=\"innerHTML\" class=\"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_10rem_auto]\"><label class=\"grid gap-1 text-xs text-muted\">Repository <select name=\"worktree\" class=\"field\" hx-get=\"/runs/suites\" hx-include=\"[name='worktree'],[name='commit']\" hx-target=\"#suite-options\" hx-swap=\"innerHTML\" hx-trigger=\"change, load\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<p class=\"mb-3 text-xs text-muted\">The suites are the ones the repository declares at the commit you type.</p><form hx-post=\"/runs/submit\" hx-target=\"#submit-result\" hx-swap=\"innerHTML\" class=\"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_10rem_auto_auto]\"><label class=\"grid gap-1 text-xs text-muted\">Repository <select name=\"worktree\" class=\"field\" hx-get=\"/runs/suites\" hx-include=\"[name='worktree'],[name='commit']\" hx-target=\"#suite-options\" hx-swap=\"innerHTML\" hx-trigger=\"change, load\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -98,7 +98,7 @@ func submitForm(st *state) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"field font-mono\" autocomplete=\"off\" hx-get=\"/runs/suites\" hx-include=\"[name='worktree'],[name='commit']\" hx-target=\"#suite-options\" hx-swap=\"innerHTML\" hx-trigger=\"change\"></label> <label class=\"grid gap-1 text-xs text-muted\">Suite <select name=\"suite\" id=\"suite-options\" class=\"field\"><option value=\"\">default</option></select></label> <button type=\"submit\" class=\"btn\">Submit</button></form><div id=\"submit-result\" class=\"mt-3\" aria-live=\"polite\"></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"field font-mono\" autocomplete=\"off\" hx-get=\"/runs/suites\" hx-include=\"[name='worktree'],[name='commit']\" hx-target=\"#suite-options\" hx-swap=\"innerHTML\" hx-trigger=\"change\"></label> <label class=\"grid gap-1 text-xs text-muted\">Suite <select name=\"suite\" id=\"suite-options\" class=\"field\"><option value=\"\">default</option></select></label> <label class=\"flex items-center gap-2 pb-2 text-xs text-muted\" title=\"Records the calls between services. The commit must declare wire.routes.\"><input type=\"checkbox\" name=\"wire\" value=\"1\"> Record wire</label> <button type=\"submit\" class=\"btn\">Submit</button></form><div id=\"submit-result\" class=\"mt-3\" aria-live=\"polite\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -144,7 +144,7 @@ func suiteOptions(view api.SuitesView, problem string) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(s.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 41, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 45, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -157,7 +157,7 @@ func suiteOptions(view api.SuitesView, problem string) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(s.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 41, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 45, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -176,7 +176,7 @@ func suiteOptions(view api.SuitesView, problem string) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(problem)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 44, Col: 37}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 48, Col: 37}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -219,7 +219,7 @@ func submittedResult(got api.Submitted) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(submittedText(got))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 50, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 54, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -232,7 +232,7 @@ func submittedResult(got api.Submitted) templ.Component {
 		var templ_7745c5c3_Var12 templ.SafeURL
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/runs/" + got.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 51, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `submit.templ`, Line: 55, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {

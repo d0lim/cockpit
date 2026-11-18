@@ -52,7 +52,7 @@ func (x *ctx) submit(a args) (int, error) {
 	if commit == "" {
 		commit = "HEAD"
 	}
-	body := map[string]any{"worktree": worktree, "commit": commit, "submitter": x.submitter(a), "new": a.flags["new"] == "true"}
+	body := map[string]any{"worktree": worktree, "commit": commit, "submitter": x.submitter(a), "new": a.flags["new"] == "true", "wire": a.flags["wire"] == "true"}
 	if s := a.flags["suite"]; s != "" {
 		body["suite"] = s
 	}

@@ -38,6 +38,7 @@ type Meta struct {
 	RunnerImage    *contract.RunnerImage   `json:"runnerImage,omitempty"`
 	Submitter      string                  `json:"submitter"`
 	Keep           bool                    `json:"keep"`
+	Wire           bool                    `json:"wire,omitempty"`
 	CreatedAt      string                  `json:"createdAt"`
 	StartedAt      string                  `json:"startedAt,omitempty"`
 	FinishedAt     string                  `json:"finishedAt,omitempty"`

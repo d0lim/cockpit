@@ -101,6 +101,7 @@
     "runs[].verdict": "custom lifecycle.Verdict",
     "runs[].verdictLabel": "string|null",
     "runs[].waitReason": "string, optional",
+    "runs[].wire": "boolean, optional",
     "servedHostApis": "array of integer",
     "tickError": "string|null",
     "up": "object",
@@ -164,7 +165,8 @@
     "run.suite": "string",
     "run.verdict": "custom lifecycle.Verdict",
     "run.verdictLabel": "string|null",
-    "run.waitReason": "string, optional"
+    "run.waitReason": "string, optional",
+    "run.wire": "boolean, optional"
   },
   "ReportView": {
     "failedStage": "string|null, optional",
@@ -276,7 +278,8 @@
     "tail": "array of string, optional",
     "verdict": "custom lifecycle.Verdict",
     "verdictLabel": "string|null",
-    "waitReason": "string, optional"
+    "waitReason": "string, optional",
+    "wire": "boolean, optional"
   },
   "RunItem": {
     "cockpitVersion": "string",
@@ -307,7 +310,8 @@
     "suite": "string",
     "verdict": "custom lifecycle.Verdict",
     "verdictLabel": "string|null",
-    "waitReason": "string, optional"
+    "waitReason": "string, optional",
+    "wire": "boolean, optional"
   },
   "SignalsView": {
     "collectors": "array of object",

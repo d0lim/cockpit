@@ -68,6 +68,7 @@ type Fake struct {
 	ContainerSecret string
 	RunnerDelay     time.Duration
 	OTLP            func(runID string) []OTLPLine
+	Wire            WireRecorder
 	otlpRun         atomic.Value
 	doneAt          atomic.Int64
 }
@@ -131,7 +132,7 @@ func Verb(args []string) string {
 	return "compose"
 }
 
-func (f *Fake) Run(ctx context.Context, cmd compose.Command) (compose.Result, error) {
+func (f *Fake) run(ctx context.Context, cmd compose.Command) (compose.Result, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, Call{Args: slices.Clone(cmd.Args), Env: slices.Clone(cmd.Env)})
 	f.mu.Unlock()

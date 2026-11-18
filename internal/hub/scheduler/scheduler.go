@@ -22,6 +22,7 @@ type SubmitInput struct {
 	Suite     string
 	Submitter string
 	New       bool
+	Wire      bool
 }
 
 type Accepted struct {
@@ -119,7 +120,7 @@ func (s *Scheduler) Submit(ctx context.Context, in SubmitInput) SubmitResult {
 	}
 	if !in.New {
 		for i, id := range st.Queue {
-			if m := s.find(id); m != nil && m.Phase == lifecycle.Queued && m.SHA == accepted.SHA && m.Suite == in.Suite {
+			if m := s.find(id); m != nil && m.Phase == lifecycle.Queued && m.SHA == accepted.SHA && m.Suite == in.Suite && m.Wire == in.Wire {
 				return SubmitResult{ID: id, Phase: m.Phase, Position: i + 1, Merged: true}
 			}
 		}
@@ -149,6 +150,7 @@ func (s *Scheduler) Submit(ctx context.Context, in SubmitInput) SubmitResult {
 		HostAPI:        accepted.HostAPI,
 		CockpitVersion: s.d.CockpitVersion,
 		Submitter:      in.Submitter,
+		Wire:           in.Wire,
 		CreatedAt:      store.Timestamp(now),
 	}
 	if err := s.d.Store.WriteMeta(m); err != nil {

@@ -44,3 +44,30 @@ func TestASubmitFromTheScreenQueuesARunOrSaysWhyNot(t *testing.T) {
 		t.Fatalf("runs after submit: %+v %v", list.Runs, err)
 	}
 }
+
+func TestTheSubmitFormRecordsOnlyWhenItsWireBoxIsTicked(t *testing.T) {
+	f := newFixture(t)
+	_, _, page := f.get("/")
+	if !strings.Contains(page, `name="wire"`) || !strings.Contains(page, `type="checkbox"`) {
+		t.Fatalf("the form has no wire box: %s", page)
+	}
+	cases := map[string]struct {
+		form url.Values
+		want bool
+	}{
+		"ticked":   {url.Values{"worktree": {toyRepo}, "commit": {"c1"}, "suite": {"joint"}, "wire": {"1"}}, true},
+		"unticked": {url.Values{"worktree": {toyRepo}, "commit": {"c2"}, "suite": {"joint"}}, false},
+	}
+	for name, c := range cases {
+		status, body := f.post("/runs/submit", c.form)
+		if status != http.StatusAccepted {
+			t.Fatalf("%s: %d %s", name, status, body)
+		}
+		id := body[strings.Index(body, "/runs/run-")+len("/runs/"):]
+		id = id[:strings.IndexByte(id, '"')]
+		m, err := f.st.MustRead(id)
+		if err != nil || m.Wire != c.want {
+			t.Fatalf("%s: wire %v, want %v: %v", name, m.Wire, c.want, err)
+		}
+	}
+}

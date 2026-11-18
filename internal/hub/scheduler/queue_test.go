@@ -96,6 +96,28 @@ func TestSubmitWritesTheCockpitVersionAndHostAPIIntoTheRunMeta(t *testing.T) {
 	}
 }
 
+func TestAQueuedRunAbsorbsASubmissionOnlyWhenItsWireOptionMatches(t *testing.T) {
+	s, w := setup(t, nil)
+	s.Submit(ctx, sub("c0"))
+	s.Tick()
+	plain := s.Submit(ctx, sub("c1"))
+	recording := s.Submit(ctx, sub("c1", func(in *SubmitInput) { in.Wire = true }))
+	if recording.Merged || recording.ID == plain.ID || recording.Fail != nil {
+		t.Fatalf("a recording submission joined a plain run: %+v", recording)
+	}
+	joined := s.Submit(ctx, sub("c1", func(in *SubmitInput) { in.Wire = true; in.Submitter = "ui" }))
+	if !joined.Merged || joined.ID != recording.ID {
+		t.Fatalf("a matching recording submission: %+v, want %s", joined, recording.ID)
+	}
+	again := s.Submit(ctx, sub("c1"))
+	if !again.Merged || again.ID != plain.ID {
+		t.Fatalf("a matching plain submission: %+v, want %s", again, plain.ID)
+	}
+	if !read(t, w, recording.ID).Wire || read(t, w, plain.ID).Wire {
+		t.Fatalf("wire of the records: %v %v", read(t, w, recording.ID).Wire, read(t, w, plain.ID).Wire)
+	}
+}
+
 func TestSubmitWhileDockerIsSilentWaitsAsDockerUnavailableAndStartsAfterRecovery(t *testing.T) {
 	s, w := setup(t, nil, func(d *Deps) { d.TickInterval = 20 * time.Millisecond })
 	w.dockerUp = false
