@@ -28,17 +28,24 @@ func TestATakeWaitsUntilNoCallHasStartedForTheQuietTime(t *testing.T) {
 }
 
 func TestATakeWithNoCallsReturnsOnlyTheEndLineAtOnce(t *testing.T) {
+	before := time.Now()
 	r := startRig(t, okUpstream(), func(o *Options) { o.Limits.Quiet = time.Minute })
 	started := time.Now()
 	got := r.take(InitialTake)
+	since := got.end.Since
+	got.end.Since = time.Time{}
 	if len(got.calls) != 0 || got.end != (wire.End{}) || time.Since(started) > 2*time.Second {
 		t.Fatalf("take %+v after %v", got, time.Since(started))
+	}
+	if since.Before(before) || since.After(started) {
+		t.Fatalf("the end line says the recorder started at %v, between %v and %v", since, before, started)
 	}
 }
 
 func TestACallStillOpenAtTheLimitComesOutIncompleteWithoutAFinishTime(t *testing.T) {
 	release := make(chan struct{})
-	r := startRig(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	r := startRig(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		io.Copy(io.Discard, req.Body)
 		w.WriteHeader(http.StatusAccepted)
 		w.(http.Flusher).Flush()
 		<-release

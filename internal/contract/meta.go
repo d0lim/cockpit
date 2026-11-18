@@ -22,4 +22,5 @@ type BundleMeta struct {
 	CockpitVersion string            `json:"cockpitVersion"`
 	HostAPI        int               `json:"hostApi"`
 	RunnerImage    RunnerImage       `json:"runnerImage"`
+	Wire           bool              `json:"wire,omitempty"`
 }

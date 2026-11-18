@@ -50,6 +50,10 @@ func wireCommand(runID string, d contract.Declaration) []string {
 	return command
 }
 
+func WireCtlArgs(container, verb, take string) []string {
+	return []string{"exec", container, runnerBinaryPath, "wire-ctl", verb, take}
+}
+
 func WireRunnerRoutes(routes []WireRoute) string {
 	parts := make([]string, 0, len(routes))
 	for _, r := range routes {

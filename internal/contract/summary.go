@@ -144,5 +144,6 @@ type Summary struct {
 	CockpitVersion string                  `json:"cockpitVersion"`
 	HostAPI        int                     `json:"hostApi"`
 	RunnerImage    RunnerImage             `json:"runnerImage"`
+	Wire           *WireStatus             `json:"wire,omitempty"`
 	GeneratedAt    string                  `json:"generatedAt"`
 }

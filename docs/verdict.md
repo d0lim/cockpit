@@ -45,6 +45,7 @@ report/
   source/                  the suite source files the manifest points to, and source/source-index.json
   signals/stream.jsonl     the frozen signal segment
   <caller files>           anything else the caller passes, such as seal.json and collector outputs
+  wire/<take>/             the wire record of a run submitted with wire: calls.jsonl and index.json
 ```
 
 Every file is masked with the run masker as it is written. After writing, `mask.Rescan` reads the whole directory again with the same masker. If any value is still unmasked, the hub:
@@ -55,7 +56,9 @@ Every file is masked with the run masker as it is written. After writing, `mask.
 
 The usual cause is a signal segment frozen with an older value list than the one the report uses.
 
-`summary.json` is `format: 3`. Compared with format 2 it drops one consumer-specific status key and adds `cockpitVersion`, `hostApi` and `runnerImage`. Its `stages` keys are collector ids plus the hub's own stages (`runner.<file>`, `source`, `signals`). Each stage is `ok`, `skipped`, `absent` or `error`.
+`wire/` is not part of what `Assemble` writes or rescans. The report stage moves the record out of the old bundle before `Assemble`, because `Assemble` removes `report/`, and moves it in after the rename, so the rescan never reads it ([wire record](wire.md#where-the-record-lives)). Each call was proven on its own when it was taken. When the bundle is discarded the record stays in `<run>/wire/`.
+
+`summary.json` is `format: 3`. Compared with format 2 it drops one consumer-specific status key and adds `cockpitVersion`, `hostApi` and `runnerImage`. Its `stages` keys are collector ids plus the hub's own stages (`runner.<file>`, `source`, `signals`). Each stage is `ok`, `skipped`, `absent` or `error`. A run submitted with `wire` adds `wire` to `summary.json` (`contract.WireStatus`: the take, its state, a detail for a state other than `taken`, and the counts of calls, withheld calls, omitted bodies and dropped calls) and `wire: true` to `meta.json`. A state other than `taken` adds one `notProven.unread` line that starts with `wire record`.
 
 ## Boundary
 
@@ -72,5 +75,5 @@ The run pipeline calls the package at its report stage with plain inputs. The pa
 - `Bundle.Files` holds paths inside the bundle. `summary.json`, `meta.json`, `not-proven.md` and `signals/` are reserved, and a path outside the bundle is refused before anything is written.
 - `Bundle.Signals` is the run's `*signal.Stream`. `Assemble` calls `Freeze` into the bundle first, so the dropped counts reach `notProven.unread`. A failed freeze is an unread record, not an error. A second assembly of the same run finds the stream already frozen and records that too.
 - `Bundle.Patch` changes the run meta, for example `func(f func(*store.Meta)) error { _, err := st.PatchMeta(id, f); return err }`. It is called only when the rescan fails.
-- `Bundle.Summary` carries the values the summary copies: run id, suite, commit, `harness`, `hubCommit`, host API, cockpit version, runner image, ports, image keys and digests, versions, collector stages, runner outcome and the time. The hub fills `harness` with `compose.HarnessVersion` and `hubCommit` with the VCS revision of the hub binary; a build without VCS information records its version there instead.
+- `Bundle.Summary` carries the values the summary copies: run id, suite, commit, `harness`, `hubCommit`, host API, cockpit version, runner image, ports, image keys and digests, versions, collector stages, runner outcome, the wire status and the time. The hub fills `harness` with `compose.HarnessVersion` and `hubCommit` with the VCS revision of the hub binary; a build without VCS information records its version there instead.
 - `Outcome.Judgement` is masked with the run masker, so its reasons can go to the run meta or a log as they are. `Outcome.Dir` is empty when the bundle was discarded. `Outcome.Redaction` is then set, and the error, if any, comes from `Patch` or `RefuseReads`.

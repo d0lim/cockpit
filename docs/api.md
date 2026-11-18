@@ -64,7 +64,7 @@ Because that schema follows the struct, it cannot see a field that disappears. `
   - `meta-only` with the failed stage, notice and tail when there is no bundle.
   - `bundle` with `summary`, `meta`, `flows`, `steps`, `stoppedAt`, `notProven` and `reportDir`.
 - **`KitView`**: services, kit files, the `cockpit runs exec` command with the repeatable flows, and the report directory.
-- **`ExecView`**: `exitCode`, `oomKilled`, `timedOut`, `flows`, `lines` and `reason`.
+- **`ExecView`**: `exitCode`, `oomKilled`, `timedOut`, `flows`, `lines` and `reason`. On a run submitted with `wire`, `lines` ends with one `wire record:` line when the exec's take could not be stored.
 - **`FlowView`** and **`SourceView`**: read from the bundle when it exists (`source: bundle`). Otherwise they are read live from `work/e2e` and `work/scripts` and pass the run masker (`source: live`). The live source view serves only files the manifest points to, and it refuses to answer without a run masker.
 - **`SignalsView`**: the signal read (`signals`, `frozen`, `frozenSeq`, `dropped`, `resync`, `next`), `source` (`live`, or `bundle` for a destroyed run read from its frozen copy, `docs/signals.md`) plus `collectors`. Each collector entry is `{id, state, lastOkAt, failures, reason}`, where `state` is a `collect.State`: `armed`, `backoff`, `stopped` or `report-only` (a collector with no interval that runs only at the report). A run whose reads are refused answers 409 `READ_REFUSED`.
 

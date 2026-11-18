@@ -14,12 +14,13 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/mask"
+	"github.com/d0lim/cockpit/internal/wire"
 )
 
 const (
 	ControlPort   = 41000
 	MemoryLimit   = 256 << 20
-	InitialTake   = "suite"
+	InitialTake   = wire.SuiteTake
 	shutdownGrace = 5 * time.Second
 )
 

@@ -118,21 +118,21 @@ func schemaProperties(t *testing.T, name string) []string {
 
 func TestSummaryFormat3KeysAreFormat2KeysWithoutOpaPlusThreeFields(t *testing.T) {
 	format2 := []string{"format", "runId", "suite", "verdict", "reasons", "steps", "flows", "stoppedAt", "notProven", "boot", "seal", "runner", "stages", "commit", "harness", "hubCommit", "ports", "images", "versions", "opa", "generatedAt"}
-	want := sorted(append(slices.DeleteFunc(slices.Clone(format2), func(k string) bool { return k == "opa" }), "cockpitVersion", "hostApi", "runnerImage")...)
+	want := sorted(append(slices.DeleteFunc(slices.Clone(format2), func(k string) bool { return k == "opa" }), "cockpitVersion", "hostApi", "runnerImage", "wire")...)
 	if got := jsonNames(reflect.TypeFor[Summary]()); !slices.Equal(got, want) {
 		t.Fatalf("Summary fields %v\nwant %v", got, want)
 	}
 	if got := schemaProperties(t, "summary"); !slices.Equal(got, want) {
 		t.Fatalf("schema/summary.json properties %v\nwant %v", got, want)
 	}
-	if len(want) != len(format2)+2 {
+	if len(want) != len(format2)+3 {
 		t.Fatalf("key count %d", len(want))
 	}
 }
 
 func TestBundleMetaKeysAreMetaFieldsPlusIdVerdictReportedAtAndThreeFields(t *testing.T) {
 	metaFields := []string{"sha", "suite", "harness", "hubCommit", "submitter", "keep", "createdAt", "startedAt", "finishedAt", "slot", "imageKeys", "imageDigests", "failedStage", "notice", "tail"}
-	want := sorted(append(slices.Clone(metaFields), "id", "verdict", "reportedAt", "cockpitVersion", "hostApi", "runnerImage")...)
+	want := sorted(append(slices.Clone(metaFields), "id", "verdict", "reportedAt", "cockpitVersion", "hostApi", "runnerImage", "wire")...)
 	if got := jsonNames(reflect.TypeFor[BundleMeta]()); !slices.Equal(got, want) {
 		t.Fatalf("BundleMeta fields %v\nwant %v", got, want)
 	}

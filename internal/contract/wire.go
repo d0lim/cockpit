@@ -8,6 +8,25 @@ const (
 	wireVariablePrefix = "COCKPIT_WIRE_"
 )
 
+type WireState string
+
+const (
+	WireStateTaken    WireState = "taken"
+	WireStateLost     WireState = "lost"
+	WireStateWithheld WireState = "withheld"
+	WireStateFailed   WireState = "failed"
+)
+
+type WireStatus struct {
+	Take          string    `json:"take"`
+	State         WireState `json:"state"`
+	Detail        string    `json:"detail,omitempty"`
+	Calls         int       `json:"calls"`
+	WithheldCalls int       `json:"withheldCalls"`
+	BodiesOmitted int       `json:"bodiesOmitted"`
+	CallsDropped  int       `json:"callsDropped"`
+}
+
 type WireValues struct {
 	Values []string `json:"values"`
 }

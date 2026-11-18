@@ -21,6 +21,7 @@ import (
 	"github.com/d0lim/cockpit/internal/report"
 	"github.com/d0lim/cockpit/internal/runnerbin"
 	"github.com/d0lim/cockpit/internal/signal"
+	"github.com/d0lim/cockpit/internal/wire"
 )
 
 var EnvDirs = []string{"src", "work", "env", "build"}
@@ -36,6 +37,7 @@ type ReportInput struct {
 	Masker     *mask.Masker
 	Signals    report.Signals
 	Stream     *signal.Stream
+	Wire       *RunWire
 	RunnerExit time.Time
 	Collected  *collect.ReportResult
 	CollectErr error
@@ -185,6 +187,7 @@ func removeEnvDirs(dir string) {
 	for _, name := range EnvDirs {
 		os.RemoveAll(path.Join(dir, name))
 	}
+	wire.OpenStore(dir).Attach()
 }
 
 func (o *Ops) releaseLease(id string) error {

@@ -23,24 +23,16 @@ type Link struct {
 	Parent int64    `json:"parent,omitempty"`
 }
 
-type State string
+type State = contract.WireState
 
 const (
-	StateTaken    State = "taken"
-	StateLost     State = "lost"
-	StateWithheld State = "withheld"
-	StateFailed   State = "failed"
+	StateTaken    = contract.WireStateTaken
+	StateLost     = contract.WireStateLost
+	StateWithheld = contract.WireStateWithheld
+	StateFailed   = contract.WireStateFailed
 )
 
-type Status struct {
-	Take          string `json:"take"`
-	State         State  `json:"state"`
-	Detail        string `json:"detail,omitempty"`
-	Calls         int    `json:"calls"`
-	WithheldCalls int    `json:"withheldCalls"`
-	BodiesOmitted int    `json:"bodiesOmitted"`
-	CallsDropped  int    `json:"callsDropped"`
-}
+type Status = contract.WireStatus
 
 type StepRef struct {
 	Flow string `json:"flow"`

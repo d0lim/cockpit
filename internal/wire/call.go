@@ -81,9 +81,10 @@ type Call struct {
 }
 
 type End struct {
-	Calls         int `json:"calls"`
-	BodiesOmitted int `json:"bodiesOmitted"`
-	CallsDropped  int `json:"callsDropped"`
+	Calls         int       `json:"calls"`
+	BodiesOmitted int       `json:"bodiesOmitted"`
+	CallsDropped  int       `json:"callsDropped"`
+	Since         time.Time `json:"since,omitzero"`
 }
 
 type Line struct {

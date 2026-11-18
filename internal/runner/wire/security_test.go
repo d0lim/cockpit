@@ -63,7 +63,8 @@ func TestTheControlListenerAnswersOnLoopbackAndNotOnAnotherAddress(t *testing.T)
 }
 
 func TestAStoredLineHoldsNoPlantedSecretFromHeadersQueryOrBodies(t *testing.T) {
-	r := startRig(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	r := startRig(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		io.Copy(io.Discard, req.Body)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Set-Cookie", "sid="+planted)
 		io.WriteString(w, `{"sessionToken":"`+planted+`","shown":"reply-visible"}`)

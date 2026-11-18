@@ -169,6 +169,9 @@ func (o *Ops) AddCollected(ctx context.Context, in *ReportInput) {
 	if s := o.Stream(in.Meta.ID); s != nil {
 		in.Signals, in.Stream = s, s
 	}
+	if in.Meta.Wire {
+		in.Wire = o.RunWire(in.Meta.ID, in.RunDir, in.Decl)
+	}
 }
 
 func (o *Ops) AppendSpans(id string, spans []contract.Signal) {

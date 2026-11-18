@@ -75,12 +75,14 @@ A take is the part of the traffic that one runner invocation belongs to. The rec
 | Command | Effect |
 | --- | --- |
 | `arm <take>` | clears the record and records under that name (letters, digits, `.`, `_` and `-`, at most 128 characters) |
-| `take <take>` | waits until no call is open and none started for 2.5 s, at most 10 s, stops recording and writes the record to stdout, one JSON line per call and one `End` line. Calls still open at the limit are written with the outcome `incomplete`. A repeated `take` of the same name returns the same lines until the next `arm`. A `take` of any other name exits non-zero, writes the reason to stderr and no lines |
+| `take <take>` | waits until no call is open and none started for 2.5 s, at most 10 s, stops recording and writes the record to stdout, one JSON line per call and one `End` line with the counts and `since`, the time the recorder process started. Calls still open at the limit are written with the outcome `incomplete`. A repeated `take` of the same name returns the same lines until the next `arm`. A `take` of any other name exits non-zero, writes the reason to stderr and no lines |
 | `ping` | answers while the proxy listens; the service's healthcheck uses it |
 
 The take of the suite happens in the report stage, where the containers are still up. That holds for a passed, failed, timed-out or aborted run, so a killed runner does not lose the record. Calls that arrive after the take pass through unrecorded.
 
-`cockpit runs exec` arms a take named after the exec result before it starts the runner and takes it after the runner exits.
+`cockpit runs exec` arms a take named after the exec result before it starts the runner and takes it after the runner exits, also when the exec is aborted. A recorder that cannot be armed or read costs the exec nothing: the exec answers as usual, with one `wire record:` line in `lines`.
+
+A recorder that restarted lost what it held, and it starts over under the take `suite`. The hub compares `since` with the runner's steps: a `suite` take from a recorder that started after the first step started is `lost`. A recorder restarted during an exec no longer holds the exec's take and refuses it, which is `lost` too.
 
 The record stays in the memory of the process until it is taken. Nothing in the environment reads it over a network, and no recorded byte reaches a disk or a log before the hub has masked it.
 
@@ -142,9 +144,11 @@ The hub stores a call only after proving it. `Clean` must not change its own out
 
 ## Where the record lives
 
-A take writes `calls.jsonl` and `index.json` to `<run>/wire/<take>/` through a temporary directory and a rename. Once the report bundle exists the whole `wire/` directory moves to `report/wire/`, and later takes go there.
+A take writes `calls.jsonl` and `index.json` to `<run>/wire/<take>/` through a temporary directory and a rename, with directories 700 and files 600. Once the report bundle exists the takes move to `report/wire/`, and later takes go there. `wire.Store` owns this: `Root` names the directory that holds the record now, `Detach` moves the record out of the bundle and `Attach` moves it in. While `<run>/wire/` exists it is the root, so a take made during a report never lands in the bundle that report is about to replace.
 
-The record joins the bundle after `mask.Rescan` has passed, so the rescan never reads it. That is deliberate. The rescan treats a file as one string and would discard the bundle for one call: the PEM rule matches a `BEGIN` in one line and an `END` in a later one, and a public field is a value the key-name rules would mask. Each call carries its own proof instead. If the bundle is discarded for any other reason, the record stays in `<run>/wire/` and still opens. A second report of the same run moves the record back first and keeps it.
+The report stage runs `Detach`, the `suite` take, `report.Assemble` and, when the bundle was written, `Attach`. The record joins the bundle after `mask.Rescan` has passed, so the rescan never reads it. That is deliberate. The rescan treats a file as one string and would discard the bundle for one call: the PEM rule matches a `BEGIN` in one line and an `END` in a later one, and a public field is a value the key-name rules would mask. Each call carries its own proof instead. If the bundle is discarded for any other reason, the record stays in `<run>/wire/` and still opens. A second report of the same run moves the record back first, finds the `suite` take stored and does not ask the recorder again. The take runs under the report's context with a limit of 3 minutes of its own.
+
+Destroying a run keeps both places: `report/wire/` stays with the bundle. A record still in `<run>/wire/` moves into `report/wire/` when a bundle exists and otherwise stays, as long as the run's record does.
 
 `summary.json` and the bundle's `meta.json` carry `wire`, so a run recorded through the proxy is recognizable in the report. `summary.wire` holds the state of the `suite` take and its counts.
 
@@ -153,7 +157,9 @@ The record joins the bundle after `mask.Rescan` has passed, so the rescan never 
 | `taken` | the record is stored; `calls`, `withheldCalls`, `bodiesOmitted` and `callsDropped` say what it holds |
 | `lost` | the recorder was gone or had restarted, or the environment was down |
 | `withheld` | the run's value sources could not be read, so nothing was stored |
-| `failed` | the stream broke twice or ended without its `End` line |
+| `failed` | the stream broke twice, ended without its `End` line, or the take could not be written |
+
+`withheld` also covers a run whose runner started and left no `work/e2e/wire.private.env.json`. A runner that never started leaves no manifest either, and then the run's own sources are enough. Only `taken` stores anything: the other states leave no take directory, and a later report tries again. A stream is read a second time from its start when it breaks. A recorder that refuses the take writes no line, is `lost` at once and is not asked again.
 
 A state other than `taken` adds one line to `notProven.unread`. The wire record never changes the verdict and never fails the report.
 

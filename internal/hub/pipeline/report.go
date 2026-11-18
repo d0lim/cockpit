@@ -23,6 +23,7 @@ import (
 const (
 	runnerLines = 200
 	stageSource = "source"
+	stageWire   = "wire record"
 )
 
 func sealVerdict(runDir string) contract.SealVerdict {
@@ -81,6 +82,8 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 	}
 	stages[stageSource] = sourceStage
 	unread := append(collectorStages(in, stages), reportSpans(in, collected.Result.Value)...)
+	wireStatus, wireUnread := takeSuiteWire(ctx, in, collected.Result.Value)
+	unread = append(unread, wireUnread...)
 	if data, err := os.ReadFile(filepath.Join(in.RunDir, seal.FileName)); err == nil {
 		files[seal.FileName] = data
 	}
@@ -101,7 +104,7 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 		RunID: meta.ID, Suite: meta.Suite, Commit: meta.SHA, Harness: compose.HarnessVersion, HubCommit: version.Commit(),
 		HostAPI: meta.HostAPI, CockpitVersion: meta.CockpitVersion, RunnerImage: pin, Ports: in.Ports,
 		ImageKeys: meta.ImageKeys, ImageDigests: meta.ImageDigests, Versions: map[string]string{"cockpit": version.String()},
-		Stages: stages, Runner: runnerOutcome(in.Runner, in.Masker), GeneratedAt: store.Timestamp(in.Now),
+		Stages: stages, Runner: runnerOutcome(in.Runner, in.Masker), Wire: wireStatus, GeneratedAt: store.Timestamp(in.Now),
 	}
 	bundle := report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker, Unread: unread,
 		Patch: func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(meta.ID, change); return err }}
@@ -110,7 +113,21 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 	if out.Redaction == nil && err != nil {
 		return reconcile.ReportOutcome{}, "", err
 	}
+	if in.Wire != nil && out.Dir != "" {
+		in.Wire.Attach()
+	}
 	return reconcile.ReportOutcome{Verdict: lifecycle.Verdict(out.Judgement.Verdict), Redaction: out.Redaction}, joinNotice(notice, reasonsNotice(out.Judgement)), nil
+}
+
+func takeSuiteWire(ctx context.Context, in envops.ReportInput, result *contract.Result) (*contract.WireStatus, []report.Unread) {
+	if in.Wire == nil {
+		return nil, nil
+	}
+	status := in.Wire.TakeSuite(ctx, result)
+	if status.State == contract.WireStateTaken {
+		return &status, nil
+	}
+	return &status, []report.Unread{{Source: stageWire, Detail: string(status.State) + ": " + status.Detail, Count: 1}}
 }
 
 func reasonsNotice(j report.Judgement) string {

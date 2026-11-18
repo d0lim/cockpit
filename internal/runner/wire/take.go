@@ -76,7 +76,7 @@ func (s *store) seal(ctx context.Context, gen uint64, open []*call) (*record, er
 	for i, l := range s.lines {
 		texts[i] = l.text
 	}
-	s.frozen = &record{lines: texts, end: wire.End{Calls: len(texts), BodiesOmitted: s.omitted, CallsDropped: s.dropped}}
+	s.frozen = &record{lines: texts, end: wire.End{Calls: len(texts), BodiesOmitted: s.omitted, CallsDropped: s.dropped, Since: s.started}}
 	return s.frozen, nil
 }
 

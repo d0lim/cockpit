@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,10 +12,6 @@ import (
 	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/wire"
 )
-
-var takeName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
-
-func ValidTake(name string) bool { return takeName.MatchString(name) }
 
 type finished struct {
 	gen      uint64
@@ -37,6 +32,7 @@ type record struct {
 
 type store struct {
 	limits  Limits
+	started time.Time
 	masker  *mask.Masker
 	names   *callerNames
 	pending atomic.Int64
@@ -58,7 +54,7 @@ type store struct {
 }
 
 func newStore(limits Limits, masker *mask.Masker, names *callerNames) *store {
-	s := &store{limits: limits, masker: masker, names: names, queue: make(chan finished, limits.Queue)}
+	s := &store{limits: limits, started: time.Now(), masker: masker, names: names, queue: make(chan finished, limits.Queue)}
 	s.reset(InitialTake)
 	return s
 }

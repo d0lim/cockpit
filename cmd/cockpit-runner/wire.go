@@ -12,6 +12,7 @@ import (
 
 	"github.com/d0lim/cockpit/internal/mask"
 	recorder "github.com/d0lim/cockpit/internal/runner/wire"
+	"github.com/d0lim/cockpit/internal/wire"
 )
 
 const (
@@ -115,7 +116,7 @@ func wireCtl(ctx context.Context, addr string, args []string, stdout, stderr io.
 	switch {
 	case len(args) == 1 && args[0] == "ping":
 		request = "ping"
-	case len(args) == 2 && (args[0] == "arm" || args[0] == "take") && recorder.ValidTake(args[1]):
+	case len(args) == 2 && (args[0] == "arm" || args[0] == "take") && wire.ValidTake(args[1]):
 		request = args[0] + " " + args[1]
 	default:
 		fmt.Fprintln(stderr, wireCtlUsage)

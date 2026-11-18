@@ -51,11 +51,11 @@ func (r *Recorder) handleControl(ctx context.Context, conn net.Conn) {
 	switch {
 	case len(words) == 1 && words[0] == "ping":
 		fmt.Fprintln(out, replyOK)
-	case len(words) == 2 && words[0] == "arm" && ValidTake(words[1]):
+	case len(words) == 2 && words[0] == "arm" && wire.ValidTake(words[1]):
 		r.store.arm(words[1])
 		r.log.Info("wire take armed", "take", words[1])
 		fmt.Fprintln(out, replyOK)
-	case len(words) == 2 && words[0] == "take" && ValidTake(words[1]):
+	case len(words) == 2 && words[0] == "take" && wire.ValidTake(words[1]):
 		r.writeTake(ctx, out, words[1])
 	default:
 		fmt.Fprintln(out, replyError+"unknown control request")

@@ -161,6 +161,7 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 	name := OutName(x.Now(), flow)
 	execName := strings.TrimSuffix(name, ".json")
 	x.Ops.TraceExec(m.ID, execName)
+	recording := armWire(ctx, x.Ops, r, execName)
 	env := []string{"E2E_EXEC_OUT=" + path.Join(runfiles.ContainerE2E, runfiles.ExecDir, name), "COCKPIT_TRACE_ID=" + tracectx.ExecTraceID(m.ID, execName)}
 	res, err := r.Project.RunRunner(ctx, []string{"run", m.Suite, "--flow", flow}, env, x.Ops.Limits.Suite)
 	exited := x.Now()
@@ -172,15 +173,15 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 		defer fresh.Close()
 		r = fresh
 	}
+	result, err := runfiles.Exec(r.Root, name)
 	view := View{ExitCode: res.Code, OOMKilled: res.OOMKilled, TimedOut: res.TimedOut, Flows: []FlowView{}, Lines: []string{}}
-	for _, l := range res.Lines {
+	for _, l := range append(res.Lines, recording.finish(ctx, resultOf(result, err))...) {
 		view.Lines = append(view.Lines, r.Mask(l))
 	}
 	if res.Aborted {
 		view.Reason = "the exec was aborted"
 		return scheduler.ExecResponse{Result: view}
 	}
-	result, err := runfiles.Exec(r.Root, name)
 	switch {
 	case runfiles.IsMissing(err):
 		view.Reason = "no result file"

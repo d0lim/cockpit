@@ -38,6 +38,7 @@ func BundleMetaOf(m store.Meta, s SummaryInput, verdict contract.FinalVerdict) c
 		ReportedAt:     s.GeneratedAt,
 		CockpitVersion: m.CockpitVersion,
 		HostAPI:        m.HostAPI,
+		Wire:           m.Wire,
 	}
 	if m.RunnerImage != nil {
 		b.RunnerImage = *m.RunnerImage
