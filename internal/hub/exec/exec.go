@@ -179,7 +179,6 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 		}
 		return fail(r.Mask(reason))
 	}
-	err = resultErr
 	view := View{ExitCode: res.Code, OOMKilled: res.OOMKilled, TimedOut: res.TimedOut, Flows: []FlowView{}, Lines: []string{}}
 	for _, l := range append(res.Lines, notes...) {
 		view.Lines = append(view.Lines, r.Mask(l))
@@ -189,10 +188,10 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 		return scheduler.ExecResponse{Result: view}
 	}
 	switch {
-	case runfiles.IsMissing(err):
+	case runfiles.IsMissing(resultErr):
 		view.Reason = "no result file"
-	case err != nil:
-		view.Reason = "the result file cannot be read: " + r.Mask(err.Error())
+	case resultErr != nil:
+		view.Reason = "the result file cannot be read: " + r.Mask(resultErr.Error())
 	default:
 		view.Flows = flowsOf(result.Steps, r.Mask)
 		x.Ops.AppendSpans(m.ID, signal.ExecSpans(m.ID, execName, *result, store.Timestamp(exited)))

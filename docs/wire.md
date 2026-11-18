@@ -171,7 +171,7 @@ Destroying a run keeps both places: `report/wire/` stays with the bundle. A reco
 | `withheld` | the run's value sources could not be read, the runner left no captured values, or those values are over their limit, so nothing was stored; `detail` says which |
 | `failed` | the stream broke twice, ended without its `End` line, or the take could not be written |
 
-`withheld` also covers a run whose runner started and left no `work/e2e/wire.private.env.json`. A runner that never started leaves no manifest either, and then the run's own sources are enough. Only `taken` stores anything: the other states leave no take directory, and a later report tries again. A stream is read a second time from its start when it breaks. A recorder that refuses the take writes no line, is `lost` at once and is not asked again.
+`withheld` also covers a run whose runner started and left no `work/e2e/wire.private.env.json`. A runner that never started leaves no manifest either, and then the run's own sources are enough. Only `taken` stores anything: the other states leave no take directory, and a later report or exec tries again. A stream is read a second time from its start when it breaks. A recorder that refuses the take writes no line, is `lost` at once and is not asked again.
 
 A state other than `taken` adds one line to `notProven.unread`. The wire record never changes the verdict and never fails the report.
 
