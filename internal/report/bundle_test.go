@@ -22,6 +22,10 @@ var bundleMutations = []porttest.Mutation{
 	{"a rescan hit records redaction failed in the run meta", "skip Patch in refuse", "red: the meta has no redaction", "TestAPlantedValueLeftAtRescanDiscardsTheBundleRecordsThePathsAndRefusesReads"},
 	{"a rescan hit refuses the run's signal reads", "skip RefuseReads in refuse", "red: the real stream still answers reads", "TestARealStreamFrozenWithAnOlderValueListIsDiscardedAndItsReadsAreRefused"},
 	{"the returned judgement is masked", "return the judgement without maskJudgement", "red: the planted seed is in the outcome's second reason", "TestABundleWithPlantedValuesIsMaskedAndRenamedToReportWith700And600"},
+	{"the kept directory crosses into the new bundle", "remove it with the rest of the old bundle", "red: the kept file is gone", "TestAKeptDirectoryCrossesIntoTheNewBundleUnreadByTheRescanAndStaysWhenTheBundleIsRefused"},
+	{"the rescan never reads the kept directory", "move it into the partial bundle before the rescan", "red: the planted value in it discards the bundle", "TestAKeptDirectoryCrossesIntoTheNewBundleUnreadByTheRescanAndStaysWhenTheBundleIsRefused"},
+	{"a refused bundle leaves the kept directory", "remove the report directory in refuse", "red: the kept file is gone after the refusal", "TestAKeptDirectoryCrossesIntoTheNewBundleUnreadByTheRescanAndStaysWhenTheBundleIsRefused"},
+	{"a failed publish puts the kept directory back", "return the error without moving it back", "red: the kept directory stays in the partial bundle", "TestAPublishThatCannotFinishPutsTheKeptDirectoryBack"},
 	{"bundle paths stay inside the bundle and off reserved names", "drop the IsLocal and reserved checks in Assemble", "red: ../escape.json is written beside the run", "TestBundlePathsOutsideTheBundleOrOnReservedNamesAreRefusedBeforeAnythingIsWritten"},
 }
 
@@ -148,5 +152,79 @@ func TestBundlePathsOutsideTheBundleOrOnReservedNamesAreRefusedBeforeAnythingIsW
 	}
 	if len(denied) != 7 {
 		t.Fatal("case count")
+	}
+}
+
+func TestAKeptDirectoryCrossesIntoTheNewBundleUnreadByTheRescanAndStaysWhenTheBundleIsRefused(t *testing.T) {
+	f := newFixture(t, masker(t, planted))
+	first, err := Assemble(f.bundle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kept := filepath.Join(first.Dir, "kept", "take", "calls.jsonl")
+	if err := os.MkdirAll(filepath.Dir(kept), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(kept, []byte(planted), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(first.Dir, "stale.txt")
+	if err := os.WriteFile(stale, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f.bundle.Keep = "kept"
+	second, err := Assemble(f.bundle)
+	if err != nil || second.Dir == "" || second.Redaction != nil {
+		t.Fatalf("outcome %+v: %v", second, err)
+	}
+	if raw, err := os.ReadFile(kept); err != nil || string(raw) != planted {
+		t.Fatalf("the kept file reads %q: %v", raw, err)
+	}
+	if exists(stale) || !exists(filepath.Join(second.Dir, FileSummary)) || exists(filepath.Join(f.runDir, DirPartial)) {
+		t.Fatal("the new bundle did not replace the old one")
+	}
+	f.bundle.Files["kept/extra.json"] = []byte("x")
+	if _, err := Assemble(f.bundle); err == nil {
+		t.Fatal("a bundle file under the kept name was accepted")
+	}
+	delete(f.bundle.Files, "kept/extra.json")
+	f.signals.line = `{"seq":1,"body":"issued ` + planted + `"}`
+	refused, err := Assemble(f.bundle)
+	if err != nil || refused.Redaction == nil || refused.Dir != "" {
+		t.Fatalf("canary: the bundle was not refused: %+v %v", refused, err)
+	}
+	if !exists(kept) || exists(filepath.Join(f.runDir, DirReport, FileSummary)) {
+		t.Fatalf("after the refusal: kept %v", exists(kept))
+	}
+	f.bundle.Keep, f.bundle.Signals = "", nil
+	if _, err := Assemble(f.bundle); err != nil {
+		t.Fatal(err)
+	}
+	if exists(kept) {
+		t.Fatal("canary: without Keep the old bundle is not replaced whole")
+	}
+}
+
+func TestAPublishThatCannotFinishPutsTheKeptDirectoryBack(t *testing.T) {
+	dir := t.TempDir()
+	partial, final := filepath.Join(dir, DirPartial), filepath.Join(dir, DirReport)
+	held := filepath.Join(final, "kept", "calls.jsonl")
+	if err := os.MkdirAll(filepath.Dir(held), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(partial, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{held, filepath.Join(final, "blocks-the-removal")} {
+		if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := publish(partial, final, "kept")
+	if err == nil || errors.Is(err, errKeptInPartial) {
+		t.Fatalf("publish: %v", err)
+	}
+	if !exists(held) || exists(filepath.Join(partial, "kept")) {
+		t.Fatalf("the kept directory is not back: held %v", exists(held))
 	}
 }

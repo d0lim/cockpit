@@ -18,6 +18,7 @@ import (
 	"github.com/d0lim/cockpit/internal/report"
 	"github.com/d0lim/cockpit/internal/seal"
 	"github.com/d0lim/cockpit/internal/version"
+	"github.com/d0lim/cockpit/internal/wire"
 )
 
 const (
@@ -109,6 +110,9 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 	bundle := report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker, Unread: unread,
 		Patch: func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(meta.ID, change); return err }}
 	bundle.Signals = in.Signals
+	if in.Wire != nil {
+		bundle.Keep = wire.StagingDir
+	}
 	out, err := report.Assemble(bundle)
 	if out.Redaction == nil && err != nil {
 		return reconcile.ReportOutcome{}, "", err

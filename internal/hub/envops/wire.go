@@ -66,8 +66,7 @@ func (w *RunWire) Take(ctx context.Context, take string, result *contract.Result
 
 func (w *RunWire) TakeSuite(ctx context.Context, result *contract.Result) wire.Status {
 	if err := wire.OpenStore(w.dir).Detach(); err != nil {
-		w.warn("the wire record was not moved out of the bundle", err)
-		return wire.Status{Take: wire.SuiteTake, State: wire.StateFailed, Detail: "the stored wire record could not be moved out of the report bundle"}
+		w.warn("the wire record stays in the bundle, and the report carries it over", err)
 	}
 	return w.Take(ctx, wire.SuiteTake, result)
 }

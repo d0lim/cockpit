@@ -14,6 +14,9 @@ var storeMutations = []porttest.Mutation{
 	{"a report that is about to run moves the record out of the bundle", "skip moveTakes in Detach", "red: the record stays under report/ and is lost with it", "TestDetachAndAttachMoveTheRecordAndRootFollowsIt"},
 	{"a detached record stays the root while a bundle exists", "prefer the bundle in Root", "red: takes land in the bundle during the report", "TestDetachAndAttachMoveTheRecordAndRootFollowsIt"},
 	{"attach needs a bundle", "drop the bundle check in Attach", "red: a record is moved into a report directory that was discarded", "TestAttachWithoutABundleLeavesTheRecordInTheRunDirectory"},
+	{"a move into a free place is one rename", "always move take by take", "red: the directory is a new one after the move", "TestAMoveIntoAFreePlaceIsOneRenameOfTheDirectory"},
+	{"an empty record is removed and not moved", "skip the removal of the empty directory in moveRecord", "red: report/wire exists without a take", "TestAnEmptyRecordDirectoryIsRemovedInsteadOfMoved"},
+	{"a failed detach leaves the record readable", "remove the takes before the move in Detach", "red: the take no longer reads", "TestAFailedDetachReturnsItsErrorAndLeavesEveryTakeReadable"},
 	{"a take already in the target is not overwritten", "rename over an existing target in moveTakes", "red: rename fails on the kept take", "TestAMoveKeepsATakeAlreadyInTheTargetAndDropsAbandonedPartials"},
 }
 
@@ -106,5 +109,82 @@ func TestAMoveKeepsATakeAlreadyInTheTargetAndDropsAbandonedPartials(t *testing.T
 	}
 	if !isFile(filepath.Join(bundle, SuiteTake, "keep")) || isFile(filepath.Join(bundle, SuiteTake, IndexFile)) || exists(filepath.Join(dir, StagingDir)) || exists(filepath.Join(bundle, partialPrefix+"x")) {
 		t.Fatal("the move replaced a kept take or kept a partial")
+	}
+}
+
+func TestAMoveIntoAFreePlaceIsOneRenameOfTheDirectory(t *testing.T) {
+	dir := t.TempDir()
+	s := OpenStore(dir)
+	storedTake(t, s, SuiteTake)
+	if err := os.MkdirAll(filepath.Join(dir, StagingDir, partialPrefix+"x"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, BundleDir), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.Stat(s.staging())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Attach(); err != nil {
+		t.Fatal(err)
+	}
+	attached, err := os.Stat(s.attached())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !os.SameFile(before, attached) || exists(s.staging()) || exists(filepath.Join(s.attached(), partialPrefix+"x")) {
+		t.Fatalf("attach: same directory %v, staging left %v", os.SameFile(before, attached), exists(s.staging()))
+	}
+	if err := s.Detach(); err != nil {
+		t.Fatal(err)
+	}
+	detached, err := os.Stat(s.staging())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !os.SameFile(attached, detached) || exists(s.attached()) || !isFile(filepath.Join(s.staging(), SuiteTake, IndexFile)) {
+		t.Fatalf("detach: same directory %v", os.SameFile(attached, detached))
+	}
+}
+
+func TestAFailedDetachReturnsItsErrorAndLeavesEveryTakeReadable(t *testing.T) {
+	dir := t.TempDir()
+	s := OpenStore(dir)
+	storedTake(t, s, SuiteTake)
+	if err := os.Mkdir(filepath.Join(dir, BundleDir), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Attach(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(s.staging(), []byte("blocks the move"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Detach(); err == nil {
+		t.Fatal("the blocked move reported no error")
+	}
+	if !isFile(filepath.Join(s.attached(), SuiteTake, IndexFile)) || s.Root() != s.attached() {
+		t.Fatalf("the take left the bundle, root %s", s.Root())
+	}
+	if status, ok := s.stored(SuiteTake); !ok || status.State != StateTaken {
+		t.Fatalf("the take no longer reads: %+v %v", status, ok)
+	}
+}
+
+func TestAnEmptyRecordDirectoryIsRemovedInsteadOfMoved(t *testing.T) {
+	dir := t.TempDir()
+	s := OpenStore(dir)
+	if err := os.MkdirAll(filepath.Join(s.staging(), partialPrefix+"x"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(s.bundle(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Attach(); err != nil {
+		t.Fatal(err)
+	}
+	if exists(s.attached()) || exists(s.staging()) || !isDir(s.bundle()) {
+		t.Fatalf("attached %v, staging %v", exists(s.attached()), exists(s.staging()))
 	}
 }

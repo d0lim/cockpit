@@ -48,17 +48,17 @@ func (s Store) Root() string {
 }
 
 func (s Store) Detach() error {
-	if err := os.MkdirAll(s.staging(), dirMode); err != nil {
+	if err := moveRecord(s.attached(), s.staging()); err != nil {
 		return err
 	}
-	return moveTakes(s.attached(), s.staging())
+	return os.MkdirAll(s.staging(), dirMode)
 }
 
 func (s Store) Attach() error {
 	if !isDir(s.bundle()) {
 		return nil
 	}
-	return moveTakes(s.staging(), s.attached())
+	return moveRecord(s.staging(), s.attached())
 }
 
 func (s Store) homes() []string {
@@ -184,6 +184,40 @@ func (s Store) stored(take string) (Status, bool) {
 		return Status{}, false
 	}
 	return index.Status, true
+}
+
+func moveRecord(from, to string) error {
+	if exists(to) {
+		return moveTakes(from, to)
+	}
+	if err := dropPartials(from); err != nil {
+		return err
+	}
+	if os.Remove(from) == nil {
+		return nil
+	}
+	if err := os.Rename(from, to); !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+func dropPartials(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), partialPrefix) {
+			if err := os.RemoveAll(filepath.Join(dir, e.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func moveTakes(from, to string) error {
