@@ -140,7 +140,7 @@ The declaration's fields are stored with the record, so a read after destroy app
 
 ### Proof of each call
 
-The hub stores a call only after proving it. `Clean` must not change its own output, and the encoded line must pass the value scan: the run's masker without the key-name rules, so the PEM, known-value, Bearer, JWT and declared-pattern rules. A call that fails becomes a stub with its number, times, method, status, outcome, caller, target and port and `withheld: true`. Its path, query, span, headers and bodies are gone. If the stub's own line fails the scan, its method, caller and target read `****`.
+The hub stores a call only after proving it. `Clean` must not change its own output, and the encoded line must pass the value scan: the run's masker without the key-name rules, so the PEM, known-value, Bearer, JWT and declared-pattern rules. The scan leaves out the numbers the recorder wrote itself (`seq`, `started`, `replied`, `finished` and the two `size` fields). They carry nothing a caller sent, and a short known value such as a one-time code turns up in a nanosecond timestamp by chance. A call that fails becomes a stub with its number, times, method, status, outcome, caller, target and port and `withheld: true`. Its path, query, span, headers and bodies are gone. If the stub's own line fails the scan, its method, caller and target read `****`.
 
 ## Where the record lives
 

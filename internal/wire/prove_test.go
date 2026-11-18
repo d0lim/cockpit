@@ -25,6 +25,8 @@ var proveMutations = []porttest.Mutation{
 	{"the record masker reaches values the capture did not know", "skip Clean in Prove", "red: a value captured at run time stays", "TestProveMasksAValueTheCaptureMaskerDidNotKnow"},
 	{"a stub keeps only its identifying fields", "keep the path in stub", "red: the stub carries the path", "TestACallWhoseLineFailsTheValueScanBecomesAStubWithoutPathHeadersOrBodies"},
 	{"a stub whose labels fail the scan loses them", "skip the label replacement in Prove", "red: a PEM pair in the labels is stored", "TestAStubWhoseLabelsFormAPEMPairLosesThem"},
+	{"the scan skips the numbers the recorder wrote", "scan the whole line in proven", "red: a known number inside a nanosecond timestamp withholds the call", "TestAKnownNumberInsideTheRecordersOwnFieldsLeavesTheCallProven"},
+	{"the scan still reads what a caller sent", "leave the path out of the scanned line too", "red: a PEM pair across the path and a body is stored", "TestAPEMPairAcrossThePathAndABodyIsWithheldThoughTheRecorderNumbersAreSkipped"},
 	{"a call that cannot be encoded is withheld", "treat an encoding failure as proven", "red: the unencodable call passes", "TestACallThatCannotBeEncodedIsWithheld"},
 }
 
@@ -202,5 +204,61 @@ func TestACallThatCannotBeEncodedIsWithheld(t *testing.T) {
 	}
 	if got.Caller != "orders" {
 		t.Fatalf("the stub lost its caller: %+v", got)
+	}
+}
+
+func TestAKnownNumberInsideTheRecordersOwnFieldsLeavesTheCallProven(t *testing.T) {
+	const known = "773668"
+	m := newMasker(t, known)
+	at := time.Date(2026, 11, 18, 9, 0, 0, 773668511, time.UTC)
+	base := Call{Seq: 7, Caller: "orders", Target: "ledger", Port: 8081, Method: "GET", Path: "/v1/entries", Started: callStart, Replied: callStart.Add(time.Millisecond), Finished: callStart.Add(2 * time.Millisecond), Status: 200, Outcome: OutcomeAnswered}
+	cases := map[string]func(*Call){
+		"seq":           func(c *Call) { c.Seq = 773668 },
+		"started":       func(c *Call) { c.Started = at },
+		"replied":       func(c *Call) { c.Replied = at },
+		"finished":      func(c *Call) { c.Finished = at },
+		"request size":  func(c *Call) { c.Request.Size = 773668 },
+		"response size": func(c *Call) { c.Response.Size = 773668 },
+	}
+	executed := 0
+	for name, edit := range cases {
+		c := base
+		edit(&c)
+		line := lineOf(t, c)
+		if !strings.Contains(line, known) {
+			t.Fatalf("%s: the line does not hold the number, so the case proves nothing: %s", name, line)
+		}
+		got, ok := Prove(m, c)
+		if !ok || got.Withheld || got.Path != "/v1/entries" {
+			t.Errorf("%s: proof %v, call %+v", name, ok, got)
+		}
+		if stored := lineOf(t, got); stored != line {
+			t.Errorf("%s: the stored line changed\n%s\n%s", name, line, stored)
+		}
+		executed++
+	}
+	if executed != len(cases) || executed != 6 {
+		t.Fatalf("executed %d cases", executed)
+	}
+	inBody := base
+	inBody.Response.Body = Body{Kind: BodyText, Text: "code " + known}
+	got, ok := Prove(m, inBody)
+	if !ok {
+		t.Fatalf("not proven: %+v", got)
+	}
+	assertMasked(t, "the number in a body", lineOf(t, got), known)
+}
+
+func TestAPEMPairAcrossThePathAndABodyIsWithheldThoughTheRecorderNumbersAreSkipped(t *testing.T) {
+	m := recordMasker(t)
+	c := Call{Seq: 8, Caller: "orders", Target: "ledger", Method: "GET", Path: "/v1/" + pemBegin, Started: callStart, Status: 200, Outcome: OutcomeAnswered, Response: Message{Body: Body{Kind: BodyText, Text: pemEnd}}}
+	got, ok := Prove(m, c)
+	if ok || !got.Withheld || got.Path != "" {
+		t.Fatalf("proof %v, call %+v", ok, got)
+	}
+	c.Response.Body.Text = "no end here"
+	kept, ok := Prove(m, c)
+	if !ok || kept.Withheld || !strings.Contains(kept.Path, "BEGIN") {
+		t.Fatalf("the same call without the END: %v %+v", ok, kept)
 	}
 }
