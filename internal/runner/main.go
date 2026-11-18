@@ -160,7 +160,10 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		}
 	}
 	if err := refresh(); err != nil {
-		return fail(err.Error())
+		if !errors.Is(err, errWireValuesOverLimit) {
+			return fail(err.Error())
+		}
+		fmt.Fprintln(deps.Stderr, maskText(err.Error()))
 	}
 	var execOut func(string) string
 	if len(targets) > 0 {

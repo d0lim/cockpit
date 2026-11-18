@@ -2,6 +2,7 @@ package runner
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -22,6 +23,10 @@ var wireValuesMutations = []porttest.Mutation{
 	{"a later runner keeps what an earlier one captured", "start from an empty list in loadWireValues", "red: the earlier value is gone from the file", "TestALaterRunnerKeepsTheValuesAnEarlierRunnerOfTheRunWrote"},
 	{"an unreadable values file withholds the record", "ignore the parse error in loadWireValues", "red: the runner starts and the unreadable file stays", "TestAnUnreadableValuesFileStopsTheRunnerAndIsRemoved"},
 	{"a later runner does not recreate a removed file", "treat a missing file as a clean start in loadWireValues", "red: the exec writes the file again", "TestAnExecAfterTheValuesFileWasRemovedLeavesItAbsentAndStillRuns"},
+	{"a values file stays within its limit", "drop the size check from update", "red: the file over the limit stays", "TestAValuesFileOverItsLimitIsRemovedAndTheExecStillRuns"},
+	{"a file over the limit does not stop the runner", "treat the overflow as a start failure in Main", "red: the exec exits 2", "TestAValuesFileOverItsLimitIsRemovedAndTheExecStillRuns"},
+	{"the limit counts the bytes of the file", "compare with one byte more than the limit", "red: a file one byte over is written", "TestAnUpdateWritesUpToTheLimitAndStaysWithheldAfterPassingIt"},
+	{"a file over the limit does not come back", "forget the withholding after the removal", "red: a later small update writes the file again", "TestAnUpdateWritesUpToTheLimitAndStaysWithheldAfterPassingIt"},
 	{"a first runner still creates the file", "withhold whenever the file is missing", "red: the first runner leaves no file", "TestAnExecAfterTheValuesFileWasRemovedLeavesItAbsentAndStillRuns"},
 }
 
@@ -85,14 +90,14 @@ func TestAFailedValuesUpdateRemovesTheStaleFileAndNamesNoValue(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(path, "blocked"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	err := wireValues{dir: dir, recording: true}.update([]string{planted})
+	err := (&wireValues{dir: dir, recording: true, limit: contract.WireValuesLimit}).update([]string{planted})
 	if err == nil || strings.Contains(err.Error(), planted) || !strings.Contains(err.Error(), "withheld") {
 		t.Fatalf("update: %v", err)
 	}
 	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
 		t.Fatalf("the stale path stays: %v", statErr)
 	}
-	if err := (wireValues{dir: dir, recording: true}).update([]string{planted}); err != nil {
+	if err := (&wireValues{dir: dir, recording: true, limit: contract.WireValuesLimit}).update([]string{planted}); err != nil {
 		t.Fatalf("the next update: %v", err)
 	}
 	raw, err := os.ReadFile(path)
@@ -161,5 +166,60 @@ func TestAnExecAfterTheValuesFileWasRemovedLeavesItAbsentAndStillRuns(t *testing
 	}
 	if result := w.readExec("removed.json"); !result.Complete || !slices.Equal(statuses(result.Steps), []string{"passed"}) {
 		t.Fatalf("the exec did not run: %+v", result)
+	}
+}
+
+func TestAValuesFileOverItsLimitIsRemovedAndTheExecStillRuns(t *testing.T) {
+	w := wireWorld(t, `{"target":"http://orders.local:8080"}`)
+	filler := strings.Repeat("v", contract.WireValuesLimit)
+	earlier, err := json.Marshal(contract.WireValues{Values: []string{planted, filler}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(w.dir, contract.WireValuesFile), earlier, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	env := recording(wireTestRoutes)
+	env["E2E_EXEC_OUT"] = w.execOut("over.json")
+	got := w.run(env, execArgs("alpha")...)
+	if got.code != 0 || w.exists(contract.WireValuesFile) {
+		t.Fatalf("exit %d, file still there: %v", got.code, w.exists(contract.WireValuesFile))
+	}
+	if result := w.readExec("over.json"); !result.Complete {
+		t.Fatalf("the exec did not run: %+v", result)
+	}
+	text := strings.Join(got.stderr, "\n")
+	if !strings.Contains(text, "withheld") || !strings.Contains(text, "bytes") || strings.Contains(text, planted) || strings.Contains(text, "vvvv") {
+		t.Fatalf("stderr must state counts and no value: %.200q", text)
+	}
+}
+
+func TestAnUpdateWritesUpToTheLimitAndStaysWithheldAfterPassingIt(t *testing.T) {
+	data, err := encodeJSONFile(contract.WireValues{Values: []string{planted}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, contract.WireValuesFile)
+	fits := &wireValues{dir: dir, recording: true, limit: len(data)}
+	if err := fits.update([]string{planted}); err != nil {
+		t.Fatalf("a file of exactly the limit: %v", err)
+	}
+	if raw, err := os.ReadFile(path); err != nil || !strings.Contains(string(raw), planted) {
+		t.Fatalf("canary: the file at the limit: %q %v", raw, err)
+	}
+	over := &wireValues{dir: dir, recording: true, limit: len(data) - 1}
+	err = over.update([]string{planted})
+	if !errors.Is(err, errWireValuesOverLimit) || strings.Contains(err.Error(), planted) {
+		t.Fatalf("one byte over: %v", err)
+	}
+	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+		t.Fatalf("the file over the limit stays: %v", statErr)
+	}
+	if err := over.update([]string{"s"}); err != nil {
+		t.Fatalf("a later update: %v", err)
+	}
+	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+		t.Fatalf("a later small update wrote the file again: %v", statErr)
 	}
 }

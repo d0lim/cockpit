@@ -5,6 +5,7 @@ import "strings"
 const (
 	WireRoutesVariable = "COCKPIT_WIRE_ROUTES"
 	WireValuesFile     = "wire.private.env.json"
+	WireValuesLimit    = 16 << 20
 	wireVariablePrefix = "COCKPIT_WIRE_"
 )
 

@@ -28,6 +28,12 @@ const (
 
 var ErrRecorderGone = errors.New("the wire recorder cannot be reached")
 
+type WithheldError struct {
+	Detail string
+}
+
+func (e *WithheldError) Error() string { return e.Detail }
+
 type Stream func(ctx context.Context, out io.Writer) error
 
 type TakeInput struct {
@@ -49,7 +55,12 @@ func Take(ctx context.Context, in TakeInput) Status {
 	}
 	record, err := in.Record()
 	if err != nil {
-		return Status{Take: in.Name, State: StateWithheld, Detail: detailWithheld}
+		detail := detailWithheld
+		var why *WithheldError
+		if errors.As(err, &why) {
+			detail = why.Detail
+		}
+		return Status{Take: in.Name, State: StateWithheld, Detail: detail}
 	}
 	w := taking{in: in, record: record, root: in.Store.Root()}
 	defer os.RemoveAll(w.partial())

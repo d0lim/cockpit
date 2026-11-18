@@ -36,6 +36,7 @@ type Sources struct {
 	Outputs     []Source
 	Declared    []Source
 	PublicNames []string
+	Limit       int64
 }
 
 type Values struct {
@@ -44,6 +45,8 @@ type Values struct {
 }
 
 const maxSourceBytes = 1 << 20
+
+var ErrTooLarge = errors.New("exceeds the size limit")
 
 var unresolved = regexp.MustCompile(`^\$\{[A-Za-z_][A-Za-z0-9_]*\}$`)
 
@@ -63,6 +66,10 @@ func refresh(src Sources, read reader) (Values, error) {
 		return Values{}, fmt.Errorf("cannot open run directory: %w", err)
 	}
 	defer root.Close()
+	limit := src.Limit
+	if limit == 0 {
+		limit = maxSourceBytes
+	}
 	var v Values
 	seen := map[Source]bool{}
 	for _, s := range slices.Concat(src.Outputs, src.Declared) {
@@ -70,7 +77,7 @@ func refresh(src Sources, read reader) (Values, error) {
 			continue
 		}
 		seen[s] = true
-		text, err := read(root, s.Path, maxSourceBytes)
+		text, err := read(root, s.Path, limit)
 		if err != nil {
 			return Values{}, err
 		}
@@ -201,7 +208,7 @@ func readRunFile(root *os.Root, rel string, max int64) (string, error) {
 	case err != nil:
 		return "", fmt.Errorf("cannot read run credential file: %s", rel)
 	case int64(len(raw)) > max:
-		return "", fmt.Errorf("exceeds the size limit (%s): %s", sizeText(max), rel)
+		return "", fmt.Errorf("%w (%s): %s", ErrTooLarge, sizeText(max), rel)
 	}
 	return string(raw), nil
 }

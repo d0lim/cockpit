@@ -1,12 +1,16 @@
 package envops
 
 import (
+	"context"
+	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 	"github.com/d0lim/cockpit/internal/wire"
 )
@@ -24,6 +28,8 @@ var wireMaskerMutations = []porttest.Mutation{
 	{"the marker is bare", "build the masker in mask.Hub mode", "red: the marker carries the last four characters", "TestTheRecordMaskerCoversRunAndCapturedValuesWithABareMarkerAndKeepsPublicFields"},
 	{"a public name cannot hide a captured value", "read the captured file with the public names of the run", "red: the captured value under the name values stays", "TestAPublicNameOfTheRunDoesNotHideACapturedValue"},
 	{"a missing values file beside a manifest refuses", "return no values whenever the file is missing", "red: no error is returned", "TestAMissingValuesFileRefusesOnlyWhenTheRunnerStarted"},
+	{"the captured values have their own limit", "read the file under the credential-source limit", "red: a file of 2 MiB is refused", "TestACapturedValuesFileBetweenTheTwoLimitsStillMasksTheRecord"},
+	{"a file over its limit is withheld under its own detail", "drop the size check from capturedValues", "red: the detail is the generic one", "TestACapturedValuesFileOverItsLimitWithholdsTheTakeAndSaysSo"},
 }
 
 func TestWireMaskerMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -107,5 +113,56 @@ func TestAMissingValuesFileRefusesOnlyWhenTheRunnerStarted(t *testing.T) {
 	}
 	if _, err := recordMasker(dir, nil); err == nil {
 		t.Fatal("a run without a declaration was accepted")
+	}
+}
+
+func writeCapturedValues(t *testing.T, dir string, size int, values ...string) {
+	t.Helper()
+	filler := strings.Repeat("v", size)
+	raw, err := json.Marshal(contract.WireValues{Values: append(values, filler)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "work", "e2e", contract.WireValuesFile), raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestACapturedValuesFileBetweenTheTwoLimitsStillMasksTheRecord(t *testing.T) {
+	dir, decl := wireRun(t)
+	writeCapturedValues(t, dir, 2<<20, shortCapture)
+	m, err := recordMasker(dir, decl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := m.Mask("captured " + shortCapture); got != "captured ****" {
+		t.Fatalf("masked %q", got)
+	}
+}
+
+func TestACapturedValuesFileOverItsLimitWithholdsTheTakeAndSaysSo(t *testing.T) {
+	take := func(dir string, decl *contract.Declaration) wire.Status {
+		return wire.Take(context.Background(), wire.TakeInput{
+			Store: wire.OpenStore(dir), Name: wire.SuiteTake,
+			Record: func() (*mask.Masker, error) { return recordMasker(dir, decl) },
+			Stream: func(context.Context, io.Writer) error {
+				t.Error("a withheld take read the recorder")
+				return wire.ErrRecorderGone
+			},
+		})
+	}
+	dir, decl := wireRun(t)
+	writeCapturedValues(t, dir, contract.WireValuesLimit, runValue)
+	over := take(dir, decl)
+	if over.State != wire.StateWithheld || !strings.Contains(over.Detail, "16 MiB") || strings.Contains(over.Detail, runValue) {
+		t.Fatalf("over the limit: %+v", over)
+	}
+	broken, decl := wireRun(t)
+	if err := os.WriteFile(filepath.Join(broken, "work", "e2e", contract.WireValuesFile), []byte("not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	other := take(broken, decl)
+	if other.State != wire.StateWithheld || other.Detail == over.Detail {
+		t.Fatalf("canary: a broken file reads %+v, the file over the limit %+v", other, over)
 	}
 }

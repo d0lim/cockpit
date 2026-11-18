@@ -14,6 +14,8 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 )
 
+var errWireValuesOverLimit = errors.New("the wire values file is over its limit")
+
 var wirePlaceholder = regexp.MustCompile(`\$\{(COCKPIT_WIRE_[A-Z0-9_]+):-([^}]*)\}`)
 
 type wireRoutes struct {
@@ -90,11 +92,12 @@ type wireValues struct {
 	dir       string
 	recording bool
 	withheld  bool
+	limit     int
 	earlier   []string
 }
 
-func loadWireValues(dir string, recording bool) (wireValues, error) {
-	w := wireValues{dir: dir, recording: recording}
+func loadWireValues(dir string, recording bool) (*wireValues, error) {
+	w := &wireValues{dir: dir, recording: recording, limit: contract.WireValuesLimit}
 	if !recording {
 		return w, nil
 	}
@@ -119,7 +122,7 @@ func loadWireValues(dir string, recording bool) (wireValues, error) {
 	return w, nil
 }
 
-func (w wireValues) update(known []string) error {
+func (w *wireValues) update(known []string) error {
 	if !w.recording || w.withheld {
 		return nil
 	}
@@ -127,7 +130,18 @@ func (w wireValues) update(known []string) error {
 	values := slices.Concat(known, w.earlier)
 	slices.Sort(values)
 	values = slices.DeleteFunc(slices.Compact(values), func(v string) bool { return v == "" })
-	if err := writeJSONFile(path, contract.WireValues{Values: values}, 0o600); err != nil {
+	data, err := encodeJSONFile(contract.WireValues{Values: values})
+	if err == nil && len(data) > w.limit {
+		if rerr := os.RemoveAll(path); rerr != nil {
+			return fmt.Errorf("could not remove %s", contract.WireValuesFile)
+		}
+		w.withheld = true
+		return fmt.Errorf("%w: %d values take %d bytes and the limit is %d bytes, so it was removed and the wire record of this run will be withheld", errWireValuesOverLimit, len(values), len(data), w.limit)
+	}
+	if err == nil {
+		err = writeFileAtomic(path, data, 0o600)
+	}
+	if err != nil {
 		if rerr := os.RemoveAll(path); rerr != nil && !errors.Is(rerr, fs.ErrNotExist) {
 			return fmt.Errorf("could not write or remove %s", contract.WireValuesFile)
 		}

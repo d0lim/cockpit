@@ -23,6 +23,9 @@ const (
 	wireArmLimit  = 30 * time.Second
 	wireArm       = "arm"
 	wireTake      = "take"
+
+	detailNoCaptured       = "the runner started and left no captured values"
+	detailCapturedTooLarge = "the captured values are over their limit of 16 MiB"
 )
 
 var (
@@ -150,8 +153,11 @@ func capturedValues(runDir string) ([]string, error) {
 		if _, merr := root.Lstat(manifestPath); errors.Is(merr, fs.ErrNotExist) {
 			return nil, nil
 		}
-		return nil, errors.New("the runner started and left no captured values")
+		return nil, &wire.WithheldError{Detail: detailNoCaptured}
 	}
-	values, err := mask.Refresh(mask.Sources{Dir: runDir, Mode: mask.Runner, Declared: []mask.Source{{Kind: mask.JSON, Path: wireValuesPath}}})
+	values, err := mask.Refresh(mask.Sources{Dir: runDir, Mode: mask.Runner, Limit: contract.WireValuesLimit, Declared: []mask.Source{{Kind: mask.JSON, Path: wireValuesPath}}})
+	if errors.Is(err, mask.ErrTooLarge) {
+		return nil, &wire.WithheldError{Detail: detailCapturedTooLarge}
+	}
 	return values.Known, err
 }
