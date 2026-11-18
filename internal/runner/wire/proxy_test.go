@@ -220,6 +220,29 @@ func TestAResponseThatBreaksOffStillRecordsItsStatusAndSizeWithoutABody(t *testi
 	}
 }
 
+func TestARouteBoundToLoopbackCannotBeShadowedByAnotherListener(t *testing.T) {
+	r := startRig(t, okUpstream(), nil)
+	if host, _, err := net.SplitHostPort(r.rec.RouteAddr(0)); err != nil || host != "127.0.0.1" {
+		t.Fatalf("the route listens on %s (%v)", r.rec.RouteAddr(0), err)
+	}
+	if shadow, err := net.Listen("tcp", r.addr()); err == nil {
+		shadow.Close()
+		t.Fatalf("a second listener took %s", r.addr())
+	}
+	r.get("/x")
+	if c := r.onlyCall(); c.Path != "/x" {
+		t.Fatalf("call %+v", c)
+	}
+}
+
+func TestARouteWithoutABindHostListensOnEveryInterface(t *testing.T) {
+	r := startRig(t, okUpstream(), func(o *Options) { o.BindHost = "" })
+	host, _, err := net.SplitHostPort(r.rec.RouteAddr(0))
+	if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsUnspecified() {
+		t.Fatalf("the route listens on %s (%v)", r.rec.RouteAddr(0), err)
+	}
+}
+
 func TestACallerThatLeavesIsRecordedAsCallerGone(t *testing.T) {
 	r := startRig(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		io.WriteString(w, "first\n")

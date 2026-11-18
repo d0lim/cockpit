@@ -45,7 +45,7 @@ func nonLoopbackIP(t *testing.T) string {
 }
 
 func TestTheControlListenerAnswersOnLoopbackAndNotOnAnotherAddress(t *testing.T) {
-	r := startRig(t, okUpstream(), nil)
+	r := startRig(t, okUpstream(), func(o *Options) { o.BindHost = "" })
 	if _, err := r.control("ping"); err != nil {
 		t.Fatalf("ping on loopback: %v", err)
 	}

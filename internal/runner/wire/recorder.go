@@ -82,6 +82,7 @@ func DefaultLimits() Limits {
 }
 
 type Options struct {
+	BindHost    string
 	Project     string
 	Routes      []Route
 	Masker      *mask.Masker
@@ -114,7 +115,7 @@ func Listen(opts Options) (*Recorder, error) {
 	transport := upstreamTransport(opts.Dial)
 	discard := log.New(io.Discard, "", 0)
 	for _, route := range opts.Routes {
-		ln, err := net.Listen("tcp", ":"+strconv.Itoa(route.Listen))
+		ln, err := net.Listen("tcp", net.JoinHostPort(opts.BindHost, strconv.Itoa(route.Listen)))
 		if err != nil {
 			r.closeListeners()
 			return nil, fmt.Errorf("could not listen on wire port %d: %w", route.Listen, err)

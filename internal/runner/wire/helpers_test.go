@@ -71,10 +71,11 @@ func startRig(t *testing.T, handler http.Handler, tune func(*Options)) *rig {
 func startRigAt(t *testing.T, upstream string, tune func(*Options)) *rig {
 	t.Helper()
 	opts := Options{
-		Project: testProject,
-		Routes:  []Route{{Service: "127.0.0.1", Port: portOf(t, upstream)}},
-		Masker:  testMasker(t),
-		Limits:  testLimits(),
+		BindHost: "127.0.0.1",
+		Project:  testProject,
+		Routes:   []Route{{Service: "127.0.0.1", Port: portOf(t, upstream)}},
+		Masker:   testMasker(t),
+		Limits:   testLimits(),
 		LookupAddr: func(context.Context, string) ([]string, error) {
 			return []string{testProject + "-orders-1." + testProject + "_default."}, nil
 		},
