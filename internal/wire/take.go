@@ -19,7 +19,7 @@ const (
 	takeAttempts = 2
 
 	detailGone      = "the wire recorder was gone when the take was asked for"
-	detailRestarted = "the wire recorder restarted after the first step, so its record is not whole"
+	DetailRestarted = "the wire recorder restarted after the first step, so its record is not whole"
 	detailWithheld  = "the value sources of the run could not be read"
 	detailBroken    = "the take stream broke off twice"
 	detailUnstored  = "the take could not be stored"
@@ -117,7 +117,7 @@ func (w taking) attempt(ctx context.Context) (status Status, broken bool) {
 	case streamErr != nil || !got.complete():
 		return Status{}, true
 	case w.restarted(got.end.Since):
-		return Status{Take: w.in.Name, State: StateLost, Detail: detailRestarted}, false
+		return Status{Take: w.in.Name, State: StateLost, Detail: DetailRestarted}, false
 	}
 	return w.store(got)
 }

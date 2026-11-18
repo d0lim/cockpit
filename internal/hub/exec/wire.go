@@ -5,6 +5,7 @@ import (
 
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/envops"
+	"github.com/d0lim/cockpit/internal/hub/runfiles"
 	"github.com/d0lim/cockpit/internal/wire"
 )
 
@@ -20,11 +21,24 @@ func armWire(ctx context.Context, ops *envops.Ops, r *envops.Run, take string) e
 	if !r.Meta.Wire {
 		return execRecording{}
 	}
+	ctx = context.WithoutCancel(ctx)
 	w := ops.RunWire(r.Meta.ID, r.Layout.Root, r.Decl)
-	if err := w.Arm(context.WithoutCancel(ctx), take); err != nil {
+	suite := w.Take(ctx, wire.SuiteTake, suiteResult(r))
+	if suite.State != wire.StateTaken && suite.Detail != wire.DetailRestarted {
+		return execRecording{note: "wire record: the suite record is not stored (" + string(suite.State) + ": " + suite.Detail + "), so the recorder keeps it and this exec is not recorded"}
+	}
+	if err := w.Arm(ctx, take); err != nil {
 		return execRecording{note: wireArmFailed}
 	}
 	return execRecording{wire: w, take: take}
+}
+
+func suiteResult(r *envops.Run) *contract.Result {
+	result, err := runfiles.Result(r.Root)
+	if err != nil {
+		return nil
+	}
+	return result
 }
 
 func (e execRecording) finish(ctx context.Context, result *contract.Result) []string {

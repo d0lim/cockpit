@@ -165,17 +165,23 @@ func (x *Execer) Run(ctx context.Context, m store.Meta, flow string) scheduler.E
 	env := []string{"E2E_EXEC_OUT=" + path.Join(runfiles.ContainerE2E, runfiles.ExecDir, name), "COCKPIT_TRACE_ID=" + tracectx.ExecTraceID(m.ID, execName)}
 	res, err := r.Project.RunRunner(ctx, []string{"run", m.Suite, "--flow", flow}, env, x.Ops.Limits.Suite)
 	exited := x.Now()
-	if err != nil {
-		return fail("exec failed: " + r.Mask(err.Error()))
-	}
 	fresh, ferr := x.Ops.Open(m.ID)
 	if ferr == nil {
 		defer fresh.Close()
 		r = fresh
 	}
-	result, err := runfiles.Exec(r.Root, name)
+	result, resultErr := runfiles.Exec(r.Root, name)
+	notes := recording.finish(ctx, resultOf(result, resultErr))
+	if err != nil {
+		reason := "exec failed: " + err.Error()
+		for _, note := range notes {
+			reason += "; " + note
+		}
+		return fail(r.Mask(reason))
+	}
+	err = resultErr
 	view := View{ExitCode: res.Code, OOMKilled: res.OOMKilled, TimedOut: res.TimedOut, Flows: []FlowView{}, Lines: []string{}}
-	for _, l := range append(res.Lines, recording.finish(ctx, resultOf(result, err))...) {
+	for _, l := range append(res.Lines, notes...) {
 		view.Lines = append(view.Lines, r.Mask(l))
 	}
 	if res.Aborted {

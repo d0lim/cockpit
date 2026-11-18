@@ -80,7 +80,7 @@ A take is the part of the traffic that one runner invocation belongs to. The rec
 
 The take of the suite happens in the report stage, where the containers are still up. That holds for a passed, failed, timed-out or aborted run, so a killed runner does not lose the record. Calls that arrive after the take pass through unrecorded.
 
-`cockpit runs exec` arms a take named after the exec result before it starts the runner and takes it after the runner exits, also when the exec is aborted. A recorder that cannot be armed or read costs the exec nothing: the exec answers as usual, with one `wire record:` line in `lines`.
+`cockpit runs exec` arms a take named after the exec result before it starts the runner and takes it after the runner exits, also when the exec is aborted or the runner could not run. Arming clears the recorder, so when the `suite` take is not stored yet the exec first tries to store it. If that fails the recorder is not armed and keeps the record for a later report or exec, and the exec runs unrecorded. A recorder that restarted after the first step holds nothing of the suite worth keeping, so it is armed anyway. A recorder that cannot be armed or read costs the exec nothing: the exec answers as usual, with one `wire record:` line in `lines`, or in the failure reason when the runner could not run.
 
 A recorder that restarted lost what it held, and it starts over under the take `suite`. The hub compares `since` with the runner's steps: a `suite` take from a recorder that started after the first step started is `lost`. A recorder restarted during an exec no longer holds the exec's take and refuses it, which is `lost` too.
 
