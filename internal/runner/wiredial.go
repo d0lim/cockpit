@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -88,6 +89,31 @@ func (w wireRoutes) expandValue(v any) any {
 type wireValues struct {
 	dir       string
 	recording bool
+	earlier   []string
+}
+
+func loadWireValues(dir string, recording bool) (wireValues, error) {
+	w := wireValues{dir: dir, recording: recording}
+	if !recording {
+		return w, nil
+	}
+	path := filepath.Join(dir, contract.WireValuesFile)
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return w, nil
+	}
+	var doc contract.WireValues
+	if err == nil {
+		err = json.Unmarshal(raw, &doc)
+	}
+	if err != nil {
+		if rerr := os.RemoveAll(path); rerr != nil && !errors.Is(rerr, fs.ErrNotExist) {
+			return w, fmt.Errorf("could not read or remove %s", contract.WireValuesFile)
+		}
+		return w, fmt.Errorf("could not read %s, so it was removed and the wire record of this run will be withheld", contract.WireValuesFile)
+	}
+	w.earlier = doc.Values
+	return w, nil
 }
 
 func (w wireValues) update(known []string) error {
@@ -95,7 +121,9 @@ func (w wireValues) update(known []string) error {
 		return nil
 	}
 	path := filepath.Join(w.dir, contract.WireValuesFile)
-	values := slices.DeleteFunc(slices.Clone(known), func(v string) bool { return v == "" })
+	values := slices.Concat(known, w.earlier)
+	slices.Sort(values)
+	values = slices.DeleteFunc(slices.Compact(values), func(v string) bool { return v == "" })
 	if err := writeJSONFile(path, contract.WireValues{Values: values}, 0o600); err != nil {
 		if rerr := os.RemoveAll(path); rerr != nil && !errors.Is(rerr, fs.ErrNotExist) {
 			return fmt.Errorf("could not write or remove %s", contract.WireValuesFile)

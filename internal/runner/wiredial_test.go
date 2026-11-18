@@ -26,6 +26,8 @@ var wireDialMutations = []porttest.Mutation{
 	{"the file is private", "write it with mode 644", "red: the file mode is 644", "TestTheValuesFileHoldsWhatTheRunnerMasksAndNotWhatARefMarkedPublic"},
 	{"no file without recording", "write the file whatever the route list says", "red: the file exists in a run that does not record", "TestARunThatDoesNotRecordWritesNoValuesFile"},
 	{"a failed update removes the stale file", "return the error without removing the file", "red: the stale path stays", "TestAFailedValuesUpdateRemovesTheStaleFileAndNamesNoValue"},
+	{"a later runner keeps what an earlier one captured", "start from an empty list in loadWireValues", "red: the earlier value is gone from the file", "TestALaterRunnerKeepsTheValuesAnEarlierRunnerOfTheRunWrote"},
+	{"an unreadable values file withholds the record", "ignore the parse error in loadWireValues", "red: the runner starts and the unreadable file stays", "TestAnUnreadableValuesFileStopsTheRunnerAndIsRemoved"},
 	{"the hub's route format is what the runner reads", "change the separator in WireRunnerRoutes", "red: the rendered routes do not parse", "TestTheRoutesTheHarnessRendersAreTheRoutesTheRunnerReads"},
 }
 
@@ -217,6 +219,39 @@ func TestARunThatDoesNotRecordWritesNoValuesFile(t *testing.T) {
 	}
 	if w.exists(contract.WireValuesFile) || !w.exists("result.json") {
 		t.Fatalf("values file %v, result %v", w.exists(contract.WireValuesFile), w.exists("result.json"))
+	}
+}
+
+func TestALaterRunnerKeepsTheValuesAnEarlierRunnerOfTheRunWrote(t *testing.T) {
+	w := wireWorld(t, `{"target":"http://orders.local:8080"}`)
+	earlier, err := json.Marshal(contract.WireValues{Values: []string{planted}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(w.dir, contract.WireValuesFile), earlier, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.run(recording("orders=orders.local:8080=cockpit-wire:41001")); got.code != 0 {
+		t.Fatalf("exit %d stderr %v", got.code, got.stderr)
+	}
+	values := w.valuesFile()
+	if !slices.Contains(values, planted) || !slices.Contains(values, privSecret) {
+		t.Fatalf("the file holds %d values and lacks the earlier or the current one", len(values))
+	}
+}
+
+func TestAnUnreadableValuesFileStopsTheRunnerAndIsRemoved(t *testing.T) {
+	w := wireWorld(t, `{"target":"http://orders.local:8080"}`)
+	path := filepath.Join(w.dir, contract.WireValuesFile)
+	if err := os.WriteFile(path, []byte(planted), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got := w.run(recording("orders=orders.local:8080=cockpit-wire:41001"))
+	if got.code == 0 || w.exists(contract.WireValuesFile) {
+		t.Fatalf("exit %d, file still there: %v", got.code, w.exists(contract.WireValuesFile))
+	}
+	if text := strings.Join(got.stderr, "\n"); strings.Contains(text, planted) || !strings.Contains(text, "withheld") {
+		t.Fatalf("stderr %q", text)
 	}
 }
 

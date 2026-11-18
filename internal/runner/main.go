@@ -145,7 +145,10 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText,
 		Secret: func(v string, priv []string) bool { return base.WithKnown(priv).Mask(v) != v },
 	}
-	values := wireValues{dir: s.dir, recording: wire.recording()}
+	values, err := loadWireValues(s.dir, wire.recording())
+	if err != nil {
+		return fail(err.Error())
+	}
 	refresh := func() error {
 		known := ctxDeps.KnownValues()
 		current.Store(base.WithKnown(known))
