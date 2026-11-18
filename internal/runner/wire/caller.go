@@ -19,7 +19,11 @@ var (
 )
 
 func serviceOf(project, ptr string) (string, bool) {
-	host, _, _ := strings.Cut(strings.TrimSuffix(ptr, "."), ".")
+	name := strings.TrimSuffix(ptr, ".")
+	host, _, _ := strings.Cut(name, ".")
+	if at := strings.LastIndex(name, "."+project+"_"); at >= 0 {
+		host = name[:at]
+	}
 	container, ok := strings.CutPrefix(host, project+"-")
 	if !ok {
 		return "", false

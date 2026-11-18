@@ -13,26 +13,30 @@ func TestContainerNamesReadAsTheBareComposeServiceName(t *testing.T) {
 		"r-1-cockpit-runner-run-0123456789ab.r-1_default.": "cockpit-runner",
 		"r-1-a-run-worker-2.r-1_default.":                  "a-run-worker",
 		"r-1-job-run-1-3.r-1_default.":                     "job-run-1",
+		"r-1-api.v1-1.r-1_default.":                        "api.v1",
+		"r-1-api.v1-run-0123456789ab.r-1_backplane.":       "api.v1",
+		"r-1-a.b.c-2.r-1_my.net.":                          "a.b.c",
+		"r-1-orders-1.shared.":                             "orders",
 	}
 	for ptr, want := range cases {
 		if got, ok := serviceOf("r-1", ptr); !ok || got != want {
 			t.Errorf("%s: %q %v, want %q", ptr, got, ok, want)
 		}
 	}
-	if len(cases) != 5 {
+	if len(cases) != 9 {
 		t.Fatalf("%d cases", len(cases))
 	}
 }
 
 func TestNamesOutsideTheProjectOrWithoutAnInstanceAreNotReadAsServices(t *testing.T) {
 	refused := 0
-	for _, ptr := range []string{"other-orders-1.other_default.", "r-1-orders.r-1_default.", "orders.r-1_default.", "", "."} {
+	for _, ptr := range []string{"other-orders-1.other_default.", "r-1-orders.r-1_default.", "orders.r-1_default.", "", ".", "r-1-api.v1-1.shared."} {
 		if got, ok := serviceOf("r-1", ptr); ok {
 			t.Errorf("%q read as %q", ptr, got)
 		}
 		refused++
 	}
-	if refused != 5 {
+	if refused != 6 {
 		t.Fatalf("%d cases", refused)
 	}
 }

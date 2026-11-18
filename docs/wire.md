@@ -64,7 +64,7 @@ With `wire` on, the harness adds `cockpit-wire`, a `cockpit-runner wire` process
 
 `cockpit-wire` listens on one port per route and forwards to `<service>:<port>`. It keeps the caller's bytes and changes only what a direct call would not carry: `Host` becomes the upstream's `host:port`. It uses one new upstream connection per call, because a reused connection the service just closed would surface as a new error. It turns off compression and environment proxies. Bodies stream as they arrive. When the upstream cannot be dialed, the caller's connection is closed, so a retry loop sees a connection error and no invented 502.
 
-The caller's name comes from the Docker DNS PTR record of its address, read as `<project>-<service>-<n>` or `<project>-<service>-run-<id>`. A failed lookup leaves the address.
+The caller's name comes from the Docker DNS PTR record of its address. The recorder strips the `.<project>_<network>.` suffix, so a service name may hold dots, and reads the rest as `<project>-<service>-<n>` or `<project>-<service>-run-<id>`. On a network with a custom name it reads up to the first dot. A failed lookup leaves the address.
 
 A person reaches a service through the edge, and the edge may not target a harness service, so edge traffic is not recorded.
 
