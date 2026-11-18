@@ -9,6 +9,8 @@ import (
 
 var secretKeyName = regexp.MustCompile(`(?i)^` + secretKey + `$`)
 
+func SecretKeyName(key string) bool { return secretKeyName.MatchString(key) }
+
 type cover struct {
 	hidden bool
 	key    string

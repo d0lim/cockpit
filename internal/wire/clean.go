@@ -98,7 +98,7 @@ func cleanBody(m *mask.Masker, b Body) Body {
 	case BodyJSON:
 		return Body{Kind: BodyJSON, JSON: cleanValue(m, b.JSON)}
 	case BodyForm:
-		return Body{Kind: BodyForm, Form: m.Leaves(b.Form).(map[string][]string)}
+		return Body{Kind: BodyForm, Form: m.Leaves(hideFormCredentials(b.Form)).(map[string][]string)}
 	case BodyText:
 		return Body{Kind: BodyText, Text: m.Mask(b.Text)}
 	case BodyJWT:
@@ -126,7 +126,7 @@ func cleanObject(m *mask.Masker, object map[string]any) map[string]any {
 }
 
 func cleanValue(m *mask.Masker, v any) any {
-	return maskNumbers(m, m.Leaves(v))
+	return maskNumbers(m, m.Leaves(hideCredentials(v)))
 }
 
 func maskNumbers(m *mask.Masker, v any) any {

@@ -100,7 +100,7 @@ A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `starte
 | Kind | Stored as |
 | --- | --- |
 | `json` | the parsed value of a JSON media type, or of any body that is a JSON object or array; numbers keep their text, object keys read in sorted order |
-| `form` | the parsed fields of `application/x-www-form-urlencoded`; a bracketed name such as `user[password]` reads `user.password`, so the key-name rules reach its last part |
+| `form` | the parsed fields of `application/x-www-form-urlencoded`; a bracketed name such as `user[password][0]` reads `user.password.0`, and the credential-key rule below reads every part |
 | `text` | valid UTF-8 without a NUL byte |
 | `jwt` | the decoded header and claims of a body that is one compact JWT; the signature is dropped |
 | `omitted` | nothing but the reason: `too-large`, `binary`, `encoded`, `busy` or `record-full` |
@@ -118,7 +118,17 @@ A `gzip` body is decoded within the 1 MiB limit. Any other content encoding is `
 
 A body is kept whole or not at all. Nothing is cut, so no fragment of a secret can outlive a match that needed the whole value. A body whose stream broke off, or that the upstream stopped reading, is not stored either; `size` says how much of it passed. The screen shortens only text that is already masked.
 
-One function, `wire.Clean`, runs at every layer with a stronger masker each time. JSON, form and JWT values pass `Masker.Leaves`, so a credential-looking key hides the whole value under it, numbers included. A JSON number that the masker would change reads `****`. Other text passes `Masker.Mask`.
+One function, `wire.Clean`, runs at every layer with a stronger masker each time. It first hides every value under a key that names a credential, then passes JSON, form, query and JWT values through `Masker.Leaves`, so a credential-looking key hides the whole value under it, numbers included. A JSON number that the masker would change reads `****`. Other text passes `Masker.Mask`.
+
+A key is read in parts split at `.`, which is also how a bracketed form name reads. It names a credential when any of these holds:
+
+| Rule | Hidden | Stays readable |
+| --- | --- | --- |
+| a part contains `password`, `passwd`, `passphrase`, `pwd`, `secret`, `credential`, `api_key`, `api-key`, `apikey`, `private_key`, `private-key`, `privatekey`, `authorization`, `authorisation`, `cookie` or `bearer`, in any case | `new_password`, `pwd_hint`, `has_password`, `clientSecret`, `secretary`, `cookie_consent` | `pass`, `keyboard` |
+| a part ends in the word `otp` or `totp`, after a separator or a lower-case letter or digit | `otp`, `sms_otp`, `userTotp`, `smsOTP` | `spotp`, `otp_count` |
+| the key has more than one part and a part is exactly a name of the key-name rule (`credential`, `*token`, `*secret`, `password`, `session`, `api_key`, `authorization`, `cookie`) | `token.0`, `session.id`, `user.token.0` | `token_id.0` |
+
+The match is deliberately wide: a key such as `password_hint` or `secretary` loses its value so that no spelling of a credential keeps one. The value hides whole: a string, number, boolean, array or object reads one `****`, a repeated form field reads one `****`, and a JSON `null` stays `null`. A key of one part that is `credential`, `session` or ends in `token` is left to `Leaves`, which hides it too and is where `wire.publicFields` applies; `token_id`, `tokens_total` and `session_id` are none of these and stay readable.
 
 | Layer | Runs in | Masker |
 | --- | --- | --- |

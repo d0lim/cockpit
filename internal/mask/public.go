@@ -38,6 +38,8 @@ var (
 	}
 )
 
+func PublicFieldKey(key string) bool { return publicKeyFamily.MatchString(key) }
+
 func CheckPublicField(f PublicField) error {
 	_, err := compilePublicField(f)
 	return err
