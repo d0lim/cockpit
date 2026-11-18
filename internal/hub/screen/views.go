@@ -54,6 +54,7 @@ const (
 	TabSignals  = "signals"
 	TabEnv      = "env"
 	TabPipeline = "pipeline"
+	TabWire     = "wire"
 )
 
 var signalViews = []string{"trace", "events", "table", "logs"}
@@ -96,6 +97,11 @@ var views = []view{
 			{id: "collectors", kinds: []sse.Kind{sse.KindRuns}, signals: true, render: collectorsRegion},
 		},
 		body: signalsPage,
+	},
+	{
+		pattern: "/runs/{id}/wire", title: "Wire", tab: TabWire, run: true, served: true, check: wireRecorded,
+		own:  []region{{id: "wire", kinds: []sse.Kind{sse.KindRuns}, render: wireRegion}},
+		body: wirePage,
 	},
 	{
 		pattern: "/runs/{id}/env", title: "Environment", tab: TabEnv, run: true, served: true,

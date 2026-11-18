@@ -1,0 +1,120 @@
+package screen
+
+import (
+	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/wire"
+)
+
+templ wireCallPanel(st *state) {
+	if st.query.Get("call") != "" {
+		<section id="wire-call" class="mt-6 space-y-4" aria-label="Picked call">
+			if c, err := st.wireCall(); err != nil {
+				<p class="notice tone-bad">This call cannot be shown: { err.Error() }</p>
+			} else if c == nil {
+				<p class="notice tone-bad">The call in this address is not a call number.</p>
+			} else {
+				@wireCallFacts(*c)
+				if c.Call.Withheld {
+					<p class="notice tone-warn">This call failed the check that nothing secret remains, so its path, query, span, headers and bodies were not kept.</p>
+				} else {
+					<div class="grid gap-4 lg:grid-cols-2">
+						@wireMessage("Request", c.Call.Request)
+						@wireMessage("Response", c.Call.Response)
+					</div>
+				}
+			}
+		</section>
+	}
+}
+
+templ wireCallFacts(c api.WireCallView) {
+	<div class="card">
+		<h3 class="mb-3 font-mono text-sm font-semibold">Call { itoa64(c.Head.Seq) }</h3>
+		<dl class="kv">
+			<dt>Caller</dt>
+			<dd class="font-mono">{ c.Head.Caller }</dd>
+			<dt>Target</dt>
+			<dd class="font-mono">{ c.Head.Target }:{ itoa(c.Head.Port) }</dd>
+			<dt>Method</dt>
+			<dd class="font-mono">{ c.Head.Method }</dd>
+			<dt>Path</dt>
+			<dd class="font-mono break-all">{ orElse(c.Head.Path, "(not kept)") }</dd>
+			if fields, text := wireQueryFields(c.Call.Query); len(fields) > 0 || text != "" {
+				<dt>Query</dt>
+				<dd class="font-mono break-all">
+					if text != "" {
+						{ text }
+					}
+					for _, f := range fields {
+						for _, v := range f.values {
+							<div>{ f.key } = { v }</div>
+						}
+					}
+				</dd>
+			}
+			<dt>Status</dt>
+			<dd>
+				if c.Head.Status == 0 {
+					no status
+				} else {
+					{ itoa(c.Head.Status) }
+				}
+			</dd>
+			<dt>Outcome</dt>
+			<dd>{ wireOutcomes[c.Head.Outcome] }</dd>
+			<dt>Started</dt>
+			<dd>{ wireStamp(c.Head.Started) }</dd>
+			<dt>Took</dt>
+			<dd>{ wireDuration(c.Head) }</dd>
+			<dt>Link</dt>
+			<dd>
+				@badge(wireLinkTone(c.Head.Link), string(c.Head.Link))
+				<span class="ml-1">{ c.Why }</span>
+			</dd>
+		</dl>
+	</div>
+}
+
+templ wireMessage(title string, m wire.Message) {
+	<div class="card min-w-0 space-y-3">
+		<h3 class="text-sm font-semibold">{ title } <span class="font-normal text-muted">· { wireSize(m.Size) }</span></h3>
+		if headers := wireHeaders(m.Headers); len(headers) > 0 {
+			<dl class="kv">
+				for _, h := range headers {
+					<dt class="font-mono text-xs break-all">{ h.key }</dt>
+					<dd class="font-mono text-xs break-all">
+						for _, v := range h.values {
+							<div>{ v }</div>
+						}
+					</dd>
+				}
+			</dl>
+		}
+		if b := wireBody(m); true {
+			if b.note != "" {
+				<p class="text-sm text-muted">{ b.note }</p>
+			}
+			for _, block := range b.blocks {
+				if block.label != "" {
+					<p class="text-xs font-semibold text-muted">{ block.label }</p>
+				}
+				<pre class="console">{ block.text }</pre>
+			}
+			if len(b.fields) > 0 {
+				<dl class="kv">
+					for _, f := range b.fields {
+						<dt class="font-mono text-xs break-all">{ f.key }</dt>
+						<dd class="font-mono text-xs break-all">
+							for _, v := range f.values {
+								<div>{ v }</div>
+							}
+						</dd>
+					}
+				</dl>
+			}
+			if b.cut {
+				<p class="text-xs text-muted">Shown up to 256 KiB. The rest is in the stored record.</p>
+			}
+		}
+	</div>
+}

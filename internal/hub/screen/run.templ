@@ -18,8 +18,11 @@ func runTabs(st *state) []tabLink {
 		tabs = append(tabs,
 			tabLink{TabReport, "Report", base + "/report"},
 			tabLink{TabSignals, "Signals", base + "/signals/trace"},
-			tabLink{TabEnv, "Environment", base + "/env"},
 		)
+		if st.run.Wire {
+			tabs = append(tabs, tabLink{TabWire, "Wire", base + "/wire"})
+		}
+		tabs = append(tabs, tabLink{TabEnv, "Environment", base + "/env"})
 	}
 	return append(tabs, tabLink{TabPipeline, "Pipeline", base + "/pipeline"})
 }
@@ -74,6 +77,9 @@ templ overviewRegion(st *state) {
 			for _, n := range notices(*st.run, st.list) {
 				<p class="notice tone-warn mt-3">{ n }</p>
 			}
+			<div class="mt-3">
+				@wireRunNotice(st)
+			</div>
 			@stages(*st.run)
 		</div>
 		@actions(st, st.detail())

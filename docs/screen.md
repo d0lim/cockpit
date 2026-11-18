@@ -38,12 +38,14 @@ The registry changes only what the screen shows. The running cap counts every ru
 | `/runs/{id}/report` | Report | Did it pass, and if not, why? | The verdict and its reasons, the stage → flow → step table and what was not counted as passed. |
 | `/runs/{id}/report/{flow}` | Flow | What did this flow do, and where did it stop? | The flow's steps, each with the requests it sent, the ids it marked and what the environment recorded under those ids, and the source line of the picked step. |
 | `/runs/{id}/signals/{view}` | Signals | What happened inside the environment while the suite ran? | One of four views (`trace`, `events`, `table`, `logs`) and the collector status. |
+| `/runs/{id}/wire` | Wire | What was each server asked, and what did it answer? | For a run submitted with `wire` ([wire record](wire.md)): the state of the record, the flows with their steps and call counts, the calls of the picked step with the links that tie them to it, and the picked call's request and response. |
 | `/runs/{id}/env` | Environment | How do I get into this environment? | The service ports with their open modes, the kit, the exec command and the flows it can run again, and the report bundle path. |
 | `/runs/{id}/pipeline` | Pipeline | What did each stage print? | The masked pipeline output lines. |
 | `/hub` | Hub | Which hub is this? | Its registry id and name, state directory, address, version, served host APIs, limits and Docker state. |
 | `/stacks` | Other stacks | What else uses this host's resources? | The running compose projects without the cockpit label and the unowned orphans, read only, with the command that removes each by hand. |
 
-- A run screen has a short header (run id, lifecycle, verdict) and the run's screen links: Overview, Report, Signals, Environment, Pipeline. The header is the only part every run screen shares.
+- A run screen has a short header (run id, lifecycle, verdict) and the run's screen links: Overview, Report, Signals, Wire, Environment, Pipeline. Wire is linked only for a run submitted with `wire`, and its path answers 404 for any other run. The header is the only part every run screen shares.
+- A run submitted with `wire` says so in one line on Overview and Report, with the state of its record. The Flow screen's picked step links to that step on the Wire screen.
 - A run's default screen is Overview while it is queued, Signals while it is active, and Report once it has ended. A run whose host API this hub does not serve has only Overview and Pipeline.
 - While a run is active, Overview says `Running the <stage> stage since <time>`. The time is the start of the current stage from the run's stage times (`stageStartedAt` in `RunItem`, `docs/signals.md`), or the run's start when the record holds no open entry for the current stage.
 - An unknown run id answers 404 with a screen that says so; a malformed one answers 400.
@@ -72,6 +74,7 @@ The registry changes only what the screen shows. The running cap counts every ru
 | Flow | `flow` | `runs`, new signals |
 | Signals | `signals` | new signals |
 | Signals | `collectors` | `runs`, new signals |
+| Wire | `wire` | `runs` |
 | Environment | `env` | `runs` |
 | Pipeline | `pipeline` | `job` |
 
@@ -82,6 +85,7 @@ The registry changes only what the screen shows. The running cap counts every ru
 What a screen shows besides its run lives in its query, so a reload, a pasted URL and the live connection render the same thing:
 
 - Flow: `step`, the picked step; its line is marked in the code view and scrolled to once.
+- Wire: `take`, `flow` and `step` or `scope=outside`, `target`, `offset` and `call`. Without a selection the screen opens on the step the API picks (`docs/api.md`). The region `wire` holds the notices, the step list and the table and reads only the cached index; the picked call sits outside it, so a `runs` event never reads a body.
 - Signals: `trace` and `span` for the trace view, `f` (repeatable, `key:value`), `q` (text search) and `event` for the events view, `hide` (repeatable, `<table>.<column>`) for the table view, `source` for the logs view.
 
 Signals are read once per run into a cache that keeps the latest 20,000 and reads only the new ones on each render; a run nobody reads for ten minutes leaves the cache. The events view shows the latest 500 events, a table the latest 500 rows, the logs view the latest 2,000 lines of one source.

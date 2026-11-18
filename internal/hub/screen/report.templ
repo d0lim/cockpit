@@ -16,6 +16,7 @@ templ reportPage(st *state) {
 
 templ reportRegion(st *state) {
 	<section id="report" class="space-y-6">
+		@wireRunNotice(st)
 		if v, err := st.report(); err != nil {
 			<p class="notice tone-bad">The report cannot be read: { err.Error() }</p>
 		} else {
