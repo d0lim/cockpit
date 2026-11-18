@@ -27,6 +27,10 @@ func iso(t time.Time) string {
 }
 
 func WriteJSON(path string, v any) error {
+	return writeJSONFile(path, v, 0o644)
+}
+
+func writeJSONFile(path string, v any, mode os.FileMode) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return err
@@ -48,7 +52,7 @@ func WriteJSON(path string, v any) error {
 	if _, err := tmp.Write(append(data, '\n')); err != nil {
 		return fail(err)
 	}
-	if err := tmp.Chmod(0o644); err != nil {
+	if err := tmp.Chmod(mode); err != nil {
 		return fail(err)
 	}
 	if err := tmp.Close(); err != nil {

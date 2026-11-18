@@ -111,6 +111,11 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	if err != nil {
 		return fail(err.Error())
 	}
+	wire, err := parseWireRoutes(s.wireRoutes)
+	if err != nil {
+		return fail(err.Error())
+	}
+	publicEnv = wire.expandEnv(publicEnv)
 	ledger, err := ReadLedger(s.dir)
 	if err != nil {
 		return fail("could not read the ledger: " + err.Error())
@@ -131,7 +136,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	if s.traceID != "" && !tracectx.IsTraceID(s.traceID) {
 		return fail("COCKPIT_TRACE_ID is not a trace id of 32 lowercase hex characters")
 	}
-	client, err := httpport.New(httpport.Options{Allowed: allowedOrigins(publicEnv), Timeout: requestTimeout, MaxBody: maxBody, Mask: maskText, Dial: deps.Dial, TraceID: s.traceID})
+	client, err := httpport.New(httpport.Options{Allowed: allowedOrigins(publicEnv), Timeout: requestTimeout, MaxBody: maxBody, Mask: maskText, Dial: deps.Dial, Reroute: wire.rerouter(), TraceID: s.traceID})
 	if err != nil {
 		return fail("could not build the allowlist from public env addresses: " + err.Error())
 	}
@@ -140,8 +145,20 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText,
 		Secret: func(v string, priv []string) bool { return base.WithKnown(priv).Mask(v) != v },
 	}
-	ctxDeps.Changed = func() { current.Store(base.WithKnown(ctxDeps.KnownValues())) }
-	ctxDeps.Changed()
+	values := wireValues{dir: s.dir, recording: wire.recording()}
+	refresh := func() error {
+		known := ctxDeps.KnownValues()
+		current.Store(base.WithKnown(known))
+		return values.update(known)
+	}
+	ctxDeps.Changed = func() {
+		if err := refresh(); err != nil {
+			fmt.Fprintln(deps.Stderr, maskText(err.Error()))
+		}
+	}
+	if err := refresh(); err != nil {
+		return fail(err.Error())
+	}
 	var execOut func(string) string
 	if len(targets) > 0 {
 		execOut = ExecOutPath(s.dir, s.execOut, targets, clk.Now())

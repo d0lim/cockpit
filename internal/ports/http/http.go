@@ -29,6 +29,7 @@ type Options struct {
 	MaxBody int64
 	Mask    ports.Mask
 	Dial    Dialer
+	Reroute func(addr string) string
 	TraceID string
 }
 
@@ -104,8 +105,16 @@ func New(opts Options) (*Client, error) {
 	if dial == nil {
 		dial = (&net.Dialer{Timeout: c.timeout}).DialContext
 	}
+	transport := &http.Transport{Proxy: nil, DialContext: dial, DisableCompression: true}
+	if opts.Reroute != nil {
+		secure := transport.Clone()
+		transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dial(ctx, network, opts.Reroute(addr))
+		}
+		transport.RegisterProtocol("https", secure)
+	}
 	c.client = &http.Client{
-		Transport:     &http.Transport{Proxy: nil, DialContext: dial, DisableCompression: true},
+		Transport:     transport,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
 	return c, nil
