@@ -97,19 +97,19 @@ A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `starte
 
 | Kind | Stored as |
 | --- | --- |
-| `json` | the parsed value; numbers keep their text, object keys read in sorted order |
-| `form` | the parsed fields of `application/x-www-form-urlencoded` |
+| `json` | the parsed value of a JSON media type, or of any body that is a JSON object or array; numbers keep their text, object keys read in sorted order |
+| `form` | the parsed fields of `application/x-www-form-urlencoded`; a bracketed name such as `user[password]` reads `user.password`, so the key-name rules reach its last part |
 | `text` | valid UTF-8 without a NUL byte |
 | `jwt` | the decoded header and claims of a body that is one compact JWT; the signature is dropped |
 | `omitted` | nothing but the reason: `too-large`, `binary`, `encoded`, `busy` or `record-full` |
 
-A `gzip` body is decoded within the 1 MiB limit. Any other content encoding is `encoded`.
+A `gzip` body is decoded within the 1 MiB limit. Any other content encoding is `encoded`. A `multipart` body is `binary`, because its fields have no structure the masker can read. The query is parsed like a form body, and one that does not parse is `text`. Header names are stored in lower case.
 
 ## Masking
 
 A body is kept whole or not at all. Nothing is cut, so no fragment of a secret can outlive a match that needed the whole value. The screen shortens only text that is already masked.
 
-One function, `wire.Clean`, runs at every layer with a stronger masker each time. JSON, form and JWT values pass `Masker.Leaves`, so a credential-looking key hides the whole value under it, numbers included. Other text passes `Masker.Mask`.
+One function, `wire.Clean`, runs at every layer with a stronger masker each time. JSON, form and JWT values pass `Masker.Leaves`, so a credential-looking key hides the whole value under it, numbers included. A JSON number that the masker would change reads `****`. Other text passes `Masker.Mask`.
 
 | Layer | Runs in | Masker |
 | --- | --- | --- |
@@ -125,13 +125,13 @@ A JWT is decoded only when it is the whole body. Its header and claims pass `Lea
 
 ### Public values under credential-looking keys
 
-A field such as `"token": "tok-1f2e"` can be public data under a key the masker hides. `wire.publicFields` keeps a value visible when its key equals `key` without regard to case and the whole string matches `value`. The value still passes `Mask`, so a known secret or a credential shape stays masked. The exemption applies to structured values in the wire record only: text bodies and every other output of the run keep the normal rules.
+A field such as `"token": "tok-1f2e"` can be public data under a key the masker hides. `wire.publicFields` keeps a string visible when the key directly above it, or above the array holding it, equals `key` without regard to case and the whole string matches `value`. The value still passes `Mask`, so a known secret or a credential shape stays masked. The exemption applies to structured values in the wire record only: text bodies and every other output of the run keep the normal rules.
 
 The declaration's fields are stored with the record, so a read after destroy applies the same exemption.
 
 ### Proof of each call
 
-The hub stores a call only after proving it. `Clean` must not change its own output, and the encoded line must pass the value scan: the run's masker without the key-name rules, so the PEM, known-value, Bearer, JWT and declared-pattern rules. A call that fails becomes a stub with its number, times, method, status, outcome, caller and target and `withheld: true`. Its path, headers and bodies are gone.
+The hub stores a call only after proving it. `Clean` must not change its own output, and the encoded line must pass the value scan: the run's masker without the key-name rules, so the PEM, known-value, Bearer, JWT and declared-pattern rules. A call that fails becomes a stub with its number, times, method, status, outcome, caller, target and port and `withheld: true`. Its path, query, span, headers and bodies are gone. If the stub's own line fails the scan, its method, caller and target read `****`.
 
 ## Where the record lives
 
@@ -161,7 +161,7 @@ Linking runs once, at the take, over the calls in start order with `result.json`
 | `time` | the call started inside a step's window and nothing else ties it to the step |
 | `none` | the call started outside every step |
 
-A `time` link is never a parent, so a guess cannot spread. A step the runner did not finish stays open until the take.
+A `time` link is never a parent, so a guess cannot spread. A step the runner did not finish stays open until the take, and a call still open at the take encloses every later call to its target.
 
 ## Reading the record
 
