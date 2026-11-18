@@ -100,6 +100,27 @@ func TestACallThatOutlivesItsCandidateParentIsNotNested(t *testing.T) {
 	assertLinks(t, LinkCalls(calls, linkResult()), []Link{{Kind: LinkExact, Step: 0}, {Kind: LinkTime, Step: 0}})
 }
 
+func TestACallAnsweredBeforeItsParentEndedIsNestedEvenIfTheRecorderClosedItLater(t *testing.T) {
+	child := call(2, "orders", "ledger", 20, 51)
+	child.Replied = at(49)
+	calls := []Call{call(1, "cockpit-runner", "orders", 10, 50), child}
+	links := LinkCalls(calls, linkResult())
+	if links[1].Kind != LinkNested || links[1].Parent != 1 {
+		t.Fatalf("the answered child links %+v", links[1])
+	}
+	child.Replied = at(50)
+	child.Finished = at(52)
+	calls[1] = child
+	if links = LinkCalls(calls, linkResult()); links[1].Kind != LinkNested {
+		t.Fatalf("a child answered at the moment its parent ended links %+v", links[1])
+	}
+	child.Replied = at(51)
+	calls[1] = child
+	if links = LinkCalls(calls, linkResult()); links[1].Kind != LinkTime {
+		t.Fatalf("a child answered after its parent ended links %+v", links[1])
+	}
+}
+
 func TestATimeLinkNeverBecomesAParent(t *testing.T) {
 	calls := []Call{
 		call(1, "orders", "ledger", 10, 90),

@@ -41,6 +41,7 @@ type call struct {
 	failure         wire.Outcome
 	callerGone      bool
 	served          bool
+	lastWrite       time.Time
 }
 
 type tee struct {
@@ -117,6 +118,12 @@ func (c *call) markCallerGone() {
 	c.callerGone = true
 }
 
+func (c *call) writing() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.lastWrite = time.Now()
+}
+
 func (c *call) outcome() wire.Outcome {
 	switch {
 	case c.failure != "":
@@ -153,6 +160,7 @@ func (c *call) exchange() wire.Exchange {
 		Path:     c.path,
 		RawQuery: c.query,
 		Started:  c.started,
+		Replied:  c.lastWrite,
 		Status:   c.status,
 		Request:  c.message(&c.request, c.headers),
 		Response: c.message(&c.response, c.responseHeaders),

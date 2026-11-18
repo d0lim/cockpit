@@ -76,7 +76,14 @@ func encloses(parent, c Call) bool {
 	if parent.Finished.IsZero() {
 		return true
 	}
-	return !c.Finished.IsZero() && !c.Finished.After(parent.Finished)
+	return !c.Finished.IsZero() && !answeredAt(c).After(parent.Finished)
+}
+
+func answeredAt(c Call) time.Time {
+	if c.Replied.IsZero() {
+		return c.Finished
+	}
+	return c.Replied
 }
 
 func tighter(a, b Call) bool {

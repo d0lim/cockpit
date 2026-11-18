@@ -383,6 +383,7 @@
     "call.query.kind": "string, optional",
     "call.query.omitted": "string, optional",
     "call.query.text": "string, optional",
+    "call.replied": "custom time.Time, optional",
     "call.request": "object, optional",
     "call.request.body": "object, optional",
     "call.request.body.form": "map of array of string, optional",

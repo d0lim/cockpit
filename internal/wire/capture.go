@@ -24,6 +24,7 @@ type Exchange struct {
 	Path     string
 	RawQuery string
 	Started  time.Time
+	Replied  time.Time
 	Finished time.Time
 	Status   int
 	Outcome  Outcome
@@ -41,6 +42,7 @@ func Capture(m *mask.Masker, raw Exchange) Call {
 		Path:     raw.Path,
 		Query:    parseQuery(raw.RawQuery),
 		Started:  raw.Started,
+		Replied:  raw.Replied,
 		Finished: raw.Finished,
 		Status:   raw.Status,
 		Outcome:  raw.Outcome,

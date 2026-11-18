@@ -95,7 +95,7 @@ The record stays in the memory of the process until it is taken. Nothing in the 
 
 ## What a call holds
 
-A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `started`, `finished` (absent while the call is open), `status`, `outcome`, `span` (the span id of a valid `traceparent`), `withheld`, and a `request` and a `response`. Each of those two holds `headers`, `size` and a `body` of one kind:
+A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `started`, `replied` (when the recorder began its last write of the answer to the caller, absent when it wrote none), `finished` (absent while the call is open), `status`, `outcome`, `span` (the span id of a valid `traceparent`), `withheld`, and a `request` and a `response`. Each of those two holds `headers`, `size` and a `body` of one kind:
 
 | Kind | Stored as |
 | --- | --- |
@@ -170,7 +170,7 @@ Linking runs once, at the take, over the calls in start order with `result.json`
 | Link | Rule |
 | --- | --- |
 | `exact` | the call's `span` is the span id of a call the runner recorded for a step; or the caller is `cockpit-runner` and the call started inside a step's window, which also covers calls past the runner's limit of 50 per step |
-| `nested` | an `exact` or `nested` call to this caller was open for the whole of this call; the tightest such call is the parent and gives the step. No header is needed, so this follows paths that drop `traceparent` |
+| `nested` | an `exact` or `nested` call to this caller was open for the whole of this call; the tightest such call is the parent and gives the step. No header is needed, so this follows paths that drop `traceparent`. This call counts as over at `replied` when it has one: the caller can act on the answer as soon as the last bytes leave the recorder, and the recorder may not have closed the call yet |
 | `time` | the call started inside a step's window and nothing else ties it to the step |
 | `none` | the call started outside every step |
 

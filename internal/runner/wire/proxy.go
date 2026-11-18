@@ -117,6 +117,7 @@ func (w *callerWriter) WriteHeader(code int) {
 		w.ResponseWriter.WriteHeader(code)
 		return
 	}
+	w.noteWrite()
 	h := w.Header()
 	for _, name := range []string{"Content-Type", "Date"} {
 		if _, ok := h[name]; !ok {
@@ -127,7 +128,14 @@ func (w *callerWriter) WriteHeader(code int) {
 	http.NewResponseController(w.ResponseWriter).Flush()
 }
 
+func (w *callerWriter) noteWrite() {
+	if w.call != nil {
+		w.call.writing()
+	}
+}
+
 func (w *callerWriter) Write(p []byte) (int, error) {
+	w.noteWrite()
 	n, err := w.ResponseWriter.Write(p)
 	if err != nil && w.call != nil {
 		w.call.markCallerGone()

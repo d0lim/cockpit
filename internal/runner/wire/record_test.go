@@ -3,8 +3,10 @@ package recorder
 import (
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/wire"
 )
@@ -32,5 +34,40 @@ func TestARecordedCallCarriesItsRouteMethodQueryCallerAndParsedBodies(t *testing
 	}
 	if c.Finished.Before(c.Started) {
 		t.Fatalf("finished %v before started %v", c.Finished, c.Started)
+	}
+}
+
+type stampSeenWriter struct {
+	http.ResponseWriter
+	call *call
+	seen []time.Time
+}
+
+func (w *stampSeenWriter) note() {
+	w.call.mu.Lock()
+	defer w.call.mu.Unlock()
+	w.seen = append(w.seen, w.call.lastWrite)
+}
+
+func (w *stampSeenWriter) WriteHeader(int) { w.note() }
+
+func (w *stampSeenWriter) Write(p []byte) (int, error) {
+	w.note()
+	return len(p), nil
+}
+
+func TestTheAnswerIsStampedBeforeItsBytesLeaveTheRecorder(t *testing.T) {
+	c := &call{}
+	inner := &stampSeenWriter{ResponseWriter: httptest.NewRecorder(), call: c}
+	out := &callerWriter{ResponseWriter: inner, call: c}
+	beforeHeader := time.Now()
+	out.WriteHeader(http.StatusOK)
+	beforeBody := time.Now()
+	io.WriteString(out, "body")
+	if len(inner.seen) != 2 {
+		t.Fatalf("%d writes reached the caller", len(inner.seen))
+	}
+	if inner.seen[0].Before(beforeHeader) || inner.seen[1].Before(beforeBody) {
+		t.Fatalf("the writes left with the stamps %v, begun at %v and %v", inner.seen, beforeHeader, beforeBody)
 	}
 }

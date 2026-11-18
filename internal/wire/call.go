@@ -71,6 +71,7 @@ type Call struct {
 	Path     string    `json:"path,omitempty"`
 	Query    Body      `json:"query,omitzero"`
 	Started  time.Time `json:"started"`
+	Replied  time.Time `json:"replied,omitzero"`
 	Finished time.Time `json:"finished,omitzero"`
 	Status   int       `json:"status"`
 	Outcome  Outcome   `json:"outcome"`
