@@ -176,6 +176,13 @@ func (w wireRun) assertScreenShowsWire() {
 			t.Errorf("the Wire screen lacks %q", want)
 		}
 	}
+	jwt := w.headOf(wire.SuiteTake, "bodies", "jwt", 0)
+	_, picked := w.get("/runs/" + w.id + "/wire?flow=bodies&step=jwt&call=" + itoa(jwt.Seq))
+	for _, want := range []string{"Decoded JWT", "apiToken", "user-7", hidden} {
+		if !strings.Contains(picked, want) {
+			t.Errorf("the picked JWT call lacks %q on the screen", want)
+		}
+	}
 }
 
 func mustJSON(t *testing.T, v any) string {
