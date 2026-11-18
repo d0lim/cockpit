@@ -13,6 +13,7 @@ A sealed run is one commit and one suite on a fresh environment: the hub copies 
 5. Give each expected service a readiness signal.
 6. Write a suite, and optionally collectors.
 7. Commit, then `cockpit runs submit --wait`.
+8. Optionally, record what each service was asked and what it answered.
 
 ## 1. Start a hub
 
@@ -183,6 +184,44 @@ cockpit runs submit --wait
 
 - `cockpit runs report <id>` prints the flows and steps, and the screen at `/runs/<id>` shows the report, each flow's steps with their requests and refs, and the signals.
 - When the run ends its containers stop, and the environment stays in the kept pool. `cockpit runs resume <id>` brings it back, `cockpit runs exec <id> -- <flow>` reruns one flow against it, and `cockpit runs destroy <id>` removes it. The report bundle stays after a destroy. A cockpit upgrade that changes the harness version keeps the runs of the old hub listed, but refuses to resume them or run exec in them: destroy them and submit again ([Harness version](lifecycle.md#harness-version)).
+
+## 8. Record a run's service calls
+
+A recording run stores, per flow and step, each call that passes the recorder: its query, headers and bodies, masked. It is off unless the commit declares it and the submission asks for it. The rules are in [wire record](wire.md).
+
+Declare one route per service port to record in `.cockpit/project.yaml`:
+
+```yaml
+wire:
+  routes:
+    - { name: api, service: api, port: 8080 }
+    - { name: rates, service: rates, port: 8080 }
+```
+
+Change each service-to-service address in the compose overlay to read the route's variable. Without `--wire` the variable is unset and the service keeps its direct address:
+
+```yaml
+services:
+  api:
+    environment:
+      RATES_URL: http://${COCKPIT_WIRE_RATES:-rates:8080}
+```
+
+Requests a flow sends need no edit, because `baseUrl` stays `http://api:8080` and the runner dials the recorder for it. A value a flow hands to a service, such as a callback URL, is an address the service dials, so write it in `env.json` with the same variable:
+
+```json
+{ "baseUrl": "http://api:8080", "callbackUrl": "http://${COCKPIT_WIRE_API:-api:8080}/hooks/done" }
+```
+
+Commit, then submit with the flag:
+
+```sh
+cockpit runs submit --wire --wait
+```
+
+Read the record on the run's Wire screen at `/runs/<id>/wire`, or at `GET /api/runs/<id>/wire`. A route with no calls points at an address that was not changed. Each `cockpit runs exec` in the kept environment adds a take of its own.
+
+The record hides the run's known credentials and every value under a key that names a credential. Any other value stays readable, so add a pattern to `secrets.patterns` for a credential the run does not know and no key names ([masking](wire.md#masking)).
 
 ## Common refusals
 

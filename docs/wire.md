@@ -43,7 +43,7 @@ A value a flow hands to a service, such as a callback URL it registers, is an ad
 { "ordersBase": "http://orders:8080", "ordersCallback": "http://${COCKPIT_WIRE_ORDERS:-orders:8080}/hooks/done" }
 ```
 
-The runner expands only `${COCKPIT_WIRE_<NAME>:-<default>}`, and only in the string values of `env.json`.
+The runner expands only `${COCKPIT_WIRE_<NAME>:-<default>}`, and only in the string values of `env.json`. A collector that imports `env.json` reads the file as written, so it sees the placeholder unexpanded.
 
 ## Declaration rules
 
@@ -129,6 +129,8 @@ A key is read in parts split at `.`, which is also how a bracketed form name rea
 | the key has more than one part and a part is exactly a name of the key-name rule (`credential`, `*token`, `*secret`, `password`, `session`, `api_key`, `authorization`, `cookie`) | `token.0`, `session.id`, `user.token.0` | `token_id.0` |
 
 The match is deliberately wide: a key such as `password_hint` or `secretary` loses its value so that no spelling of a credential keeps one. The value hides whole: a string, number, boolean, array or object reads one `****`, a repeated form field reads one `****`, and a JSON `null` stays `null`. A key of one part that is `credential`, `session` or ends in `token` is left to `Leaves`, which hides it too and is where `wire.publicFields` applies; `token_id`, `tokens_total` and `session_id` are none of these and stay readable.
+
+A value the run does not know as a credential stays readable unless a key rule hides it, it has a built-in credential shape (a PEM block, a `Bearer` value, a JWT), or it matches a pattern in `secrets.patterns`. A text body gets no parsing, so `pwd: value` in plain text is one such value. Declare a pattern for a credential that no key names.
 
 | Layer | Runs in | Masker |
 | --- | --- | --- |
