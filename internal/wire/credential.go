@@ -13,6 +13,7 @@ var (
 		"password", "passwd", "passphrase", "pwd", "secret", "credential",
 		"api_key", "api-key", "apikey", "private_key", "private-key", "privatekey",
 		"authorization", "authorisation", "cookie", "bearer",
+		"session_id", "session-id", "sessionid",
 	}
 	otpWord = regexp.MustCompile(`(?:^|[^A-Za-z0-9])(?i:t?otp)$|[a-z0-9](?:Otp|OTP|Totp|TOTP)$`)
 )

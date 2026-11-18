@@ -103,7 +103,7 @@ A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `starte
 | `form` | the parsed fields of `application/x-www-form-urlencoded`; a bracketed name such as `user[password][0]` reads `user.password.0`, and the credential-key rule below reads every part |
 | `text` | valid UTF-8 without a NUL byte |
 | `jwt` | the decoded header and claims of a body that is one compact JWT; the signature is dropped |
-| `omitted` | nothing but the reason: `too-large`, `binary`, `encoded`, `busy` or `record-full` |
+| `omitted` | nothing but the reason: `too-large`, `binary`, `encoded`, `busy`, `record-full` or `unparsed` |
 
 | Outcome | Meaning |
 | --- | --- |
@@ -112,7 +112,7 @@ A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `starte
 | `caller-gone` | the caller left before the response ended |
 | `incomplete` | the call was still open at the take, or the upstream broke off |
 
-A `gzip` body is decoded within the 1 MiB limit. Any other content encoding is `encoded`. A `multipart` body is `binary`, because its fields have no structure the masker can read. The query is parsed like a form body, and one that does not parse is `text`. Header names are stored in lower case.
+A `gzip` body is decoded within the 1 MiB limit. Any other content encoding is `encoded`. A `multipart` body is `binary`, because its fields have no structure the masker can read. The query is parsed like a form body. A query or a form body that does not parse is `unparsed` and keeps nothing, because a credential in it could not be told from its neighbours. Header names are stored in lower case.
 
 ## Masking
 
@@ -124,7 +124,7 @@ A key is read in parts split at `.`, which is also how a bracketed form name rea
 
 | Rule | Hidden | Stays readable |
 | --- | --- | --- |
-| a part contains `password`, `passwd`, `passphrase`, `pwd`, `secret`, `credential`, `api_key`, `api-key`, `apikey`, `private_key`, `private-key`, `privatekey`, `authorization`, `authorisation`, `cookie` or `bearer`, in any case | `new_password`, `pwd_hint`, `has_password`, `clientSecret`, `secretary`, `cookie_consent` | `pass`, `keyboard` |
+| a part contains `password`, `passwd`, `passphrase`, `pwd`, `secret`, `credential`, `api_key`, `api-key`, `apikey`, `private_key`, `private-key`, `privatekey`, `authorization`, `authorisation`, `cookie`, `bearer`, `session_id`, `session-id` or `sessionid`, in any case | `new_password`, `pwd_hint`, `has_password`, `clientSecret`, `secretary`, `cookie_consent` | `pass`, `keyboard` |
 | a part ends in the word `otp` or `totp`, after a separator or a lower-case letter or digit | `otp`, `sms_otp`, `userTotp`, `smsOTP` | `spotp`, `otp_count` |
 | the key has more than one part and a part is exactly a name of the key-name rule (`credential`, `*token`, `*secret`, `password`, `session`, `api_key`, `authorization`, `cookie`) | `token.0`, `session.id`, `user.token.0` | `token_id.0` |
 

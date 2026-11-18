@@ -41,6 +41,7 @@ var hiddenKeys = []string{
 	"authorization", "proxy_authorization", "authorisation",
 	"cookie", "set_cookie", "cookie_consent",
 	"bearer", "bearer_value",
+	"session_id", "session-id", "sessionId", "user_session_id",
 	"otp", "totp", "sms_otp", "login-totp", "smsOtp", "userTotp", "smsOTP", "USER_OTP",
 }
 
@@ -118,7 +119,7 @@ func TestABracketedNameWithAnIndexOrSubkeyHidesItsValueInFormsAndQueries(t *test
 
 func TestKeysThatOnlyResembleACredentialKeepTheirValues(t *testing.T) {
 	m := newMasker(t)
-	visible := []string{"token_id", "tokens_total", "session_id", "sessions", "laptop", "desktop", "otp_count", "spotp", "top", "note", "pass", "keyboard"}
+	visible := []string{"token_id", "tokens_total", "sessions", "laptop", "desktop", "otp_count", "spotp", "top", "note", "pass", "keyboard"}
 	executed := 0
 	for _, key := range visible {
 		for name, edit := range structuredSurfaces(key, "plain-value") {

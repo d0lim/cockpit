@@ -114,7 +114,7 @@ func cleanBody(m *mask.Masker, b Body) Body {
 
 func knownReason(r OmitReason) OmitReason {
 	switch r {
-	case OmitTooLarge, OmitBinary, OmitEncoded, OmitBusy, OmitRecordFull:
+	case OmitTooLarge, OmitBinary, OmitEncoded, OmitBusy, OmitRecordFull, OmitUnparsed:
 		return r
 	}
 	return OmitBinary

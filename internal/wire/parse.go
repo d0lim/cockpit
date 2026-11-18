@@ -82,6 +82,7 @@ func classify(data []byte, media string) Body {
 		if form, ok := parseForm(string(data)); ok {
 			return Body{Kind: BodyForm, Form: form}
 		}
+		return omitted(OmitUnparsed)
 	}
 	if declaresJSON(media) || startsLikeJSON(data) {
 		if v, err := decodeJSON(data); err == nil {
@@ -126,7 +127,7 @@ func parseQuery(raw string) Body {
 	if form, ok := parseForm(raw); ok {
 		return Body{Kind: BodyForm, Form: form}
 	}
-	return Body{Kind: BodyText, Text: raw}
+	return omitted(OmitUnparsed)
 }
 
 func parseForm(raw string) (map[string][]string, bool) {

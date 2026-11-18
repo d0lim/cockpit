@@ -24,6 +24,7 @@ const (
 	OmitEncoded    OmitReason = "encoded"
 	OmitBusy       OmitReason = "busy"
 	OmitRecordFull OmitReason = "record-full"
+	OmitUnparsed   OmitReason = "unparsed"
 )
 
 type Outcome string

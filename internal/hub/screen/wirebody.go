@@ -67,6 +67,8 @@ func wireOmitted(reason wire.OmitReason, size int64) string {
 		return text + ", while the recorder held too many bodies waiting to be cleaned"
 	case wire.OmitRecordFull:
 		return text + ", after the record reached its limit for bodies"
+	case wire.OmitUnparsed:
+		return text + ", because its form fields do not parse"
 	}
 	return text
 }
@@ -161,6 +163,8 @@ func wireQueryFields(q wire.Body) ([]wireField, string) {
 	case wire.BodyText:
 		text, _ := cutText(q.Text)
 		return nil, text
+	case wire.BodyOmitted:
+		return nil, "Not kept: its fields do not parse"
 	}
 	return nil, ""
 }
