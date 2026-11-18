@@ -21,6 +21,7 @@ const (
 	RoleProbeControl = "cockpit-probe-control"
 	RoleBuilder      = "builder"
 	RoleOTLP         = "cockpit-otlp"
+	RoleWire         = "cockpit-wire"
 	ProfileRunner    = "runner"
 	ProfileProbe     = "probe"
 	DefaultNetwork   = "default"
@@ -30,7 +31,7 @@ const (
 	otlpPort         = "4318"
 )
 
-var HarnessServices = []string{RoleEdge, RoleRunner, RoleProbe, RoleProbeControl, RoleOTLP}
+var HarnessServices = []string{RoleEdge, RoleRunner, RoleProbe, RoleProbeControl, RoleOTLP, RoleWire}
 
 var OTLPEnvironment = map[string]string{
 	"OTEL_EXPORTER_OTLP_ENDPOINT": "http://" + RoleOTLP + ":" + otlpPort,
@@ -51,6 +52,7 @@ type HarnessInput struct {
 	Layout      Layout
 	Loaded      Loaded
 	RunnerUser  string
+	Wire        bool
 }
 
 type tagged struct {
@@ -160,6 +162,11 @@ func Harness(in HarnessInput) ([]byte, error) {
 		otlp["command"] = []string{"otlp", ":" + otlpPort}
 		otlp["networks"] = inner
 		services[RoleOTLP] = otlp
+	}
+	if in.Wire {
+		if err := addWireRecorder(in, services, inner, hardened(image(RoleWire))); err != nil {
+			return nil, err
+		}
 	}
 	doc := map[string]any{"services": services, "networks": networks}
 	if len(volumes) > 0 {

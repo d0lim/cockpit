@@ -15,6 +15,7 @@ type RunEnvInput struct {
 	PortBase int
 	Ports    []contract.PortOffset
 	Keys     map[string]string
+	Wire     []WireRoute
 }
 
 func RunEnv(in RunEnvInput) (string, error) {
@@ -29,6 +30,9 @@ func RunEnv(in RunEnvInput) (string, error) {
 	}
 	for _, key := range sortedKeys(in.Keys) {
 		entries = append(entries, [2]string{key, in.Keys[key]})
+	}
+	for _, r := range in.Wire {
+		entries = append(entries, [2]string{r.Variable(), r.Proxy()})
 	}
 	var b strings.Builder
 	for _, e := range entries {

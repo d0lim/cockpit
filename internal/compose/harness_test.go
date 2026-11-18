@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -26,6 +27,10 @@ func TestHarnessMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 }
 
 const runID = "r-toy-01"
+
+func renderedWithoutWire() []string {
+	return slices.DeleteFunc(slices.Clone(HarnessServices), func(role string) bool { return role == RoleWire })
+}
 
 func harnessDoc(t *testing.T, mutate func(dir string)) (map[string]any, yaml.Node, HarnessInput) {
 	t.Helper()
@@ -168,7 +173,7 @@ func TestConsumerServicesLoseTheirPortsAndCarryRunLabelsAndTheBuilderItsRole(t *
 	if role := service(t, doc, "builder")["labels"].(map[string]any)[LabelRole]; role != RoleBuilder {
 		t.Fatalf("builder role %v", role)
 	}
-	for _, role := range HarnessServices {
+	for _, role := range renderedWithoutWire() {
 		if got := service(t, doc, role)["labels"].(map[string]any)[LabelRole]; got != role {
 			t.Errorf("%s role label %v", role, got)
 		}
@@ -206,7 +211,7 @@ func TestRunnerBindsOnlyWorkTreePathsAndOnlyE2EIsWritable(t *testing.T) {
 
 func TestHarnessServicesRunReadOnlyWithoutCapabilitiesAndWithLimits(t *testing.T) {
 	doc, _, _ := harnessDoc(t, nil)
-	for _, role := range HarnessServices {
+	for _, role := range renderedWithoutWire() {
 		svc := service(t, doc, role)
 		if svc["read_only"] != true || strings.Join(strs(svc["cap_drop"]), ",") != "ALL" || svc["pids_limit"] == nil || svc["mem_limit"] == nil {
 			t.Errorf("%s is not confined: %v", role, svc)
@@ -272,7 +277,7 @@ func TestNamedServicesGetTheOTLPVariablesAndOthersDoNot(t *testing.T) {
 		}
 		checked++
 	}
-	if checked != len(in.Loaded.Model.Services)+len(HarnessServices) {
+	if checked != len(in.Loaded.Model.Services)+len(renderedWithoutWire()) {
 		t.Fatalf("checked %d services", checked)
 	}
 	in.Loaded.Declaration.Telemetry.OTLP.Services = []string{"queue"}

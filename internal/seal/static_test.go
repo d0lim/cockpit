@@ -11,7 +11,7 @@ import (
 )
 
 var staticMutations = []porttest.Mutation{
-	{"the harness roles are present before any other assertion", "drop roles() from Static", "red: the count is 23 and a render without the edge role passes", "TestToyRenderPassesAll24AssertionsInTheDocumentedOrder"},
+	{"the harness roles are present before any other assertion", "drop roles() from Static", "red: the count is 24 and a render without the edge role passes", "TestToyRenderPassesAll25AssertionsInTheDocumentedOrder"},
 	{"each assertion catches its own violation", "make any one assertion function return no violation", "red: that assertion's violating copy stays green", "TestEachViolatingCopyTurnsOnlyItsOwnAssertionRed"},
 	{"otlp is a harness service: no port, no bind, no egress", "remove compose.RoleOTLP from compose.HarnessServices", "red: an otlp bind under src passes mounts.binds", "TestAnOTLPServiceThatPublishesAPortBindsAPathOrJoinsEgressTurnsOnlyThatAssertionRed"},
 	{"otlp is a required role exactly when telemetry is declared", "pass false for the otlp flag in roles()", "red: a render without the otlp service passes while telemetry is declared", "TestTheOTLPRoleIsRequiredOnlyWhenTheRunDeclaresTelemetry"},
@@ -48,9 +48,10 @@ var assertionNames = []string{
 	"paths.configs-secrets",
 	"paths.env-file",
 	"paths.build",
+	"wire.routes",
 }
 
-func TestToyRenderPassesAll24AssertionsInTheDocumentedOrder(t *testing.T) {
+func TestToyRenderPassesAll25AssertionsInTheDocumentedOrder(t *testing.T) {
 	results := Static(toyInput(t))
 	var names []string
 	passed := 0
@@ -65,7 +66,7 @@ func TestToyRenderPassesAll24AssertionsInTheDocumentedOrder(t *testing.T) {
 	if !slices.Equal(names, assertionNames) {
 		t.Fatalf("assertions\n%q\nwant\n%q", names, assertionNames)
 	}
-	if passed != 24 || Verdict(results) != "passed" {
+	if passed != 25 || Verdict(results) != "passed" {
 		t.Fatalf("%d of %d passed", passed, len(results))
 	}
 }
@@ -118,6 +119,7 @@ func violations(t *testing.T) map[string]func(in *Input) {
 		},
 		"paths.env-file": func(in *Input) { app(in)["env_file"] = []any{map[string]any{"path": fixtureRun + "/src/.env"}} },
 		"paths.build":    func(in *Input) { record(app(in)["build"])["context"] = "/elsewhere/app" },
+		"wire.routes":    func(in *Input) { record(app(in)["labels"])["io.cockpit.role"] = "cockpit-wire" },
 	}
 }
 

@@ -118,10 +118,10 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsPortsOnlyOnTheEdgeAnd
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := AssertRoles(r, runID, decl.Project.Builder, OTLPDeclared(decl)); err != nil {
+	if err := AssertRoles(r, runID, decl.Project.Builder, OTLPDeclared(decl), false); err != nil {
 		t.Fatal(err)
 	}
-	want := len(loaded.Model.Services) + len(requiredRoles("", OTLPDeclared(decl)))
+	want := len(loaded.Model.Services) + len(requiredRoles("", OTLPDeclared(decl), false))
 	if _, ok := r.Services[RoleOTLP]; !ok || len(r.Services) != want || r.Services["app"].Image != "toy/app:"+keys["IMG_APP"] {
 		t.Fatalf("services %d, want %d, app image %q", len(r.Services), want, r.Services["app"].Image)
 	}

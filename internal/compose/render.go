@@ -38,10 +38,13 @@ func Render(ctx context.Context, d Docker, args []string, maskText func(string) 
 	return r, nil
 }
 
-func requiredRoles(builder string, otlp bool) []string {
+func requiredRoles(builder string, otlp, wire bool) []string {
 	roles := []string{RoleEdge, RoleRunner, RoleProbe, RoleProbeControl}
 	if otlp {
 		roles = append(roles, RoleOTLP)
+	}
+	if wire {
+		roles = append(roles, RoleWire)
 	}
 	if builder != "" {
 		roles = append(roles, RoleBuilder)
@@ -49,7 +52,7 @@ func requiredRoles(builder string, otlp bool) []string {
 	return roles
 }
 
-func AssertRoles(r Rendered, runID, builder string, otlp bool) error {
+func AssertRoles(r Rendered, runID, builder string, otlp, wire bool) error {
 	found := map[string][]string{}
 	for name, svc := range r.Services {
 		if svc.Labels[LabelManaged] != "true" || svc.Labels[LabelRunID] != runID {
@@ -60,7 +63,7 @@ func AssertRoles(r Rendered, runID, builder string, otlp bool) error {
 		}
 	}
 	var missing []string
-	for _, role := range requiredRoles(builder, otlp) {
+	for _, role := range requiredRoles(builder, otlp, wire) {
 		if len(found[role]) != 1 {
 			missing = append(missing, fmt.Sprintf("%s (found %d)", role, len(found[role])))
 		}

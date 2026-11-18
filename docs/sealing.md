@@ -14,11 +14,11 @@ This page holds the five seals, the static assertion table and the rules of the 
 
 ## Static assertions
 
-The hub renders the run's configuration once with `docker compose ... --profile '*' config --format json` and runs these 24 assertions on it in this order, before any image is built or any service starts. Every assertion runs even after another fails. A run fails the seal when any assertion fails. The results carry only service, network, port and path names, because the rendered configuration holds credential values.
+The hub renders the run's configuration once with `docker compose ... --profile '*' config --format json` and runs these 25 assertions on it in this order, before any image is built or any service starts. Every assertion runs even after another fails. A run fails the seal when any assertion fails. The results carry only service, network, port and path names, because the rendered configuration holds credential values.
 
 | # | Name | Expectation |
 | --- | --- | --- |
-| 1 | `roles.present` | Exactly one service holds each harness role (`cockpit-edge`, `cockpit-runner`, `cockpit-probe`, `cockpit-probe-control`, `cockpit-otlp` when `telemetry.otlp.services` names a service, and `builder` when declared), and every service carries the run labels. Without this, an empty or partial render would pass the rest vacuously. |
+| 1 | `roles.present` | Exactly one service holds each harness role (`cockpit-edge`, `cockpit-runner`, `cockpit-probe`, `cockpit-probe-control`, `cockpit-otlp` when `telemetry.otlp.services` names a service, `cockpit-wire` when the run records, and `builder` when declared), and every service carries the run labels. Without this, an empty or partial render would pass the rest vacuously. |
 | 2 | `files.overlays` | No compose file the render reads (the declared files, every file they include, and the harness) matches an entry of `compose.forbidden`. |
 | 3 | `networks.set` | `default` and `egress` exist, and no network is external. |
 | 4 | `networks.internal` | Every network other than `egress` is internal. |
@@ -31,7 +31,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 11 | `edge.listen` | The edge listens only on the container ports of the declared offsets (`30000 + offset`). |
 | 12 | `edge.host-ip` | Every edge port binds `127.0.0.1`. |
 | 13 | `edge.published` | Published ports are the declared offsets inside the leased block, distinct, and as many as the targets. |
-| 14 | `mounts.binds` | Bind sources resolve by real path under `build/` for the builder, under `work/` for the runner, under `src/` for project services; the edge, the probes and `cockpit-otlp` bind nothing. A path that cannot be resolved is a violation. |
+| 14 | `mounts.binds` | Bind sources resolve by real path under `build/` for the builder, under `work/` for the runner, under `src/` for project services; the edge, the probes, `cockpit-otlp` and `cockpit-wire` bind nothing. A path that cannot be resolved is a violation. |
 | 15 | `mounts.sockets` | No socket is bound. |
 | 16 | `volumes.named` | Named volumes are project-owned (`local` driver, no `driver_opts`), and an external volume may serve only the builder. |
 | 17 | `privileges.privileged` | `privileged` appears nowhere. |
@@ -42,6 +42,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 22 | `paths.configs-secrets` | Top-level `configs` and `secrets` read files inside the run directory. |
 | 23 | `paths.env-file` | `env_file` appears nowhere. |
 | 24 | `paths.build` | Build contexts and additional contexts are inside the run directory, and no build uses `ssh` or `secrets`. |
+| 25 | `wire.routes` | In a run that does not record, no service is named or labeled `cockpit-wire`. In a recording run, `cockpit-wire` runs the runner image in `wire` mode for this run id, without an entrypoint override, `volumes` or `tmpfs`, and its routes are exactly `compose.WireRoutes`, each to a project service that is not a harness service. The record then cannot reach a disk, and the recorder can reach no other address. |
 
 Assertions 2 to 24 keep the names and order of the previous cockpit. The edge assertions 9 to 11 read the rendered offset map (the edge `command`) instead of an nginx configuration, and `privileges.cap-add` allows no capability because the edge is the runner binary, not nginx.
 
