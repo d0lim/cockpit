@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
@@ -59,7 +60,12 @@ type Deps struct {
 	Log        *slog.Logger
 }
 
-type api struct{ d Deps }
+type api struct {
+	d     Deps
+	wires *wireCache
+}
+
+func newAPI(d Deps) *api { return &api{d: d, wires: newWireCache(time.Now)} }
 
 func (a *api) log() *slog.Logger {
 	if a.d.Log == nil {
@@ -88,6 +94,8 @@ func (a *api) routes() []routeSpec {
 		{http.MethodGet, "/api/runs/{id}/source", a.source},
 		{http.MethodGet, "/api/runs/{id}/events", a.runEvents},
 		{http.MethodGet, "/api/runs/{id}/signals", a.signals},
+		{http.MethodGet, "/api/runs/{id}/wire", a.wireView},
+		{http.MethodGet, "/api/runs/{id}/wire/{seq}", a.wireCall},
 	}
 }
 
@@ -100,7 +108,7 @@ func Routes() []string {
 }
 
 func Handler(d Deps) http.Handler {
-	a := &api{d: d}
+	a := newAPI(d)
 	byPattern := map[string]map[string]func(w http.ResponseWriter, r *http.Request) error{}
 	var order []string
 	for _, r := range a.routes() {

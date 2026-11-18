@@ -37,6 +37,7 @@ type TakeInput struct {
 	Stream       Stream
 	Result       *contract.Result
 	PublicFields []contract.WirePublicField
+	Routes       []contract.WireRoute
 }
 
 func Take(ctx context.Context, in TakeInput) Status {
@@ -202,7 +203,7 @@ func (w taking) store(got copied) (Status, bool) {
 		Take: w.in.Name, State: StateTaken, Calls: len(got.heads), WithheldCalls: got.withheld,
 		BodiesOmitted: got.end.BodiesOmitted, CallsDropped: got.end.CallsDropped,
 	}
-	index := Index{Status: status, Steps: stepRefs(w.in.Result), Heads: got.heads, PublicFields: w.in.PublicFields}
+	index := Index{Status: status, Steps: stepRefs(w.in.Result), Heads: got.heads, PublicFields: w.in.PublicFields, Routes: w.in.Routes}
 	if index.Heads == nil {
 		index.Heads = []Head{}
 	}
@@ -223,7 +224,7 @@ func stepRefs(result *contract.Result) []StepRef {
 		return refs
 	}
 	for _, s := range result.Steps {
-		refs = append(refs, StepRef{Flow: s.Flow, Step: s.ID})
+		refs = append(refs, StepRef{Flow: s.Flow, Step: s.ID, Status: s.Status})
 	}
 	return refs
 }

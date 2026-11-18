@@ -35,8 +35,9 @@ const (
 type Status = contract.WireStatus
 
 type StepRef struct {
-	Flow string `json:"flow"`
-	Step string `json:"step"`
+	Flow   string              `json:"flow"`
+	Step   string              `json:"step"`
+	Status contract.StepStatus `json:"status,omitempty"`
 }
 
 type Head struct {
@@ -61,4 +62,5 @@ type Index struct {
 	Steps        []StepRef                  `json:"steps"`
 	Heads        []Head                     `json:"heads"`
 	PublicFields []contract.WirePublicField `json:"publicFields,omitempty"`
+	Routes       []contract.WireRoute       `json:"routes,omitempty"`
 }

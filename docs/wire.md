@@ -178,7 +178,7 @@ A `time` link is never a parent, so a guess cannot spread. A step the runner did
 
 ## Reading the record
 
-`GET /api/runs/{id}/wire` answers a `WireView`, and `GET /api/runs/{id}/wire/{seq}` a `WireCallView` (`docs/api.md`). The Wire screen is `/runs/{id}/wire` (`docs/screen.md`). The index holds one row per call with the offset of its line, so a list reads no body and a picked call reads one line.
+`GET /api/runs/{id}/wire` answers a `WireView`, and `GET /api/runs/{id}/wire/{seq}` a `WireCallView` (`docs/api.md`). The Wire screen is `/runs/{id}/wire` (`docs/screen.md`). The index holds one row per call with the offset of its line, the steps of the take's runner with their status, the declared routes and the public fields, so a list reads no body, a picked call reads one line and a destroyed run needs no other file.
 
 | Run | Wire screen |
 | --- | --- |

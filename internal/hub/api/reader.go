@@ -18,7 +18,7 @@ import (
 
 type Reader struct{ a *api }
 
-func NewReader(d Deps) *Reader { return &Reader{a: &api{d: d}} }
+func NewReader(d Deps) *Reader { return &Reader{a: newAPI(d)} }
 
 func (r *Reader) List() (HubList, error) {
 	l, err := r.a.d.Scheduler.List()

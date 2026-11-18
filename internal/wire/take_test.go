@@ -83,6 +83,8 @@ func TestATakeMasksEveryLineAndStoresOffsetsThatReadTheCallBack(t *testing.T) {
 	stream.lines = []string{callLine(t, plainCall(1, "first "+planted)), callLine(t, plainCall(2, "second")), endLine(t, End{Calls: 2, BodiesOmitted: 3, CallsDropped: 4})}
 	in := takeInput(t, stream)
 	in.PublicFields = []contract.WirePublicField{{Key: "token", Value: "tok-[0-9a-f]{8,64}"}}
+	in.Routes = []contract.WireRoute{{Name: "ledger", Service: "ledger", Port: 8081}}
+	in.Result = &contract.Result{Steps: []contract.ResultStep{{Flow: "orders", ID: "create", Status: contract.StepStatusFailed}}}
 	status := Take(context.Background(), in)
 	want := Status{Take: SuiteTake, State: StateTaken, Calls: 2, BodiesOmitted: 3, CallsDropped: 4}
 	if status != want {
@@ -107,7 +109,7 @@ func TestATakeMasksEveryLineAndStoresOffsetsThatReadTheCallBack(t *testing.T) {
 		t.Fatalf("an unknown call: %v", err)
 	}
 	index, err := in.Store.Index(SuiteTake)
-	if err != nil || index.Status != want || len(index.PublicFields) != 1 || len(index.Steps) != 0 {
+	if err != nil || index.Status != want || len(index.PublicFields) != 1 || len(index.Routes) != 1 || index.Routes[0].Name != "ledger" || len(index.Steps) != 1 || index.Steps[0].Status != contract.StepStatusFailed {
 		t.Fatalf("index %+v: %v", index, err)
 	}
 	for _, name := range []string{CallsFile, IndexFile} {

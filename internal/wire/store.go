@@ -102,21 +102,44 @@ func (s Store) Call(take string, seq int64) (Call, Head, error) {
 	if at < 0 {
 		return Call{}, Head{}, fmt.Errorf("take %s has no call %d: %w", take, seq, fs.ErrNotExist)
 	}
-	head := index.Heads[at]
+	call, err := s.CallAt(take, index.Heads[at])
+	return call, index.Heads[at], err
+}
+
+func (s Store) CallAt(take string, head Head) (Call, error) {
+	if !ValidTake(take) {
+		return Call{}, fmt.Errorf("not a take name: %w", fs.ErrNotExist)
+	}
 	f, err := os.Open(filepath.Join(s.Root(), take, CallsFile))
 	if err != nil {
-		return Call{}, Head{}, err
+		return Call{}, err
 	}
 	defer f.Close()
 	text := make([]byte, head.Length)
 	if _, err := f.ReadAt(text, head.Offset); err != nil {
-		return Call{}, Head{}, fmt.Errorf("call %d of take %s cannot be read: %w", seq, take, err)
+		return Call{}, fmt.Errorf("call %d of take %s cannot be read: %w", head.Seq, take, err)
 	}
 	var line Line
-	if err := json.Unmarshal(text, &line); err != nil || line.Call == nil || line.Call.Seq != seq {
-		return Call{}, Head{}, fmt.Errorf("call %d of take %s does not match its index", seq, take)
+	if err := json.Unmarshal(text, &line); err != nil || line.Call == nil || line.Call.Seq != head.Seq {
+		return Call{}, fmt.Errorf("call %d of take %s does not match its index", head.Seq, take)
 	}
-	return *line.Call, head, nil
+	return *line.Call, nil
+}
+
+type Version struct {
+	Modified int64
+	Size     int64
+}
+
+func (s Store) IndexVersion(take string) (Version, error) {
+	if !ValidTake(take) {
+		return Version{}, fmt.Errorf("not a take name: %w", fs.ErrNotExist)
+	}
+	info, err := os.Lstat(filepath.Join(s.Root(), take, IndexFile))
+	if err != nil {
+		return Version{}, err
+	}
+	return Version{Modified: info.ModTime().UnixNano(), Size: info.Size()}, nil
 }
 
 func (s Store) stored(take string) (Status, bool) {

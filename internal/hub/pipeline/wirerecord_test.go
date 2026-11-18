@@ -102,7 +102,7 @@ func TestARecordingRunStoresItsMaskedRecordInTheBundle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(read.Heads) != 2 || read.Heads[0].Link.Kind != wire.LinkExact || read.Steps[read.Heads[0].Link.Step] != (wire.StepRef{Flow: "orders", Step: "create"}) {
+	if len(read.Heads) != 2 || read.Heads[0].Link.Kind != wire.LinkExact || read.Steps[read.Heads[0].Link.Step] != (wire.StepRef{Flow: "orders", Step: "create", Status: contract.StepStatusPassed}) {
 		t.Fatalf("heads %+v steps %+v", read.Heads, read.Steps)
 	}
 	if len(read.PublicFields) != 1 || read.PublicFields[0].Key != "token" {

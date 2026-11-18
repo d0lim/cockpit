@@ -56,7 +56,7 @@ func (w *RunWire) Take(ctx context.Context, take string, result *contract.Result
 		Stream: func(ctx context.Context, out io.Writer) error { return w.control(ctx, wireTake, take, out) },
 	}
 	if w.decl != nil {
-		in.PublicFields = w.decl.Wire.PublicFields
+		in.PublicFields, in.Routes = w.decl.Wire.PublicFields, w.decl.Wire.Routes
 	}
 	return wire.Take(ctx, in)
 }

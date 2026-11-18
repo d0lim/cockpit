@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/exec"
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
@@ -53,7 +54,7 @@ func TestAnExecArmsItsTakeFirstAndStoresItNextToTheSuiteRecord(t *testing.T) {
 	if err != nil || index.Status.State != wire.StateTaken || len(index.Heads) != 2 {
 		t.Fatalf("exec index %+v: %v", index, err)
 	}
-	if index.Heads[0].Link.Kind != wire.LinkExact || index.Steps[index.Heads[0].Link.Step] != (wire.StepRef{Flow: "orders", Step: "create"}) {
+	if index.Heads[0].Link.Kind != wire.LinkExact || index.Steps[index.Heads[0].Link.Step] != (wire.StepRef{Flow: "orders", Step: "create", Status: contract.StepStatusPassed}) {
 		t.Fatalf("exec link %+v steps %+v", index.Heads[0].Link, index.Steps)
 	}
 	text := wireFiles(t, filepath.Join(bundleRecord(dir), armed[0]))[wire.CallsFile]
