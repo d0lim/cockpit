@@ -21,6 +21,7 @@ const (
 	partialPrefix = ".partial-"
 	dirMode       = 0o700
 	fileMode      = 0o600
+	readRounds    = 3
 )
 
 var takeName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
@@ -60,29 +61,56 @@ func (s Store) Attach() error {
 	return moveTakes(s.staging(), s.attached())
 }
 
+func (s Store) homes() []string {
+	if s.Root() == s.staging() {
+		return []string{s.staging(), s.attached()}
+	}
+	return []string{s.attached(), s.staging()}
+}
+
 func (s Store) Takes() ([]string, error) {
-	entries, err := os.ReadDir(s.Root())
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
+	homes := s.homes()
 	var names []string
-	for _, e := range entries {
-		if e.IsDir() && ValidTake(e.Name()) && isFile(filepath.Join(s.Root(), e.Name(), IndexFile)) {
-			names = append(names, e.Name())
+	for _, dir := range []string{homes[0], homes[1], homes[0]} {
+		entries, err := os.ReadDir(dir)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, e := range entries {
+			if e.IsDir() && ValidTake(e.Name()) && isFile(filepath.Join(dir, e.Name(), IndexFile)) {
+				names = append(names, e.Name())
+			}
 		}
 	}
 	slices.Sort(names)
-	return names, nil
+	return slices.Compact(names), nil
+}
+
+func (s Store) inTake(take string, read func(dir string) error) error {
+	var err error
+	for range readRounds {
+		for _, home := range s.homes() {
+			err = read(filepath.Join(home, take))
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+		}
+	}
+	return err
 }
 
 func (s Store) Index(take string) (Index, error) {
 	if !ValidTake(take) {
 		return Index{}, fmt.Errorf("not a take name: %w", fs.ErrNotExist)
 	}
-	data, err := os.ReadFile(filepath.Join(s.Root(), take, IndexFile))
+	var data []byte
+	err := s.inTake(take, func(dir string) (err error) {
+		data, err = os.ReadFile(filepath.Join(dir, IndexFile))
+		return err
+	})
 	if err != nil {
 		return Index{}, err
 	}
@@ -110,7 +138,11 @@ func (s Store) CallAt(take string, head Head) (Call, error) {
 	if !ValidTake(take) {
 		return Call{}, fmt.Errorf("not a take name: %w", fs.ErrNotExist)
 	}
-	f, err := os.Open(filepath.Join(s.Root(), take, CallsFile))
+	var f *os.File
+	err := s.inTake(take, func(dir string) (err error) {
+		f, err = os.Open(filepath.Join(dir, CallsFile))
+		return err
+	})
 	if err != nil {
 		return Call{}, err
 	}
@@ -135,7 +167,11 @@ func (s Store) IndexVersion(take string) (Version, error) {
 	if !ValidTake(take) {
 		return Version{}, fmt.Errorf("not a take name: %w", fs.ErrNotExist)
 	}
-	info, err := os.Lstat(filepath.Join(s.Root(), take, IndexFile))
+	var info fs.FileInfo
+	err := s.inTake(take, func(dir string) (err error) {
+		info, err = os.Lstat(filepath.Join(dir, IndexFile))
+		return err
+	})
 	if err != nil {
 		return Version{}, err
 	}
