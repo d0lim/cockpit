@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 )
 
-const maxBody = 1 << 20
+const MaxBody = 1 << 20
 
 var bracketedName = strings.NewReplacer("[", ".", "]", "")
 
@@ -26,7 +26,7 @@ func parseBody(raw RawMessage) Body {
 		return omitted(raw.Omitted)
 	case len(raw.Body) == 0:
 		return Body{}
-	case len(raw.Body) > maxBody:
+	case len(raw.Body) > MaxBody:
 		return omitted(OmitTooLarge)
 	}
 	plain, reason := decodeContent(raw.Body, headerValues(raw.Headers, "content-encoding"))
@@ -56,11 +56,11 @@ func decodeContent(body []byte, encodings []string) ([]byte, OmitReason) {
 	if err != nil {
 		return nil, OmitEncoded
 	}
-	plain, err := io.ReadAll(io.LimitReader(r, maxBody+1))
+	plain, err := io.ReadAll(io.LimitReader(r, MaxBody+1))
 	switch {
 	case err != nil:
 		return nil, OmitEncoded
-	case len(plain) > maxBody:
+	case len(plain) > MaxBody:
 		return nil, OmitTooLarge
 	}
 	return plain, ""

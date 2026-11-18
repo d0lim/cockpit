@@ -74,8 +74,8 @@ A take is the part of the traffic that one runner invocation belongs to. The rec
 
 | Command | Effect |
 | --- | --- |
-| `arm <take>` | clears the record and records under that name |
-| `take <take>` | waits until no call is open and none started for 2.5 s, at most 10 s, stops recording and writes the record to stdout, one JSON line per call and one `End` line. Calls still open at the limit are written with the outcome `incomplete`. A repeated `take` of the same name returns the same lines until the next `arm` |
+| `arm <take>` | clears the record and records under that name (letters, digits, `.`, `_` and `-`, at most 128 characters) |
+| `take <take>` | waits until no call is open and none started for 2.5 s, at most 10 s, stops recording and writes the record to stdout, one JSON line per call and one `End` line. Calls still open at the limit are written with the outcome `incomplete`. A repeated `take` of the same name returns the same lines until the next `arm`. A `take` of any other name exits non-zero, writes the reason to stderr and no lines |
 | `ping` | answers while the proxy listens; the service's healthcheck uses it |
 
 The take of the suite happens in the report stage, where the containers are still up. That holds for a passed, failed, timed-out or aborted run, so a killed runner does not lose the record. Calls that arrive after the take pass through unrecorded.
@@ -93,7 +93,7 @@ The record stays in the memory of the process until it is taken. Nothing in the 
 
 ## What a call holds
 
-A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `started`, `finished`, `status`, `outcome` (`answered`, `no-upstream`, `caller-gone`, `incomplete`), `span` (the span id of a valid `traceparent`), `withheld`, and a `request` and a `response`. Each of those two holds `headers`, `size` and a `body` of one kind:
+A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `started`, `finished` (absent while the call is open), `status`, `outcome`, `span` (the span id of a valid `traceparent`), `withheld`, and a `request` and a `response`. Each of those two holds `headers`, `size` and a `body` of one kind:
 
 | Kind | Stored as |
 | --- | --- |
@@ -103,11 +103,18 @@ A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `starte
 | `jwt` | the decoded header and claims of a body that is one compact JWT; the signature is dropped |
 | `omitted` | nothing but the reason: `too-large`, `binary`, `encoded`, `busy` or `record-full` |
 
+| Outcome | Meaning |
+| --- | --- |
+| `answered` | the response ran to its end |
+| `no-upstream` | the upstream could not be dialed, and the caller's connection was closed |
+| `caller-gone` | the caller left before the response ended |
+| `incomplete` | the call was still open at the take, or the upstream broke off |
+
 A `gzip` body is decoded within the 1 MiB limit. Any other content encoding is `encoded`. A `multipart` body is `binary`, because its fields have no structure the masker can read. The query is parsed like a form body, and one that does not parse is `text`. Header names are stored in lower case.
 
 ## Masking
 
-A body is kept whole or not at all. Nothing is cut, so no fragment of a secret can outlive a match that needed the whole value. The screen shortens only text that is already masked.
+A body is kept whole or not at all. Nothing is cut, so no fragment of a secret can outlive a match that needed the whole value. A body whose stream broke off, or that the upstream stopped reading, is not stored either; `size` says how much of it passed. The screen shortens only text that is already masked.
 
 One function, `wire.Clean`, runs at every layer with a stronger masker each time. JSON, form and JWT values pass `Masker.Leaves`, so a credential-looking key hides the whole value under it, numbers included. A JSON number that the masker would change reads `****`. Other text passes `Masker.Mask`.
 

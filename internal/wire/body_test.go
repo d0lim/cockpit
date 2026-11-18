@@ -45,7 +45,7 @@ func encodedAs(encoding string, body []byte) RawMessage {
 }
 
 func TestBodiesThatCannotBeKeptWholeAreOmittedAndLeaveNoFragment(t *testing.T) {
-	half := strings.Repeat("a", maxBody/2)
+	half := strings.Repeat("a", MaxBody/2)
 	cases := []struct {
 		name string
 		raw  RawMessage
@@ -85,8 +85,8 @@ func TestBodiesThatCannotBeKeptWholeAreOmittedAndLeaveNoFragment(t *testing.T) {
 		t.Fatalf("evaluated %d cases", len(cases))
 	}
 	x := baseExchange()
-	x.Response = typed("text/plain", strings.Repeat("a", maxBody))
-	if got := Capture(m, x).Response.Body; got.Kind != BodyText || len(got.Text) != maxBody {
+	x.Response = typed("text/plain", strings.Repeat("a", MaxBody))
+	if got := Capture(m, x).Response.Body; got.Kind != BodyText || len(got.Text) != MaxBody {
 		t.Fatalf("a body of exactly the limit: kind %q, %d bytes", got.Kind, len(got.Text))
 	}
 }
