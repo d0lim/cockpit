@@ -21,8 +21,17 @@ type stepTimes struct {
 	windows []stepWindow
 }
 
-func LinkCalls(calls []Call, result *contract.Result) []Link {
-	steps := readSteps(result)
+type linker struct {
+	calls   []Call
+	steps   stepTimes
+	chains  spanChains
+	links   []Link
+	tied    []bool
+	linked  []bool
+	serving map[string][]int
+}
+
+func LinkCalls(calls []Call, result *contract.Result, spans []Span) []Link {
 	order := make([]int, len(calls))
 	for i := range order {
 		order[i] = i
@@ -30,33 +39,61 @@ func LinkCalls(calls []Call, result *contract.Result) []Link {
 	slices.SortStableFunc(order, func(a, b int) int {
 		return cmp.Or(calls[a].Started.Compare(calls[b].Started), cmp.Compare(calls[a].Seq, calls[b].Seq))
 	})
-	links := make([]Link, len(calls))
-	serving := map[string][]int{}
+	l := linker{
+		calls: calls, steps: readSteps(result), chains: newSpanChains(calls, order, spans), links: make([]Link, len(calls)),
+		tied: make([]bool, len(calls)), linked: make([]bool, len(calls)), serving: map[string][]int{},
+	}
 	for _, i := range order {
-		c := calls[i]
-		links[i] = linkCall(c, steps, calls, links, serving[c.Caller])
-		if kind := links[i].Kind; kind == LinkExact || kind == LinkNested {
-			serving[c.Target] = append(serving[c.Target], i)
+		l.links[i], l.tied[i] = l.link(i)
+		l.linked[i] = true
+		if canServe(l.links[i].Kind) {
+			l.serving[calls[i].Target] = append(l.serving[calls[i].Target], i)
 		}
 	}
-	return links
+	return l.links
 }
 
-func linkCall(c Call, steps stepTimes, calls []Call, links []Link, candidates []int) Link {
-	if step, ok := steps.bySpan[c.Span]; ok && c.Span != "" {
-		return Link{Kind: LinkExact, Step: step}
+func canServe(kind LinkKind) bool {
+	return kind == LinkExact || kind == LinkTraced || kind == LinkNested || kind == LinkBackground
+}
+
+func (l linker) link(i int) (Link, bool) {
+	c := l.calls[i]
+	if step, ok := l.steps.bySpan[c.Span]; ok && c.Span != "" {
+		return Link{Kind: LinkExact, Step: step}, true
 	}
-	step, inside := steps.at(c.Started)
+	step, inside := l.steps.at(c.Started)
 	if inside && c.Caller == runnerCaller {
-		return Link{Kind: LinkExact, Step: step}
+		return Link{Kind: LinkExact, Step: step}, true
 	}
-	if parent, ok := tightestParent(c, calls, candidates); ok {
-		return Link{Kind: LinkNested, Step: links[parent].Step, Parent: calls[parent].Seq}
+	window := NoStep
+	if inside {
+		window = step
+	}
+	end := l.chains.reach(i)
+	if end.found && l.linked[end.parent] {
+		link := l.below(LinkTraced, end.parent, window)
+		link.Route = end.route
+		return link, l.tied[end.parent]
+	}
+	if end.rooted {
+		return Link{Kind: LinkBackground, Step: window, Root: end.root}, false
+	}
+	if parent, ok := tightestParent(c, l.calls, l.serving[c.Caller]); ok {
+		return l.below(LinkNested, parent, window), l.tied[parent]
 	}
 	if inside {
-		return Link{Kind: LinkTime, Step: step}
+		return Link{Kind: LinkTime, Step: step}, false
 	}
-	return Link{Kind: LinkNone, Step: NoStep}
+	return Link{Kind: LinkNone, Step: NoStep}, false
+}
+
+func (l linker) below(kind LinkKind, parent, window int) Link {
+	step := window
+	if l.tied[parent] || window == NoStep {
+		step = l.links[parent].Step
+	}
+	return Link{Kind: kind, Step: step, Parent: l.calls[parent].Seq}
 }
 
 func tightestParent(c Call, calls []Call, candidates []int) (int, bool) {

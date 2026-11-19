@@ -30,6 +30,7 @@ type Take struct {
 	Name         string
 	Calls        []wire.Call
 	Result       *contract.Result
+	Spans        []wire.Span
 	Routes       []contract.WireRoute
 	PublicFields []contract.WirePublicField
 	Known        []string
@@ -42,6 +43,7 @@ func Store(t testing.TB, runDir string, in Take) wire.Status {
 	}
 	status := wire.Take(context.Background(), wire.TakeInput{
 		Store: wire.OpenStore(runDir), Name: in.Name, Result: in.Result, Routes: in.Routes, PublicFields: in.PublicFields,
+		Spans:  func() []wire.Span { return in.Spans },
 		Record: func() (*mask.Masker, error) { return recordMasker(in) },
 		Stream: func(_ context.Context, out io.Writer) error { return writeLines(out, in.Calls) },
 	})

@@ -206,13 +206,13 @@ func wireRows(calls []api.WireHead) (linked, timed []wireRow) {
 	}
 	shown := map[int64]bool{}
 	for _, c := range calls {
-		shown[c.Seq] = c.Link != wire.LinkTime
+		shown[c.Seq] = api.WireLinkTied(c.Link)
 	}
 	children := map[int64][]api.WireHead{}
 	var roots []api.WireHead
 	for _, c := range calls {
 		switch {
-		case c.Link == wire.LinkTime:
+		case c.Link == wire.LinkTime || c.Link == wire.LinkBackground:
 			timed = append(timed, row(c))
 		case c.Parent != 0 && shown[c.Parent]:
 			children[c.Parent] = append(children[c.Parent], c)

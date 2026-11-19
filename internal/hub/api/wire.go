@@ -22,6 +22,7 @@ const (
 	WireNone         = "none"
 	WireScopeStep    = "step"
 	WireScopeOutside = "outside"
+	WireScopeFlow    = "flow"
 	WirePageSize     = 200
 	wirePageMax      = 500
 )
@@ -40,16 +41,18 @@ type WireStanding struct {
 }
 
 type WireStep struct {
-	Flow   string              `json:"flow"`
-	Step   string              `json:"step"`
-	Title  string              `json:"title,omitempty"`
-	Status contract.StepStatus `json:"status,omitempty"`
-	Exact  int                 `json:"exact"`
-	Nested int                 `json:"nested"`
-	Time   int                 `json:"time"`
+	Flow       string              `json:"flow"`
+	Step       string              `json:"step"`
+	Title      string              `json:"title,omitempty"`
+	Status     contract.StepStatus `json:"status,omitempty"`
+	Exact      int                 `json:"exact"`
+	Traced     int                 `json:"traced"`
+	Nested     int                 `json:"nested"`
+	Background int                 `json:"background"`
+	Time       int                 `json:"time"`
 }
 
-func (s WireStep) Calls() int { return s.Exact + s.Nested + s.Time }
+func (s WireStep) Calls() int { return s.Exact + s.Traced + s.Nested + s.Background + s.Time }
 
 type WireRouteCalls struct {
 	Name    string `json:"name"`
@@ -69,9 +72,14 @@ type WireHead struct {
 	Outcome    wire.Outcome  `json:"outcome"`
 	Withheld   bool          `json:"withheld,omitempty"`
 	Started    time.Time     `json:"started"`
+	Replied    time.Time     `json:"replied,omitzero"`
+	Finished   time.Time     `json:"finished,omitzero"`
 	DurationMs int64         `json:"durationMs"`
 	Link       wire.LinkKind `json:"link"`
 	Parent     int64         `json:"parent,omitempty"`
+	Route      bool          `json:"route,omitempty"`
+	Root       string        `json:"root,omitempty"`
+	Step       string        `json:"step,omitempty"`
 	Depth      int           `json:"depth,omitempty"`
 }
 

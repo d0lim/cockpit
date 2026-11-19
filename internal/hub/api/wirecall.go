@@ -51,13 +51,14 @@ func wireWhy(rec *wireRecord, at int, span string, m *wireMask) (flow, step, why
 	raw := rec.index.Heads[at]
 	head := raw
 	head.Caller, head.Target = m.text(raw.Caller), m.text(raw.Target)
+	head.Link.Root = m.text(raw.Link.Root)
 	named := ""
 	if s := raw.Link.Step; raw.Link.Kind != wire.LinkNone && s >= 0 && s < len(rec.index.Steps) {
 		flow, step = m.text(rec.index.Steps[s].Flow), m.text(rec.index.Steps[s].Step)
 		named = flow + " › " + step
 	}
 	var parent *wire.Head
-	if p, ok := rec.bySeq[raw.Link.Parent]; ok && raw.Link.Kind == wire.LinkNested {
+	if p, ok := rec.bySeq[raw.Link.Parent]; ok && raw.Link.Parent != 0 {
 		h := rec.index.Heads[p]
 		h.Caller, h.Target = m.text(h.Caller), m.text(h.Target)
 		parent = &h

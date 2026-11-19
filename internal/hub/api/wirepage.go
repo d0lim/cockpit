@@ -1,9 +1,11 @@
 package api
 
 import (
+	"cmp"
 	"slices"
 
 	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/wire"
 )
 
 func (r *Reader) Wire(id string, q WireQuery) (WireView, error) {
@@ -58,7 +60,7 @@ func wireSteps(rec *wireRecord, m *wireMask) []WireStep {
 		c := rec.steps[i]
 		out[i] = WireStep{
 			Flow: m.text(ref.Flow), Step: m.text(ref.Step), Title: m.text(rec.titles[wireStepKey{ref.Flow, ref.Step}]), Status: ref.Status,
-			Exact: c.exact, Nested: c.nested, Time: c.timed,
+			Exact: c.exact, Traced: c.traced, Nested: c.nested, Background: c.background, Time: c.timed,
 		}
 	}
 	return out
@@ -74,10 +76,14 @@ func wireRoutes(rec *wireRecord, m *wireMask) []WireRouteCalls {
 
 func pickWireRows(view *WireView, rec *wireRecord, q WireQuery) ([]int, error) {
 	switch {
-	case q.Scope != "" && q.Scope != WireScopeOutside:
-		return nil, badRequest("scope is outside or empty")
+	case q.Scope != "" && q.Scope != WireScopeOutside && q.Scope != WireScopeFlow:
+		return nil, badRequest("scope is outside, flow or empty")
 	case q.Scope == WireScopeOutside && (q.Flow != "" || q.Step != ""):
 		return nil, badRequest("scope=outside takes no flow or step")
+	case q.Scope == WireScopeFlow && (q.Flow == "" || q.Step != ""):
+		return nil, badRequest("scope=flow takes a flow and no step")
+	case q.Scope == WireScopeFlow:
+		return pickWireFlow(view, rec, q.Flow)
 	case (q.Flow == "") != (q.Step == ""):
 		return nil, badRequest("flow and step come together")
 	case q.Scope == WireScopeOutside:
@@ -101,6 +107,26 @@ func pickWireRows(view *WireView, rec *wireRecord, q WireQuery) ([]int, error) {
 	}
 	view.Scope, view.Flow, view.Step = WireScopeStep, view.Steps[at].Flow, view.Steps[at].Step
 	return rec.steps[at].heads, nil
+}
+
+func pickWireFlow(view *WireView, rec *wireRecord, flow string) ([]int, error) {
+	var rows []int
+	found := false
+	for i, s := range view.Steps {
+		if s.Flow == flow {
+			found = true
+			rows = append(rows, rec.steps[i].heads...)
+		}
+	}
+	if !found {
+		return nil, notFound("this take has no such flow")
+	}
+	heads := rec.index.Heads
+	slices.SortStableFunc(rows, func(a, b int) int {
+		return cmp.Or(heads[a].Started.Compare(heads[b].Started), cmp.Compare(heads[a].Seq, heads[b].Seq))
+	})
+	view.Scope, view.Flow = WireScopeFlow, flow
+	return rows, nil
 }
 
 func defaultWireStep(steps []WireStep) int {
@@ -130,9 +156,13 @@ func filterWireTarget(rec *wireRecord, rows []int, routes []WireRouteCalls, targ
 
 func wireHead(rec *wireRecord, i int, m *wireMask) WireHead {
 	h := rec.index.Heads[i]
-	return WireHead{
+	head := WireHead{
 		Seq: h.Seq, Caller: m.text(h.Caller), Target: m.text(h.Target), Port: h.Port, Method: m.text(h.Method), Path: m.text(h.Path),
-		Status: h.Status, Outcome: h.Outcome, Withheld: h.Withheld, Started: h.Started, DurationMs: h.DurationMs,
-		Link: h.Link.Kind, Parent: h.Link.Parent, Depth: rec.depth[i],
+		Status: h.Status, Outcome: h.Outcome, Withheld: h.Withheld, Started: h.Started, Replied: h.Replied, Finished: h.Finished,
+		DurationMs: h.DurationMs, Link: h.Link.Kind, Parent: h.Link.Parent, Route: h.Link.Route, Root: m.text(h.Link.Root), Depth: rec.depth[i],
 	}
+	if s := h.Link.Step; h.Link.Kind != wire.LinkNone && s >= 0 && s < len(rec.index.Steps) {
+		head.Step = m.text(rec.index.Steps[s].Step)
+	}
+	return head
 }

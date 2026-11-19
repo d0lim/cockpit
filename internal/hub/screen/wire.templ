@@ -97,7 +97,7 @@ templ wireCalls(st *state, v api.WireView) {
 		}
 		if len(timed) > 0 {
 			<div class="space-y-2 opacity-70">
-				<h4 class="text-xs font-semibold text-muted">During this step, matched by time only</h4>
+				<h4 class="text-xs font-semibold text-muted">During this step, not tied to it</h4>
 				@wireTable(st, timed)
 			</div>
 		}
@@ -134,9 +134,9 @@ templ wireTable(st *state, rows []wireRow) {
 						</td>
 						<td class="font-mono text-xs break-all">
 							<a class="link" href={ templ.SafeURL(st.wireCallHref(r.head.Seq)) }>{ r.head.Method } { orElse(r.head.Path, "(path not kept)") }</a>
-							if r.head.Link == "time" {
+							if r.head.Link == "time" || r.head.Link == "background" {
 								<span class="ml-1">
-									@badge(ToneIdle, "time")
+									@badge(ToneIdle, string(r.head.Link))
 								</span>
 							}
 						</td>

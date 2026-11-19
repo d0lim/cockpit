@@ -42,6 +42,7 @@ type TakeInput struct {
 	Record       func() (*mask.Masker, error)
 	Stream       Stream
 	Result       *contract.Result
+	Spans        func() []Span
 	PublicFields []contract.WirePublicField
 	Routes       []contract.WireRoute
 }
@@ -164,7 +165,7 @@ func (w taking) addLine(got *copied, text []byte, to io.Writer) bool {
 		return true
 	}
 	clean := Clean(w.record, *line.Call)
-	got.skeleton = append(got.skeleton, Call{Seq: clean.Seq, Caller: clean.Caller, Target: clean.Target, Started: clean.Started, Replied: clean.Replied, Finished: clean.Finished, Span: clean.Span})
+	got.skeleton = append(got.skeleton, Call{Seq: clean.Seq, Caller: clean.Caller, Target: clean.Target, Method: clean.Method, Path: clean.Path, Started: clean.Started, Replied: clean.Replied, Finished: clean.Finished, Span: clean.Span})
 	stored, proven := proveCleaned(w.record, clean)
 	if !proven {
 		got.withheld++
@@ -185,7 +186,8 @@ func (w taking) addLine(got *copied, text []byte, to io.Writer) bool {
 func headOf(c Call, offset, length int64) Head {
 	head := Head{
 		Seq: c.Seq, Caller: c.Caller, Target: c.Target, Port: c.Port, Method: c.Method, Path: c.Path,
-		Status: c.Status, Outcome: c.Outcome, Withheld: c.Withheld, Started: c.Started, Offset: offset, Length: length,
+		Status: c.Status, Outcome: c.Outcome, Withheld: c.Withheld, Started: c.Started, Replied: c.Replied, Finished: c.Finished,
+		Offset: offset, Length: length,
 	}
 	if !c.Finished.IsZero() {
 		head.DurationMs = c.Finished.Sub(c.Started).Milliseconds()
@@ -206,9 +208,13 @@ func (w taking) restarted(since time.Time) bool {
 }
 
 func (w taking) store(got copied) (Status, bool) {
-	links := LinkCalls(got.skeleton, w.in.Result)
+	var spans []Span
+	if w.in.Spans != nil {
+		spans = w.in.Spans()
+	}
+	links := LinkCalls(got.skeleton, w.in.Result, spans)
 	for i := range got.heads {
-		got.heads[i].Link = links[i]
+		got.heads[i].Link = w.storedLink(links[i], got.heads[i])
 	}
 	status := Status{
 		Take: w.in.Name, State: StateTaken, Calls: len(got.heads), WithheldCalls: got.withheld,
@@ -227,6 +233,14 @@ func (w taking) store(got copied) (Status, bool) {
 		return w.unstored()
 	}
 	return status, false
+}
+
+func (w taking) storedLink(link Link, head Head) Link {
+	link.Root = rootName(w.record.Mask(link.Root))
+	if head.Withheld {
+		link.Root = ""
+	}
+	return link
 }
 
 func stepRefs(result *contract.Result) []StepRef {

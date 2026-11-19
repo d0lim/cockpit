@@ -17,8 +17,8 @@ const (
 type wireStepKey struct{ flow, step string }
 
 type wireStepCalls struct {
-	exact, nested, timed int
-	heads                []int
+	exact, traced, nested, background, timed int
+	heads                                    []int
 }
 
 type wireRecord struct {
@@ -58,12 +58,7 @@ func (r *wireRecord) add(i int) {
 			r.routes[at]++
 		}
 	}
-	if h.Link.Kind == wire.LinkNested {
-		r.depth[i] = 1
-		if parent, ok := r.bySeq[h.Link.Parent]; ok {
-			r.depth[i] = r.depth[parent] + 1
-		}
-	}
+	r.depth[i] = r.depthOf(h)
 	if h.Link.Kind == wire.LinkNone || h.Link.Step < 0 || h.Link.Step >= len(r.steps) {
 		r.outside = append(r.outside, i)
 		return
@@ -73,11 +68,37 @@ func (r *wireRecord) add(i int) {
 	switch h.Link.Kind {
 	case wire.LinkExact:
 		s.exact++
+	case wire.LinkTraced:
+		s.traced++
 	case wire.LinkNested:
 		s.nested++
+	case wire.LinkBackground:
+		s.background++
 	case wire.LinkTime:
 		s.timed++
 	}
+}
+
+func (r *wireRecord) depthOf(h wire.Head) int {
+	if h.Link.Kind != wire.LinkNested && h.Link.Kind != wire.LinkTraced {
+		return 0
+	}
+	at, ok := r.bySeq[h.Link.Parent]
+	if !ok {
+		if h.Link.Kind == wire.LinkNested {
+			return 1
+		}
+		return 0
+	}
+	parent := r.index.Heads[at].Link
+	if parent.Step != h.Link.Step || !WireLinkTied(parent.Kind) {
+		return 0
+	}
+	return r.depth[at] + 1
+}
+
+func WireLinkTied(kind wire.LinkKind) bool {
+	return kind == wire.LinkExact || kind == wire.LinkTraced || kind == wire.LinkNested
 }
 
 func routeTakes(service string, port int, h wire.Head) bool {

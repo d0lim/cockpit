@@ -100,7 +100,7 @@ func TestNestedRowsIndentUnderTheirParentAndTimeRowsStandApart(t *testing.T) {
 	f, base := seededWire(t)
 	_, _, body := f.get(base + "?flow=alpha&step=a2")
 	region := section(t, body, "wire")
-	heading := strings.Index(region, "matched by time only")
+	heading := strings.Index(region, "not tied to it")
 	if heading < 0 {
 		t.Fatal("no time block")
 	}

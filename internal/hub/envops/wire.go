@@ -57,6 +57,7 @@ func (w *RunWire) Take(ctx context.Context, take string, result *contract.Result
 		Store: wire.OpenStore(w.dir), Name: take, Result: result,
 		Record: func() (*mask.Masker, error) { return recordMasker(w.dir, w.decl) },
 		Stream: func(ctx context.Context, out io.Writer) error { return w.control(ctx, wireTake, take, out) },
+		Spans:  func() []wire.Span { return w.spans(result) },
 	}
 	if w.decl != nil {
 		in.PublicFields, in.Routes = w.decl.Wire.PublicFields, w.decl.Wire.Routes

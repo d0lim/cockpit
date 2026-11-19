@@ -171,9 +171,9 @@ func wireQueryFields(q wire.Body) ([]wireField, string) {
 
 func wireLinkTone(kind wire.LinkKind) Tone {
 	switch kind {
-	case wire.LinkExact, wire.LinkNested:
+	case wire.LinkExact, wire.LinkTraced, wire.LinkNested:
 		return ToneOK
-	case wire.LinkTime:
+	case wire.LinkTime, wire.LinkBackground:
 		return ToneWarn
 	}
 	return ToneIdle

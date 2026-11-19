@@ -9,10 +9,12 @@ import (
 type LinkKind string
 
 const (
-	LinkExact  LinkKind = "exact"
-	LinkNested LinkKind = "nested"
-	LinkTime   LinkKind = "time"
-	LinkNone   LinkKind = "none"
+	LinkExact      LinkKind = "exact"
+	LinkTraced     LinkKind = "traced"
+	LinkNested     LinkKind = "nested"
+	LinkBackground LinkKind = "background"
+	LinkTime       LinkKind = "time"
+	LinkNone       LinkKind = "none"
 )
 
 const NoStep = -1
@@ -21,6 +23,8 @@ type Link struct {
 	Kind   LinkKind `json:"kind"`
 	Step   int      `json:"step"`
 	Parent int64    `json:"parent,omitempty"`
+	Route  bool     `json:"route,omitempty"`
+	Root   string   `json:"root,omitempty"`
 }
 
 type State = contract.WireState
@@ -51,6 +55,8 @@ type Head struct {
 	Outcome    Outcome   `json:"outcome"`
 	Withheld   bool      `json:"withheld,omitempty"`
 	Started    time.Time `json:"started"`
+	Replied    time.Time `json:"replied,omitzero"`
+	Finished   time.Time `json:"finished,omitzero"`
 	DurationMs int64     `json:"durationMs"`
 	Link       Link      `json:"link"`
 	Offset     int64     `json:"offset"`
