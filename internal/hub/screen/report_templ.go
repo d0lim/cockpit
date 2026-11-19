@@ -864,7 +864,7 @@ func flowRegion(st *state) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = paneTabs(st, fv.Flow.ID, stepID(step), orElse(st.pane(), paneStep)).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = paneTabs(st, fv.Flow.ID, stepID(step), orElse(st.pane(), paneStep), ranIn(fv.Flow, step)).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

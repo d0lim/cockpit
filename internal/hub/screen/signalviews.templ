@@ -81,8 +81,9 @@ templ spanList(st *state, snap signalSnapshot, trace string, all []contract.Sign
 							<a class="link" href={ templ.SafeURL(st.spanAllHref(true)) } hx-swap={ keepPlace }>Open every span</a>
 						}
 					</p>
-					<div class={ "grid grid-cols-[minmax(0,1fr)] gap-4", templ.KV("xl:grid-cols-[minmax(0,1fr)_22rem]", pickSpan(rows, st.query.Get("span")) != nil) }>
-						<ol class="rows" aria-label={ "spans of " + trace }>
+					<div class="split">
+					<div class="split-grid">
+						<ol class="rows overflow-x-auto" aria-label={ "spans of " + trace }>
 							for _, r := range fold.rows {
 								<li class={ "span-row", templ.KV("event-on", r.id == st.query.Get("span")) }>
 									<span class={ "span-name", depthClass(r.depth) }>
@@ -118,7 +119,7 @@ templ spanList(st *state, snap signalSnapshot, trace string, all []contract.Sign
 							}
 						</ol>
 						if r := pickSpan(rows, st.query.Get("span")); r != nil {
-							<aside class="card stick space-y-3 text-sm" aria-label="Span detail">
+							<aside class="card split-detail space-y-3 text-sm" aria-label="Span detail">
 								<div class="flex items-start gap-2">
 									<h3 class="min-w-0 font-semibold break-words">{ r.s.Span.Name }</h3>
 									<a class="close-x" href={ templ.SafeURL(st.href(map[string][]string{"span": nil})) } hx-swap={ keepPlace } aria-label="Close the span detail">×</a>
@@ -147,6 +148,7 @@ templ spanList(st *state, snap signalSnapshot, trace string, all []contract.Sign
 								}
 							</aside>
 						}
+					</div>
 					</div>
 				</div>
 			}

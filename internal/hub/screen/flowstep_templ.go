@@ -258,7 +258,7 @@ func stepRecords(st *state, flow string, s contract.FlowStep) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if st.run.Wire {
+			if st.run.Wire && s.Status != contract.StepStatusSkipped {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"text-xs text-muted\">The bodies of these requests and of the calls they caused are under <a class=\"link\" href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

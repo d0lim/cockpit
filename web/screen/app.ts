@@ -28,17 +28,20 @@ export async function copyFrom(target: EventTarget | null): Promise<boolean> {
 
 const boxEdge = 48;
 
-export function reveal(here: Element): void {
-	const box = here.closest<HTMLElement>("[data-scroll-box]");
-	if (box === null) {
-		here.scrollIntoView({ block: "nearest" });
-		return;
-	}
+function centerInBox(here: Element, box: HTMLElement): void {
 	const frame = box.getBoundingClientRect();
 	const at = here.getBoundingClientRect();
 	if (at.top >= frame.top + boxEdge && at.bottom <= frame.bottom - boxEdge) return;
 	const top = at.top - frame.top + box.scrollTop;
 	box.scrollTop = Math.max(0, top - (box.clientHeight - at.height) / 2);
+}
+
+export function reveal(here: Element): void {
+	const box = here.closest<HTMLElement>("[data-scroll-box]");
+	if (box !== null) centerInBox(here, box);
+	const head = document.querySelector<HTMLElement>("[data-head]")?.getBoundingClientRect().bottom ?? 0;
+	const at = here.getBoundingClientRect();
+	if (at.top < head || at.bottom > window.innerHeight) here.scrollIntoView({ block: "nearest" });
 }
 
 let shown = new Set<string>();
@@ -58,7 +61,7 @@ export function measureHead(): void {
 	root.style.setProperty("--head-height", `${head?.offsetHeight ?? 0}px`);
 }
 
-const kept = new Map<string, number>();
+const kept = new Map<string, { top: number; left: number }>();
 
 function namedBoxes(): HTMLElement[] {
 	return [...document.querySelectorAll<HTMLElement>("[data-scroll-box]")].filter((box) => box.dataset.scrollBox !== "");
@@ -66,13 +69,15 @@ function namedBoxes(): HTMLElement[] {
 
 export function keepScroll(): void {
 	kept.clear();
-	for (const box of namedBoxes()) kept.set(box.dataset.scrollBox ?? "", box.scrollTop);
+	for (const box of namedBoxes()) kept.set(box.dataset.scrollBox ?? "", { top: box.scrollTop, left: box.scrollLeft });
 }
 
 export function restoreScroll(): void {
 	for (const box of namedBoxes()) {
-		const top = kept.get(box.dataset.scrollBox ?? "");
-		if (top !== undefined) box.scrollTop = top;
+		const at = kept.get(box.dataset.scrollBox ?? "");
+		if (at === undefined) continue;
+		box.scrollTop = at.top;
+		box.scrollLeft = at.left;
 	}
 	kept.clear();
 }

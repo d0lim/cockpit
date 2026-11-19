@@ -130,7 +130,14 @@ templ pickHead(st *state, f contract.FlowSummary, s *contract.FlowStep, source s
 	</div>
 }
 
-templ paneTabs(st *state, flow, step, on string) {
+func ranIn(f contract.FlowSummary, s *contract.FlowStep) bool {
+	if s != nil {
+		return s.Status != contract.StepStatusSkipped
+	}
+	return f.Steps == 0 || f.Skipped < f.Steps
+}
+
+templ paneTabs(st *state, flow, step, on string, calls bool) {
 	<nav class="subtabs" aria-label="Panes">
 		<a href={ templ.SafeURL(st.flowHref(flow, step, "")) } class={ "subtab", templ.KV("subtab-on", on == paneStep) } if on == paneStep { aria-current="page" }>
 			if step == "" {
@@ -139,7 +146,7 @@ templ paneTabs(st *state, flow, step, on string) {
 				Step
 			}
 		</a>
-		if st.run.Wire {
+		if st.run.Wire && calls {
 			<a href={ templ.SafeURL(st.callsHref(flow, step)) } class={ "subtab", templ.KV("subtab-on", on == paneCalls) } title="What each server was asked, and what it answered" if on == paneCalls { aria-current="page" }>Calls</a>
 		}
 		<a href={ templ.SafeURL(st.flowHref(flow, step, paneSource)) } class={ "subtab", templ.KV("subtab-on", on == paneSource) } if on == paneSource { aria-current="page" }>Source</a>

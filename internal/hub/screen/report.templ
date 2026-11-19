@@ -167,7 +167,7 @@ templ flowRegion(st *state) {
 				if step == nil && st.query.Get("step") != "" {
 					<p class="notice tone-warn">This flow has no step { st.query.Get("step") }.</p>
 				}
-				@paneTabs(st, fv.Flow.ID, stepID(step), orElse(st.pane(), paneStep))
+				@paneTabs(st, fv.Flow.ID, stepID(step), orElse(st.pane(), paneStep), ranIn(fv.Flow, step))
 				if st.pane() == paneSource {
 					@codeView(st, fv)
 				} else if step != nil {

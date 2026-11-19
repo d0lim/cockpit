@@ -1,6 +1,10 @@
 package screen
 
-import "github.com/d0lim/cockpit/internal/hub/api"
+import (
+	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/wire"
+)
 
 templ wirePage(st *state) {
 	@runHead(st)
@@ -13,7 +17,15 @@ templ wireRegion(st *state) {
 		if v, err := st.wireView(); err != nil {
 			@flowTreeNav(st.stepTree(treePick{}), treePick{})
 			<div class="detail">
-				<p class="notice tone-bad">The wire record cannot be read: { err.Error() }</p>
+				if f := findFlow(st.treeFlows(), st.query.Get("flow")); f != nil {
+					@pickHead(st, *f, pickedStep(*f, st.query.Get("step")), "")
+					@paneTabs(st, f.ID, stepID(pickedStep(*f, st.query.Get("step"))), paneCalls, true)
+				}
+				if wireNotHeld(err) {
+					<p class="notice tone-warn">The record holds no call here: { err.Error() }.</p>
+				} else {
+					<p class="notice tone-bad">The wire record cannot be read: { err.Error() }</p>
+				}
 				<p class="text-sm"><a class="link" href={ templ.SafeURL(st.path) }>Back to the first step</a></p>
 			</div>
 		} else if v.Status != api.WireReady {
@@ -49,9 +61,17 @@ func wirePick(v api.WireView) treePick {
 }
 
 templ wirePickHead(st *state, v api.WireView) {
-	if f := findFlow(st.treeFlows(), v.Flow); f != nil && v.Scope != api.WireScopeOutside {
+	if f := findFlow(st.treeFlows(), v.Flow); f != nil && v.Take == wire.SuiteTake && v.Scope != api.WireScopeOutside {
 		@pickHead(st, *f, pickedStep(*f, v.Step), "")
-		@paneTabs(st, v.Flow, v.Step, paneCalls)
+		@paneTabs(st, v.Flow, v.Step, paneCalls, true)
+		if v.Scope == api.WireScopeFlow {
+			<p class="text-xs text-muted">{ wireFlowHint }</p>
+		}
+	} else if f := findFlow(st.takeFlows(v), v.Flow); f != nil && v.Scope != api.WireScopeOutside {
+		@takeHead(v.Take, *f, pickedStep(*f, v.Step))
+		if v.Scope == api.WireScopeFlow {
+			<p class="text-xs text-muted">{ wireFlowHint }</p>
+		}
 	} else if title, sub := wireStepHeading(v); true {
 		<div class="space-y-1">
 			<h2 class="detail-title font-mono">{ title }</h2>
@@ -60,6 +80,29 @@ templ wirePickHead(st *state, v api.WireView) {
 			}
 		</div>
 	}
+}
+
+templ takeHead(take string, f contract.FlowSummary, s *contract.FlowStep) {
+	<div class="space-y-2">
+		<p class="flex flex-wrap items-center gap-1.5 font-mono text-xs text-muted">
+			<span>{ f.ID }</span>
+			if s != nil {
+				<span>›</span>
+				<span class="text-fg">{ s.ID }</span>
+			}
+			<span class="ml-auto font-sans">take { take }</span>
+		</p>
+		<div class="flex flex-wrap items-start gap-2">
+			if s != nil {
+				<h2 class="detail-title" title={ orElse(s.Title, s.ID) }>{ orElse(s.Title, f.ID+" › "+s.ID) }</h2>
+				@badge(flowTone(string(s.Status)), statusLabel(string(s.Status)))
+			} else {
+				<h2 class="detail-title" title={ orElse(f.Title, f.ID) }>{ orElse(f.Title, f.ID) }</h2>
+				@badge(flowTone(string(f.Status)), statusLabel(string(f.Status)))
+			}
+		</div>
+		<p class="text-xs text-muted">{ itoa(f.Passed) } of { itoa(f.Steps) } steps passed in this take.</p>
+	</div>
 }
 
 templ wireTakes(st *state, v api.WireView) {

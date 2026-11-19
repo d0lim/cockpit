@@ -734,7 +734,14 @@ func pickHead(st *state, f contract.FlowSummary, s *contract.FlowStep, source st
 	})
 }
 
-func paneTabs(st *state, flow, step, on string) templ.Component {
+func ranIn(f contract.FlowSummary, s *contract.FlowStep) bool {
+	if s != nil {
+		return s.Status != contract.StepStatusSkipped
+	}
+	return f.Steps == 0 || f.Skipped < f.Steps
+}
+
+func paneTabs(st *state, flow, step, on string, calls bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -771,7 +778,7 @@ func paneTabs(st *state, flow, step, on string) templ.Component {
 		var templ_7745c5c3_Var42 templ.SafeURL
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(st.flowHref(flow, step, "")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `flows.templ`, Line: 135, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `flows.templ`, Line: 142, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
@@ -819,7 +826,7 @@ func paneTabs(st *state, flow, step, on string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if st.run.Wire {
+		if st.run.Wire && calls {
 			var templ_7745c5c3_Var44 = []any{"subtab", templ.KV("subtab-on", on == paneCalls)}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var44...)
 			if templ_7745c5c3_Err != nil {
@@ -832,7 +839,7 @@ func paneTabs(st *state, flow, step, on string) templ.Component {
 			var templ_7745c5c3_Var45 templ.SafeURL
 			templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(st.callsHref(flow, step)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `flows.templ`, Line: 143, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `flows.templ`, Line: 150, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 			if templ_7745c5c3_Err != nil {
@@ -878,7 +885,7 @@ func paneTabs(st *state, flow, step, on string) templ.Component {
 		var templ_7745c5c3_Var48 templ.SafeURL
 		templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(st.flowHref(flow, step, paneSource)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `flows.templ`, Line: 145, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `flows.templ`, Line: 152, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 		if templ_7745c5c3_Err != nil {

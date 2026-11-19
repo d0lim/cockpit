@@ -2,6 +2,7 @@ package screen
 
 import (
 	"cmp"
+	"errors"
 	"net/http"
 	"slices"
 	"strconv"
@@ -13,7 +14,15 @@ import (
 	"github.com/d0lim/cockpit/internal/wire"
 )
 
-const wireCallPanelID = "wire-call"
+const (
+	wireCallPanelID = "wire-call"
+	wireFlowHint    = "Every step of this flow, in the order the calls started."
+)
+
+func wireNotHeld(err error) bool {
+	var p *api.Problem
+	return errors.As(err, &p) && p.Status == http.StatusNotFound
+}
 
 func wireRecorded(st *state) (int, string) {
 	if !st.run.Wire {
@@ -164,7 +173,7 @@ func wireStepHeading(v api.WireView) (string, string) {
 		return "Outside any step", "Calls that started while no step was running."
 	}
 	if v.Scope == api.WireScopeFlow {
-		return v.Flow, "Every step of this flow, in the order the calls started."
+		return v.Flow, wireFlowHint
 	}
 	if v.Scope != api.WireScopeStep {
 		return "No calls", "This take holds no call."

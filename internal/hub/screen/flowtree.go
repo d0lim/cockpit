@@ -199,11 +199,15 @@ func (st *state) stepTree(pick treePick) flowTree {
 	})
 }
 
-func flowsOfWire(steps []api.WireStep) []contract.FlowSummary {
+func flowsOfTake(steps []api.WireStep, suite []contract.FlowSummary) []contract.FlowSummary {
 	var out []contract.FlowSummary
 	for _, s := range steps {
 		if len(out) == 0 || out[len(out)-1].ID != s.Flow {
-			out = append(out, contract.FlowSummary{ID: s.Flow})
+			f := contract.FlowSummary{ID: s.Flow}
+			if known := findFlow(suite, s.Flow); known != nil {
+				f.Stage, f.Title = known.Stage, known.Title
+			}
+			out = append(out, f)
 		}
 		f := &out[len(out)-1]
 		f.StepList = append(f.StepList, contract.FlowStep{ID: s.Step, Title: s.Title, Status: s.Status})
@@ -235,11 +239,12 @@ func flowStatusOf(f contract.FlowSummary) contract.FlowOutcome {
 	return contract.FlowOutcomeIncomplete
 }
 
+func (st *state) takeFlows(v api.WireView) []contract.FlowSummary {
+	return flowsOfTake(v.Steps, st.treeFlows())
+}
+
 func (st *state) callTree(v api.WireView) flowTree {
-	flows := st.treeFlows()
-	if len(flows) == 0 {
-		flows = flowsOfWire(v.Steps)
-	}
+	flows := st.takeFlows(v)
 	calls := map[treePick]int{}
 	for _, s := range v.Steps {
 		calls[treePick{s.Flow, s.Step}] = s.Calls()

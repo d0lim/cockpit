@@ -149,7 +149,8 @@ templ eventsView(st *state, snap signalSnapshot, all []contract.Signal) {
 					}
 					<span class="text-muted">Filters apply to the latest { itoa(len(latest)) } of { itoa(len(rows)) } events read.</span>
 				</div>
-				<div class={ "grid grid-cols-[minmax(0,1fr)] gap-4", templ.KV("lg:grid-cols-[minmax(0,1fr)_24rem]", pickEvent(shown, st.query.Get("event")) != nil) }>
+				<div class="split">
+				<div class="split-grid">
 					<ol class="rows">
 						for _, s := range shown {
 							if snap.frozen && s.Seq == firstAfter(shown, snap.frozenSeq) {
@@ -168,6 +169,7 @@ templ eventsView(st *state, snap signalSnapshot, all []contract.Signal) {
 					if picked := pickEvent(shown, st.query.Get("event")); picked != nil {
 						@eventDetail(st, *picked)
 					}
+				</div>
 				</div>
 			}
 		}
@@ -226,7 +228,7 @@ templ searchForm(st *state) {
 }
 
 templ eventDetail(st *state, s contract.Signal) {
-	<aside class="card stick space-y-3 text-sm" aria-label="Event detail">
+	<aside class="card split-detail space-y-3 text-sm" aria-label="Event detail">
 		<div class="flex items-start gap-2">
 			<h3 class="min-w-0 font-semibold break-words">{ eventTitle(s) }</h3>
 			<a class="close-x" href={ templ.SafeURL(st.href(map[string][]string{"event": nil})) } hx-swap={ keepPlace } aria-label="Close the event detail">×</a>
