@@ -19,6 +19,7 @@ type SummaryInput struct {
 	Versions       map[string]string
 	Stages         map[string]contract.CollectStage
 	Runner         *contract.RunnerOutcome
+	Wire           *contract.WireStatus
 	GeneratedAt    string
 }
 
@@ -53,6 +54,7 @@ func Summary(in Inputs, j Judgement, s SummaryInput, unread []string) contract.S
 		CockpitVersion: s.CockpitVersion,
 		HostAPI:        s.HostAPI,
 		RunnerImage:    s.RunnerImage,
+		Wire:           s.Wire,
 		GeneratedAt:    s.GeneratedAt,
 	}
 }

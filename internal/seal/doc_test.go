@@ -27,7 +27,7 @@ func TestSealingDocumentTableMatchesTheStaticAssertionsBothWays(t *testing.T) {
 	for _, r := range Static(toyInput(t)) {
 		code = append(code, r.Name)
 	}
-	if len(documented) != 24 || !slices.Equal(documented, code) {
+	if len(documented) != 25 || !slices.Equal(documented, code) {
 		t.Fatalf("docs/sealing.md lists %d assertions\n%q\ncode returns\n%q", len(documented), documented, code)
 	}
 	if !slices.Equal(code, assertionNames) {

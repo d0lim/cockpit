@@ -49,11 +49,14 @@ func gitRun(t *testing.T, dir string, args ...string) {
 	}
 }
 
-func toyConsumer(t *testing.T) string {
+func toyConsumer(t *testing.T, overlays ...string) string {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "toy")
 	if err := os.CopyFS(dir, os.DirFS(filepath.Join("..", "..", "testdata", "toy-project"))); err != nil {
 		t.Fatal(err)
+	}
+	for _, overlay := range overlays {
+		copyOver(t, filepath.Join("..", "..", "testdata", overlay), dir)
 	}
 	for _, generated := range []string{".env", compose.PrivateEnvName, "mock/bin"} {
 		os.RemoveAll(filepath.Join(dir, generated))
@@ -66,6 +69,35 @@ func toyConsumer(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return real
+}
+
+func copyOver(t *testing.T, from, to string) {
+	t.Helper()
+	err := filepath.WalkDir(from, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		rel, err := filepath.Rel(from, path)
+		if err != nil {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(to, rel)
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, info.Mode().Perm())
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func (e *e2e) cockpit(dir string, args ...string) (int, string, string) {
@@ -192,9 +224,9 @@ func (r collectorRead) count(collector string) int {
 	return n
 }
 
-func newE2E(t *testing.T) *e2e {
+func newE2E(t *testing.T, overlays ...string) *e2e {
 	t.Helper()
-	e := &e2e{t: t, home: filepath.Join(t.TempDir(), "home"), repo: toyConsumer(t), bin: filepath.Join(t.TempDir(), "cockpit")}
+	e := &e2e{t: t, home: filepath.Join(t.TempDir(), "home"), repo: toyConsumer(t, overlays...), bin: filepath.Join(t.TempDir(), "cockpit")}
 	if out, err := exec.Command("go", "build", "-o", e.bin, ".").CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}

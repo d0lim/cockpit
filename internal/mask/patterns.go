@@ -27,6 +27,7 @@ type rule struct {
 	tail   bool
 	rewind int
 	inner  *rule
+	byKey  bool
 }
 
 var (
@@ -43,15 +44,16 @@ func coreRules(c config) []*rule {
 	value := "[^" + jsSpace + `"'&<>;,\\#)}\]]+`
 	head := q + secretKey + q + ws + "*(?::|%3A)" + ws + "*"
 	return []*rule{
-		{re: regexp.MustCompile(`(?i)(` + head + q + `)(` + c.value + `)(` + q + `|[\r\n]|$)`), secret: 2, mark: marker, rewind: 3},
+		{re: regexp.MustCompile(`(?i)(` + head + q + `)(` + c.value + `)(` + q + `|[\r\n]|$)`), secret: 2, mark: marker, rewind: 3, byKey: true},
 		{
 			re:     regexp.MustCompile(`(?i)(` + head + `\[)([^\]\r\n<>]*)(\])`),
 			secret: 2,
 			inner:  &rule{re: regexp.MustCompile(`(?i)(` + q + `)([^"\r\n<>]*?)(` + q + `)`), secret: 2, mark: marker},
+			byKey:  true,
 		},
-		{re: regexp.MustCompile(`(?i)(authorization` + ws + `*:` + ws + `*)(?:([a-z]+)(` + ws + `+))?([^` + jsSpace + `"'&<>\\]+)`), secret: 4, mark: marker},
-		{re: regexp.MustCompile(`(?i)(secret|password|passwd|token|credential)(` + ws + `*[=:]` + ws + `*)(["']?)(` + value + `)`), secret: 4, mark: marker},
-		{re: regexp.MustCompile(`(?i)(session|api[_-]?key)=(` + value + `)`), secret: 2, mark: marker},
+		{re: regexp.MustCompile(`(?i)(authorization` + ws + `*:` + ws + `*)(?:([a-z]+)(` + ws + `+))?([^` + jsSpace + `"'&<>\\]+)`), secret: 4, mark: marker, byKey: true},
+		{re: regexp.MustCompile(`(?i)(secret|password|passwd|token|credential)(` + ws + `*[=:]` + ws + `*)(["']?)(` + value + `)`), secret: 4, mark: marker, byKey: true},
+		{re: regexp.MustCompile(`(?i)(session|api[_-]?key)=(` + value + `)`), secret: 2, mark: marker, byKey: true},
 		{re: regexp.MustCompile(`(Bearer` + ws + `+)([A-Za-z0-9._~+/=-]{6,})`), secret: 2, mark: marker},
 		{re: regexp.MustCompile(`eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*`), mark: marker},
 	}

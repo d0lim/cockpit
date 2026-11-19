@@ -34,7 +34,7 @@ func fixtureGit(t *testing.T, dir string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
-func toyCommit(t *testing.T) (compose.Git, string) {
+func toyCommit(t *testing.T, edit func(dir string)) (compose.Git, string) {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "toy")
 	if err := os.CopyFS(dir, os.DirFS(filepath.Join("..", "..", "testdata", "toy-project"))); err != nil {
@@ -42,6 +42,9 @@ func toyCommit(t *testing.T) (compose.Git, string) {
 	}
 	for _, generated := range []string{".env", compose.PrivateEnvName, "mock/bin"} {
 		os.RemoveAll(filepath.Join(dir, generated))
+	}
+	if edit != nil {
+		edit(dir)
 	}
 	fixtureGit(t, dir, "init", "-q", "-b", "main")
 	fixtureGit(t, dir, "add", "-A")
@@ -51,7 +54,12 @@ func toyCommit(t *testing.T) (compose.Git, string) {
 
 func renderToy(ctx context.Context, t *testing.T) map[string]any {
 	t.Helper()
-	g, sha := toyCommit(t)
+	return renderToyWith(ctx, t, nil, false)
+}
+
+func renderToyWith(ctx context.Context, t *testing.T, edit func(dir string), wire bool) map[string]any {
+	t.Helper()
+	g, sha := toyCommit(t, edit)
 	loaded, err := compose.ReadDeclaration(ctx, g, sha)
 	if err != nil {
 		t.Fatal(err)
@@ -82,10 +90,14 @@ func renderToy(ctx context.Context, t *testing.T) map[string]any {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := compose.WriteRunEnv(root, compose.RunEnvInput{RunID: fixtureRunID, Layout: l, PortBase: fixturePorts, Ports: decl.Ports, Keys: keys}); err != nil {
+	envInput := compose.RunEnvInput{RunID: fixtureRunID, Layout: l, PortBase: fixturePorts, Ports: decl.Ports, Keys: keys}
+	if wire {
+		envInput.Wire = compose.WireRoutes(decl)
+	}
+	if err := compose.WriteRunEnv(root, envInput); err != nil {
 		t.Fatal(err)
 	}
-	if err := compose.WriteHarness(root, compose.HarnessInput{RunID: fixtureRunID, RunnerImage: fixtureRunner, PortBase: fixturePorts, Layout: l, Loaded: loaded}); err != nil {
+	if err := compose.WriteHarness(root, compose.HarnessInput{RunID: fixtureRunID, RunnerImage: fixtureRunner, PortBase: fixturePorts, Layout: l, Loaded: loaded, Wire: wire}); err != nil {
 		t.Fatal(err)
 	}
 	args, err := compose.ComposeArgs(fixtureRunID, l, decl)
@@ -106,6 +118,35 @@ func renderToy(ctx context.Context, t *testing.T) map[string]any {
 		t.Fatal(err)
 	}
 	return normalizeFixture(config)
+}
+
+func TestIntegrationARealRecordingRenderPassesEveryStaticAssertion(t *testing.T) {
+	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
+		t.Skip("needs COCKPIT_INTEGRATION=1 and docker compose")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), fixtureTimeout)
+	defer cancel()
+	declare := func(dir string) {
+		path := filepath.Join(dir, compose.DeclarationPath)
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wire := "wire:\n  routes:\n    - { name: app, service: app, port: 8080 }\n"
+		if err := os.WriteFile(path, append(raw, wire...), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	in := toyInput(t)
+	in.Config = renderToyWith(ctx, t, declare, true)
+	in.Wire = true
+	in.WireRoutes = []compose.WireRoute{{Name: "app", Service: "app", Port: 8080, Listen: 41001}}
+	if got := failing(Static(in)); len(got) != 0 {
+		t.Fatalf("a real recording render fails %v", got)
+	}
+	if text(record(record(in.Config["services"])[compose.RoleWire])["image"]) != fixtureRunner {
+		t.Fatalf("the render holds no recorder: %v", record(in.Config["services"])[compose.RoleWire])
+	}
 }
 
 func TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer(t *testing.T) {

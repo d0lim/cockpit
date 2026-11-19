@@ -81,6 +81,8 @@ type world struct {
 	mu      sync.Mutex
 	calls   []string
 	parents []string
+	hosts   []string
+	dials   []string
 	during  func(path string)
 	addr    string
 }
@@ -114,6 +116,7 @@ func newWorld(t *testing.T, specs []flowSpec, fail []string) *world {
 		w.mu.Lock()
 		w.calls = append(w.calls, r.URL.Path)
 		w.parents = append(w.parents, r.Header.Get("Traceparent"))
+		w.hosts = append(w.hosts, r.Host)
 		n++
 		id := n
 		during := w.during
@@ -161,7 +164,10 @@ func (w *world) run(extra map[string]string, args ...string) outcome {
 		Stdout: &out,
 		Stderr: &errOut,
 		Clock:  fakeClock(),
-		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			w.mu.Lock()
+			w.dials = append(w.dials, addr)
+			w.mu.Unlock()
 			return (&net.Dialer{}).DialContext(ctx, network, w.addr)
 		},
 	})

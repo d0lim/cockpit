@@ -35,6 +35,8 @@ type Input struct {
 	Builder     string
 	OTLP        bool
 	RunnerImage string
+	Wire        bool
+	WireRoutes  []compose.WireRoute
 	Realpath    func(path string) (string, bool)
 }
 
@@ -130,6 +132,7 @@ func Static(in Input) []Result {
 	out = append(out, volumeCheck(in.Config, svcs, in.Builder))
 	out = append(out, privilegeChecks(svcs)...)
 	out = append(out, pathChecks(in, svcs)...)
+	out = append(out, wireCheck(in, svcs))
 	return out
 }
 
@@ -141,7 +144,7 @@ func roles(in Input) Result {
 		err = json.Unmarshal(data, &r)
 	}
 	if err == nil {
-		err = compose.AssertRoles(r, in.RunID, in.Builder, in.OTLP)
+		err = compose.AssertRoles(r, in.RunID, in.Builder, in.OTLP, in.Wire)
 	}
 	if err != nil {
 		return result("roles.present", expected, []string{err.Error()})

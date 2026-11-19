@@ -22,6 +22,7 @@ func (s *Screen) submit(w http.ResponseWriter, r *http.Request) {
 		Commit:    orElse(strings.TrimSpace(r.PostForm.Get("commit")), defaultCommit),
 		Suite:     strings.TrimSpace(r.PostForm.Get("suite")),
 		Submitter: api.UISubmitter,
+		Wire:      r.PostForm.Get("wire") != "",
 	}
 	if in.Worktree == "" {
 		s.answer(w, r, http.StatusBadRequest, problemResult(&api.Problem{Code: api.CodeBadRequest, Message: "pick a repository"}))

@@ -9,51 +9,67 @@ import (
 
 var secretKeyName = regexp.MustCompile(`(?i)^` + secretKey + `$`)
 
+func SecretKeyName(key string) bool { return secretKeyName.MatchString(key) }
+
+type cover struct {
+	hidden bool
+	key    string
+}
+
+func (c cover) under(m *Masker, key string) cover {
+	switch {
+	case c.hidden:
+		return cover{hidden: true}
+	case m.hiddenKey(key):
+		return cover{hidden: true, key: key}
+	}
+	return cover{}
+}
+
 func (m *Masker) Leaves(v any) any {
-	return m.leaf(v, false)
+	return m.leaf(v, cover{})
 }
 
 func (m *Masker) hiddenKey(k string) bool {
 	return m.keys != nil && m.keys.MatchString(k[strings.LastIndexByte(k, '.')+1:])
 }
 
-func (m *Masker) leaf(v any, hidden bool) any {
+func (m *Masker) leaf(v any, c cover) any {
 	switch x := v.(type) {
 	case nil:
 		return nil
 	case string:
-		if hidden {
+		if c.hidden && !m.publicValue(c.key, x) {
 			return marker
 		}
 		return m.Mask(x)
 	case []any:
 		out := make([]any, len(x))
 		for i, e := range x {
-			out[i] = m.leaf(e, hidden)
+			out[i] = m.leaf(e, c)
 		}
 		return out
 	case map[string]any:
-		return maskKeys(m, x, func(k string, e any) any { return m.leaf(e, hidden || m.hiddenKey(k)) })
+		return maskKeys(m, x, func(k string, e any) any { return m.leaf(e, c.under(m, k)) })
 	case []string:
 		out := make([]string, len(x))
 		for i, e := range x {
-			out[i] = m.leaf(e, hidden).(string)
+			out[i] = m.leaf(e, c).(string)
 		}
 		return out
 	case map[string]string:
-		return maskKeys(m, x, func(k string, e string) string { return m.leaf(e, hidden || m.hiddenKey(k)).(string) })
+		return maskKeys(m, x, func(k string, e string) string { return m.leaf(e, c.under(m, k)).(string) })
 	case map[string][]string:
-		return maskKeys(m, x, func(k string, e []string) []string { return m.leaf(e, hidden || m.hiddenKey(k)).([]string) })
+		return maskKeys(m, x, func(k string, e []string) []string { return m.leaf(e, c.under(m, k)).([]string) })
 	}
 	if scalar(v) {
-		if hidden {
+		if c.hidden {
 			return marker
 		}
 		return v
 	}
-	return m.leaf(roundTrip(v), hidden)
+	return m.leaf(roundTrip(v), c)
 }
-
 func scalar(v any) bool {
 	if _, ok := v.(json.Number); ok {
 		return true

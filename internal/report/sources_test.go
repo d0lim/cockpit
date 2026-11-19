@@ -2,6 +2,7 @@ package report
 
 import (
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -17,6 +18,7 @@ var sourceMutations = []porttest.Mutation{
 	{"runner files have a size limit", "drop the len(data) > MaxStateBytes check in readCapped", "red: a result over 4 MiB is read as ok", "TestRunnerFilesThroughSymlinksOrOverTheSizeLimitAreUnsafeAndNotBundled"},
 	{"suite sources stay inside the suite directory", "read by filepath.Join(suiteDir, name) instead of through os.Root and drop IsLocal in SuiteSources", "red: ../secret.ts is copied into the bundle", "TestSuiteSourcesCopyOnlyLocalFilesTheManifestPointsTo"},
 	{"decode errors are told apart as parse or schema", "return ReadSchema for every error in decodeFailure", "red: a truncated result reads as schema", "TestParseAndSchemaFailuresAreToldApart"},
+	{"the wire values file stays out of the runner files", "add it to the file list in ReadRunnerFiles", "red: the file is bundled", "TestTheWireValuesFileIsNotReadAsARunnerFile"},
 	{"exec files must match the hub's name pattern", "drop the execName check in readExec", "red: an oddly named exec file is bundled", "TestRunnerFilesAreReadWithAStatusPerFileAndOnlyGoodOnesAreBundled"},
 }
 
@@ -40,6 +42,21 @@ func writeRaw(t *testing.T, path string, data []byte) {
 	}
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestTheWireValuesFileIsNotReadAsARunnerFile(t *testing.T) {
+	dir := t.TempDir()
+	writeJSON(t, filepath.Join(dir, RunnerManifest), manifestFixture())
+	writeRaw(t, filepath.Join(dir, contract.WireValuesFile), []byte(`{"values":["`+planted+`"]}`))
+	c := ReadRunnerFiles(dir)
+	if _, ok := c.Files[BundleRunner+"/"+RunnerManifest]; !ok {
+		t.Fatalf("the manifest canary is missing from %v", slices.Collect(maps.Keys(c.Files)))
+	}
+	for name, data := range c.Files {
+		if strings.Contains(name, "wire") || strings.Contains(string(data), planted) {
+			t.Fatalf("%s carries the wire values", name)
+		}
 	}
 }
 

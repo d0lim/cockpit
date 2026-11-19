@@ -42,12 +42,19 @@ func refChips(refs []contract.StepRef) []chip {
 	return out
 }
 
+func wireStepLink(st *state, flow, step string) string {
+	return "/runs/" + st.run.ID + "/wire?" + url.Values{"flow": {flow}, "step": {step}}.Encode()
+}
+
 func stepSelf(st *state, flow, step string) string {
 	return "span\x00" + st.run.ID + "\x00" + stepPrefix + flow + "/" + step
 }
 
 templ stepRecords(st *state, flow string, s contract.FlowStep) {
 	<div class="mt-2 space-y-3 rounded-md border border-line p-3" aria-label={ "records of " + s.ID }>
+		if st.run.Wire {
+			<p class="text-xs"><a class="link" href={ templ.SafeURL(wireStepLink(st, flow, s.ID)) }>What each server was asked during this step</a></p>
+		}
 		if len(s.Calls) == 0 && len(s.Refs) == 0 {
 			<p class="text-xs text-muted">This step recorded no request and marked no id.</p>
 		}

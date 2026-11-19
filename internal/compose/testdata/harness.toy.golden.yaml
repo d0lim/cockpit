@@ -1,0 +1,177 @@
+networks:
+    default:
+        internal: true
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.run-id: r-toy
+    egress:
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.run-id: r-toy
+services:
+    app:
+        environment:
+            OTEL_BSP_SCHEDULE_DELAY: "500"
+            OTEL_EXPORTER_OTLP_ENDPOINT: http://cockpit-otlp:4318
+            OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+            OTEL_METRIC_EXPORT_INTERVAL: "2000"
+            OTEL_TRACES_SAMPLER: parentbased_always_on
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.run-id: r-toy
+        ports: !reset []
+    builder:
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.role: builder
+            io.cockpit.run-id: r-toy
+        networks: !override
+            - egress
+        ports: !reset []
+    cache:
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.run-id: r-toy
+        ports: !reset []
+    cockpit-edge:
+        cap_drop:
+            - ALL
+        command:
+            - edge
+            - 30000=app:8080
+            - 30001=db:5432
+            - 30002=cache:6379
+        image: cockpit-runner:0123456789ab
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.role: cockpit-edge
+            io.cockpit.run-id: r-toy
+        mem_limit: 1g
+        networks:
+            - default
+            - egress
+        pids_limit: 512
+        ports:
+            - 127.0.0.1:22000:30000
+            - 127.0.0.1:22001:30001
+            - 127.0.0.1:22002:30002
+        pull_policy: never
+        read_only: true
+        security_opt:
+            - no-new-privileges:true
+    cockpit-otlp:
+        cap_drop:
+            - ALL
+        command:
+            - otlp
+            - :4318
+        image: cockpit-runner:0123456789ab
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.role: cockpit-otlp
+            io.cockpit.run-id: r-toy
+        mem_limit: 1g
+        networks:
+            - default
+        pids_limit: 512
+        pull_policy: never
+        read_only: true
+        security_opt:
+            - no-new-privileges:true
+    cockpit-probe:
+        cap_drop:
+            - ALL
+        command:
+            - probe
+            - "22099"
+        image: cockpit-runner:0123456789ab
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.role: cockpit-probe
+            io.cockpit.run-id: r-toy
+        mem_limit: 1g
+        networks:
+            - default
+        pids_limit: 512
+        profiles:
+            - probe
+        pull_policy: never
+        read_only: true
+        security_opt:
+            - no-new-privileges:true
+    cockpit-probe-control:
+        cap_drop:
+            - ALL
+        command:
+            - probe
+            - "22099"
+        image: cockpit-runner:0123456789ab
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.role: cockpit-probe-control
+            io.cockpit.run-id: r-toy
+        mem_limit: 1g
+        networks:
+            - egress
+        pids_limit: 512
+        profiles:
+            - probe
+        pull_policy: never
+        read_only: true
+        security_opt:
+            - no-new-privileges:true
+    cockpit-runner:
+        cap_drop:
+            - ALL
+        environment:
+            COCKPIT_RUNNER_IMAGE: cockpit-runner:0123456789ab
+            COCKPIT_TRACE_ID: ${COCKPIT_TRACE_ID:-}
+            E2E_EXEC_OUT: ${E2E_EXEC_OUT:-}
+        image: cockpit-runner:0123456789ab
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.role: cockpit-runner
+            io.cockpit.run-id: r-toy
+        mem_limit: 1g
+        networks:
+            - default
+        pids_limit: 512
+        profiles:
+            - runner
+        pull_policy: never
+        read_only: true
+        security_opt:
+            - no-new-privileges:true
+        tmpfs:
+            - /tmp
+        volumes:
+            - type: bind
+              source: /fixture/runs/r-toy/work/scripts
+              target: /work/scripts
+              read_only: true
+            - type: bind
+              source: /fixture/runs/r-toy/work/.cockpit/project.yaml
+              target: /work/.cockpit/project.yaml
+              read_only: true
+            - type: bind
+              source: /fixture/runs/r-toy/work/e2e
+              target: /work/e2e
+            - type: bind
+              source: /fixture/runs/r-toy/work/source/fixtures
+              target: /work/source/fixtures
+              read_only: true
+    db:
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.run-id: r-toy
+        ports: !reset []
+    seed:
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.run-id: r-toy
+        ports: !reset []
+volumes:
+    db-data:
+        labels:
+            io.cockpit.managed: "true"
+            io.cockpit.run-id: r-toy

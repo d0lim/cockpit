@@ -82,7 +82,7 @@ func TestFixtureNormalisationDropsOnlyTheDefaultCreateHostPathAndKeepsEverySealV
 		}
 		evaluated++
 	}
-	if evaluated != len(assertionNames) || evaluated != 24 {
+	if evaluated != len(assertionNames) || evaluated != 25 {
 		t.Fatalf("evaluated %d violating copies", evaluated)
 	}
 	in := toyInput(t)

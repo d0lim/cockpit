@@ -285,3 +285,187 @@ html[data-live="closed"] .live-dot {
 html[data-live="closed"] .live-text::after {
 	content: "disconnected, reconnecting";
 }
+
+.wire-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 0.875rem;
+	color: var(--muted);
+	font-size: 0.72rem;
+}
+.wire-key::before {
+	content: "";
+	display: inline-block;
+	width: 1.25rem;
+	margin-right: 0.3rem;
+	vertical-align: middle;
+	border-top: 2px solid var(--wire-key);
+}
+.wire-key-exact {
+	--wire-key: var(--info);
+}
+.wire-key-nested {
+	--wire-key: var(--muted);
+}
+.wire-key-background {
+	--wire-key: var(--wire-background);
+}
+.wire-key-time {
+	--wire-key: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.wire-scroll {
+	--wire-background: #9a5be8;
+	overflow: auto;
+	max-height: 75vh;
+	border-block: 1px solid var(--line);
+	background: var(--bg);
+}
+.wire-legend {
+	--wire-background: #9a5be8;
+}
+.wire-svg {
+	display: block;
+	max-width: none;
+}
+.wire-head {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--bg);
+	border-bottom: 1px solid var(--line);
+}
+.wire-svg text {
+	pointer-events: none;
+	fill: var(--fg);
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 10.5px;
+}
+.wire-svg path,
+.wire-svg .wire-bar,
+.wire-svg .wire-active,
+.wire-svg .wire-band {
+	pointer-events: none;
+}
+.wire-svg a:has(text) text {
+	pointer-events: auto;
+}
+.wire-svg .wire-halo {
+	paint-order: stroke;
+	stroke: var(--bg);
+	stroke-width: 3px;
+	stroke-linejoin: round;
+}
+.wire-svg .wire-dim,
+.wire-svg .wire-note,
+.wire-svg .wire-group {
+	fill: var(--muted);
+}
+.wire-svg .wire-small,
+.wire-svg .wire-note {
+	font-size: 9.5px;
+	font-weight: 400;
+}
+.wire-svg .wire-group {
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.wire-svg .wire-name,
+.wire-svg .wire-fold {
+	font-weight: 600;
+}
+.wire-svg .wire-fold {
+	cursor: pointer;
+}
+.wire-svg .wire-tag {
+	fill: var(--info);
+}
+.wire-svg .wire-bad {
+	fill: var(--bad);
+}
+.wire-hit {
+	fill: transparent;
+	cursor: pointer;
+}
+.wire-svg a:hover .wire-hit {
+	fill: color-mix(in oklab, var(--fg) 6%, transparent);
+}
+.wire-svg a:focus-visible {
+	outline: none;
+}
+.wire-svg a:focus-visible .wire-hit {
+	stroke: var(--accent);
+}
+.wire-svg .wire-hit-on,
+.wire-svg a:hover .wire-hit-on {
+	fill: color-mix(in oklab, var(--accent) 14%, transparent);
+}
+.wire-band {
+	fill: color-mix(in oklab, var(--fg) 6%, transparent);
+}
+.wire-lifeline {
+	fill: none;
+	stroke: var(--line);
+}
+.wire-gap {
+	fill: none;
+	stroke: var(--line);
+	stroke-dasharray: 2 3;
+}
+.wire-tree {
+	fill: none;
+	stroke: var(--line);
+}
+.wire-cause {
+	fill: none;
+	stroke: var(--info);
+	stroke-width: 1.2;
+	stroke-dasharray: 1 3;
+	stroke-linecap: round;
+}
+.wire-active {
+	fill: var(--surface);
+	stroke: var(--muted);
+	stroke-width: 0.8;
+}
+.wire-ev-exact,
+.wire-ev-traced {
+	--wire-ink: var(--info);
+}
+.wire-ev-nested {
+	--wire-ink: var(--muted);
+}
+.wire-ev-background {
+	--wire-ink: var(--wire-background);
+}
+.wire-ev-time,
+.wire-ev-none {
+	--wire-ink: color-mix(in oklab, var(--muted) 60%, transparent);
+}
+.wire-failed {
+	--wire-ink: var(--bad);
+}
+.wire-line {
+	fill: none;
+	stroke: var(--wire-ink);
+	stroke-width: 1.3;
+}
+.wire-reply {
+	fill: none;
+	stroke: var(--wire-ink);
+	stroke-dasharray: 3 3;
+	opacity: 0.75;
+}
+.wire-tip {
+	fill: var(--wire-ink);
+	stroke: var(--wire-ink);
+}
+.wire-tip.wire-open {
+	fill: var(--bg);
+}
+.wire-bar {
+	fill: var(--wire-ink);
+}
+.wire-bar-tail {
+	opacity: 0.35;
+}

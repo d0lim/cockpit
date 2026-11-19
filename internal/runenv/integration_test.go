@@ -78,7 +78,7 @@ func TestIntegrationToyRunEnvPassesTheSealAndTheUnsealCheckTurnsTheProbesRed(t *
 	if code != ExitPassed {
 		t.Fatalf("exit %d\n%s", code, text)
 	}
-	for _, want := range []string{"seal static (", "24/24 passed", "the probes turn red", "5 steps: 5 passed"} {
+	for _, want := range []string{"seal static (", "25/25 passed", "the probes turn red", "5 steps: 5 passed"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("output lacks %q\n%s", want, text)
 		}
@@ -93,7 +93,7 @@ func TestIntegrationToyRunEnvPassesTheSealAndTheUnsealCheckTurnsTheProbesRed(t *
 		Probes  []json.RawMessage `json:"probes"`
 	}
 	data, _ := os.ReadFile(files[0])
-	if err := json.Unmarshal(data, &report); err != nil || report.Verdict != "passed" || len(report.Static) != 24 || len(report.Probes) != 8 {
+	if err := json.Unmarshal(data, &report); err != nil || report.Verdict != "passed" || len(report.Static) != 25 || len(report.Probes) != 8 {
 		t.Fatalf("seal.json %s: %v", data, err)
 	}
 }

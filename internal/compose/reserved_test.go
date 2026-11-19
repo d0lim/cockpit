@@ -10,14 +10,14 @@ import (
 )
 
 var reservedMutations = []porttest.Mutation{
-	{"every harness service name is reserved for the hub", "drop the HarnessServices loop in Model.check", "red: a consumer cockpit-edge, cockpit-runner, cockpit-probe, cockpit-probe-control or cockpit-otlp service passes", "TestAConsumerServiceNamedAfterAPrefixedHarnessServiceIsRefusedAtItsField"},
-	{"the harness names carry the cockpit- prefix", "set RoleRunner back to runner", "red: a consumer service named runner is refused as reserved", "TestConsumerServicesNamedEdgeRunnerProbeProbeControlOrOTLPPass"},
-	{"the reserved list is the prefixed names and nothing else", "drop RoleOTLP from HarnessServices", "red: the reserved list lacks cockpit-otlp", "TestTheReservedHarnessNamesAreExactlyTheFivePrefixedServices"},
+	{"every harness service name is reserved for the hub", "drop the HarnessServices loop in Model.check", "red: a consumer cockpit-edge, cockpit-runner, cockpit-probe, cockpit-probe-control, cockpit-otlp or cockpit-wire service passes", "TestAConsumerServiceNamedAfterAPrefixedHarnessServiceIsRefusedAtItsField"},
+	{"the harness names carry the cockpit- prefix", "set RoleRunner back to runner", "red: a consumer service named runner is refused as reserved", "TestConsumerServicesNamedEdgeRunnerProbeProbeControlOTLPOrWirePass"},
+	{"the reserved list is the prefixed names and nothing else", "drop RoleWire from HarnessServices", "red: the reserved list lacks cockpit-wire", "TestTheReservedHarnessNamesAreExactlyTheSixPrefixedServices"},
 }
 
-var prefixedHarnessNames = []string{"cockpit-edge", "cockpit-runner", "cockpit-probe", "cockpit-probe-control", "cockpit-otlp"}
+var prefixedHarnessNames = []string{"cockpit-edge", "cockpit-runner", "cockpit-probe", "cockpit-probe-control", "cockpit-otlp", "cockpit-wire"}
 
-var bareHarnessNames = []string{"edge", "runner", "probe", "probe-control", "otlp"}
+var bareHarnessNames = []string{"edge", "runner", "probe", "probe-control", "otlp", "wire"}
 
 func TestReservedMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 	porttest.AssertMutationRecord(t, "reserved_test.go", reservedMutations)
@@ -29,7 +29,7 @@ func withConsumerService(t *testing.T, name string) (Loaded, error) {
 	})
 }
 
-func TestTheReservedHarnessNamesAreExactlyTheFivePrefixedServices(t *testing.T) {
+func TestTheReservedHarnessNamesAreExactlyTheSixPrefixedServices(t *testing.T) {
 	got := slices.Sorted(slices.Values(HarnessServices))
 	want := slices.Sorted(slices.Values(prefixedHarnessNames))
 	if !slices.Equal(got, want) {
@@ -53,12 +53,12 @@ func TestAConsumerServiceNamedAfterAPrefixedHarnessServiceIsRefusedAtItsField(t 
 		}
 		refused++
 	}
-	if refused != 5 {
+	if refused != 6 {
 		t.Fatalf("refused %d of %d names", refused, len(prefixedHarnessNames))
 	}
 }
 
-func TestConsumerServicesNamedEdgeRunnerProbeProbeControlOrOTLPPass(t *testing.T) {
+func TestConsumerServicesNamedEdgeRunnerProbeProbeControlOTLPOrWirePass(t *testing.T) {
 	passed := 0
 	for _, name := range bareHarnessNames {
 		loaded, err := withConsumerService(t, name)
@@ -72,7 +72,7 @@ func TestConsumerServicesNamedEdgeRunnerProbeProbeControlOrOTLPPass(t *testing.T
 		}
 		passed++
 	}
-	if passed != 5 {
+	if passed != 6 {
 		t.Fatalf("passed %d of %d names", passed, len(bareHarnessNames))
 	}
 }

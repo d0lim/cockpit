@@ -59,5 +59,13 @@ func DeclarationDocs() map[string]string {
 		"telemetry.otlp":            "OpenTelemetry export over OTLP/HTTP to the run's `cockpit-otlp` receiver.",
 		"telemetry.otlp.services": "The compose services that export traces and metrics. When it names at least one, the hub adds the `cockpit-otlp` service and sets `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_METRIC_EXPORT_INTERVAL`, `OTEL_BSP_SCHEDULE_DELAY` and `OTEL_TRACES_SAMPLER` in each of them. " +
 			"Each must be a service of the compose files and not the builder.",
+		"wire":                    "What a run submitted with `wire` may record: the calls between services, with their headers and bodies masked. Without the submission option nothing is recorded.",
+		"wire.routes":             "The service ports that can pass through the recorder, at most 64. A caller reaches one through the address in `COCKPIT_WIRE_<NAME>`.",
+		"wire.routes.name":        "The route name. `COCKPIT_WIRE_` plus this name in capitals, with `-` written as `_`, is the variable that holds the recorder's address in a recording run.",
+		"wire.routes.service":     "The compose service behind the route. It must be a service of the compose files and not the builder.",
+		"wire.routes.port":        "The container port of that service.",
+		"wire.publicFields":       "Values that stay readable in the record although their key looks like a credential.",
+		"wire.publicFields.key":   "The field name, compared without regard to case. It must belong to the `token`, `session` or `credential` family.",
+		"wire.publicFields.value": "An RE2 expression that must match the whole value and must not match the shape of a real credential. The value still passes the run redactor.",
 	}
 }

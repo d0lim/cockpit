@@ -1,0 +1,28 @@
+services:
+  app:
+    environment:
+      WIRE_ROLE: app
+      WIRE_LISTEN: ":8080"
+      LEDGER_URL: http://${COCKPIT_WIRE_LEDGER:-ledger:8081}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run make-env.sh first}
+    healthcheck:
+      test: ["CMD", "/app", "-probe", "http://127.0.0.1:8080/health"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      ledger:
+        condition: service_healthy
+
+  ledger:
+    image: toy/app:${IMG_APP:?}
+    pull_policy: never
+    environment:
+      WIRE_ROLE: ledger
+      WIRE_LISTEN: ":8081"
+      APP_TOKEN: ${APP_TOKEN:?run make-env.sh first}
+    healthcheck:
+      test: ["CMD", "/app", "-probe", "http://127.0.0.1:8081/health"]
+      interval: 1s
+      timeout: 3s
+      retries: 30

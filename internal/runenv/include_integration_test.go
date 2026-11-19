@@ -78,7 +78,7 @@ func TestIntegrationAToyWhoseCacheComesFromAnIncludeInASubmodulePassesTheSealBoo
 	if code != ExitPassed {
 		t.Fatalf("exit %d\n%s", code, text)
 	}
-	for _, want := range []string{"seal static (", "24/24 passed", "5 steps: 5 passed"} {
+	for _, want := range []string{"seal static (", "25/25 passed", "5 steps: 5 passed"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("output lacks %q\n%s", want, text)
 		}

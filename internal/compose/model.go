@@ -169,6 +169,9 @@ func (m Model) check(d contract.Declaration) error {
 			return reject(RejectCompose, field, "service %q is the builder, which runs only in the build stage", s)
 		}
 	}
+	if err := m.checkWireRoutes(d); err != nil {
+		return err
+	}
 	for _, name := range HarnessServices {
 		if m.has(name) {
 			return reject(RejectCompose, "services."+name, "service name %q is reserved for the hub harness", name)

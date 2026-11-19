@@ -27,10 +27,26 @@ func iso(t time.Time) string {
 }
 
 func WriteJSON(path string, v any) error {
+	return writeJSONFile(path, v, 0o644)
+}
+
+func encodeJSONFile(v any) ([]byte, error) {
 	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(data, '\n'), nil
+}
+
+func writeJSONFile(path string, v any, mode os.FileMode) error {
+	data, err := encodeJSONFile(v)
 	if err != nil {
 		return err
 	}
+	return writeFileAtomic(path, data, mode)
+}
+
+func writeFileAtomic(path string, data []byte, mode os.FileMode) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -45,10 +61,10 @@ func WriteJSON(path string, v any) error {
 		os.Remove(name)
 		return err
 	}
-	if _, err := tmp.Write(append(data, '\n')); err != nil {
+	if _, err := tmp.Write(data); err != nil {
 		return fail(err)
 	}
-	if err := tmp.Chmod(0o644); err != nil {
+	if err := tmp.Chmod(mode); err != nil {
 		return fail(err)
 	}
 	if err := tmp.Close(); err != nil {

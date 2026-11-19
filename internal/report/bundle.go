@@ -42,6 +42,7 @@ type Bundle struct {
 	Mask    *mask.Masker
 	Signals Signals
 	Patch   func(change func(*store.Meta)) error
+	Keep    string
 }
 
 type Outcome struct {
@@ -56,16 +57,17 @@ func Assemble(b Bundle) (Outcome, error) {
 		return Outcome{}, errors.New("report: no masker")
 	}
 	for name := range b.Files {
-		if !filepath.IsLocal(name) || slices.Contains(reserved, firstElem(name)) {
+		if !filepath.IsLocal(name) || slices.Contains(reserved, firstElem(name)) || (b.Keep != "" && firstElem(name) == b.Keep) {
 			return Outcome{}, fmt.Errorf("report: bundle path %q is not allowed", name)
 		}
 	}
 	final := filepath.Join(b.RunDir, DirReport)
 	partial := filepath.Join(b.RunDir, DirPartial)
-	for _, dir := range []string{final, partial} {
-		if err := os.RemoveAll(dir); err != nil {
-			return Outcome{}, err
-		}
+	if err := clearFinal(final, b.Keep); err != nil {
+		return Outcome{}, err
+	}
+	if err := os.RemoveAll(partial); err != nil {
+		return Outcome{}, err
 	}
 	if err := os.Mkdir(partial, 0o700); err != nil {
 		return Outcome{}, err
@@ -110,7 +112,10 @@ func Assemble(b Bundle) (Outcome, error) {
 	if len(report.Left) > 0 {
 		return refuse(b, partial, out, report.Left)
 	}
-	if err := os.Rename(partial, final); err != nil {
+	if err := publish(partial, final, b.Keep); err != nil {
+		if errors.Is(err, errKeptInPartial) {
+			return out, err
+		}
 		return discard(partial, out, err)
 	}
 	out.Dir = final

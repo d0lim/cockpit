@@ -465,6 +465,47 @@
       ],
       "additionalProperties": false
     },
+    "wire": {
+      "type": "object",
+      "properties": {
+        "take": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "taken",
+            "lost",
+            "withheld",
+            "failed"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        },
+        "calls": {
+          "type": "integer"
+        },
+        "withheldCalls": {
+          "type": "integer"
+        },
+        "bodiesOmitted": {
+          "type": "integer"
+        },
+        "callsDropped": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "take",
+        "state",
+        "calls",
+        "withheldCalls",
+        "bodiesOmitted",
+        "callsDropped"
+      ],
+      "additionalProperties": false
+    },
     "generatedAt": {
       "type": "string"
     }

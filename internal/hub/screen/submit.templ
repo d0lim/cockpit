@@ -9,7 +9,7 @@ templ submitForm(st *state) {
 			<p class="mt-1 text-sm text-muted">This hub's config lists no allowedRepositories, so runs come only from the CLI: <code class="font-mono">{ submitHint }</code></p>
 		} else {
 			<p class="mb-3 text-xs text-muted">The suites are the ones the repository declares at the commit you type.</p>
-			<form hx-post="/runs/submit" hx-target="#submit-result" hx-swap="innerHTML" class="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_10rem_auto]">
+			<form hx-post="/runs/submit" hx-target="#submit-result" hx-swap="innerHTML" class="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_10rem_auto_auto]">
 				<label class="grid gap-1 text-xs text-muted">
 					Repository
 					<select name="worktree" class="field" hx-get="/runs/suites" hx-include="[name='worktree'],[name='commit']" hx-target="#suite-options" hx-swap="innerHTML" hx-trigger="change, load">
@@ -27,6 +27,10 @@ templ submitForm(st *state) {
 					<select name="suite" id="suite-options" class="field">
 						<option value="">default</option>
 					</select>
+				</label>
+				<label class="flex items-center gap-2 pb-2 text-xs text-muted" title="Records the calls between services. The commit must declare wire.routes.">
+					<input type="checkbox" name="wire" value="1"/>
+					Record wire
 				</label>
 				<button type="submit" class="btn">Submit</button>
 			</form>

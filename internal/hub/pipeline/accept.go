@@ -45,6 +45,9 @@ func (h *Hub) Accept(ctx context.Context, in scheduler.SubmitInput) (scheduler.A
 	if err != nil {
 		return scheduler.Accepted{}, rejected(scheduler.KindDeclaration, "%s", err.Error())
 	}
+	if in.Wire && len(loaded.Declaration.Wire.Routes) == 0 {
+		return scheduler.Accepted{}, rejected(scheduler.KindDeclaration, "commit %s declares no wire.routes, so this run cannot record", sha[:12])
+	}
 	dirty, err := git.Dirty(ctx, loaded.Tree, inputPaths(loaded))
 	if err != nil {
 		return scheduler.Accepted{}, err

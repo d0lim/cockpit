@@ -19,7 +19,7 @@ const (
 	E2EDir       = "work/e2e"
 	ExecDir      = "exec"
 	MaxBytes     = 4 << 20
-	manifest     = "manifest.json"
+	ManifestFile = "manifest.json"
 	result       = "result.json"
 	ledger       = "ledger.json"
 	ContainerE2E = "/work/e2e"
@@ -100,7 +100,7 @@ func readWith[T any](root *os.Root, rel string, decode func(io.Reader) (*T, erro
 }
 
 func Manifest(root *os.Root) (*contract.Manifest, error) {
-	return readWith(root, path.Join(E2EDir, manifest), contract.ReadRunnerFile[contract.Manifest])
+	return readWith(root, path.Join(E2EDir, ManifestFile), contract.ReadRunnerFile[contract.Manifest])
 }
 
 func Result(root *os.Root) (*contract.Result, error) {

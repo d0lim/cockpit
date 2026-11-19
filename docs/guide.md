@@ -26,6 +26,7 @@ Each path can be moved with an environment variable on the runner service:
 | `E2E_PRIVATE_ENV` | `$E2E_DIR/e2e.private.env.json` |
 | `COCKPIT_SOURCES` | `/work/source` |
 | `E2E_EXEC_OUT` | a timestamped file under `$E2E_DIR/exec/` |
+| `COCKPIT_WIRE_ROUTES` | unset; the hub sets it for a [recording run](wire.md#turning-it-on) as `<name>=<service>:<port>=cockpit-wire:<port>`, comma separated |
 
 The runner image runs as uid `65532`. On Linux, make the state directory writable for that user, for example with `chmod 0777 .e2e`. Docker Desktop on macOS needs nothing extra.
 
@@ -51,6 +52,8 @@ The runner exits with code 2 when the file is missing, has no `hostApi`, or name
 ```
 
 The same file is the request allowlist. Every string value that is an `http` or `https` URL with a host name, no IP address and no path becomes an allowed origin. `ctx.http` refuses a request to any other origin. Name your services in compose and put their base URLs here; a URL that carries a path, such as `http://web/api`, is a value but not an origin. A refused request fails its step with `address not allowed — GET /path: list its origin ... as a value in env.json`.
+
+In a [recording run](wire.md#turning-it-on), a request to an origin that matches a wire route is dialed through `cockpit-wire`; the URL, the `Host` header and the recorded host stay as they are. A string value of `env.json` may hold `${COCKPIT_WIRE_<NAME>:-<default>}`, written for an address a flow hands to a service. The runner expands it before it builds the allowlist: to the route's proxy address when the route exists in a recording run, and to `<default>` otherwise, so a suite that uses it also runs without recording. Nothing else in `env.json` is expanded, and a collector that imports the file reads it as written, with the placeholder unexpanded. The record masks the run's known credentials and the values under keys that name one. Any other value stays readable unless it has a built-in credential shape or matches a pattern in `secrets.patterns` ([masking](wire.md#masking)).
 
 Other limits of `ctx.http`: 30 seconds per request unless `timeoutMs` says otherwise, response bodies up to 8 MiB, and redirect responses are refused instead of followed.
 
@@ -162,6 +165,7 @@ To start over, bring the stack down with its volumes and delete the state direct
 | `ledger.json` | the last status of every flow in this environment |
 | `context.json` | persisted captures and TOTP steps |
 | `exec/<time>-<flow>.json` | the result of a `--flow` target |
+| `wire.private.env.json` | in a recording run only: the values the runner masks, kept current (mode 600) and read by the hub to mask the wire record; never part of the report |
 
 Step statuses are `passed`, `failed`, `skipped`, `running` and `notRun`. The files are rewritten atomically, so a reader never sees a half-written file.
 

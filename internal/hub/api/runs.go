@@ -70,6 +70,18 @@ func text(body map[string]any, key string, required bool) (string, error) {
 	return s, nil
 }
 
+func flag(body map[string]any, key string) (bool, error) {
+	v, ok := body[key]
+	if !ok {
+		return false, nil
+	}
+	b, isBool := v.(bool)
+	if !isBool {
+		return false, badRequest(key + " is true or false")
+	}
+	return b, nil
+}
+
 func (a *api) list(w http.ResponseWriter, _ *http.Request) error {
 	l, err := a.reader().List()
 	if err != nil {
@@ -94,12 +106,11 @@ func (a *api) submit(w http.ResponseWriter, r *http.Request) error {
 	if in.Suite, err = text(body, "suite", false); err != nil {
 		return err
 	}
-	if v, ok := body["new"]; ok {
-		b, isBool := v.(bool)
-		if !isBool {
-			return badRequest("new is true or false")
-		}
-		in.New = b
+	if in.New, err = flag(body, "new"); err != nil {
+		return err
+	}
+	if in.Wire, err = flag(body, "wire"); err != nil {
+		return err
 	}
 	if in.Submitter, err = submitterOf(r, body); err != nil {
 		return err

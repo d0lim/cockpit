@@ -59,6 +59,7 @@ func Enums() []Enum {
 		enum(ToneOK, ToneWarn, ToneBad, ToneIdle, ToneInfo),
 		enum(SpanStatusOK, SpanStatusError, SpanStatusIncomplete),
 		enum(MetricTypeGauge, MetricTypeSum, MetricTypeHistogram, MetricTypeSummary),
+		enum(WireStateTaken, WireStateLost, WireStateWithheld, WireStateFailed),
 	}
 }
 

@@ -11,12 +11,13 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	httpport "github.com/d0lim/cockpit/internal/ports/http"
 	"github.com/d0lim/cockpit/internal/ports/source"
 )
 
 type settings struct {
-	dir, privPath, envPath, execOut, scripts, sources, declaration, image, traceID string
+	dir, privPath, envPath, execOut, scripts, sources, declaration, image, traceID, wireRoutes string
 }
 
 func loadSettings(getenv func(string) string) settings {
@@ -36,6 +37,7 @@ func loadSettings(getenv func(string) string) settings {
 	s.declaration = or("COCKPIT_DECLARATION", "/work/.cockpit/project.yaml")
 	s.image = getenv("COCKPIT_RUNNER_IMAGE")
 	s.traceID = getenv("COCKPIT_TRACE_ID")
+	s.wireRoutes = getenv(contract.WireRoutesVariable)
 	return s
 }
 

@@ -18,16 +18,18 @@ const (
 var marshaler = reflect.TypeFor[json.Marshaler]()
 
 var responseTypes = map[string]reflect.Type{
-	"RunItem":     reflect.TypeFor[RunItem](),
-	"RunDetail":   reflect.TypeFor[RunDetail](),
-	"HubList":     reflect.TypeFor[HubList](),
-	"ReportView":  reflect.TypeFor[ReportView](),
-	"ExecView":    reflect.TypeFor[ExecView](),
-	"FlowView":    reflect.TypeFor[FlowView](),
-	"SourceView":  reflect.TypeFor[SourceView](),
-	"SignalsView": reflect.TypeFor[SignalsView](),
-	"KitView":     reflect.TypeFor[KitView](),
-	"Problem":     reflect.TypeFor[Problem](),
+	"RunItem":      reflect.TypeFor[RunItem](),
+	"RunDetail":    reflect.TypeFor[RunDetail](),
+	"HubList":      reflect.TypeFor[HubList](),
+	"ReportView":   reflect.TypeFor[ReportView](),
+	"ExecView":     reflect.TypeFor[ExecView](),
+	"FlowView":     reflect.TypeFor[FlowView](),
+	"SourceView":   reflect.TypeFor[SourceView](),
+	"SignalsView":  reflect.TypeFor[SignalsView](),
+	"KitView":      reflect.TypeFor[KitView](),
+	"WireView":     reflect.TypeFor[WireView](),
+	"WireCallView": reflect.TypeFor[WireCallView](),
+	"Problem":      reflect.TypeFor[Problem](),
 }
 
 func custom(t reflect.Type) bool {
