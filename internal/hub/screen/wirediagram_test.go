@@ -264,10 +264,10 @@ func TestThePickedCallOpensInAPanelWhoseCloseLinkDropsOnlyTheCall(t *testing.T) 
 	for _, view := range []string{wireViewCalls, wireViewSequence, wireViewTrace} {
 		_, _, body := f.get(base + "?flow=alpha&step=a2&call=5&view=" + view)
 		panel := html.UnescapeString(section(t, body, "wire-call"))
-		if !strings.Contains(panel, `class="wire-drawer"`) || !strings.Contains(panel, ">Call 5<") {
+		if !strings.Contains(panel, `class="call-panel"`) || !strings.Contains(panel, "Call 5 ·") {
 			t.Fatalf("%s: the call is not in the panel: %s", view, panel)
 		}
-		closeLink := regexp.MustCompile(`href="([^"]*)" hx-swap="innerHTML show:none" data-drawer-close`).FindStringSubmatch(panel)
+		closeLink := regexp.MustCompile(`href="([^"]*)" hx-swap="innerHTML show:none" data-panel-close`).FindStringSubmatch(panel)
 		if closeLink == nil || strings.Contains(closeLink[1], "call=") || !strings.Contains(closeLink[1], "view="+view) || !strings.Contains(closeLink[1], "step=a2") {
 			t.Fatalf("%s: close link %v", view, closeLink)
 		}
@@ -276,7 +276,7 @@ func TestThePickedCallOpensInAPanelWhoseCloseLinkDropsOnlyTheCall(t *testing.T) 
 		}
 	}
 	_, _, none := f.get(base + "?flow=alpha&step=a2&view=" + wireViewCalls)
-	if strings.Contains(none, `id="wire-call"`) || strings.Contains(none, "data-scroll-here") || !strings.Contains(none, `data-seq="5"`) {
+	if strings.Contains(none, `id="wire-call"`) || strings.Contains(none, `data-scroll-here="call-`) || !strings.Contains(none, `data-seq="5"`) {
 		t.Fatal("without a picked call the panel or a scroll mark remains")
 	}
 }

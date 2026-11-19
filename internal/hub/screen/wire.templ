@@ -4,32 +4,62 @@ import "github.com/d0lim/cockpit/internal/hub/api"
 
 templ wirePage(st *state) {
 	@runHead(st)
-	@question("What was each server asked, and what did it answer", "Every call the recorder saw during a step: who called whom, what was sent and what came back.")
 	@wireRegion(st)
 	@wireCallPanel(st)
 }
 
 templ wireRegion(st *state) {
-	<section id="wire" class="space-y-4">
+	<section id="wire" class="explorer">
 		if v, err := st.wireView(); err != nil {
-			<p class="notice tone-bad">The wire record cannot be read: { err.Error() }</p>
-			<p class="text-sm"><a class="link" href={ templ.SafeURL(st.path) }>Back to the first step</a></p>
+			@flowTreeNav(st.stepTree(treePick{}), treePick{})
+			<div class="detail">
+				<p class="notice tone-bad">The wire record cannot be read: { err.Error() }</p>
+				<p class="text-sm"><a class="link" href={ templ.SafeURL(st.path) }>Back to the first step</a></p>
+			</div>
+		} else if v.Status != api.WireReady {
+			@flowTreeNav(st.stepTree(treePick{}), treePick{})
+			<div class="detail">
+				for _, n := range wireNotes(v) {
+					<p class={ "notice", "tone-" + string(n.tone) }>{ n.text }</p>
+				}
+			</div>
 		} else {
-			for _, n := range wireNotes(v) {
-				<p class={ "notice", "tone-" + string(n.tone) }>{ n.text }</p>
-			}
-			if v.Status == api.WireReady {
+			@flowTreeNav(st.callTree(v), wirePick(v))
+			<div class="detail">
+				@wirePickHead(st, v)
+				for _, n := range wireNotes(v) {
+					<p class={ "notice", "tone-" + string(n.tone) }>{ n.text }</p>
+				}
 				@wireTakes(st, v)
-				<div class="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-					@wireStepList(st, v)
-					<div class="min-w-0 space-y-3">
-						@wireSelection(st, v)
-						@wireCalls(st, v)
-					</div>
-				</div>
-			}
+				@wireRoutes(st, v)
+				@wireCalls(st, v)
+			</div>
 		}
 	</section>
+}
+
+func wirePick(v api.WireView) treePick {
+	switch v.Scope {
+	case api.WireScopeStep:
+		return treePick{v.Flow, v.Step}
+	case api.WireScopeFlow:
+		return treePick{flow: v.Flow}
+	}
+	return treePick{}
+}
+
+templ wirePickHead(st *state, v api.WireView) {
+	if f := findFlow(st.treeFlows(), v.Flow); f != nil && v.Scope != api.WireScopeOutside {
+		@pickHead(st, *f, pickedStep(*f, v.Step), "")
+		@paneTabs(st, v.Flow, v.Step, paneCalls)
+	} else if title, sub := wireStepHeading(v); true {
+		<div class="space-y-1">
+			<h2 class="detail-title font-mono">{ title }</h2>
+			if sub != "" {
+				<p class="text-sm text-muted">{ sub }</p>
+			}
+		</div>
+	}
 }
 
 templ wireTakes(st *state, v api.WireView) {
@@ -43,49 +73,13 @@ templ wireTakes(st *state, v api.WireView) {
 	}
 }
 
-templ wireStepList(st *state, v api.WireView) {
-	<nav class="card max-h-72 self-start overflow-y-auto p-0 lg:max-h-none lg:overflow-visible" aria-label="Steps">
-		for _, f := range wireFlows(v.Steps) {
-			<h3 class="px-4 pt-3 pb-1 font-mono text-xs font-semibold">
-					<a href={ templ.SafeURL(st.wireFlowHref(f.id)) } class={ "text-muted hover:text-fg", templ.KV("text-fg", v.Scope == api.WireScopeFlow && v.Flow == f.id) }>{ f.id }</a>
-				</h3>
-			<ol class="divide-y divide-line">
-				for _, s := range f.steps {
-					<li>
-						<a href={ templ.SafeURL(st.wireStepHref(s)) } class={ "step-row", templ.KV("step-on", wireStepOn(v, s)) } if wireStepOn(v, s) { aria-current="true" }>
-							<span class="flex items-center gap-2 text-sm">
-								<span class={ "dot", "tone-" + string(flowTone(string(s.Status))) } title={ statusLabel(string(s.Status)) }></span>
-								<span class="min-w-0 truncate" title={ orElse(s.Title, s.Step) }>{ orElse(s.Title, s.Step) }</span>
-								<span class="ml-auto shrink-0 text-xs text-muted">{ itoa(s.Calls()) }</span>
-							</span>
-						</a>
-					</li>
-				}
-			</ol>
-		}
-		<a href={ templ.SafeURL(st.wireOutsideHref()) } class={ "step-row", "border-t", "border-line", templ.KV("step-on", v.Scope == api.WireScopeOutside) }>
-			<span class="flex items-center gap-2 text-sm">
-				<span>Outside any step</span>
-				<span class="ml-auto shrink-0 text-xs text-muted">{ itoa(v.Outside) }</span>
-			</span>
-		</a>
-	</nav>
-}
-
-templ wireSelection(st *state, v api.WireView) {
-	if title, sub := wireStepHeading(v); true {
-		<div>
-			<h3 class="font-mono text-sm font-semibold">{ title }</h3>
-			if sub != "" {
-				<p class="text-sm text-muted">{ sub }</p>
-			}
-		</div>
-	}
+templ wireRoutes(st *state, v api.WireView) {
 	if len(v.Routes) > 0 {
-		<nav class="flex flex-wrap gap-1" aria-label="Routes">
-			<a href={ templ.SafeURL(st.wireTargetHref("")) } class={ "pill", templ.KV("pill-on", st.query.Get("target") == "") }>All routes</a>
+		<nav class="strip" aria-label="Routes">
+			<span class="mr-1 text-xs text-muted">To</span>
+			<a href={ templ.SafeURL(st.wireTargetHref("")) } class={ "pill", templ.KV("pill-on", st.query.Get("target") == "") } hx-swap={ keepPlace }>All routes</a>
 			for _, r := range v.Routes {
-				<a href={ templ.SafeURL(st.wireTargetHref(r.Name)) } class={ "pill", templ.KV("pill-on", st.query.Get("target") == r.Name) } title={ wireCount(r.Calls) + " in this take" }>{ r.Name }</a>
+				<a href={ templ.SafeURL(st.wireTargetHref(r.Name)) } class={ "pill", templ.KV("pill-on", st.query.Get("target") == r.Name) } hx-swap={ keepPlace } title={ wireCount(r.Calls) + " in this take" }>{ r.Name }</a>
 			}
 		</nav>
 	}
@@ -93,20 +87,19 @@ templ wireSelection(st *state, v api.WireView) {
 
 templ wireCalls(st *state, v api.WireView) {
 	@wireViewBar(st, v)
-	<p class="text-xs text-muted">{ wirePageText(v) }</p>
 	if st.wireViewName() == wireViewCalls {
 		@wireCallRows(st, v)
 	} else if len(v.Calls) > 0 {
-		@wireLegend()
 		@wireDiagram(st.wireScene(v))
+		@wireLegend()
 	}
 	if v.Total > v.Limit {
 		<nav class="flex items-center gap-3 text-sm" aria-label="Pages">
 			if v.Offset > 0 {
-				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset - v.Limit)) }>Earlier calls</a>
+				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset - v.Limit)) } hx-swap={ keepPlace }>Earlier calls</a>
 			}
 			if v.Offset+v.Limit < v.Total {
-				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset + v.Limit)) }>Later calls</a>
+				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset + v.Limit)) } hx-swap={ keepPlace }>Later calls</a>
 			}
 		</nav>
 	}
@@ -130,27 +123,27 @@ templ wireTable(st *state, rows []wireRow) {
 	<div class="card overflow-x-auto p-0">
 		<table class="grid-table">
 			<thead>
-				<tr><th>Time</th><th>Call</th><th>Request</th><th>Result</th><th>Took</th></tr>
+				<tr><th>Time</th><th>Call</th><th>Result</th><th>Took</th></tr>
 			</thead>
 			<tbody>
 				for _, r := range rows {
 					<tr class={ templ.KV("row-on", st.query.Get("call") == itoa64(r.head.Seq)) } data-seq={ itoa64(r.head.Seq) } data-link={ string(r.head.Link) } data-depth={ itoa(r.head.Depth) } if st.query.Get("call") == itoa64(r.head.Seq) { data-scroll-here={ wireScrollKey(r.head.Seq) } }>
 						<td class="font-mono text-xs whitespace-nowrap text-muted">{ r.offset }</td>
-						<td class="font-mono text-xs">
+						<td class="w-full font-mono text-xs">
 							<div class={ wireIndent(r.head.Depth) }>
-								if r.head.Depth > 0 {
-									<span class="text-muted">↳ </span>
+								<a class="link break-all" href={ templ.SafeURL(st.wireCallHref(r.head.Seq)) } hx-swap={ keepPlace }>{ r.head.Method } { orElse(r.head.Path, "(path not kept)") }</a>
+								if r.head.Link == "time" || r.head.Link == "background" {
+									<span class="ml-1 font-sans">
+										@badge(ToneIdle, string(r.head.Link))
+									</span>
 								}
-								{ r.head.Caller } → { r.head.Target }
+								<div class="mt-0.5 text-[11px] text-muted">
+									if r.head.Depth > 0 {
+										<span>↳ </span>
+									}
+									{ r.head.Caller } → { r.head.Target }
+								</div>
 							</div>
-						</td>
-						<td class="font-mono text-xs break-all">
-							<a class="link" href={ templ.SafeURL(st.wireCallHref(r.head.Seq)) } hx-swap={ wireKeepPlace }>{ r.head.Method } { orElse(r.head.Path, "(path not kept)") }</a>
-							if r.head.Link == "time" || r.head.Link == "background" {
-								<span class="ml-1">
-									@badge(ToneIdle, string(r.head.Link))
-								</span>
-							}
 						</td>
 						<td class="whitespace-nowrap">
 							if tone, text := wireResult(r.head); true {
@@ -173,7 +166,7 @@ templ wireRunNotice(st *state) {
 		<p class={ "notice", "tone-" + string(n.tone) }>
 			{ n.text }
 			if served(*st.run, st.list) {
-				<a class="link ml-1" href={ templ.SafeURL("/runs/" + st.run.ID + "/wire") }>Open the Wire screen</a>
+				<a class="link ml-1" href={ templ.SafeURL("/runs/" + st.run.ID + "/wire") }>Open its calls</a>
 			}
 		</p>
 	}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/hub/labels"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 )
 
@@ -94,6 +95,77 @@ func groupRuns(l api.HubList) RunGroups {
 	return g
 }
 
+const endedShown = 30
+
+type shownGroups struct {
+	RunGroups
+	more int
+}
+
+var verdictOrder = []lifecycle.Verdict{lifecycle.VerdictFailed, lifecycle.VerdictError, lifecycle.VerdictAborted, lifecycle.VerdictPassed}
+
+func (st *state) verdictPick() lifecycle.Verdict {
+	v := lifecycle.Verdict(st.query.Get("verdict"))
+	if slices.Contains(verdictOrder, v) {
+		return v
+	}
+	return lifecycle.VerdictNone
+}
+
+func (st *state) runGroups() shownGroups {
+	l := st.list
+	if pick := st.verdictPick(); pick != lifecycle.VerdictNone {
+		l.Runs = slices.DeleteFunc(slices.Clone(l.Runs), func(r api.RunItem) bool { return r.Verdict != pick })
+	}
+	g := shownGroups{RunGroups: groupRuns(l)}
+	if st.query.Get("all") == "" && len(g.Ended) > endedShown {
+		g.more = len(g.Ended) - endedShown
+		g.Ended = g.Ended[:endedShown]
+	}
+	return g
+}
+
+type verdictFilter struct {
+	label string
+	count int
+	href  string
+	on    bool
+}
+
+func (st *state) verdictFilters() []verdictFilter {
+	counts := map[lifecycle.Verdict]int{}
+	for _, r := range st.list.Runs {
+		counts[r.Verdict]++
+	}
+	pick := st.verdictPick()
+	out := []verdictFilter{{label: "All", count: len(st.list.Runs), href: st.href(map[string][]string{"verdict": nil}), on: pick == lifecycle.VerdictNone}}
+	for _, v := range verdictOrder {
+		if counts[v] == 0 && v != pick {
+			continue
+		}
+		name := string(v)
+		if l := labels.Verdict(v); l != nil {
+			name = *l
+		}
+		out = append(out, verdictFilter{label: name, count: counts[v], href: st.href(map[string][]string{"verdict": {string(v)}}), on: pick == v})
+	}
+	return out
+}
+
+func rowWhy(r api.RunItem) string {
+	if r.Verdict != lifecycle.VerdictFailed && r.Verdict != lifecycle.VerdictError && r.Mark == "" {
+		return ""
+	}
+	var parts []string
+	if r.FailedStage != "" {
+		parts = append(parts, "stopped at the "+lifecycle.StageLabel(r.FailedStage)+" stage")
+	}
+	if r.Notice != "" {
+		parts = append(parts, r.Notice)
+	}
+	return strings.Join(parts, " · ")
+}
+
 func orElse(v, fallback string) string {
 	if v == "" {
 		return fallback
@@ -172,6 +244,9 @@ func rowDetail(r api.RunItem) string {
 		return "started " + stamp(r.StartedAt)
 	}
 	out := "by " + r.Submitter + " · finished " + stamp(r.FinishedAt)
+	if took := tookOf(r); took != "" {
+		out += " · took " + took
+	}
 	switch {
 	case r.Env == lifecycle.EnvStopped && r.StopReason != "":
 		out += " · " + label(labelTable.Stop, string(r.StopReason))

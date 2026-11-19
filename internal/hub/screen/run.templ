@@ -16,13 +16,10 @@ func runTabs(st *state) []tabLink {
 	tabs := []tabLink{{TabOverview, "Overview", base}}
 	if served(*st.run, st.list) {
 		tabs = append(tabs,
-			tabLink{TabReport, "Report", base + "/report"},
+			tabLink{TabFlows, "Flows", base + "/report"},
 			tabLink{TabSignals, "Signals", base + "/signals/trace"},
+			tabLink{TabEnv, "Environment", base + "/env"},
 		)
-		if st.run.Wire {
-			tabs = append(tabs, tabLink{TabWire, "Wire", base + "/wire"})
-		}
-		tabs = append(tabs, tabLink{TabEnv, "Environment", base + "/env"})
 	}
 	return append(tabs, tabLink{TabPipeline, "Pipeline", base + "/pipeline"})
 }
@@ -35,54 +32,67 @@ func tabClass(on bool) string {
 }
 
 templ runHead(st *state) {
-	<section id="run-head" class="mb-6">
-		<div class="flex flex-wrap items-center gap-3">
-			<span class={ "dot", "tone-" + string(phaseTone(*st.run)) }></span>
-			<h1 class="font-mono text-base font-semibold">{ st.run.ID }</h1>
-			@badge(phaseTone(*st.run), st.run.PhaseLabel)
+	<header id="run-head" class="run-head" data-head>
+		<div class="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+			<a href="/" class="text-sm text-muted hover:text-fg">Runs</a>
+			<span class="text-muted">/</span>
+			<h1 class="run-id">{ st.run.ID }</h1>
 			if st.run.VerdictLabel != nil {
-				@badge(verdictTone(st.run.Verdict), "verdict "+*st.run.VerdictLabel)
+				<span class={ "badge", "tone-" + string(verdictTone(st.run.Verdict)) }>
+					<span aria-hidden="true">{ markOfRun(*st.run).glyph }</span>
+					<span class="sr-only">verdict</span>
+					{ *st.run.VerdictLabel }
+				</span>
 			}
+			@badge(phaseTone(*st.run), st.run.PhaseLabel)
 			if st.run.Keep {
 				@badge(ToneInfo, "keep")
 			}
+			@actions(st, st.detail())
 		</div>
-		<p class="mt-1 text-sm text-muted">{ st.run.Suite } · { short(st.run.SHA) } · submitted by { st.run.Submitter } · { stamp(st.run.CreatedAt) }</p>
-		<nav class="mt-4 flex gap-1 border-b border-line" aria-label="Run screens">
+		<p class="run-meta">
+			<span>suite <span class="text-fg">{ st.run.Suite }</span></span>
+			<span>·</span>
+			<span>commit <span class="font-mono text-fg">{ short(st.run.SHA) }</span></span>
+			<span>·</span>
+			<span>by { st.run.Submitter }</span>
+			<span>·</span>
+			<span>submitted { stamp(st.run.CreatedAt) }</span>
+			if took := tookOf(*st.run); took != "" {
+				<span>·</span>
+				<span>took { took }</span>
+			}
+			if st.run.Wire {
+				<span>·</span>
+				<span title="This run's service calls passed through the wire recorder.">wire</span>
+			}
+		</p>
+		<nav class="tabs" aria-label="Run screens">
 			for _, t := range runTabs(st) {
 				<a href={ templ.SafeURL(t.href) } class={ tabClass(t.id == st.tab) } if t.id == st.tab { aria-current="page" }>{ t.label }</a>
 			}
 		</nav>
-	</section>
-}
-
-templ question(title, hint string) {
-	<div class="mb-4">
-		<h2 class="text-base font-semibold">{ title }</h2>
-		<p class="text-sm text-muted">{ hint }</p>
-	</div>
+	</header>
 }
 
 templ overviewPage(st *state) {
 	@runHead(st)
-	@question("What state is this run in, and what can I do", "Where the run stands, why, and the actions it allows now.")
-	@overviewRegion(st)
-	<div id="action-result" class="mt-4" aria-live="polite"></div>
+	<main class="page page-text">
+		@overviewRegion(st)
+	</main>
 }
 
 templ overviewRegion(st *state) {
-	<section id="run-overview" class="space-y-6">
-		<div class="card">
+	<section id="run-overview" class="space-y-5">
+		<div class="card space-y-3">
 			<p class="text-base">{ standing(*st.run) }</p>
 			for _, n := range notices(*st.run, st.list) {
-				<p class="notice tone-warn mt-3">{ n }</p>
+				<p class="notice tone-warn">{ n }</p>
 			}
-			<div class="mt-3">
-				@wireRunNotice(st)
-			</div>
+			@stoppedAt(st)
+			@wireRunNotice(st)
 			@stages(*st.run)
 		</div>
-		@actions(st, st.detail())
 		<div class="card">
 			<dl class="kv">
 				<dt>Commit</dt>
@@ -100,7 +110,12 @@ templ overviewRegion(st *state) {
 				}
 				if st.run.FinishedAt != "" {
 					<dt>Finished</dt>
-					<dd>{ stamp(st.run.FinishedAt) }</dd>
+					<dd>
+						{ stamp(st.run.FinishedAt) }
+						if took := tookOf(*st.run); took != "" {
+							<span class="text-muted">· took { took }</span>
+						}
+					</dd>
 				}
 				<dt>Host API</dt>
 				<dd>{ itoa(st.run.HostAPI) } · cockpit { st.run.CockpitVersion }</dd>
@@ -109,8 +124,24 @@ templ overviewRegion(st *state) {
 	</section>
 }
 
+templ stoppedAt(st *state) {
+	if served(*st.run, st.list) {
+		if v, err := st.report(); err == nil && v.StoppedAt != nil {
+			<div class="space-y-2">
+				<p class="text-sm">
+					Stopped at
+					<a class="link font-mono" href={ templ.SafeURL(stepPath(st.run.ID, v.StoppedAt.Flow, v.StoppedAt.Step)) }>{ v.StoppedAt.Flow } › { v.StoppedAt.Step }</a>
+				</p>
+				if v.StoppedAt.Message != "" {
+					<pre class="failure">{ v.StoppedAt.Message }</pre>
+				}
+			</div>
+		}
+	}
+}
+
 templ stages(r api.RunItem) {
-	<ol class="mt-4 flex flex-wrap items-center gap-2 text-xs" aria-label="Pipeline stages">
+	<ol class="flex flex-wrap items-center gap-2 text-xs" aria-label="Pipeline stages">
 		for _, s := range stageSteps(r) {
 			<li class={ "stage", "stage-" + s.state }>{ s.label }</li>
 		}
@@ -118,29 +149,38 @@ templ stages(r api.RunItem) {
 }
 
 templ actions(st *state, d *api.RunDetail) {
-	<div class="card">
-		<h3 class="mb-3 text-sm font-semibold">Actions</h3>
-		<div class="flex flex-wrap gap-2">
+	<div class="run-actions" aria-label="Actions">
+		if allowed(d, lifecycle.Resume) {
+			@actionButton(st, "resume", "Resume", "btn btn-primary", "")
+		}
+		if allowed(d, lifecycle.Stop) {
+			@actionButton(st, "stop", "Stop", "btn", confirmText("stop", *st.run))
+		}
+		if allowed(d, lifecycle.Abort) {
+			@actionButton(st, "abort", "Abort", "btn", confirmText("abort", *st.run))
+		}
+		if !keepFrozen(*st.run) {
 			if st.run.Keep {
-				@actionButton(st, "unkeep", "Release keep", !keepFrozen(*st.run), confirmText("unkeep", *st.run))
+				@actionButton(st, "unkeep", "Release keep", "btn", confirmText("unkeep", *st.run))
 			} else {
-				@actionButton(st, "keep", "Keep", !keepFrozen(*st.run), "")
+				@actionButton(st, "keep", "Keep", "btn", "")
 			}
-			@actionButton(st, "stop", "Stop", allowed(d, lifecycle.Stop), confirmText("stop", *st.run))
-			@actionButton(st, "resume", "Resume", allowed(d, lifecycle.Resume), "")
-			@actionButton(st, "abort", "Abort", allowed(d, lifecycle.Abort), confirmText("abort", *st.run))
-			@actionButton(st, "destroy", "Destroy", allowed(d, lifecycle.Destroy), confirmText("destroy", *st.run))
-		</div>
-		<p class="mt-2 text-xs text-muted">Actions that lose state ask first. The new state shows here as soon as the hub applies it.</p>
+		}
+		if allowed(d, lifecycle.Destroy) {
+			@actionButton(st, "destroy", "Destroy", "btn btn-danger", confirmText("destroy", *st.run))
+		}
+		if noActions(*st.run, d) {
+			<span class="text-xs text-muted">No environment, no actions</span>
+		}
 	</div>
 }
 
-templ actionButton(st *state, op, label string, enabled bool, confirm string) {
+templ actionButton(st *state, op, label, class, confirm string) {
 	<form hx-post={ "/runs/" + st.run.ID + "/do/" + op } hx-target="#action-result" hx-swap="innerHTML" if confirm != "" { hx-confirm={ confirm } }>
 		if needsForce(op, *st.run) {
 			<input type="hidden" name="force" value="1"/>
 		}
-		<button type="submit" class={ "btn", templ.KV("btn-danger", op == "destroy") } disabled?={ !enabled }>{ label }</button>
+		<button type="submit" class={ class }>{ label }</button>
 	</form>
 }
 
@@ -170,8 +210,9 @@ templ problemResult(p *api.Problem) {
 
 templ pipelinePage(st *state) {
 	@runHead(st)
-	@question("What did each stage print", "The masked output of the pipeline, newest job first in this hub's memory.")
-	@pipelineRegion(st)
+	<main class="page page-text">
+		@pipelineRegion(st)
+	</main>
 }
 
 templ pipelineRegion(st *state) {

@@ -96,7 +96,7 @@ func TestTheFlowScreenShowsThePickedStepsRequestsIdsAndWhatCarriesThem(t *testin
 	writeJSON(t, filepath.Join(dir, api.RunnerDir, "result.json"), result)
 	f.signals.add(markedStep(), row("orders", "ord-7", `{"id":"ord-7","state":"open","amount":"5"}`))
 	_, _, picked := f.get("/runs/" + rid(1) + "/report/alpha?step=a1")
-	for _, want := range []string{"Requests", "POST /orders", ">201<", "40ms", "Ids this step marked", "ord-7", "Related by id", "orders · orders:ord-7", "span=call%3Aalpha%2Fa1%2F1"} {
+	for _, want := range []string{"Requests the step sent", ">POST<", ">/orders<", ">201<", "40ms", "Ids this step marked", "ord-7", "Related by id", "orders · orders:ord-7", "span=call%3Aalpha%2Fa1%2F1"} {
 		if !strings.Contains(picked, want) {
 			t.Errorf("flow screen lacks %q", want)
 		}
@@ -105,7 +105,7 @@ func TestTheFlowScreenShowsThePickedStepsRequestsIdsAndWhatCarriesThem(t *testin
 		t.Error("the step lists itself as marking its own id")
 	}
 	_, _, unpicked := f.get("/runs/" + rid(1) + "/report/alpha")
-	if strings.Contains(unpicked, "POST /orders") || !strings.Contains(unpicked, ">a1<") {
+	if strings.Contains(unpicked, ">/orders<") || !strings.Contains(unpicked, ">a1<") {
 		t.Fatal("the records show without a picked step, or the canary step row is missing")
 	}
 }

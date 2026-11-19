@@ -22,11 +22,22 @@ func TestTheFlowScreenShowsTheLiveStepMessageAndSourceOnlyMasked(t *testing.T) {
 	f := newFixture(t)
 	f.seed(runMeta(1, lifecycle.State{Phase: lifecycle.Testing, Env: lifecycle.EnvUp}, doneUp))
 	writeRunner(t, f.runDir(rid(1)), "status 500 with "+planted)
-	status, _, body := f.get("/runs/" + rid(1) + "/report/alpha?step=a1")
-	if status != http.StatusOK || strings.Contains(body, planted) || !strings.Contains(body, "****") {
-		t.Fatalf("%d planted %v masked %v", status, strings.Contains(body, planted), strings.Contains(body, "****"))
+	panes := map[string][]string{
+		"":             {"status 500 with ****", "run tree", "recorded no request"},
+		"&pane=source": {"status 500 with ****", `data-scroll-here="flows/alpha.ts:2"`, `const token = &#34;****`},
 	}
-	if !strings.Contains(body, "status 500 with") || !strings.Contains(body, `data-scroll-here="flows/alpha.ts:2"`) || !strings.Contains(body, "run tree") {
-		t.Fatal("canary: the live step, its line and its source badge are not on the screen")
+	for pane, canaries := range panes {
+		status, _, body := f.get("/runs/" + rid(1) + "/report/alpha?step=a1" + pane)
+		if status != http.StatusOK || strings.Contains(body, planted) || !strings.Contains(body, "****") {
+			t.Fatalf("pane %q: %d planted %v masked %v", pane, status, strings.Contains(body, planted), strings.Contains(body, "****"))
+		}
+		for _, want := range canaries {
+			if !strings.Contains(body, want) {
+				t.Errorf("canary: pane %q lacks %q", pane, want)
+			}
+		}
+	}
+	if len(panes) != 2 {
+		t.Fatal("pane count")
 	}
 }

@@ -1,0 +1,99 @@
+@layer components {
+	.explorer {
+		@apply grid flex-1 grid-cols-[minmax(0,1fr)];
+	}
+	.tree {
+		@apply max-h-72 overflow-y-auto border-b border-line bg-surface text-[13px];
+	}
+	.tree-filter {
+		@apply sticky top-0 z-1 flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2;
+	}
+	.tree-stage {
+		@apply flex items-center px-3 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-muted uppercase;
+	}
+	.tree-flow {
+		@apply flex items-center gap-2 px-3 py-1.5 hover:bg-bg;
+	}
+	.tree-step {
+		@apply flex items-center gap-2 py-1 pr-3 pl-8 hover:bg-bg;
+	}
+	.tree-on,
+	.tree-on:hover {
+		background: color-mix(in oklab, var(--accent) 12%, transparent);
+		box-shadow: inset 2px 0 0 var(--accent);
+	}
+	.tree-meta {
+		@apply ml-auto shrink-0 pl-2 text-[11px] text-muted tabular-nums;
+	}
+	.detail {
+		@apply min-w-0 space-y-4 px-4 py-4 sm:px-6;
+	}
+	.detail-title {
+		@apply line-clamp-3 text-base leading-snug font-semibold;
+	}
+	.strip {
+		@apply flex flex-nowrap items-center gap-1 overflow-x-auto pb-1;
+		scrollbar-width: thin;
+	}
+	.strip > * {
+		@apply shrink-0;
+	}
+	.failure {
+		@apply rounded-md border px-3 py-2 font-mono text-xs whitespace-pre-wrap text-bad;
+		border-color: color-mix(in oklab, var(--bad) 40%, transparent);
+		background: color-mix(in oklab, var(--bad) 7%, transparent);
+	}
+	.step-line {
+		@apply flex flex-col gap-1 px-4 py-2.5 hover:bg-bg;
+	}
+	.request-line {
+		@apply flex items-center gap-2 px-3 py-1.5 text-xs;
+	}
+	.method {
+		@apply shrink-0 rounded px-1.5 py-px font-mono text-[11px] font-bold;
+		color: var(--tone, var(--muted));
+		background: color-mix(in oklab, var(--tone, var(--muted)) 13%, transparent);
+	}
+	.code {
+		@apply max-h-[70vh] overflow-auto py-2 font-mono text-xs;
+	}
+	.code-line {
+		@apply grid grid-cols-[3.5rem_1fr] border-l-2 border-transparent;
+	}
+	.code-in-flow {
+		@apply border-accent;
+		background: color-mix(in oklab, var(--accent) 5%, transparent);
+	}
+	.code-here {
+		@apply border-warn;
+		background: color-mix(in oklab, var(--warn) 18%, transparent);
+	}
+	.code-ln {
+		@apply pr-3 text-right text-muted select-none;
+	}
+	.code-src {
+		@apply whitespace-pre;
+	}
+}
+
+@media (min-width: 64rem) {
+	.explorer {
+		grid-template-columns: var(--tree-width) minmax(0, 1fr);
+	}
+	.tree {
+		position: sticky;
+		top: var(--head-height);
+		align-self: start;
+		height: calc(100vh - var(--head-height));
+		max-height: none;
+		border-right: 1px solid var(--line);
+		border-bottom: 0;
+	}
+	.stick {
+		position: sticky;
+		top: calc(var(--head-height) + 1rem);
+		align-self: start;
+		max-height: calc(100vh - var(--head-height) - 2rem);
+		overflow-y: auto;
+	}
+}

@@ -40,20 +40,23 @@ func section(t *testing.T, html, id string) string {
 	return html[start : start+end]
 }
 
-func TestTheWireTabAndPathExistOnlyForARunThatRecorded(t *testing.T) {
+func TestTheCallsPaneAndTheWirePathExistOnlyForARunThatRecorded(t *testing.T) {
 	f := newFixture(t)
 	finished(f)
 	doneWire(f, 2)
 	wiretest.Seed(t, f.runDir(rid(2)), planted)
 	_, _, plain := f.get("/runs/" + rid(1))
-	if strings.Contains(plain, `/runs/`+rid(1)+`/wire"`) || strings.Contains(plain, "wire recorder") {
-		t.Fatal("a run without wire shows the tab or the notice")
+	if strings.Contains(plain, `/runs/`+rid(1)+`/wire`) || strings.Contains(plain, "wire recorder") {
+		t.Fatal("a run without wire links to its calls or shows the notice")
+	}
+	if _, _, flow := f.get("/runs/" + rid(1) + "/report/alpha"); strings.Contains(flow, ">Calls<") || !strings.Contains(flow, ">Source<") {
+		t.Fatal("a run without wire offers the Calls pane, or the canary Source pane is missing")
 	}
 	if status, _, _ := f.get("/runs/" + rid(1) + "/wire"); status != http.StatusNotFound {
 		t.Fatalf("a run without wire answers %d", status)
 	}
 	status, _, body := f.get("/runs/" + rid(2) + "/wire")
-	if status != http.StatusOK || !strings.Contains(body, `aria-current="page">Wire<`) || !strings.Contains(body, `id="wire"`) {
+	if status != http.StatusOK || !strings.Contains(body, `aria-current="page">Flows<`) || !strings.Contains(body, `id="wire"`) {
 		t.Fatalf("canary: the recorded run: %d", status)
 	}
 }
@@ -128,7 +131,7 @@ func TestEachBodyKindAndAWithheldCallReadInWords(t *testing.T) {
 		{"2", []string{"limit = 5", "orders was answering call 1", ">ok</pre>"}},
 		{"5", []string{"amount", ">7</div>", "Decoded JWT, signature not checked and not stored", ">Claims</p>", "&#34;sub&#34;: &#34;user-1&#34;"}},
 		{"6", []string{"Body not kept: 2.1 MiB, over the 1 MiB limit"}},
-		{"7", []string{"failed the check that nothing secret remains", "(not kept)"}},
+		{"7", []string{"failed the check that nothing secret remains", "(path not kept)"}},
 	}
 	for _, c := range cases {
 		status, _, body := f.get(base + "?call=" + c.call)
@@ -159,7 +162,7 @@ func TestAReloadWithTheQueryShowsTheSameCallAndThePickedRow(t *testing.T) {
 	if section(t, first, "wire-call") != section(t, again, "wire-call") || section(t, first, "wire") != section(t, again, "wire") {
 		t.Fatal("a reload shows something else")
 	}
-	if !strings.Contains(first, `<tr class="row-on" data-seq="5"`) || !strings.Contains(first, ">Call 5<") {
+	if !strings.Contains(first, `<tr class="row-on" data-seq="5"`) || !strings.Contains(first, "Call 5 ·") {
 		t.Fatal("canary: the picked call is not marked")
 	}
 	if !strings.Contains(section(t, first, "wire"), "target=ledger") {

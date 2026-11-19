@@ -42,40 +42,56 @@ func refChips(refs []contract.StepRef) []chip {
 	return out
 }
 
-func wireStepLink(st *state, flow, step string) string {
-	return "/runs/" + st.run.ID + "/wire?" + url.Values{"flow": {flow}, "step": {step}}.Encode()
-}
-
 func stepSelf(st *state, flow, step string) string {
 	return "span\x00" + st.run.ID + "\x00" + stepPrefix + flow + "/" + step
 }
 
+var methodTones = map[string]Tone{"GET": ToneOK, "POST": ToneWarn, "PUT": ToneInfo, "PATCH": ToneInfo, "DELETE": ToneBad}
+
+func methodTone(method string) string {
+	if t, ok := methodTones[method]; ok {
+		return "tone-" + string(t)
+	}
+	return "tone-idle"
+}
+
+templ methodTag(method string) {
+	<span class={ "method", methodTone(method) }>{ method }</span>
+}
+
 templ stepRecords(st *state, flow string, s contract.FlowStep) {
-	<div class="mt-2 space-y-3 rounded-md border border-line p-3" aria-label={ "records of " + s.ID }>
-		if st.run.Wire {
-			<p class="text-xs"><a class="link" href={ templ.SafeURL(wireStepLink(st, flow, s.ID)) }>What each server was asked during this step</a></p>
-		}
+	<div class="space-y-5" aria-label={ "records of " + s.ID }>
 		if len(s.Calls) == 0 && len(s.Refs) == 0 {
-			<p class="text-xs text-muted">This step recorded no request and marked no id.</p>
+			<p class="card text-sm text-muted">This step recorded no request and marked no id.</p>
 		}
 		if len(s.Calls) > 0 {
-			<div>
-				<p class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Requests</p>
-				<ol class="space-y-1 text-xs">
+			<div class="space-y-2">
+				<h3 class="label">Requests the step sent</h3>
+				<ol class="rows">
 					for i, c := range s.Calls {
-						<li class="flex items-center gap-2">
-							<span class="font-mono text-muted">{ clock(c.StartedAt) }</span>
-							@badge(callTone(c), callStatus(c))
-							<a class="link min-w-0 truncate font-mono" href={ templ.SafeURL(callHref(st, flow, s.ID, i+1)) }>{ c.Method } { c.Path }</a>
-							<span class="ml-auto shrink-0 text-muted">{ c.Host } · { itoa(int(c.DurationMs)) }ms</span>
+						<li class="request-line">
+							@methodTag(c.Method)
+							<a class="link min-w-0 truncate font-mono" href={ templ.SafeURL(callHref(st, flow, s.ID, i+1)) } title="Open this request's span">{ c.Path }</a>
+							<span class="ml-auto flex shrink-0 items-center gap-2 text-muted">
+								<span>{ c.Host }</span>
+								@badge(callTone(c), callStatus(c))
+								<span class="w-14 text-right tabular-nums">{ itoa(int(c.DurationMs)) }ms</span>
+								<span class="font-mono">{ clock(c.StartedAt) }</span>
+							</span>
 						</li>
 					}
 				</ol>
+				if st.run.Wire {
+					<p class="text-xs text-muted">
+						The bodies of these requests and of the calls they caused are under
+						<a class="link" href={ templ.SafeURL(st.callsHref(flow, s.ID)) } hx-swap={ keepPlace }>Calls</a>.
+					</p>
+				}
 			</div>
 		}
 		if len(s.Refs) > 0 {
 			<div class="space-y-2">
-				<p class="text-xs font-semibold uppercase tracking-wide text-muted">Ids this step marked</p>
+				<h3 class="label">Ids this step marked</h3>
 				@refLinks(st, refChips(s.Refs))
 				@relatedList(st, refValues(s.Refs), stepSelf(st, flow, s.ID))
 			</div>

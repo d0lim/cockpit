@@ -1,0 +1,185 @@
+@layer components {
+	.card {
+		@apply rounded-lg border border-line bg-surface p-4;
+	}
+	.link {
+		@apply cursor-pointer text-accent hover:underline;
+	}
+	.console {
+		@apply overflow-x-auto rounded-md px-3 py-2 font-mono text-xs;
+		background: var(--console-bg);
+		color: var(--console-fg);
+	}
+	.notice {
+		@apply rounded-md border px-3 py-2 text-sm;
+		border-color: color-mix(in oklab, var(--tone) 40%, transparent);
+		background: color-mix(in oklab, var(--tone) 8%, transparent);
+	}
+	.badge {
+		@apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap;
+		color: var(--tone);
+		background: color-mix(in oklab, var(--tone) 12%, transparent);
+	}
+	.dot {
+		@apply size-2 shrink-0 rounded-full;
+		background: var(--tone);
+	}
+	.mark {
+		@apply inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] leading-none font-bold;
+		color: var(--surface);
+		background: var(--tone);
+	}
+	.mark-hollow {
+		background: transparent;
+		box-shadow: inset 0 0 0 1.5px var(--tone);
+	}
+	.mark-live {
+		animation: mark-pulse 1.4s ease-in-out infinite;
+	}
+	.mark-lg {
+		@apply size-5 text-xs;
+	}
+	.tone-ok {
+		--tone: var(--ok);
+	}
+	.tone-warn {
+		--tone: var(--warn);
+	}
+	.tone-bad {
+		--tone: var(--bad);
+	}
+	.tone-info {
+		--tone: var(--info);
+	}
+	.tone-idle {
+		--tone: var(--idle);
+	}
+	.pill {
+		@apply inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs whitespace-nowrap text-muted hover:border-accent hover:text-fg;
+	}
+	.pill-on {
+		@apply border-accent text-fg;
+		background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+	}
+	.seg {
+		@apply inline-flex overflow-hidden rounded-md border border-line bg-surface text-xs;
+	}
+	.seg > a {
+		@apply border-r border-line px-3 py-1 text-muted last:border-r-0 hover:text-fg;
+	}
+	.seg > .seg-on {
+		@apply font-medium text-fg;
+		background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+	}
+	.btn {
+		@apply inline-flex items-center gap-1 rounded-md border border-line bg-surface px-3 py-1 text-sm whitespace-nowrap hover:border-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line;
+	}
+	.btn-primary {
+		@apply border-accent bg-accent font-medium;
+		color: var(--surface);
+	}
+	.btn-danger {
+		@apply text-bad;
+		border-color: color-mix(in oklab, var(--bad) 45%, var(--line));
+	}
+	.btn-danger:hover {
+		@apply border-bad;
+	}
+	.field {
+		@apply h-9 min-w-0 rounded-md border border-line bg-surface px-3 text-sm text-fg outline-none focus:border-accent;
+	}
+	.kv {
+		@apply grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm;
+	}
+	.kv dt {
+		@apply text-muted;
+	}
+	.kv-tight {
+		@apply grid-cols-[minmax(6rem,auto)_minmax(0,1fr)] gap-y-1 text-xs;
+	}
+	.label {
+		@apply text-[11px] font-semibold tracking-wide text-muted uppercase;
+	}
+	.grid-table {
+		@apply w-full text-left text-sm;
+	}
+	.grid-table th {
+		@apply border-b border-line px-3 py-2 text-xs font-medium whitespace-nowrap text-muted;
+	}
+	.grid-table td {
+		@apply border-b border-line px-3 py-2 align-top;
+	}
+	.grid-table tr:last-child td {
+		@apply border-b-0;
+	}
+	.row-on td {
+		background: color-mix(in oklab, var(--accent) 10%, transparent);
+	}
+	.rows {
+		@apply divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface;
+	}
+	.row {
+		@apply flex items-center gap-3 px-4 py-2.5 hover:bg-bg;
+	}
+	.meter {
+		@apply inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-1 text-xs text-muted;
+	}
+	.slot {
+		@apply inline-block size-2.5 rounded-sm border border-line bg-bg;
+	}
+	.slot-full {
+		@apply border-accent bg-accent;
+	}
+	.slot-over {
+		@apply border-bad;
+	}
+	.stage {
+		@apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5;
+	}
+	.stage-done {
+		@apply border-ok text-ok;
+	}
+	.stage-now {
+		@apply border-warn bg-warn text-white;
+	}
+	.stage-failed {
+		@apply border-bad bg-bad text-white;
+	}
+	.stage-todo {
+		@apply border-line text-muted;
+	}
+	.stage-skip {
+		@apply border-dashed border-line text-muted opacity-60;
+	}
+	.fold {
+		@apply rounded-md border border-line bg-surface text-sm;
+	}
+	.fold > summary {
+		@apply flex items-center gap-2 px-3 py-1.5 text-xs text-muted select-none hover:text-fg;
+	}
+	.fold[open] > summary {
+		@apply border-b border-line;
+	}
+	.fold > :not(summary) {
+		@apply px-3 py-2;
+	}
+	.close-x {
+		@apply ml-auto flex size-6 shrink-0 items-center justify-center rounded-md text-base leading-none text-muted hover:bg-bg hover:text-fg;
+	}
+	.htmx-indicator {
+		opacity: 0;
+		visibility: hidden;
+	}
+	.htmx-request .htmx-indicator,
+	.htmx-request.htmx-indicator {
+		opacity: 1;
+		visibility: visible;
+		transition: opacity 200ms ease-in;
+	}
+}
+
+@keyframes mark-pulse {
+	50% {
+		opacity: 0.35;
+	}
+}

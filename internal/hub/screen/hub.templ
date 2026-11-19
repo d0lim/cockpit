@@ -20,11 +20,13 @@ func startCommand(h api.HubItem) string {
 }
 
 templ hubPage(st *state) {
-	<div class="mb-6">
-		<h1 class="text-lg font-semibold">Which hub is this</h1>
-		<p class="text-sm text-muted">Its identity, its limits and the other hubs on this host.</p>
-	</div>
-	@hubRegion(st)
+	<main class="page page-text">
+		<div class="mb-5">
+			<h1 class="page-title">Hub</h1>
+			<p class="text-sm text-muted">This hub's identity and limits, and the other hubs on this host.</p>
+		</div>
+		@hubRegion(st)
+	</main>
 }
 
 templ hubRegion(st *state) {
@@ -63,7 +65,7 @@ templ hubRegion(st *state) {
 			<ul class="card divide-y divide-line p-0">
 				for _, h := range st.list.Hubs {
 					<li class="flex items-center gap-3 px-4 py-3">
-						<span class="rail-item rail-small">{ initials(h.Name) }</span>
+						<span class="side-mark">{ initials(h.Name) }</span>
 						<span class="min-w-0">
 							<span class="block text-sm">
 								{ h.Name }

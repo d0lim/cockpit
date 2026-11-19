@@ -61,8 +61,9 @@ type state struct {
 	run    *api.RunItem
 	tab    string
 
-	services map[string]serviceState
-	corr     *correlation
+	services  map[string]serviceState
+	corr      *correlation
+	flowsMemo flowsRead
 }
 
 func (s *Screen) load(ctx context.Context, path string, query url.Values) (*state, error) {

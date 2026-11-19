@@ -1,0 +1,102 @@
+package screen
+
+import (
+	"time"
+
+	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/hub/lifecycle"
+)
+
+type markView struct {
+	tone   Tone
+	glyph  string
+	label  string
+	hollow bool
+	live   bool
+}
+
+const (
+	glyphPassed  = "✓"
+	glyphFailed  = "✕"
+	glyphError   = "!"
+	glyphSkipped = "–"
+)
+
+func markOfRun(r api.RunItem) markView {
+	switch {
+	case r.Mark != "":
+		return markView{tone: ToneBad, glyph: glyphError, label: r.PhaseLabel}
+	case r.Phase == lifecycle.Queued:
+		return markView{tone: ToneIdle, label: r.PhaseLabel, hollow: true}
+	case r.Phase != lifecycle.Done:
+		return markView{tone: ToneWarn, label: r.PhaseLabel, live: true}
+	}
+	label := "no verdict"
+	if r.VerdictLabel != nil {
+		label = *r.VerdictLabel
+	}
+	switch r.Verdict {
+	case lifecycle.VerdictPassed:
+		return markView{tone: ToneOK, glyph: glyphPassed, label: label}
+	case lifecycle.VerdictFailed:
+		return markView{tone: ToneBad, glyph: glyphFailed, label: label}
+	case lifecycle.VerdictError:
+		return markView{tone: ToneBad, glyph: glyphError, label: label}
+	case lifecycle.VerdictAborted:
+		return markView{tone: ToneWarn, glyph: glyphSkipped, label: label}
+	}
+	return markView{tone: ToneIdle, label: label, hollow: true}
+}
+
+func markOfStatus(status string) markView {
+	m := markView{tone: flowTone(status), label: statusLabel(status)}
+	switch status {
+	case string(contract.FlowOutcomePassed):
+		m.glyph = glyphPassed
+	case string(contract.FlowOutcomeFailed):
+		m.glyph = glyphFailed
+	case string(contract.FlowOutcomeSkipped):
+		m.glyph = glyphSkipped
+	case string(contract.StepStatusRunning):
+		m.live = true
+	default:
+		m.hollow = true
+	}
+	return m
+}
+
+templ mark(m markView, large bool) {
+	<span class={ "mark", "tone-" + string(m.tone), templ.KV("mark-hollow", m.hollow), templ.KV("mark-live", m.live), templ.KV("mark-lg", large) } role="img" aria-label={ m.label } title={ m.label }>{ m.glyph }</span>
+}
+
+templ runMark(r api.RunItem, large bool) {
+	@mark(markOfRun(r), large)
+}
+
+templ statusMark(status string) {
+	@mark(markOfStatus(status), false)
+}
+
+templ badge(tone Tone, text string) {
+	<span class={ "badge", "tone-" + string(tone) }>{ text }</span>
+}
+
+func tookText(start, end string) string {
+	a, errA := time.Parse(time.RFC3339Nano, start)
+	b, errB := time.Parse(time.RFC3339Nano, end)
+	if errA != nil || errB != nil || b.Before(a) {
+		return ""
+	}
+	d := b.Sub(a).Round(time.Second)
+	h, m, s := int(d.Hours()), int(d.Minutes())%60, int(d.Seconds())%60
+	switch {
+	case h > 0:
+		return itoa(h) + "h " + itoa(m) + "m"
+	case m > 0:
+		return itoa(m) + "m " + itoa(s) + "s"
+	}
+	return itoa(s) + "s"
+}
+
+func tookOf(r api.RunItem) string { return tookText(r.StartedAt, r.FinishedAt) }

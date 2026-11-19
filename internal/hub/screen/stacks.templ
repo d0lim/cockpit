@@ -41,11 +41,13 @@ func owned(l api.HubList) []api.OrphanItem {
 }
 
 templ stacksPage(st *state) {
-	<div class="mb-6">
-		<h1 class="text-lg font-semibold">What else uses this host</h1>
-		<p class="text-sm text-muted">Compose projects that no hub on this host runs. They count toward the running cap. Nothing here is touched by a hub; remove them by hand.</p>
-	</div>
-	@stacksRegion(st)
+	<main class="page page-text">
+		<div class="mb-5">
+			<h1 class="page-title">Other stacks</h1>
+			<p class="text-sm text-muted">Compose projects that no hub on this host runs. They count toward the running cap. Nothing here is touched by a hub; remove them by hand.</p>
+		</div>
+		@stacksRegion(st)
+	</main>
 }
 
 templ stacksRegion(st *state) {

@@ -24,7 +24,7 @@ templ stepLinks(st *state, steps []contract.Signal) {
 templ relatedList(st *state, ids []string, self string) {
 	if r := st.correlation().related(ids, self); len(r.steps)+len(r.others) > 0 {
 		<div class="space-y-2" aria-label="Related signals">
-			<p class="text-xs font-semibold uppercase tracking-wide text-muted">Related by id</p>
+			<p class="label">Related by id</p>
 			if len(r.steps) > 0 {
 				<p class="text-xs">
 					<span class="text-muted">Marked by </span>

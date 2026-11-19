@@ -206,7 +206,7 @@ A root's name passes the record masker, is cut to 120 characters and is not kept
 
 | Run | Wire screen |
 | --- | --- |
-| Without `wire` | no tab; the path answers 404 |
+| Without `wire` | no `Calls` pane; the path answers 404 |
 | Queued to testing | says that the record is fixed when the run reaches its report |
 | Reported, kept, stopped or destroyed | the stored takes; destroy keeps `report/` and with it the record |
 | Resumed | the stored takes; the new recorder process records a `suite` take nobody reads, within its limits |

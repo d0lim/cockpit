@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"net/url"
 	"slices"
 	"strings"
 
@@ -123,6 +124,19 @@ func keepFrozen(r api.RunItem) bool {
 
 func allowed(d *api.RunDetail, e lifecycle.Event) bool {
 	return d != nil && slices.Contains(d.AllowedEvents, e)
+}
+
+var headerEvents = []lifecycle.Event{lifecycle.Resume, lifecycle.Stop, lifecycle.Abort, lifecycle.Destroy}
+
+func noActions(r api.RunItem, d *api.RunDetail) bool {
+	if !keepFrozen(r) {
+		return false
+	}
+	return !slices.ContainsFunc(headerEvents, func(e lifecycle.Event) bool { return allowed(d, e) })
+}
+
+func stepPath(run, flow, step string) string {
+	return "/runs/" + run + "/report/" + flow + "?step=" + url.QueryEscape(step)
 }
 
 func needsForce(op string, r api.RunItem) bool {
