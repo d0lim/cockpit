@@ -78,7 +78,7 @@ func TestOverviewReportAndTheFlowStepSayARunRecorded(t *testing.T) {
 
 func TestThePlainScreenOpensOnTheFailedStepWithItsStepListAndRouteCounts(t *testing.T) {
 	f, base := seededWire(t)
-	_, _, body := f.get(base)
+	_, _, body := f.get(base + "?view=calls")
 	region := section(t, body, "wire")
 	if got := strings.Join(rowSeqs(region), ","); got != "4,5,6,7" {
 		t.Fatalf("rows %s", got)
@@ -98,7 +98,7 @@ func TestThePlainScreenOpensOnTheFailedStepWithItsStepListAndRouteCounts(t *test
 
 func TestNestedRowsIndentUnderTheirParentAndTimeRowsStandApart(t *testing.T) {
 	f, base := seededWire(t)
-	_, _, body := f.get(base + "?flow=alpha&step=a2")
+	_, _, body := f.get(base + "?view=calls&flow=alpha&step=a2")
 	region := section(t, body, "wire")
 	heading := strings.Index(region, "not tied to it")
 	if heading < 0 {
@@ -153,7 +153,7 @@ func TestEachBodyKindAndAWithheldCallReadInWords(t *testing.T) {
 
 func TestAReloadWithTheQueryShowsTheSameCallAndThePickedRow(t *testing.T) {
 	f, base := seededWire(t)
-	path := base + "?flow=alpha&step=a2&target=ledger&call=5"
+	path := base + "?view=calls&flow=alpha&step=a2&target=ledger&call=5"
 	_, _, first := f.get(path)
 	_, _, again := f.get(path)
 	if section(t, first, "wire-call") != section(t, again, "wire-call") || section(t, first, "wire") != section(t, again, "wire") {
@@ -230,7 +230,7 @@ func TestTheTakePickerAppearsOnlyWithASecondTakeAndAnUnknownStepSaysSo(t *testin
 		t.Fatal("one take needs no picker")
 	}
 	wiretest.Store(t, f.runDir(rid(1)), wiretest.Take{Name: "exec-1", Calls: wiretest.Calls("x")[:2], Routes: wiretest.Routes()})
-	_, _, two := f.get(base + "?take=exec-1&scope=outside")
+	_, _, two := f.get(base + "?view=calls&take=exec-1&scope=outside")
 	if !strings.Contains(two, `aria-label="Takes"`) || strings.Join(rowSeqs(section(t, two, "wire")), ",") != "1,2" {
 		t.Fatalf("two takes: %v", rowSeqs(section(t, two, "wire")))
 	}
@@ -256,7 +256,7 @@ func TestAPageOfManyCallsStaysWithinItsRowAndTimeBudget(t *testing.T) {
 		list[i] = c
 	}
 	wiretest.Store(t, f.runDir(rid(1)), wiretest.Take{Calls: list, Routes: wiretest.Routes()})
-	path := "/runs/" + rid(1) + "/wire"
+	path := "/runs/" + rid(1) + "/wire?view=calls"
 	start := time.Now()
 	status, _, body := f.get(path)
 	took := time.Since(start)
@@ -268,7 +268,7 @@ func TestAPageOfManyCallsStaysWithinItsRowAndTimeBudget(t *testing.T) {
 		t.Fatalf("the page took %s, over %s", took, timeBudget)
 	}
 	t.Logf("first page of %d calls: %d rows, %d bytes, %s", calls, len(rows), len(body), took)
-	_, _, next := f.get(path + "?offset=200")
+	_, _, next := f.get(path + "&offset=200")
 	if got := rowSeqs(section(t, next, "wire")); len(got) != rowBudget || got[0] != "201" || !strings.Contains(next, "Earlier calls") {
 		t.Fatalf("page two starts at %v", got[:1])
 	}

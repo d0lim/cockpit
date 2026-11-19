@@ -126,19 +126,19 @@ func wireStepOn(v api.WireView, s api.WireStep) bool {
 }
 
 func (st *state) wireStepHref(s api.WireStep) string {
-	return st.href(map[string][]string{"flow": {s.Flow}, "step": {s.Step}, "scope": nil, "offset": nil, "call": nil})
+	return st.href(map[string][]string{"flow": {s.Flow}, "step": {s.Step}, "scope": nil, "offset": nil, "call": nil, "open": nil})
 }
 
 func (st *state) wireOutsideHref() string {
-	return st.href(map[string][]string{"scope": {api.WireScopeOutside}, "flow": nil, "step": nil, "offset": nil, "call": nil})
+	return st.href(map[string][]string{"scope": {api.WireScopeOutside}, "flow": nil, "step": nil, "offset": nil, "call": nil, "open": nil})
 }
 
 func (st *state) wireTakeHref(take string) string {
-	return st.href(map[string][]string{"take": {take}, "flow": nil, "step": nil, "scope": nil, "target": nil, "offset": nil, "call": nil})
+	return st.href(map[string][]string{"take": {take}, "flow": nil, "step": nil, "scope": nil, "target": nil, "offset": nil, "call": nil, "open": nil})
 }
 
 func (st *state) wireTargetHref(target string) string {
-	set := map[string][]string{"target": nil, "offset": nil, "call": nil}
+	set := map[string][]string{"target": nil, "offset": nil, "call": nil, "open": nil}
 	if target != "" {
 		set["target"] = []string{target}
 	}
@@ -165,12 +165,15 @@ func wireTakeRank(take string) int {
 }
 
 func (st *state) wireOffsetHref(offset int) string {
-	return st.href(map[string][]string{"offset": {itoa(max(offset, 0))}, "call": nil})
+	return st.href(map[string][]string{"offset": {itoa(max(offset, 0))}, "call": nil, "open": nil})
 }
 
 func wireStepHeading(v api.WireView) (string, string) {
 	if v.Scope == api.WireScopeOutside {
 		return "Outside any step", "Calls that started while no step was running."
+	}
+	if v.Scope == api.WireScopeFlow {
+		return v.Flow, "Every step of this flow, in the order the calls started."
 	}
 	if v.Scope != api.WireScopeStep {
 		return "No calls", "This take holds no call."

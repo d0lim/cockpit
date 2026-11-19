@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"html"
 	"net/http"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 var wireMaskMutations = []porttest.Mutation{
 	{"the list reaches the screen masked", "return the stored strings from wireHead in the API", "red: the planted path is in the table", "TestTheWireScreenShowsTheListAndThePickedCallOnlyMasked"},
 	{"the picked call reaches the screen cleaned", "answer the stored call from WireCall", "red: the planted body is in the page", "TestTheWireScreenShowsTheListAndThePickedCallOnlyMasked"},
+	{"the diagrams and the Mermaid text reach the screen masked", "return the stored strings from wireHead in the API", "red: the planted path is in the SVG and in data-copy", "TestTheDiagramsAndTheMermaidTextHoldOnlyMaskedPaths"},
 	{"a long body is cut after it was masked", "cut the stored text to 256 KiB before Clean runs in WireCall", "red: the start of the planted value is in the shown part", "TestALongBodyIsCutAtARuneBoundaryAfterItWasMasked"},
 }
 
@@ -47,6 +49,23 @@ func TestTheWireScreenShowsTheListAndThePickedCallOnlyMasked(t *testing.T) {
 	for _, want := range []string{"POST /orders/" + maskedPlanted, "failed for " + maskedPlanted, `id="wire-call"`, "ref = " + maskedPlanted} {
 		if !strings.Contains(body, want) {
 			t.Errorf("canary: the page lacks %q", want)
+		}
+	}
+}
+
+func TestTheDiagramsAndTheMermaidTextHoldOnlyMaskedPaths(t *testing.T) {
+	f, base := seededWire(t)
+	for _, view := range []string{wireViewSequence, wireViewTrace} {
+		_, _, body := f.get(base + "?flow=alpha&step=a2&view=" + view)
+		region := html.UnescapeString(section(t, body, "wire"))
+		if strings.Contains(region, planted) || !strings.Contains(region, "<svg") {
+			t.Fatalf("%s: planted %v", view, strings.Contains(region, planted))
+		}
+		if !strings.Contains(region, "/orders/"+maskedPlanted) {
+			t.Fatalf("%s: the masked path is not drawn", view)
+		}
+		if !strings.Contains(region, "POST /orders/"+maskedPlanted+"\n") {
+			t.Fatalf("%s: the Mermaid text lacks the masked path", view)
 		}
 	}
 }
