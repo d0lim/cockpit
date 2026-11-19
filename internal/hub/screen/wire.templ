@@ -96,10 +96,10 @@ templ wireCalls(st *state, v api.WireView) {
 	if v.Total > v.Limit {
 		<nav class="flex items-center gap-3 text-sm" aria-label="Pages">
 			if v.Offset > 0 {
-				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset - v.Limit)) } hx-swap={ keepPlace }>Earlier calls</a>
+				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset - v.Limit)) }>Earlier calls</a>
 			}
 			if v.Offset+v.Limit < v.Total {
-				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset + v.Limit)) } hx-swap={ keepPlace }>Later calls</a>
+				<a class="link" href={ templ.SafeURL(st.wireOffsetHref(v.Offset + v.Limit)) }>Later calls</a>
 			}
 		</nav>
 	}

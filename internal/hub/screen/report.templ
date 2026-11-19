@@ -187,7 +187,7 @@ templ flowSteps(st *state, fv api.FlowView) {
 		<ol class="rows">
 			for _, s := range fv.Flow.StepList {
 				<li>
-					<a href={ templ.SafeURL(st.flowHref(fv.Flow.ID, s.ID, "")) } class="step-line" hx-swap={ keepPlace }>
+					<a href={ templ.SafeURL(st.flowHref(fv.Flow.ID, s.ID, "")) } class="step-line">
 						<span class="flex flex-wrap items-center gap-2">
 							@statusMark(string(s.Status))
 							<span class="font-mono text-xs text-muted">{ s.ID }</span>

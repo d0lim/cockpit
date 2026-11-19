@@ -84,7 +84,7 @@ templ stepRecords(st *state, flow string, s contract.FlowStep) {
 				if st.run.Wire {
 					<p class="text-xs text-muted">
 						The bodies of these requests and of the calls they caused are under
-						<a class="link" href={ templ.SafeURL(st.callsHref(flow, s.ID)) } hx-swap={ keepPlace }>Calls</a>.
+						<a class="link" href={ templ.SafeURL(st.callsHref(flow, s.ID)) }>Calls</a>.
 					</p>
 				}
 			</div>

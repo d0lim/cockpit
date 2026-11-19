@@ -16,7 +16,7 @@ templ flowTreeNav(t flowTree, pick treePick) {
 	<nav class="tree" aria-label="Flows" data-scroll-box="tree">
 		<div class="tree-filter" aria-label="Steps to list">
 			for _, f := range t.filters {
-				<a href={ templ.SafeURL(f.href) } class={ "pill", templ.KV("pill-on", f.on) } hx-swap={ keepPlace }>{ f.label } <span class="tabular-nums">{ itoa(f.count) }</span></a>
+				<a href={ templ.SafeURL(f.href) } class={ "pill", templ.KV("pill-on", f.on) }>{ f.label } <span class="tabular-nums">{ itoa(f.count) }</span></a>
 			}
 		</div>
 		if t.rows == 0 {
@@ -29,7 +29,7 @@ templ flowTreeNav(t flowTree, pick treePick) {
 			<ol>
 				for _, f := range stage.flows {
 					<li>
-						<a href={ templ.SafeURL(f.href) } class={ "tree-flow", templ.KV("tree-on", f.on) } title={ f.id + " · " + statusLabel(f.status) } hx-swap={ keepPlace } if f.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
+						<a href={ templ.SafeURL(f.href) } class={ "tree-flow", templ.KV("tree-on", f.on) } title={ f.id + " · " + statusLabel(f.status) } if f.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
 							@statusMark(f.status)
 							<span class="min-w-0 truncate font-mono text-xs font-medium">{ f.id }</span>
 							<span class="tree-meta">{ f.count }</span>
@@ -38,7 +38,7 @@ templ flowTreeNav(t flowTree, pick treePick) {
 							<ol>
 								for _, s := range f.steps {
 									<li>
-										<a href={ templ.SafeURL(s.href) } class={ "tree-step", templ.KV("tree-on", s.on) } title={ orElse(s.title, s.id) } hx-swap={ keepPlace } if s.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
+										<a href={ templ.SafeURL(s.href) } class={ "tree-step", templ.KV("tree-on", s.on) } title={ orElse(s.title, s.id) } if s.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
 											@statusMark(s.status)
 											<span class="min-w-0 truncate">{ orElse(s.title, s.id) }</span>
 											<span class="tree-meta">{ s.meta }</span>
@@ -52,7 +52,7 @@ templ flowTreeNav(t flowTree, pick treePick) {
 			</ol>
 		}
 		if t.outside != nil {
-			<a href={ templ.SafeURL(t.outside.href) } class={ "tree-flow", "mt-2", "border-t", "border-line", templ.KV("tree-on", t.outside.on) } hx-swap={ keepPlace } if t.outside.on { aria-current="true" }>
+			<a href={ templ.SafeURL(t.outside.href) } class={ "tree-flow", "mt-2", "border-t", "border-line", templ.KV("tree-on", t.outside.on) } if t.outside.on { aria-current="true" }>
 				<span class="min-w-0 truncate">Outside any step</span>
 				<span class="tree-meta">{ itoa(t.outside.calls) }</span>
 			</a>
@@ -132,7 +132,7 @@ templ pickHead(st *state, f contract.FlowSummary, s *contract.FlowStep, source s
 
 templ paneTabs(st *state, flow, step, on string) {
 	<nav class="subtabs" aria-label="Panes">
-		<a href={ templ.SafeURL(st.flowHref(flow, step, "")) } class={ "subtab", templ.KV("subtab-on", on == paneStep) } hx-swap={ keepPlace } if on == paneStep { aria-current="page" }>
+		<a href={ templ.SafeURL(st.flowHref(flow, step, "")) } class={ "subtab", templ.KV("subtab-on", on == paneStep) } if on == paneStep { aria-current="page" }>
 			if step == "" {
 				Steps
 			} else {
@@ -140,9 +140,9 @@ templ paneTabs(st *state, flow, step, on string) {
 			}
 		</a>
 		if st.run.Wire {
-			<a href={ templ.SafeURL(st.callsHref(flow, step)) } class={ "subtab", templ.KV("subtab-on", on == paneCalls) } hx-swap={ keepPlace } title="What each server was asked, and what it answered" if on == paneCalls { aria-current="page" }>Calls</a>
+			<a href={ templ.SafeURL(st.callsHref(flow, step)) } class={ "subtab", templ.KV("subtab-on", on == paneCalls) } title="What each server was asked, and what it answered" if on == paneCalls { aria-current="page" }>Calls</a>
 		}
-		<a href={ templ.SafeURL(st.flowHref(flow, step, paneSource)) } class={ "subtab", templ.KV("subtab-on", on == paneSource) } hx-swap={ keepPlace } if on == paneSource { aria-current="page" }>Source</a>
+		<a href={ templ.SafeURL(st.flowHref(flow, step, paneSource)) } class={ "subtab", templ.KV("subtab-on", on == paneSource) } if on == paneSource { aria-current="page" }>Source</a>
 	</nav>
 }
 
