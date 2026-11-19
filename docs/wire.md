@@ -93,6 +93,8 @@ The record stays in the memory of the process until it is taken. Nothing in the 
 | Stored lines with bodies | 96 MiB | later calls keep no bodies, `record-full` |
 | Stored lines | 128 MiB | counted in `callsDropped` |
 
+The process sets a soft memory limit of 256 MiB unless `GOMEMLIMIT` is set, and the container has no hard limit. The record, the bodies waiting to be cleaned and the bodies in flight add up above it: a sealed run that drove every limit above peaked at about 395 MiB.
+
 ## What a call holds
 
 A call has `seq`, `caller`, `target`, `port`, `method`, `path`, `query`, `started`, `replied` (when the recorder began its last write of the answer to the caller, absent when it wrote none), `finished` (absent while the call is open), `status`, `outcome`, `span` (the span id of a valid `traceparent`), `withheld`, and a `request` and a `response`. Each of those two holds `headers`, `size` and a `body` of one kind:
