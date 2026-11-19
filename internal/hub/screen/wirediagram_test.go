@@ -258,3 +258,25 @@ func TestADiagramOfAFullPageStaysWithinItsTimeBudget(t *testing.T) {
 		}
 	}
 }
+
+func TestThePickedCallOpensInAPanelWhoseCloseLinkDropsOnlyTheCall(t *testing.T) {
+	f, base := seededWire(t)
+	for _, view := range []string{wireViewCalls, wireViewSequence, wireViewTrace} {
+		_, _, body := f.get(base + "?flow=alpha&step=a2&call=5&view=" + view)
+		panel := html.UnescapeString(section(t, body, "wire-call"))
+		if !strings.Contains(panel, `class="wire-drawer"`) || !strings.Contains(panel, ">Call 5<") {
+			t.Fatalf("%s: the call is not in the panel: %s", view, panel)
+		}
+		closeLink := regexp.MustCompile(`href="([^"]*)" hx-swap="innerHTML show:none" data-drawer-close`).FindStringSubmatch(panel)
+		if closeLink == nil || strings.Contains(closeLink[1], "call=") || !strings.Contains(closeLink[1], "view="+view) || !strings.Contains(closeLink[1], "step=a2") {
+			t.Fatalf("%s: close link %v", view, closeLink)
+		}
+		if n := strings.Count(section(t, body, "wire"), `data-scroll-here="call-5"`); n != 1 {
+			t.Fatalf("%s: the picked call is marked to scroll into view %d times", view, n)
+		}
+	}
+	_, _, none := f.get(base + "?flow=alpha&step=a2&view=" + wireViewCalls)
+	if strings.Contains(none, `id="wire-call"`) || strings.Contains(none, "data-scroll-here") || !strings.Contains(none, `data-seq="5"`) {
+		t.Fatal("without a picked call the panel or a scroll mark remains")
+	}
+}

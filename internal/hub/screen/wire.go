@@ -13,7 +13,10 @@ import (
 	"github.com/d0lim/cockpit/internal/wire"
 )
 
-const wireCallPanelID = "wire-call"
+const (
+	wireCallPanelID = "wire-call"
+	wireKeepPlace   = "innerHTML show:none"
+)
 
 func wireRecorded(st *state) (int, string) {
 	if !st.run.Wire {
@@ -146,7 +149,15 @@ func (st *state) wireTargetHref(target string) string {
 }
 
 func (st *state) wireCallHref(seq int64) string {
-	return st.href(map[string][]string{"call": {strconv.FormatInt(seq, 10)}}) + "#" + wireCallPanelID
+	return st.href(map[string][]string{"call": {strconv.FormatInt(seq, 10)}})
+}
+
+func (st *state) wireCloseHref() string {
+	return st.href(map[string][]string{"call": nil})
+}
+
+func wireScrollKey(seq int64) string {
+	return "call-" + strconv.FormatInt(seq, 10)
 }
 
 func wireTakeOrder(takes []string) []string {

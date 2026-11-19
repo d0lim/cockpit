@@ -42,3 +42,15 @@ export function scrollToHere(): void {
 
 document.addEventListener("DOMContentLoaded", scrollToHere);
 document.addEventListener("htmx:after:settle", scrollToHere);
+
+export function closeDrawer(key: string): boolean {
+	if (key !== "Escape") return false;
+	const close = document.querySelector<HTMLAnchorElement>("[data-drawer-close]");
+	if (close === null) return false;
+	close.click();
+	return true;
+}
+
+document.addEventListener("keydown", (event) => {
+	if (!event.defaultPrevented) closeDrawer(event.key);
+});

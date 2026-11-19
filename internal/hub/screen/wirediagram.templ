@@ -46,7 +46,7 @@ templ wireDiagram(s wireScene) {
 			}
 			for _, h := range s.Hits {
 				<a href={ templ.SafeURL(h.Href) } aria-label={ h.Label } data-seq={ itoa64(h.Seq) }>
-					<rect x="0" y={ wireNum(h.Y) } width={ wireNum(s.Width) } height={ wireNum(h.H) } class={ "wire-hit", templ.KV("wire-hit-on", h.On) }></rect>
+					<rect x="0" y={ wireNum(h.Y) } width={ wireNum(s.Width) } height={ wireNum(h.H) } class={ "wire-hit", templ.KV("wire-hit-on", h.On) } if h.Here { data-scroll-here={ wireScrollKey(h.Seq) } }></rect>
 				</a>
 			}
 			for _, p := range s.Lines {

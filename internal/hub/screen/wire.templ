@@ -134,7 +134,7 @@ templ wireTable(st *state, rows []wireRow) {
 			</thead>
 			<tbody>
 				for _, r := range rows {
-					<tr class={ templ.KV("row-on", st.query.Get("call") == itoa64(r.head.Seq)) } data-seq={ itoa64(r.head.Seq) } data-link={ string(r.head.Link) } data-depth={ itoa(r.head.Depth) }>
+					<tr class={ templ.KV("row-on", st.query.Get("call") == itoa64(r.head.Seq)) } data-seq={ itoa64(r.head.Seq) } data-link={ string(r.head.Link) } data-depth={ itoa(r.head.Depth) } if st.query.Get("call") == itoa64(r.head.Seq) { data-scroll-here={ wireScrollKey(r.head.Seq) } }>
 						<td class="font-mono text-xs whitespace-nowrap text-muted">{ r.offset }</td>
 						<td class="font-mono text-xs">
 							<div class={ wireIndent(r.head.Depth) }>
@@ -145,7 +145,7 @@ templ wireTable(st *state, rows []wireRow) {
 							</div>
 						</td>
 						<td class="font-mono text-xs break-all">
-							<a class="link" href={ templ.SafeURL(st.wireCallHref(r.head.Seq)) }>{ r.head.Method } { orElse(r.head.Path, "(path not kept)") }</a>
+							<a class="link" href={ templ.SafeURL(st.wireCallHref(r.head.Seq)) } hx-swap={ wireKeepPlace }>{ r.head.Method } { orElse(r.head.Path, "(path not kept)") }</a>
 							if r.head.Link == "time" || r.head.Link == "background" {
 								<span class="ml-1">
 									@badge(ToneIdle, string(r.head.Link))
