@@ -177,20 +177,30 @@ A state other than `taken` adds one line to `notProven.unread`. The wire record 
 
 ## Tying a call to a step
 
-Linking runs once, at the take, over the calls in start order with `result.json` of the take's runner (the run's or the exec's). All call times come from the recorder's clock.
+Linking runs once, at the take, over the calls in start order with `result.json` of the take's runner (the run's or the exec's) and the service spans the run's signal stream holds at that moment. All call times come from the recorder's clock.
+
+A call's `span` is the span its caller sent the request under. When the caller exports OTLP, that span is in the stream, and its chain of parents says what the caller was doing. The chain is evidence, so it comes before timing. A span id the runner recorded counts as a call of that step, including when the stream has moved a service span under the runner's call.
 
 | Link | Rule |
 | --- | --- |
 | `exact` | the call's `span` is the span id of a call the runner recorded for a step; or the caller is `cockpit-runner` and the call started inside a step's window, which also covers calls past the runner's limit of 50 per step |
-| `nested` | an `exact` or `nested` call to this caller was open for the whole of this call; the tightest such call is the parent and gives the step. No header is needed, so this follows paths that drop `traceparent`. This call counts as over at `replied` when it has one: the caller can act on the answer as soon as the last bytes leave the recorder, and the recorder may not have closed the call yet |
+| `traced` | the call's span chain reaches another recorded call, which becomes the parent. The chain reaches a call at the first span id that is that call's `span`. A chain that ends at a root span also reaches a call when exactly one recorded call to the root's service, with the root's method and route, was open when the root started; such a link carries `route`, because it is a match and no span id says so |
+| `nested` | the call has no usable chain, and an `exact`, `traced`, `nested` or `background` call to this caller was open for the whole of this call; the tightest such call is the parent. No header is needed, so this follows paths that drop `traceparent`. This call counts as over at `replied` when it has one: the caller can act on the answer as soon as the last bytes leave the recorder, and the recorder may not have closed the call yet |
+| `background` | the call's span chain ends at a root span that reaches no recorded call, such as a scheduled task or a message consumer. The link keeps the root's name in `root` |
 | `time` | the call started inside a step's window and nothing else ties it to the step |
-| `none` | the call started outside every step |
+| `none` | the call started outside every step and nothing else ties it to one |
 
-A `time` link is never a parent, so a guess cannot spread. A step the runner did not finish stays open until the take, and a call still open at the take encloses every later call to its target.
+A chain that breaks at a span the stream does not hold is no evidence, and the call falls through to the timing rules. An exec's take does not wait for its spans, so spans that arrive later leave those calls to timing too.
+
+A call is **tied** to a step when it is `exact`, or `traced` or `nested` below a tied call. A tied call belongs to its parent's step, so work that a step started and that ran on during a later step stays with the step that caused it. Every other call is listed under the step whose window it started in, and outside every step when there is none. A `traced` or `nested` call below an untied parent takes the parent's step only when it started outside every window.
+
+A `time` link is never the parent of a `nested` link, so a guess cannot spread. It can be the parent of a `traced` link, because that link rests on the span chain. A step the runner did not finish stays open until the take, and a call still open at the take encloses every later call to its target.
+
+A root's name passes the record masker, is cut to 120 characters and is not kept on a withheld call.
 
 ## Reading the record
 
-`GET /api/runs/{id}/wire` answers a `WireView`, and `GET /api/runs/{id}/wire/{seq}` a `WireCallView` (`docs/api.md`). The Wire screen is `/runs/{id}/wire` (`docs/screen.md`). The index holds one row per call with the offset of its line, the steps of the take's runner with their status, the declared routes and the public fields, so a list reads no body, a picked call reads one line and a destroyed run needs no other file.
+`GET /api/runs/{id}/wire` answers a `WireView`, and `GET /api/runs/{id}/wire/{seq}` a `WireCallView` (`docs/api.md`). The Wire screen is `/runs/{id}/wire` (`docs/screen.md`). The index holds one row per call with its times, its link and the offset of its line, the steps of the take's runner with their status, the declared routes and the public fields, so a list reads no body, a picked call reads one line and a destroyed run needs no other file.
 
 | Run | Wire screen |
 | --- | --- |
