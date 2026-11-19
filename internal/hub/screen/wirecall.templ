@@ -7,45 +7,95 @@ import (
 
 templ wireCallPanel(st *state) {
 	if st.query.Get("call") != "" {
-		<section id={ wireCallPanelID } class="wire-drawer" aria-label="Picked call">
-			<div class="wire-drawer-head">
-				<span class="text-xs text-muted">Picked call</span>
-				<a class="link ml-auto text-sm" href={ templ.SafeURL(st.wireCloseHref()) } hx-swap={ wireKeepPlace } data-drawer-close>Close</a>
-			</div>
-			<div class="space-y-4 p-4">
+		<section id={ wireCallPanelID } class="call-panel" aria-label="Picked call" data-panel>
 			if c, err := st.wireCall(); err != nil {
-				<p class="notice tone-bad">This call cannot be shown: { err.Error() }</p>
+				@wireCallProblem(st, "This call cannot be shown: "+err.Error())
 			} else if c == nil {
-				<p class="notice tone-bad">The call in this address is not a call number.</p>
+				@wireCallProblem(st, "The call in this address is not a call number.")
 			} else {
-				@wireCallFacts(*c)
-				if c.Call.Withheld {
-					<p class="notice tone-warn">This call failed the check that nothing secret remains, so its path, query, span, headers and bodies were not kept.</p>
-				} else {
-					@wireMessage("Request", c.Call.Request)
-					@wireMessage("Response", c.Call.Response)
-				}
+				@wireCallHead(st, *c)
+				<div class="call-body">
+					if c.Call.Withheld {
+						<p class="notice tone-warn">This call failed the check that nothing secret remains, so its path, query, span, headers and bodies were not kept.</p>
+					} else {
+						@wireMessage("Request", c.Call.Request, c.Call.Query)
+						@wireMessage("Response", c.Call.Response, wire.Body{})
+					}
+					<div class="call-part">
+						<h3>Why it is listed here</h3>
+						<p class="text-sm">
+							@badge(wireLinkTone(c.Head.Link), string(c.Head.Link))
+							<span class="ml-1">{ c.Why }</span>
+						</p>
+					</div>
+					<p class="text-xs text-muted">Call { itoa64(c.Head.Seq) } · started { wireStamp(c.Head.Started) } · { wireOutcomes[c.Head.Outcome] }</p>
+				</div>
 			}
-			</div>
 		</section>
 	}
 }
 
-templ wireCallFacts(c api.WireCallView) {
-	<div class="card">
-		<h3 class="mb-3 font-mono text-sm font-semibold">Call { itoa64(c.Head.Seq) }</h3>
-		<dl class="kv">
-			<dt>Caller</dt>
-			<dd class="font-mono">{ c.Head.Caller }</dd>
-			<dt>Target</dt>
-			<dd class="font-mono">{ c.Head.Target }:{ itoa(c.Head.Port) }</dd>
-			<dt>Method</dt>
-			<dd class="font-mono">{ c.Head.Method }</dd>
-			<dt>Path</dt>
-			<dd class="font-mono break-all">{ orElse(c.Head.Path, "(not kept)") }</dd>
-			if fields, text := wireQueryFields(c.Call.Query); len(fields) > 0 || text != "" {
-				<dt>Query</dt>
-				<dd class="font-mono break-all">
+templ wireCallClose(st *state) {
+	<a class="close-x" href={ templ.SafeURL(st.wireCloseHref()) } hx-swap={ keepPlace } data-panel-close aria-label="Close the picked call" title="Close (Esc)">×</a>
+}
+
+templ wireCallProblem(st *state, text string) {
+	<header class="call-head">
+		<div class="flex items-center gap-2">
+			<h2 class="text-sm font-semibold">Picked call</h2>
+			@wireCallClose(st)
+		</div>
+	</header>
+	<div class="call-body">
+		<p class="notice tone-bad">{ text }</p>
+	</div>
+}
+
+templ wireCallHead(st *state, c api.WireCallView) {
+	<header class="call-head">
+		<div class="flex items-start gap-2">
+			@methodTag(c.Head.Method)
+			<h2 class="call-path">{ orElse(c.Head.Path, "(path not kept)") }</h2>
+			@wireCallClose(st)
+		</div>
+		<p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+			if tone, text := wireResult(c.Head); true {
+				@badge(tone, text)
+			}
+			<span>{ wireDuration(c.Head) }</span>
+			if !c.Call.Withheld {
+				<span>·</span>
+				<span>{ wireSize(c.Call.Request.Size) } sent, { wireSize(c.Call.Response.Size) } back</span>
+			}
+			<span>·</span>
+			<span class="font-mono text-fg">{ c.Head.Caller } → { c.Head.Target }:{ itoa(c.Head.Port) }</span>
+		</p>
+	</header>
+}
+
+templ wireFieldList(fields []wireField) {
+	<dl class="kv kv-tight">
+		for _, f := range fields {
+			<dt class="font-mono break-all">{ f.key }</dt>
+			<dd class="font-mono break-all">
+				for _, v := range f.values {
+					<div>{ v }</div>
+				}
+			</dd>
+		}
+	</dl>
+}
+
+templ wireMessage(title string, m wire.Message, query wire.Body) {
+	<div class="call-part" role="group" aria-label={ title }>
+		<h3>
+			{ title }
+			<span class="text-xs font-normal text-muted">{ wireSize(m.Size) }</span>
+		</h3>
+		if fields, text := wireQueryFields(query); len(fields) > 0 || text != "" {
+			<div class="space-y-1">
+				<p class="label">Query</p>
+				<div class="font-mono text-xs break-all">
 					if text != "" {
 						{ text }
 					}
@@ -54,45 +104,8 @@ templ wireCallFacts(c api.WireCallView) {
 							<div>{ f.key } = { v }</div>
 						}
 					}
-				</dd>
-			}
-			<dt>Status</dt>
-			<dd>
-				if c.Head.Status == 0 {
-					no status
-				} else {
-					{ itoa(c.Head.Status) }
-				}
-			</dd>
-			<dt>Outcome</dt>
-			<dd>{ wireOutcomes[c.Head.Outcome] }</dd>
-			<dt>Started</dt>
-			<dd>{ wireStamp(c.Head.Started) }</dd>
-			<dt>Took</dt>
-			<dd>{ wireDuration(c.Head) }</dd>
-			<dt>Link</dt>
-			<dd>
-				@badge(wireLinkTone(c.Head.Link), string(c.Head.Link))
-				<span class="ml-1">{ c.Why }</span>
-			</dd>
-		</dl>
-	</div>
-}
-
-templ wireMessage(title string, m wire.Message) {
-	<div class="card min-w-0 space-y-3">
-		<h3 class="text-sm font-semibold">{ title } <span class="font-normal text-muted">· { wireSize(m.Size) }</span></h3>
-		if headers := wireHeaders(m.Headers); len(headers) > 0 {
-			<dl class="kv">
-				for _, h := range headers {
-					<dt class="font-mono text-xs break-all">{ h.key }</dt>
-					<dd class="font-mono text-xs break-all">
-						for _, v := range h.values {
-							<div>{ v }</div>
-						}
-					</dd>
-				}
-			</dl>
+				</div>
+			</div>
 		}
 		if b := wireBody(m); true {
 			if b.note != "" {
@@ -100,25 +113,25 @@ templ wireMessage(title string, m wire.Message) {
 			}
 			for _, block := range b.blocks {
 				if block.label != "" {
-					<p class="text-xs font-semibold text-muted">{ block.label }</p>
+					<p class="label">{ block.label }</p>
 				}
 				<pre class="console">{ block.text }</pre>
 			}
 			if len(b.fields) > 0 {
-				<dl class="kv">
-					for _, f := range b.fields {
-						<dt class="font-mono text-xs break-all">{ f.key }</dt>
-						<dd class="font-mono text-xs break-all">
-							for _, v := range f.values {
-								<div>{ v }</div>
-							}
-						</dd>
-					}
-				</dl>
+				@wireFieldList(b.fields)
 			}
 			if b.cut {
 				<p class="text-xs text-muted">Shown up to 256 KiB. The rest is in the stored record.</p>
 			}
+		}
+		if headers := wireHeaders(m.Headers); len(headers) > 0 {
+			<details class="fold">
+				<summary>
+					Headers
+					<span class="ml-auto tabular-nums">{ itoa(len(headers)) }</span>
+				</summary>
+				@wireFieldList(headers)
+			</details>
 		}
 	</div>
 }

@@ -3,20 +3,21 @@ package screen
 import "github.com/d0lim/cockpit/internal/hub/api"
 
 templ wireViewBar(st *state, v api.WireView) {
-	<div class="flex flex-wrap items-center gap-1">
-		<nav class="flex gap-1" aria-label="Views">
+	<div class="flex flex-wrap items-center gap-2">
+		<nav class="seg" aria-label="Views">
 			for _, name := range wireViewNames {
-				<a href={ templ.SafeURL(st.wireViewHref(name)) } class={ "pill", templ.KV("pill-on", st.wireViewName() == name) }>{ wireViewLabel(name) }</a>
+				<a href={ templ.SafeURL(st.wireViewHref(name)) } class={ templ.KV("seg-on", st.wireViewName() == name) } hx-swap={ keepPlace }>{ wireViewLabel(name) }</a>
 			}
 		</nav>
 		if st.wireViewName() != wireViewCalls {
-			<nav class="ml-3 flex gap-1" aria-label="Which calls">
-				<a href={ templ.SafeURL(st.wireTiesHref(false)) } class={ "pill", templ.KV("pill-on", !st.wireTiedOnly()) }>All calls</a>
-				<a href={ templ.SafeURL(st.wireTiesHref(true)) } class={ "pill", templ.KV("pill-on", st.wireTiedOnly()) }>Tied to the step</a>
+			<nav class="seg" aria-label="Which calls">
+				<a href={ templ.SafeURL(st.wireTiesHref(false)) } class={ templ.KV("seg-on", !st.wireTiedOnly()) } hx-swap={ keepPlace }>All calls</a>
+				<a href={ templ.SafeURL(st.wireTiesHref(true)) } class={ templ.KV("seg-on", st.wireTiedOnly()) } hx-swap={ keepPlace }>Tied to the step</a>
 			</nav>
-			if len(v.Calls) > 0 {
-				<button type="button" class="pill ml-auto" data-copy={ wireMermaid(st.wireModel(v)) }>Copy as Mermaid</button>
-			}
+		}
+		<span class="text-xs text-muted">{ wirePageText(v) }</span>
+		if st.wireViewName() != wireViewCalls && len(v.Calls) > 0 {
+			<button type="button" class="pill ml-auto" data-copy={ wireMermaid(st.wireModel(v)) }>Copy as Mermaid</button>
 		}
 	</div>
 }
@@ -31,7 +32,7 @@ templ wireLegend() {
 }
 
 templ wireDiagram(s wireScene) {
-	<div class="wire-scroll" tabindex="0" role="region" aria-label={ s.Label }>
+	<div class="wire-scroll" tabindex="0" role="region" aria-label={ s.Label } data-scroll-box="calls">
 		<svg class="wire-svg wire-head" width={ wireNum(s.Width) } height={ wireNum(s.HeadHeight) } viewBox={ "0 0 " + wireNum(s.Width) + " " + wireNum(s.HeadHeight) } aria-hidden="true">
 			for _, p := range s.HeadPaths {
 				<path d={ p.D } class={ p.Class }></path>

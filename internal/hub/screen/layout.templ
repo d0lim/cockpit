@@ -2,16 +2,18 @@ package screen
 
 import (
 	"net/url"
-	"strconv"
 	"strings"
 	"unicode"
 
 	"github.com/d0lim/cockpit/internal/hub/api"
+	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 )
 
 const cockpitHeaders = `{"X-Cockpit":"1"}`
 
 const htmxConfig = `{"includeIndicatorCSS":false,"defaultSwap":"innerHTML"}`
+
+const keepPlace = "innerHTML show:none"
 
 templ layout(st *state, title string, body templ.Component) {
 	<!DOCTYPE html>
@@ -28,23 +30,14 @@ templ layout(st *state, title string, body templ.Component) {
 		</head>
 		<body hx-boost:inherited="true" hx-headers:inherited={ cockpitHeaders } class="bg-bg text-fg antialiased">
 			<div hx-ws:connect={ "/live?screen=" + url.QueryEscape(st.screenParam()) } hx-swap="none" class="hidden"></div>
-			<div class="flex min-h-screen">
-				@rail(st)
-				<div class="flex min-w-0 flex-1 flex-col">
-					<header class="flex h-12 items-center gap-3 border-b border-line bg-surface px-6">
-						<a href="/" class="font-semibold text-fg">{ st.self().Name }</a>
-						<span class="text-muted">/</span>
-						<span class="text-fg">{ title }</span>
-						<span class="ml-auto flex items-center gap-2 text-xs text-muted">
-							<span class="live-dot size-2 rounded-full"></span>
-							<span class="live-text"></span>
-						</span>
-					</header>
-					<main class="mx-auto w-full max-w-6xl flex-1 px-6 py-6">
-						@body
-					</main>
+			<a id="follow" href="/" hx-swap={ keepPlace } class="hidden" tabindex="-1" aria-hidden="true"></a>
+			<div class="shell">
+				@sidebar(st)
+				<div class="main">
+					@body
 				</div>
 			</div>
+			<div id="action-result" class="toast" aria-live="polite"></div>
 		</body>
 	</html>
 }
@@ -104,69 +97,131 @@ func hubTitle(h api.HubItem) string {
 	return h.Name + " · not running · " + h.Home
 }
 
-func railClass(active bool) string {
-	if active {
-		return "rail-item rail-active"
+func otherHubs(l api.HubList) []api.HubItem {
+	var out []api.HubItem
+	for _, h := range l.Hubs {
+		if !h.Self {
+			out = append(out, h)
+		}
 	}
-	return "rail-item"
+	return out
 }
 
-templ rail(st *state) {
-	<nav id="rail" aria-label="Workspaces" class="flex w-18 shrink-0 flex-col items-center gap-3 border-r border-line bg-rail py-3">
-		for _, h := range st.list.Hubs {
-			if h.Self {
-				@railEntry("/", hubTitle(h), h.Name, railClass(st.path != "/stacks" && st.path != "/hub"), false) {
-					{ initials(h.Name) }
-					if st.list.DockerDown || st.list.TickError != nil {
-						<span class="rail-alert" aria-label="needs attention"></span>
+func (st *state) address() string {
+	if st.s == nil {
+		return ""
+	}
+	return "127.0.0.1:" + itoa(st.s.d.Identity.Port)
+}
+
+func (st *state) onRuns() bool { return st.path != "/stacks" && st.path != "/hub" }
+
+func sideNote(r api.RunItem) string {
+	switch {
+	case r.Phase == lifecycle.Queued:
+		return "queued #" + itoa(r.Position)
+	case isActive(r):
+		return lifecycle.StageLabel(r.Phase)
+	case r.Env == lifecycle.EnvUp:
+		return "up"
+	case r.Env == lifecycle.EnvStopped:
+		return "stopped"
+	}
+	return r.PhaseLabel
+}
+
+templ sidebar(st *state) {
+	<aside id="sidebar" class="sidebar" aria-label="This hub">
+		<a href="/" class="side-hub" title={ hubTitle(st.self()) }>
+			<span class="side-mark">{ initials(st.self().Name) }</span>
+			<span class="min-w-0 leading-tight">
+				<span class="block truncate font-semibold">{ st.self().Name }</span>
+				<span class="block truncate font-mono text-[11px] text-muted">{ st.address() }</span>
+			</span>
+		</a>
+		if st.list.DockerDown {
+			<p class="side-alert">Docker does not answer</p>
+		}
+		if st.list.TickError != nil {
+			<p class="side-alert">The last tick failed</p>
+		}
+		<nav class="side-nav" aria-label="Hub screens">
+			<a href="/" class={ "side-link", templ.KV("side-on", st.onRuns()) }>
+				Runs
+				<span class="side-count">{ itoa(len(st.list.Runs)) }</span>
+			</a>
+			<a href="/stacks" class={ "side-link", templ.KV("side-on", st.path == "/stacks") } title="Compose projects no hub runs">
+				Other stacks
+				if n := stackCount(st.list); n > 0 {
+					<span class="side-count-warn">{ itoa(n) }</span>
+				}
+			</a>
+			<a href="/hub" class={ "side-link", templ.KV("side-on", st.path == "/hub") } title="This hub's identity and the hubs on this host">Hub</a>
+		</nav>
+		if g := groupRuns(st.list); true {
+			if len(g.Pending) > 0 {
+				<section class="side-more" aria-label="Now">
+					<h2 class="side-title">Now</h2>
+					for _, r := range g.Pending {
+						@sideRun(st, r)
+					}
+				</section>
+			}
+			<section class="side-more" aria-label="Kept environments">
+				<h2 class="side-title">
+					Kept environments
+					<span class="ml-auto font-normal tracking-normal">{ itoa(st.list.Pool.Size) } / { itoa(st.list.Pool.Max) }</span>
+				</h2>
+				for _, r := range g.Pool {
+					@sideRun(st, r)
+				}
+				if len(g.Pool) == 0 {
+					<p class="px-2 text-xs text-muted">None kept.</p>
+				}
+				<p class="mt-1 px-2 text-[11px] text-muted">Running { itoa(st.list.Up.Count) } / { itoa(st.list.Up.Cap) }</p>
+			</section>
+		}
+		if others := otherHubs(st.list); len(others) > 0 {
+			<section class="side-more" aria-label="Other hubs">
+				<h2 class="side-title">Hubs</h2>
+				for _, h := range others {
+					if h.Up {
+						<a href={ templ.SafeURL(h.URL + "/") } hx-boost="false" class="side-run" title={ hubTitle(h) }>
+							<span class="dot tone-ok"></span>
+							<span class="min-w-0 truncate">{ h.Name }</span>
+							<span class="side-note">up</span>
+						</a>
+					} else {
+						<a href="/hub#hubs" class="side-run" title={ hubTitle(h) }>
+							<span class="dot tone-idle"></span>
+							<span class="min-w-0 truncate text-muted">{ h.Name }</span>
+							<span class="side-note">not running</span>
+						</a>
 					}
 				}
-			} else if h.Up {
-				@railEntry(h.URL+"/", hubTitle(h), h.Name, "rail-item", true) {
-					{ initials(h.Name) }
-				}
-			} else {
-				@railEntry("/hub#hubs", hubTitle(h), h.Name, "rail-item rail-down", false) {
-					{ initials(h.Name) }
-				}
-			}
+			</section>
 		}
-		if len(st.list.Hubs) == 0 {
-			@railEntry("/", "this hub", st.self().Name, railClass(st.path != "/stacks" && st.path != "/hub"), false) {
-				{ initials(st.self().Name) }
-			}
-		}
-		<div class="mt-auto flex flex-col items-center gap-3">
-			@railEntry("/stacks", "Compose projects no hub runs", "Stacks", railClass(st.path == "/stacks"), false) {
-				<span aria-hidden="true">≡</span>
-				if n := stackCount(st.list); n > 0 {
-					<span class="rail-count">{ strconv.Itoa(n) }</span>
-				}
-			}
-			@railEntry("/hub", "This hub's identity and the hubs on this host", "Hub", railClass(st.path == "/hub"), false) {
-				<span aria-hidden="true">i</span>
-			}
-		</div>
-	</nav>
+		<p class="side-live">
+			<span class="live-dot size-2 rounded-full"></span>
+			<span class="live-text"></span>
+		</p>
+	</aside>
 }
 
-templ railEntry(href, title, name, class string, external bool) {
-	<a href={ templ.SafeURL(href) } title={ title } class="rail-entry" if external { hx-boost="false" }>
-		<span class={ class }>
-			{ children... }
-		</span>
-		<span class="rail-name">{ name }</span>
+templ sideRun(st *state, r api.RunItem) {
+	<a href={ templ.SafeURL(defaultPath(r, st.list)) } class={ "side-run", templ.KV("side-on", st.run != nil && st.run.ID == r.ID) } title={ r.ID }>
+		@runMark(r, false)
+		<span class="min-w-0 truncate">{ r.Suite } · { short(r.SHA) }</span>
+		<span class="side-note">{ sideNote(r) }</span>
 	</a>
 }
 
 templ problemBody(status int, message string) {
-	<section class="card max-w-xl">
-		<p class="text-xs uppercase tracking-wide text-muted">{ strconv.Itoa(status) }</p>
-		<p class="mt-1 text-base">{ message }</p>
-		<p class="mt-4"><a href="/" class="link">Back to the runs</a></p>
-	</section>
-}
-
-templ badge(tone Tone, text string) {
-	<span class={ "badge", "tone-" + string(tone) }>{ text }</span>
+	<main class="page page-text">
+		<section class="card max-w-xl">
+			<p class="label">{ itoa(status) }</p>
+			<p class="mt-1 text-base">{ message }</p>
+			<p class="mt-4"><a href="/" class="link">Back to the runs</a></p>
+		</section>
+	</main>
 }

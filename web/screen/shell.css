@@ -1,0 +1,167 @@
+@layer components {
+	.shell {
+		@apply flex min-h-screen flex-col lg:flex-row;
+	}
+	.main {
+		@apply flex min-w-0 flex-1 flex-col;
+	}
+	.sidebar {
+		@apply flex shrink-0 flex-row flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-side px-3 py-2 text-sm;
+	}
+	.side-hub {
+		@apply flex min-w-0 items-center gap-2 rounded-lg border border-line bg-surface px-2 py-1.5 hover:border-accent;
+	}
+	.side-mark {
+		@apply flex size-7 shrink-0 items-center justify-center rounded-md bg-accent text-[11px] font-bold;
+		color: var(--surface);
+	}
+	.side-alert {
+		@apply rounded-md px-2 py-1 text-xs text-bad;
+		background: color-mix(in oklab, var(--bad) 10%, transparent);
+	}
+	.side-nav {
+		@apply flex gap-1;
+	}
+	.side-link {
+		@apply flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-surface;
+	}
+	.side-on {
+		@apply font-medium;
+		background: color-mix(in oklab, var(--accent) 14%, var(--side));
+	}
+	.side-count {
+		@apply ml-auto text-xs font-normal text-muted;
+	}
+	.side-count-warn {
+		@apply ml-auto min-w-4 rounded-full bg-warn px-1 text-center text-[10px] leading-4 font-medium text-white;
+	}
+	.side-more {
+		@apply hidden;
+	}
+	.side-title {
+		@apply mb-1 flex items-center px-2 text-[11px] font-semibold tracking-wide text-muted uppercase;
+	}
+	.side-run {
+		@apply flex items-center gap-2 rounded-md px-2 py-1 text-[13px] hover:bg-surface;
+	}
+	.side-note {
+		@apply ml-auto shrink-0 text-[11px] text-muted;
+	}
+	.side-live {
+		@apply ml-auto flex items-center gap-2 px-2 text-xs text-muted;
+	}
+	.page {
+		@apply w-full flex-1 px-4 py-5 sm:px-6;
+	}
+	.page-text {
+		@apply max-w-5xl;
+	}
+	.page-title {
+		@apply text-lg font-semibold;
+	}
+	.run-head {
+		@apply z-10 border-b border-line bg-surface px-4 pt-3 sm:px-6;
+	}
+	.run-id {
+		@apply min-w-0 truncate font-mono text-[15px] font-semibold;
+	}
+	.run-meta {
+		@apply mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-muted;
+	}
+	.run-actions {
+		@apply ml-auto flex flex-wrap items-center gap-1.5;
+	}
+	.tabs {
+		@apply mt-2 flex gap-1 overflow-x-auto;
+	}
+	.tab {
+		@apply border-b-2 border-transparent px-3 py-2 text-sm whitespace-nowrap text-muted hover:text-fg;
+	}
+	.tab-on {
+		@apply border-accent font-medium text-fg;
+	}
+	.subtabs {
+		@apply flex gap-1 overflow-x-auto border-b border-line;
+	}
+	.subtab {
+		@apply -mb-px border-b-2 border-transparent px-3 py-1.5 text-[13px] whitespace-nowrap text-muted hover:text-fg;
+	}
+	.subtab-on {
+		@apply border-accent font-medium text-fg;
+	}
+	.new-run-row {
+		@apply relative mb-4 min-h-8;
+	}
+	.new-run > summary {
+		@apply absolute top-0 right-0 list-none;
+	}
+	.new-run > summary::-webkit-details-marker {
+		display: none;
+	}
+	.new-run[open] > summary {
+		@apply border-line bg-surface font-normal text-fg;
+	}
+	.new-run > section {
+		@apply mt-4;
+	}
+	.toast {
+		@apply fixed right-4 bottom-4 z-40 w-[min(28rem,calc(100vw-2rem))];
+	}
+	.toast > * {
+		@apply bg-surface shadow-lg;
+	}
+	.toast .notice {
+		background: color-mix(in oklab, var(--tone) 10%, var(--surface));
+	}
+}
+
+@media (min-width: 64rem) {
+	.sidebar {
+		position: sticky;
+		top: 0;
+		flex-direction: column;
+		flex-wrap: nowrap;
+		align-items: stretch;
+		gap: 1rem;
+		width: var(--side-width);
+		height: 100vh;
+		overflow-y: auto;
+		padding: 0.75rem 0.625rem;
+		border-right: 1px solid var(--line);
+		border-bottom: 0;
+	}
+	.side-nav {
+		flex-direction: column;
+		gap: 0.125rem;
+	}
+	.side-more {
+		display: block;
+	}
+	.side-live {
+		margin-top: auto;
+		margin-left: 0;
+	}
+	.run-head {
+		position: sticky;
+		top: 0;
+	}
+}
+
+html[data-live="open"] .live-dot {
+	background: var(--ok);
+}
+html[data-live="open"] .live-text::after {
+	content: "live";
+}
+html[data-live="connecting"] .live-dot {
+	background: var(--idle);
+}
+html[data-live="connecting"] .live-text::after {
+	content: "connecting";
+}
+html[data-live="closed"] .live-dot {
+	background: var(--bad);
+}
+html[data-live="closed"] .live-text::after {
+	content: "disconnected, reconnecting";
+}

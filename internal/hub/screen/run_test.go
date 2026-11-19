@@ -24,8 +24,8 @@ func TestEveryRunScreenAnswersWithItsRegionsAndMarksItsTab(t *testing.T) {
 	base := "/runs/" + rid(1)
 	cases := []struct{ path, tab, region string }{
 		{base, "Overview", "run-overview"},
-		{base + "/report", "Report", "report"},
-		{base + "/report/alpha", "Report", "flow"},
+		{base + "/report", "Flows", "report"},
+		{base + "/report/alpha", "Flows", "flow"},
 		{base + "/signals/trace", "Signals", "signals"},
 		{base + "/signals/events", "Signals", "collectors"},
 		{base + "/env", "Environment", "env"},
@@ -36,7 +36,7 @@ func TestEveryRunScreenAnswersWithItsRegionsAndMarksItsTab(t *testing.T) {
 		if status != http.StatusOK || header.Get("Content-Security-Policy") != csp {
 			t.Fatalf("%s: %d", c.path, status)
 		}
-		for _, want := range []string{`id="rail"`, `id="run-head"`, `id="` + c.region + `"`, `aria-current="page">` + c.tab + `<`} {
+		for _, want := range []string{`id="sidebar"`, `id="run-head"`, `id="` + c.region + `"`, `aria-current="page">` + c.tab + `<`} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: missing %s", c.path, want)
 			}
@@ -84,7 +84,7 @@ func TestTheReportShowsTheVerdictTheFlowsWhatWasNotCountedAndFailedCollection(t 
 	for _, want := range []string{
 		"verdict Failed", "seal passed", "Steps 6 of 6", "failed steps: 1, the first at alpha › a2",
 		`href="/runs/` + rid(1) + `/report/alpha?step=a2"`, `href="/runs/` + rid(1) + `/report/alpha"`,
-		"skipped step · alpha › a3", "Collection failed · pulse deadline",
+		"1 skipped steps in 1 flows", `href="/runs/` + rid(1) + `/report/alpha?step=a3"`, "Collection failed · pulse deadline",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -95,18 +95,14 @@ func TestTheReportShowsTheVerdictTheFlowsWhatWasNotCountedAndFailedCollection(t 
 func TestOverviewActionsFollowTheAllowedEventsAndAnActionAnswersWithANotice(t *testing.T) {
 	f := newFixture(t)
 	finished(f)
-	_, _, body := f.get("/runs/" + rid(1))
-	enabled := func(op string) bool {
-		i := strings.Index(body, `/do/`+op+`"`)
-		if i < 0 {
-			t.Fatalf("no %s form", op)
+	offered := func(body, op string) bool { return strings.Contains(body, `/do/`+op+`"`) }
+	for _, path := range []string{"/runs/" + rid(1), "/runs/" + rid(1) + "/report", "/runs/" + rid(1) + "/pipeline"} {
+		_, _, body := f.get(path)
+		if !offered(body, "stop") || offered(body, "resume") || !offered(body, "destroy") || offered(body, "abort") || !offered(body, "keep") || offered(body, "unkeep") {
+			t.Fatalf("%s: the offered actions do not follow the allowed events of a finished run that is up", path)
 		}
-		end := strings.Index(body[i:], "</form>")
-		return !strings.Contains(body[i:i+end], "disabled")
 	}
-	if !enabled("stop") || enabled("resume") || !enabled("destroy") || enabled("abort") || !enabled("keep") {
-		t.Fatal("the enabled actions do not follow the allowed events of a finished run that is up")
-	}
+	_, _, body := f.get("/runs/" + rid(1))
 	if !strings.Contains(body, `name="force" value="1"`) || !strings.Contains(body, "hx-confirm=") {
 		t.Fatal("a run submitted by the CLI does not ask before it forces")
 	}
@@ -147,7 +143,7 @@ func TestARunScreenResolvesToTheRunsRegionsWithItsQueryAndGoesAwayWithTheRun(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sc.Run != rid(1) || !slices.Equal(sc.Regions, []string{"rail", "run-head", "signals", "collectors"}) || !slices.Equal(sc.Signals, []string{"signals", "collectors"}) {
+	if sc.Run != rid(1) || !slices.Equal(sc.Regions, []string{"sidebar", "run-head", "signals", "collectors"}) || !slices.Equal(sc.Signals, []string{"signals", "collectors"}) {
 		t.Fatalf("%+v", sc)
 	}
 	out, err := sc.Render(context.Background(), []string{"signals"})

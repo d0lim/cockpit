@@ -2,6 +2,7 @@ package screen
 
 import (
 	"encoding/json"
+	"errors"
 	"slices"
 	"sort"
 	"strconv"
@@ -43,14 +44,46 @@ func count(p *int) string {
 	return strconv.Itoa(*p)
 }
 
+const foldAbove = 12
+
+type skippedGroup struct {
+	flow  string
+	steps []string
+}
+
+func skippedByFlow(np *contract.NotProven) []skippedGroup {
+	if np == nil {
+		return nil
+	}
+	var out []skippedGroup
+	for _, s := range np.Skipped {
+		flow, step, ok := strings.Cut(s, " › ")
+		if !ok {
+			flow, step = s, ""
+		}
+		if len(out) == 0 || out[len(out)-1].flow != flow {
+			out = append(out, skippedGroup{flow: flow})
+		}
+		if step != "" {
+			last := &out[len(out)-1]
+			last.steps = append(last.steps, step)
+		}
+	}
+	return out
+}
+
+func skippedCount(np *contract.NotProven) int {
+	if np == nil {
+		return 0
+	}
+	return len(np.Skipped)
+}
+
 func notProvenItems(np *contract.NotProven) []string {
 	if np == nil {
 		return nil
 	}
 	var out []string
-	for _, s := range np.Skipped {
-		out = append(out, "skipped step · "+s)
-	}
 	for _, d := range np.Declared {
 		out = append(out, "declared by the suite · "+d+" · "+statusLabel(labels.FlowNotProven))
 	}
@@ -95,7 +128,14 @@ func stepFacts(s contract.FlowStep) string {
 }
 
 func (st *state) flow() (api.FlowView, error) {
-	return st.s.d.Reader.Flow(st.run.ID, st.values["flow"])
+	source, flows, err := st.flows()
+	if err != nil {
+		return api.FlowView{}, err
+	}
+	if f := findFlow(flows, st.values["flow"]); f != nil {
+		return api.FlowView{Source: source, Flow: *f}, nil
+	}
+	return api.FlowView{}, errors.New("no such flow in this run: " + st.values["flow"])
 }
 
 func pickedStep(f contract.FlowSummary, id string) *contract.FlowStep {

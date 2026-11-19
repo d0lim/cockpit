@@ -2,6 +2,7 @@ package screen
 
 import (
 	"cmp"
+	"errors"
 	"net/http"
 	"slices"
 	"strconv"
@@ -15,8 +16,13 @@ import (
 
 const (
 	wireCallPanelID = "wire-call"
-	wireKeepPlace   = "innerHTML show:none"
+	wireFlowHint    = "Every step of this flow, in the order the calls started."
 )
+
+func wireNotHeld(err error) bool {
+	var p *api.Problem
+	return errors.As(err, &p) && p.Status == http.StatusNotFound
+}
 
 func wireRecorded(st *state) (int, string) {
 	if !st.run.Wire {
@@ -107,23 +113,6 @@ func (st *state) wireRunNote() (wireNote, bool) {
 	return wireNote{ToneWarn, lead + "No record was taken."}, true
 }
 
-type wireFlow struct {
-	id    string
-	steps []api.WireStep
-}
-
-func wireFlows(steps []api.WireStep) []wireFlow {
-	var out []wireFlow
-	for _, s := range steps {
-		if len(out) == 0 || out[len(out)-1].id != s.Flow {
-			out = append(out, wireFlow{id: s.Flow})
-		}
-		last := &out[len(out)-1]
-		last.steps = append(last.steps, s)
-	}
-	return out
-}
-
 func wireStepOn(v api.WireView, s api.WireStep) bool {
 	return v.Scope == api.WireScopeStep && v.Flow == s.Flow && v.Step == s.Step
 }
@@ -184,12 +173,15 @@ func wireStepHeading(v api.WireView) (string, string) {
 		return "Outside any step", "Calls that started while no step was running."
 	}
 	if v.Scope == api.WireScopeFlow {
-		return v.Flow, "Every step of this flow, in the order the calls started."
+		return v.Flow, wireFlowHint
 	}
 	if v.Scope != api.WireScopeStep {
 		return "No calls", "This take holds no call."
 	}
 	at := slices.IndexFunc(v.Steps, func(s api.WireStep) bool { return wireStepOn(v, s) })
+	if at < 0 {
+		return v.Flow + " › " + v.Step, ""
+	}
 	s := v.Steps[at]
 	return s.Flow + " › " + s.Step, s.Title
 }

@@ -170,7 +170,7 @@ func relatedList(st *state, ids []string, self string) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if r := st.correlation().related(ids, self); len(r.steps)+len(r.others) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"space-y-2\" aria-label=\"Related signals\"><p class=\"text-xs font-semibold uppercase tracking-wide text-muted\">Related by id</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"space-y-2\" aria-label=\"Related signals\"><p class=\"label\">Related by id</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

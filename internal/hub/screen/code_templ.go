@@ -23,7 +23,7 @@ func (st *state) code(fv api.FlowView) codeModel {
 	if m.err != nil {
 		return m
 	}
-	if _, flows, err := st.s.d.Reader.Flows(st.run.ID); err == nil {
+	if _, flows, err := st.flows(); err == nil {
 		m.rng = rangeOf(flows, fv.Flow.ID, m.view.File, m.view.Lines)
 	}
 	if m.target.line >= 1 && m.target.line <= m.view.Lines {
@@ -205,7 +205,7 @@ func codeView(st *state, fv api.FlowView) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" tabindex=\"0\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" tabindex=\"0\" data-scroll-box=\"code\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

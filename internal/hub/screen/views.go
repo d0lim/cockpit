@@ -36,12 +36,12 @@ func (v view) titleOf(st *state) string {
 }
 
 var (
-	railRegion    = region{id: "rail", kinds: []sse.Kind{sse.KindRuns}, render: rail}
+	sideRegion    = region{id: "sidebar", kinds: []sse.Kind{sse.KindRuns}, render: sidebar}
 	runHeadRegion = region{id: "run-head", kinds: []sse.Kind{sse.KindRuns}, render: runHead}
 )
 
 func (v view) regions() []region {
-	out := []region{railRegion}
+	out := []region{sideRegion}
 	if v.run {
 		out = append(out, runHeadRegion)
 	}
@@ -50,11 +50,10 @@ func (v view) regions() []region {
 
 const (
 	TabOverview = "overview"
-	TabReport   = "report"
+	TabFlows    = "flows"
 	TabSignals  = "signals"
 	TabEnv      = "env"
 	TabPipeline = "pipeline"
-	TabWire     = "wire"
 )
 
 var signalViews = []string{"trace", "events", "table", "logs"}
@@ -81,12 +80,12 @@ var views = []view{
 		body: overviewPage,
 	},
 	{
-		pattern: "/runs/{id}/report", title: "Report", tab: TabReport, run: true, served: true,
+		pattern: "/runs/{id}/report", title: "Report", tab: TabFlows, run: true, served: true,
 		own:  []region{{id: "report", kinds: []sse.Kind{sse.KindRuns}, render: reportRegion}},
 		body: reportPage,
 	},
 	{
-		pattern: "/runs/{id}/report/{flow}", title: "Flow", tab: TabReport, run: true, served: true, check: flowExists,
+		pattern: "/runs/{id}/report/{flow}", title: "Flow", tab: TabFlows, run: true, served: true, check: flowExists,
 		own:  []region{{id: "flow", kinds: []sse.Kind{sse.KindRuns}, signals: true, render: flowRegion}},
 		body: flowPage,
 	},
@@ -99,7 +98,7 @@ var views = []view{
 		body: signalsPage,
 	},
 	{
-		pattern: "/runs/{id}/wire", title: "Wire", tab: TabWire, run: true, served: true, check: wireRecorded,
+		pattern: "/runs/{id}/wire", title: "Wire", tab: TabFlows, run: true, served: true, check: wireRecorded,
 		own:  []region{{id: "wire", kinds: []sse.Kind{sse.KindRuns}, render: wireRegion}},
 		body: wirePage,
 	},
@@ -129,7 +128,7 @@ func (st *state) pickRun(id string) (int, string) {
 }
 
 func flowExists(st *state) (int, string) {
-	if _, err := st.s.d.Reader.Flow(st.run.ID, st.values["flow"]); err != nil {
+	if _, err := st.flow(); err != nil {
 		return http.StatusNotFound, "This run has no flow " + st.values["flow"] + "."
 	}
 	return http.StatusOK, ""

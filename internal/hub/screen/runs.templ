@@ -1,27 +1,31 @@
 package screen
 
-import (
-	"strconv"
-
-	"github.com/d0lim/cockpit/internal/hub/api"
-)
+import "github.com/d0lim/cockpit/internal/hub/api"
 
 const submitHint = "cockpit runs submit"
 
 templ runsPage(st *state) {
-	<div class="mb-6">
-		<h1 class="text-lg font-semibold">What is happening on this hub now</h1>
-		<p class="text-sm text-muted">The queue, the kept environments and the runs that ended. Pick a run to see it.</p>
-	</div>
-	<div class="mb-8">
-		@submitForm(st)
-	</div>
-	@runsRegion(st)
+	<main class="page page-text">
+		<div class="new-run-row">
+			<h1 class="page-title">Runs</h1>
+			@submitForm(st)
+		</div>
+		@runsRegion(st)
+	</main>
 }
 
 templ runsRegion(st *state) {
-	<section id="runs" class="space-y-8">
-		@capacity(st.list)
+	<section id="runs" class="space-y-5">
+		<div class="flex flex-wrap items-center gap-2">
+			@capacity(st.list)
+			if len(st.list.Runs) > 0 {
+				<nav class="ml-auto flex flex-wrap gap-1" aria-label="Verdicts">
+					for _, f := range st.verdictFilters() {
+						<a href={ templ.SafeURL(f.href) } class={ "pill", templ.KV("pill-on", f.on) }>{ f.label } <span class="tabular-nums">{ itoa(f.count) }</span></a>
+					}
+				</nav>
+			}
+		</div>
 		if st.list.DockerDown {
 			<p class="notice tone-bad">Docker does not respond. The queue does not start until it answers.</p>
 		}
@@ -30,39 +34,37 @@ templ runsRegion(st *state) {
 		}
 		if len(st.list.Runs) == 0 {
 			<div class="card text-center">
-				<p class="text-muted">No runs yet. Submit one above, or from the consumer repository:</p>
+				<p class="text-muted">No runs yet. Submit one with New run, or from the consumer repository:</p>
 				<pre class="console mt-3 inline-block">{ submitHint }</pre>
 			</div>
 		} else {
-			@runGroups(st, groupRuns(st.list))
+			@runGroups(st, st.runGroups())
 		}
 	</section>
 }
 
 templ capacity(l api.HubList) {
-	<div class="grid gap-4 sm:grid-cols-2">
-		<div class="card">
-			<p class="text-xs uppercase tracking-wide text-muted">Kept pool</p>
-			<div class="mt-2 flex items-center gap-1.5">
-				for i := 0; i < max(l.Pool.Max, l.Pool.Size); i++ {
-					<span class={ "slot", templ.KV("slot-full", i < l.Pool.Size) }></span>
-				}
-				<span class="ml-2 text-sm">{ strconv.Itoa(l.Pool.Size) } of { strconv.Itoa(l.Pool.Max) } kept</span>
-			</div>
-		</div>
-		<div class="card">
-			<p class="text-xs uppercase tracking-wide text-muted">Running environments</p>
-			<div class="mt-2 flex items-center gap-1.5">
-				for i := 0; i < max(l.Up.Cap, l.Up.Count); i++ {
-					<span class={ "slot", templ.KV("slot-full", i < l.Up.Count), templ.KV("slot-over", i >= l.Up.Cap) }></span>
-				}
-				<span class="ml-2 text-sm">{ strconv.Itoa(l.Up.Count) } of { strconv.Itoa(l.Up.Cap) } up</span>
-			</div>
-		</div>
-	</div>
+	<p class="meter" title="Finished runs whose environment remains">
+		Kept
+		<span class="flex items-center gap-1">
+			for i := 0; i < max(l.Pool.Max, l.Pool.Size); i++ {
+				<span class={ "slot", templ.KV("slot-full", i < l.Pool.Size) }></span>
+			}
+		</span>
+		<span class="text-fg">{ itoa(l.Pool.Size) } of { itoa(l.Pool.Max) } kept</span>
+	</p>
+	<p class="meter" title="Environments that are up now, against the running cap">
+		Running
+		<span class="flex items-center gap-1">
+			for i := 0; i < max(l.Up.Cap, l.Up.Count); i++ {
+				<span class={ "slot", templ.KV("slot-full", i < l.Up.Count), templ.KV("slot-over", i >= l.Up.Cap) }></span>
+			}
+		</span>
+		<span class="text-fg">{ itoa(l.Up.Count) } of { itoa(l.Up.Cap) } up</span>
+	</p>
 }
 
-templ runGroups(st *state, g RunGroups) {
+templ runGroups(st *state, g shownGroups) {
 	if len(g.Pending) > 0 {
 		@runTable(st, "Queue and active run", "Waiting to start, or running its suite now.", g.Pending)
 	}
@@ -71,6 +73,15 @@ templ runGroups(st *state, g RunGroups) {
 	}
 	if len(g.Ended) > 0 {
 		@runTable(st, "Ended", "Runs whose environment is gone. Their reports remain.", g.Ended)
+		if g.more > 0 {
+			<p class="text-center text-sm">
+				<span class="text-muted">The latest { itoa(len(g.Ended)) } of { itoa(len(g.Ended) + g.more) } are listed.</span>
+				<a class="link ml-1" href={ templ.SafeURL(st.href(map[string][]string{"all": {"1"}})) } hx-swap={ keepPlace }>List them all</a>
+			</p>
+		}
+	}
+	if len(g.Pending)+len(g.Pool)+len(g.Ended) == 0 {
+		<p class="card text-sm text-muted">No run has this verdict.</p>
 	}
 }
 
@@ -78,7 +89,7 @@ templ runTable(st *state, title, hint string, runs []api.RunItem) {
 	<div>
 		<h2 class="text-sm font-semibold">{ title }</h2>
 		<p class="mb-2 text-xs text-muted">{ hint }</p>
-		<ul class="card divide-y divide-line p-0">
+		<ul class="rows">
 			for _, r := range runs {
 				@runRow(st, r)
 			}
@@ -88,13 +99,22 @@ templ runTable(st *state, title, hint string, runs []api.RunItem) {
 
 templ runRow(st *state, r api.RunItem) {
 	<li>
-		<a href={ templ.SafeURL(defaultPath(r, st.list)) } class="run-row">
-			<span class={ "dot", "tone-" + string(phaseTone(r)) }></span>
-			<span class="min-w-0">
-				<span class="block font-mono text-xs">{ r.ID }</span>
-				<span class="block truncate text-xs text-muted">{ r.Suite } · { short(r.SHA) } · { rowDetail(r) }</span>
+		<a href={ templ.SafeURL(defaultPath(r, st.list)) } class="row">
+			@runMark(r, true)
+			<span class="min-w-0 flex-1">
+				<span class="flex min-w-0 items-baseline gap-2">
+					<span class="shrink-0 text-sm font-medium">{ r.Suite } · { short(r.SHA) }</span>
+					<span class="truncate font-mono text-xs text-muted">{ r.ID }</span>
+				</span>
+				<span class="block truncate text-xs text-muted">{ rowDetail(r) }</span>
+				if why := rowWhy(r); why != "" {
+					<span class="block truncate text-xs text-bad" title={ why }>{ why }</span>
+				}
 			</span>
-			<span class="ml-auto flex shrink-0 items-center gap-1.5">
+			<span class="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+				if r.Wire {
+					<span class="text-xs text-muted" title="Submitted with wire">wire</span>
+				}
 				if r.Keep {
 					@badge(ToneInfo, "keep")
 				}

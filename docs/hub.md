@@ -219,7 +219,7 @@ Commit, then submit with the flag:
 cockpit runs submit --wire --wait
 ```
 
-Read the record on the run's Wire screen at `/runs/<id>/wire`, or at `GET /api/runs/<id>/wire`. The screen draws a step or a whole flow as a sequence diagram, a trace or a table, and `Copy as Mermaid` copies the diagram as text. A route with no calls points at an address that was not changed. Each `cockpit runs exec` in the kept environment adds a take of its own.
+Read the record on the run's Wire screen at `/runs/<id>/wire` (the `Calls` pane of a flow or a step under Flows), or at `GET /api/runs/<id>/wire`. The screen draws a step or a whole flow as a sequence diagram, a trace or a table, and `Copy as Mermaid` copies the diagram as text. A route with no calls points at an address that was not changed. Each `cockpit runs exec` in the kept environment adds a take of its own.
 
 The screen says how each call is tied to its step. A service that sends `traceparent` and exports its spans through `telemetry.otlp` gets links proven by its spans. Calls from other services are tied by timing or only listed under the step they ran during ([tying a call to a step](wire.md#tying-a-call-to-a-step)).
 

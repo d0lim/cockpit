@@ -1,0 +1,160 @@
+package screen
+
+import (
+	"net/url"
+	"strings"
+
+	"github.com/d0lim/cockpit/internal/contract"
+)
+
+const (
+	paneStep  = "step"
+	paneCalls = "calls"
+)
+
+templ flowTreeNav(t flowTree, pick treePick) {
+	<nav class="tree" aria-label="Flows" data-scroll-box="tree">
+		<div class="tree-filter" aria-label="Steps to list">
+			for _, f := range t.filters {
+				<a href={ templ.SafeURL(f.href) } class={ "pill", templ.KV("pill-on", f.on) }>{ f.label } <span class="tabular-nums">{ itoa(f.count) }</span></a>
+			}
+		</div>
+		if t.rows == 0 {
+			<p class="px-3 py-3 text-xs text-muted">No flow to list here.</p>
+		}
+		for _, stage := range t.stages {
+			if stage.name != "" {
+				<h3 class="tree-stage">{ stage.name }</h3>
+			}
+			<ol>
+				for _, f := range stage.flows {
+					<li>
+						<a href={ templ.SafeURL(f.href) } class={ "tree-flow", templ.KV("tree-on", f.on) } title={ f.id + " · " + statusLabel(f.status) } if f.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
+							@statusMark(f.status)
+							<span class="min-w-0 truncate font-mono text-xs font-medium">{ f.id }</span>
+							<span class="tree-meta">{ f.count }</span>
+						</a>
+						if len(f.steps) > 0 {
+							<ol>
+								for _, s := range f.steps {
+									<li>
+										<a href={ templ.SafeURL(s.href) } class={ "tree-step", templ.KV("tree-on", s.on) } title={ orElse(s.title, s.id) } if s.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
+											@statusMark(s.status)
+											<span class="min-w-0 truncate">{ orElse(s.title, s.id) }</span>
+											<span class="tree-meta">{ s.meta }</span>
+										</a>
+									</li>
+								}
+							</ol>
+						}
+					</li>
+				}
+			</ol>
+		}
+		if t.outside != nil {
+			<a href={ templ.SafeURL(t.outside.href) } class={ "tree-flow", "mt-2", "border-t", "border-line", templ.KV("tree-on", t.outside.on) } if t.outside.on { aria-current="true" }>
+				<span class="min-w-0 truncate">Outside any step</span>
+				<span class="tree-meta">{ itoa(t.outside.calls) }</span>
+			</a>
+		}
+	</nav>
+}
+
+func flowFacts(f contract.FlowSummary) string {
+	facts := []string{"stage " + f.Stage, "requires " + requiresText(f), onceText(f.Once), itoa(f.Passed) + " of " + itoa(f.Steps) + " steps passed"}
+	if f.Stage == "" {
+		facts = facts[1:]
+	}
+	return strings.Join(facts, " · ")
+}
+
+func onceText(once bool) string {
+	if once {
+		return "runs once per environment"
+	}
+	return "can run again"
+}
+
+func findFlow(flows []contract.FlowSummary, id string) *contract.FlowSummary {
+	for i := range flows {
+		if flows[i].ID == id {
+			return &flows[i]
+		}
+	}
+	return nil
+}
+
+func (st *state) callsHref(flow, step string) string {
+	q := url.Values{"flow": {flow}}
+	if step == "" {
+		q.Set("scope", "flow")
+	} else {
+		q.Set("step", step)
+	}
+	if only := st.only(); only != "" {
+		q.Set("only", only)
+	}
+	return "/runs/" + st.run.ID + "/wire?" + q.Encode()
+}
+
+templ pickHead(st *state, f contract.FlowSummary, s *contract.FlowStep, source string) {
+	<div class="space-y-2">
+		<p class="flex flex-wrap items-center gap-1.5 font-mono text-xs text-muted">
+			<a class="hover:text-fg" href={ templ.SafeURL(st.flowHref(f.ID, "", "")) }>{ f.ID }</a>
+			if s != nil {
+				<span>›</span>
+				<span class="text-fg">{ s.ID }</span>
+			}
+			if source != "" {
+				<span class="ml-auto font-sans">
+					@sourceTag(source)
+				</span>
+			}
+		</p>
+		if s != nil {
+			<div class="flex flex-wrap items-start gap-2">
+				<h2 class="detail-title" title={ orElse(s.Title, s.ID) }>{ orElse(s.Title, s.ID) }</h2>
+				@badge(flowTone(string(s.Status)), statusLabel(string(s.Status)))
+			</div>
+			<p class="text-xs text-muted">{ string(s.Kind) } step · { stepFacts(*s) }</p>
+			if s.Message != "" {
+				<pre class={ templ.KV("failure", s.Status == contract.StepStatusFailed), templ.KV("console", s.Status != contract.StepStatusFailed) }>{ s.Message }</pre>
+			}
+		} else {
+			<div class="flex flex-wrap items-start gap-2">
+				<h2 class="detail-title" title={ orElse(f.Title, f.ID) }>{ orElse(f.Title, f.ID) }</h2>
+				@badge(flowTone(string(f.Status)), statusLabel(string(f.Status)))
+			</div>
+			<p class="text-xs text-muted">{ flowFacts(f) }</p>
+		}
+	</div>
+}
+
+func ranIn(f contract.FlowSummary, s *contract.FlowStep) bool {
+	if s != nil {
+		return s.Status != contract.StepStatusSkipped
+	}
+	return f.Steps == 0 || f.Skipped < f.Steps
+}
+
+templ paneTabs(st *state, flow, step, on string, calls bool) {
+	<nav class="subtabs" aria-label="Panes">
+		<a href={ templ.SafeURL(st.flowHref(flow, step, "")) } class={ "subtab", templ.KV("subtab-on", on == paneStep) } if on == paneStep { aria-current="page" }>
+			if step == "" {
+				Steps
+			} else {
+				Step
+			}
+		</a>
+		if st.run.Wire && calls {
+			<a href={ templ.SafeURL(st.callsHref(flow, step)) } class={ "subtab", templ.KV("subtab-on", on == paneCalls) } title="What each server was asked, and what it answered" if on == paneCalls { aria-current="page" }>Calls</a>
+		}
+		<a href={ templ.SafeURL(st.flowHref(flow, step, paneSource)) } class={ "subtab", templ.KV("subtab-on", on == paneSource) } if on == paneSource { aria-current="page" }>Source</a>
+	</nav>
+}
+
+templ sourceTag(source string) {
+	if tone, text := sourceBadge(source); true {
+		@badge(tone, text)
+	}
+}

@@ -22,7 +22,7 @@ var assetRef = regexp.MustCompile(`(?:src|href)="/assets/([^"]+)"`)
 
 func TestEveryHubScreenAnswersAWholePageWithItsLiveRegionsUnderTheContentSecurityPolicy(t *testing.T) {
 	f := newFixture(t)
-	cases := map[string][]string{"/": {"rail", "runs"}, "/hub": {"rail", "hub"}, "/stacks": {"rail", "stacks"}}
+	cases := map[string][]string{"/": {"sidebar", "runs"}, "/hub": {"sidebar", "hub"}, "/stacks": {"sidebar", "stacks"}}
 	for path, regions := range cases {
 		status, header, body := f.get(path)
 		if status != http.StatusOK || header.Get("Content-Security-Policy") != csp || !strings.HasPrefix(header.Get("Content-Type"), "text/html") {
@@ -87,7 +87,7 @@ func TestTheRunsScreenResolvesToItsRegionsAndRendersOneAsAMorphingPartial(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(sc.Regions, []string{"rail", "runs"}) || !slices.Equal(sc.Touches[sse.KindRuns], []string{"rail", "runs"}) || sc.Run != "" || len(sc.Signals) != 0 {
+	if !slices.Equal(sc.Regions, []string{"sidebar", "runs"}) || !slices.Equal(sc.Touches[sse.KindRuns], []string{"sidebar", "runs"}) || sc.Run != "" || len(sc.Signals) != 0 {
 		t.Fatalf("%+v", sc)
 	}
 	out, err := sc.Render(context.Background(), []string{"runs"})
@@ -95,7 +95,7 @@ func TestTheRunsScreenResolvesToItsRegionsAndRendersOneAsAMorphingPartial(t *tes
 		t.Fatal(err)
 	}
 	text := string(out)
-	if !strings.HasPrefix(text, `<hx-partial hx-target="#runs" hx-swap="outerMorph"><section id="runs"`) || strings.Contains(text, `id="rail"`) || !strings.Contains(text, rid(1)) {
+	if !strings.HasPrefix(text, `<hx-partial hx-target="#runs" hx-swap="outerMorph"><section id="runs"`) || strings.Contains(text, `id="sidebar"`) || !strings.Contains(text, rid(1)) {
 		t.Fatalf("%s", text)
 	}
 }
@@ -107,7 +107,8 @@ func TestRunsAreGroupedIntoQueueKeptAndEndedAndLinkToTheirDefaultScreen(t *testi
 	f.seed(runMeta(3, lifecycle.State{Phase: lifecycle.Done, Env: lifecycle.EnvDestroyed, Verdict: lifecycle.VerdictPassed}, func(m *store.Meta) {
 		m.FinishedAt = "2026-10-19T01:00:09.000Z"
 	}))
-	_, _, body := f.get("/")
+	_, _, page := f.get("/")
+	body := section(t, page, "runs")
 	queue, kept, ended := strings.Index(body, "Queue and active run"), strings.Index(body, ">Kept<"), strings.Index(body, ">Ended<")
 	if queue < 0 || kept < queue || ended < kept {
 		t.Fatalf("group order %d %d %d", queue, kept, ended)

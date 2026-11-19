@@ -20,7 +20,7 @@ func (st *state) code(fv api.FlowView) codeModel {
 	if m.err != nil {
 		return m
 	}
-	if _, flows, err := st.s.d.Reader.Flows(st.run.ID); err == nil {
+	if _, flows, err := st.flows(); err == nil {
 		m.rng = rangeOf(flows, fv.Flow.ID, m.view.File, m.view.Lines)
 	}
 	if m.target.line >= 1 && m.target.line <= m.view.Lines {
@@ -55,7 +55,7 @@ templ codeView(st *state, fv api.FlowView) {
 			if m.pastEnd {
 				<p class="notice tone-warn m-3">The step's line ({ itoa(m.target.line) }) is past the end of this file ({ itoa(m.view.Lines) } lines).</p>
 			}
-			<div class="code" role="region" aria-label={ m.view.File + " source" } tabindex="0">
+			<div class="code" role="region" aria-label={ m.view.File + " source" } tabindex="0" data-scroll-box="code">
 				for _, l := range codeLines(m.view, m.rng, m.here) {
 					<div class={ "code-line", templ.KV("code-in-flow", l.inFlow), templ.KV("code-here", l.here) } if l.here { data-scroll-here={ m.view.File + ":" + itoa(l.n) } }>
 						<span class="code-ln">{ itoa(l.n) }</span>
