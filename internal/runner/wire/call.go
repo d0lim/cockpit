@@ -48,14 +48,19 @@ type tee struct {
 	io.ReadCloser
 	call *call
 	side *side
+	over bool
 }
 
 func (t *tee) Read(p []byte) (int, error) {
+	if t.over {
+		return 0, io.EOF
+	}
 	n, err := t.ReadCloser.Read(p)
 	if n > 0 {
 		t.call.add(t.side, p[:n])
 	}
 	if err == io.EOF {
+		t.over = true
 		t.call.ended(t.side)
 	}
 	return n, err
