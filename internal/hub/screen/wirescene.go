@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/d0lim/cockpit/internal/hub/api"
@@ -32,6 +33,7 @@ type wireHit struct {
 	Seq   int64
 	Y, H  float64
 	On    bool
+	Here  bool
 	Href  string
 	Label string
 }
@@ -64,5 +66,7 @@ func wireHitLabel(h api.WireHead) string {
 }
 
 func (s *wireScene) hit(l wireLinks, h api.WireHead, y, height float64) {
-	s.Hits = append(s.Hits, wireHit{Seq: h.Seq, Y: y, H: height, On: l.picked == h.Seq, Href: l.call(h.Seq), Label: wireHitLabel(h)})
+	on := l.picked == h.Seq
+	here := on && !slices.ContainsFunc(s.Hits, func(o wireHit) bool { return o.Here })
+	s.Hits = append(s.Hits, wireHit{Seq: h.Seq, Y: y, H: height, On: on, Here: here, Href: l.call(h.Seq), Label: wireHitLabel(h)})
 }

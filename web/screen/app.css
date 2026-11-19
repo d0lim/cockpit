@@ -327,6 +327,28 @@ html[data-live="closed"] .live-text::after {
 	display: block;
 	max-width: none;
 }
+.wire-drawer {
+	position: fixed;
+	inset-block: 0;
+	right: 0;
+	z-index: 20;
+	width: min(44rem, 100vw);
+	overflow-y: auto;
+	background: var(--bg);
+	border-left: 1px solid var(--line);
+	box-shadow: -12px 0 32px rgb(0 0 0 / 0.18);
+}
+.wire-drawer-head {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	background: var(--surface);
+	border-bottom: 1px solid var(--line);
+}
 .wire-head {
 	position: sticky;
 	top: 0;

@@ -274,15 +274,15 @@ func TestAPageOfManyCallsStaysWithinItsRowAndTimeBudget(t *testing.T) {
 	}
 }
 
-var wireCallLink = regexp.MustCompile(`call=\d+[^"]*#wire-call"`)
+var wireCallLink = regexp.MustCompile(`href="[^"#]*[?&;]call=\d+[^"#]*"`)
 
-func TestACallLinkJumpsToThePickedCallAndTheSuiteTakeIsListedFirst(t *testing.T) {
+func TestACallLinkPicksTheCallWithoutAnAnchorAndTheSuiteTakeIsListedFirst(t *testing.T) {
 	f, base := seededWire(t)
 	wiretest.Store(t, f.runDir(rid(1)), wiretest.Take{Name: "2026-exec", Calls: wiretest.Calls("x")[:1], Routes: wiretest.Routes()})
 	_, _, body := f.get(base + "?flow=alpha&step=a2")
 	region := section(t, body, "wire")
 	if !wireCallLink.MatchString(region) {
-		t.Fatalf("no call link jumps to the panel: %s", region)
+		t.Fatalf("no call link picks a call: %s", region)
 	}
 	suite, exec := strings.Index(region, ">suite<"), strings.Index(region, ">2026-exec<")
 	if suite < 0 || exec < 0 || suite > exec {
