@@ -4,7 +4,7 @@ This page holds the rules of the per-run signal store in `internal/signal`: wher
 
 ## Layout
 
-A run's signals live under `runs/<id>/signals/` in the hub state directory.
+A run's signals live under `runs/<id>/signals/` in the hub state directory. A run of `cockpit run` keeps the same files under `signals/` in its temporary run directory, and its report freezes them into its bundle the same way ([headless path](sealing.md#headless-path-and-the-unseal-check)).
 
 - `stream.jsonl`: one signal per line, append only. `seq` starts at 1 and increases by one per accepted signal inside the run.
 - `segment.json`: whether the stream is frozen, the last frozen `seq`, the next `seq`, the drop counters carried over a compaction, and the read refusal.
@@ -53,8 +53,9 @@ The hub records when each pipeline stage started and ended in the run record, as
 
 From these entries the hub writes spans into the run trace (the trace id is the run id) with the collector `pipeline` and the time source `host`. The root span `pipeline` gets one child `stage:<name>` per ended entry, named `<name>`, with the entry's start, end and outcome as its status. The names are `prepare`, `build`, `seal`, `boot`, `suite` and `report`. The root starts with the first stage, ends with the last ended one, and takes the worst status of its stages (`error` over `incomplete` over `ok`). A stage span carries the attributes `stage` and `status`. The runner's `run` span has `stage:suite` as its parent, so the run trace reads `pipeline` → `stage:<name>` → `run` → `flow:<flow>` → `step:<flow>/<step>` → `call:<flow>/<step>/<n>`.
 
-- The report appends the stage spans before the runner spans (`DefaultReport`), so every parent has a lower `seq` than its children. The report stage is still open at that point, so the frozen copy holds the stages from `prepare` to `suite`.
+- The report appends the stage spans before the runner spans (`pipeline.AssembleReport`), so every parent has a lower `seq` than its children. The report stage is still open at that point, so the frozen copy holds the stages from `prepare` to `suite`.
 - When the run ends, the pipeline appends the stage spans again from the record. A span that repeats its winner is not written (see Reads), so for a reported run this adds only `stage:report` and a revision of `pipeline` that ends with it, both in the tail. A kept run reads six stage spans live, and a destroyed run reads five from its bundle. A run that ends before its report gets all of its stage spans at this point.
+- A run of `cockpit run` keeps the same entries in its run record in memory and reports them the same way, so its bundle holds the stages from `prepare` to `suite`. It removes its run directory when it ends, so no stage spans follow the report.
 - A run that the hub reports after a restart gets the stage spans of the entries that ended before the restart, the interrupted one included with status `error`, and no `stage:report`. A run that the hub closes after a restart without a report gets no stage spans, and neither does an entry that the pipeline could not close because another event moved the run first. A resume or an exec adds no stage spans.
 
 ## Runner spans

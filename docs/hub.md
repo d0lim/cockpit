@@ -228,6 +228,8 @@ Commit, then submit with the flag:
 cockpit runs submit --wire --wait
 ```
 
+Without a hub, `cockpit run --wire` records the same way, and so does the action's `wire` input ([run on GitHub Actions](#run-on-github-actions)).
+
 Read the record on the run's Wire screen at `/runs/<id>/wire` (the `Calls` pane of a flow or a step under Flows), or at `GET /api/runs/<id>/wire`. The screen draws a step or a whole flow as a sequence diagram, a trace or a table, and `Copy as Mermaid` copies the diagram as text. A route with no calls points at an address that was not changed. Each `cockpit runs exec` in the kept environment adds a take of its own.
 
 The screen says how each call is tied to its step. A service that sends `traceparent` and exports its spans through `telemetry.otlp` gets links proven by its spans. Calls from other services are tied by timing or only listed under the step they ran during ([tying a call to a step](wire.md#tying-a-call-to-a-step)).
@@ -265,8 +267,9 @@ jobs:
 | `archive` | `cockpit-run.tar.gz` | where the bundle archive is written, relative to the workspace |
 | `artifact-name` | `cockpit-run` | the uploaded artifact; empty skips the upload |
 | `cockpit-path` | empty | a cockpit binary to use instead of a release |
+| `wire` | `false` | `true` passes `--wire`, so the run keeps its [wire record](#8-record-a-runs-service-calls); the commit must declare `wire.routes` |
 
-The outputs are `verdict` (empty when the run closed before its suite), `exit-code` and `archive`. Runners are Linux, where the seal probes reach the canary on the `docker0` bridge ([sealing](sealing.md#probes)), and the builder runs as the runner's user. Submodules must be checked out, because the run reads each pinned submodule commit from the checkout. Open the downloaded archive in a hub to read its pages on the screen ([importing](export.md#importing)): pass the artifact zip the web downloads, or the archive inside it, to `cockpit runs import <file>`, or pick it in the Import form of the Runs screen. Or read it with the skill (`cockpit skill write <dir>`), or open it as files ([bundle archive](export.md)).
+The outputs are `verdict` (empty when the run closed before its suite), `exit-code` and `archive`. Runners are Linux, where the seal probes reach the canary on the `docker0` bridge ([sealing](sealing.md#probes)), and the builder runs as the runner's user. Submodules must be checked out, because the run reads each pinned submodule commit from the checkout. The archive holds the run's frozen signals, so the imported run shows its trace and service logs, and with `wire: true` its wire record. Open the downloaded archive in a hub to read its pages on the screen ([importing](export.md#importing)): pass the artifact zip the web downloads, or the archive inside it, to `cockpit runs import <file>`, or pick it in the Import form of the Runs screen. Or read it with the skill (`cockpit skill write <dir>`), or open it as files ([bundle archive](export.md)).
 
 A job is billed by its minutes, and a run spends most of them building the commit's images and running its suite; installing cockpit and checking the seal take seconds. The example keeps the minutes bounded: it runs on pull requests rather than every push, `cancel-in-progress` stops the run of a commit that a newer push replaced, and `timeout-minutes` ends a job whose suite hangs instead of letting it run to the six-hour default. Linux runners are the cheapest hosted runners and the only ones the action supports. Each job gets its own machine, so runs of different jobs never share a Docker host.
 
