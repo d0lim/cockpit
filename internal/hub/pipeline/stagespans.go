@@ -37,11 +37,15 @@ func (l *live) startStage(p lifecycle.Phase) error {
 	return err
 }
 
-func (l *live) endingStage(out outcome) func(*store.Meta) {
-	status, failed := stageEndStatus[out.event]
-	if !failed {
-		status = contract.SpanStatusOK
+func StageOutcome(event lifecycle.Event) contract.SpanStatus {
+	if status, failed := stageEndStatus[event]; failed {
+		return status
 	}
+	return contract.SpanStatusOK
+}
+
+func (l *live) endingStage(out outcome) func(*store.Meta) {
+	status := StageOutcome(out.event)
 	at := store.Timestamp(l.h.o.Now())
 	return func(m *store.Meta) {
 		if out.extra != nil {
