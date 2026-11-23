@@ -233,7 +233,7 @@ func newE2E(t *testing.T, overlays ...string) *e2e {
 	if err := os.MkdirAll(e.home, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	block := strconv.Itoa(30000 + rand.IntN(150)*100)
+	block := strconv.Itoa(23000 + rand.IntN(97)*100)
 	config := "allowedRepositories:\n  - " + e.repo + "\nlimits:\n  runningCap: " + strconv.Itoa(hostIndependentRunningCap) + "\nports:\n  base: " + block + "\n  slots: 1\n"
 	if err := os.WriteFile(filepath.Join(e.home, "config.yaml"), []byte(config), 0o600); err != nil {
 		t.Fatal(err)
