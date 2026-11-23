@@ -2,7 +2,7 @@
 
 cockpit runs end-to-end flows against a compose stack. You write flows in TypeScript, and the cockpit runner executes them in a container on the stack's network, then writes the results as JSON. One `cockpit` binary carries the runner, so the version you install is the version that runs your flows.
 
-There are two ways to run a suite:
+There are two ways to run a suite, and a sealed run works the same on a local hub, in one shot with `cockpit run`, or in GitHub Actions through the [action](docs/hub.md#run-on-github-actions) at this repository's root:
 
 - **On the hub** (`cockpit hub`): one commit and one suite on a fresh sealed environment, with credentials generated inside the run, no route out at runtime unless the commit declares `network: open`, a verdict and a report bundle. [Running on the hub](docs/hub.md) takes a compose project to its first sealed run. A run can also [record its service calls](docs/wire.md) and show, per flow and step, what each server was asked and what it answered as a sequence diagram or a trace.
 - **The runner alone**, against a stack you start yourself. It is the quickest way to write and debug flows, and it is what the quick start below sets up. The [usage guide](docs/guide.md) covers it.

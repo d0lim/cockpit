@@ -234,6 +234,34 @@ The screen says how each call is tied to its step. A service that sends `tracepa
 
 The record hides the run's known credentials and every value under a key that names a credential. Any other value stays readable, so add a pattern to `secrets.patterns` for a credential the run does not know and no key names ([masking](wire.md#masking)).
 
+## Run on GitHub Actions
+
+The repository root of cockpit is a composite action. It installs a cockpit release, checks the archive against the release's `checksums.txt`, runs `cockpit run` on the checked-out commit, writes the verdict, the steps, the seal with its network level and the reasons to the job summary, uploads the bundle archive as a workflow artifact, and exits with the code of `cockpit run`:
+
+```yaml
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<sha>
+        with:
+          submodules: recursive
+      - uses: d0lim/cockpit@v<version>
+        with:
+          suite: smoke
+```
+
+| Input | Default | Meaning |
+| --- | --- | --- |
+| `version` | the tag the action is used at | the release to install, such as `0.6.0`; required when the action is used at a branch or a SHA |
+| `suite` | empty | the suite; may stay empty when the commit declares one |
+| `project` | `.` | the repository directory that holds `.cockpit/project.yaml` |
+| `archive` | `cockpit-run.tar.gz` | where the bundle archive is written, relative to the workspace |
+| `artifact-name` | `cockpit-run` | the uploaded artifact; empty skips the upload |
+| `cockpit-path` | empty | a cockpit binary to use instead of a release |
+
+The outputs are `verdict` (empty when the run closed before its suite), `exit-code` and `archive`. Runners are Linux, where the seal probes reach the canary on the `docker0` bridge ([sealing](sealing.md#probes)), and the builder runs as the runner's user. Submodules must be checked out, because the run reads each pinned submodule commit from the checkout. Read the downloaded archive with the skill (`cockpit skill write <dir>`) or open it as files ([bundle archive](export.md)).
+
 ## Common refusals
 
 | Refusal | Fix |
