@@ -34,6 +34,9 @@ func (r *reader) cleanJSON(rel string, raw []byte) (bool, error) {
 	if err := json.Unmarshal(raw, &v); err != nil {
 		return false, &Invalid{Reason: "a JSON file of the bundle does not parse", Files: []string{r.m.Mask(DirReport + "/" + rel)}, cause: err}
 	}
+	if repeatedKey(raw) {
+		return false, &Invalid{Reason: "a JSON object of the bundle repeats a key", Files: []string{r.m.Mask(DirReport + "/" + rel)}}
+	}
 	var decoded bytes.Buffer
 	enc := json.NewEncoder(&decoded)
 	enc.SetEscapeHTML(false)
@@ -42,4 +45,49 @@ func (r *reader) cleanJSON(rel string, raw []byte) (bool, error) {
 	}
 	text := decoded.String()
 	return r.m.Mask(text) == text, nil
+}
+
+func repeatedKey(raw []byte) bool {
+	d := json.NewDecoder(bytes.NewReader(raw))
+	type frame struct {
+		object bool
+		keys   map[string]bool
+		key    bool
+	}
+	var stack []*frame
+	for {
+		tok, err := d.Token()
+		if err != nil {
+			return false
+		}
+		top := (*frame)(nil)
+		if len(stack) > 0 {
+			top = stack[len(stack)-1]
+		}
+		switch t := tok.(type) {
+		case json.Delim:
+			switch t {
+			case '{', '[':
+				if top != nil && top.object {
+					top.key = true
+				}
+				stack = append(stack, &frame{object: t == '{', keys: map[string]bool{}, key: true})
+			default:
+				stack = stack[:len(stack)-1]
+			}
+			continue
+		case string:
+			if top != nil && top.object && top.key {
+				if top.keys[t] {
+					return true
+				}
+				top.keys[t] = true
+				top.key = false
+				continue
+			}
+		}
+		if top != nil && top.object {
+			top.key = true
+		}
+	}
 }

@@ -16,6 +16,7 @@ import (
 var importLimitMutations = []porttest.Mutation{
 	{"a wire head points at exactly one line of its calls", "drop the head count and head comparison checks in reader.proveTake", "red: the head with a five-gigabyte length unpacks", "TestAWireIndexWhoseHeadsMissTheLinesOfItsCallsIsRefused"},
 	{"a JSON file passes the default rules once it is decoded", "return true at the top of reader.decodedClean", "red: the escaped password in meta.json is stored", "TestAnEscapedSecretInAJSONFileIsFoundOnceItIsDecoded"},
+	{"a JSON object of the bundle names each key once", "return false at the top of repeatedKey", "red: the meta.json whose second notice hides the escaped first one unpacks", "TestAJSONObjectThatRepeatsAKeyIsRefusedSoNoEarlierValueHidesBehindIt"},
 	{"an archive holds at most importMaxEntries entries", "drop the entry count check in reader.entry", "red: the many empty files answer a refusal that is no ErrTooLarge", "TestAnArchiveWithMoreEntriesThanTheLimitIsRefused"},
 	{"the gzip stream is read to its end and checked", "skip the trailing copy in Unpack", "red: the stream without its footer unpacks", "TestAGzipStreamCutShortCorruptOrWithDataAfterTheTarIsRefused"},
 }
@@ -112,5 +113,36 @@ func TestAGzipStreamCutShortCorruptOrWithDataAfterTheTarIsRefused(t *testing.T) 
 	}
 	if _, _, err := importInto(t, append(slices.Clone(raw), trailing.Bytes()...)); !errors.Is(err, ErrTooLarge) {
 		t.Fatalf("data after the tar: want ErrTooLarge, got %v", err)
+	}
+}
+
+func TestAJSONObjectThatRepeatsAKeyIsRefusedSoNoEarlierValueHidesBehindIt(t *testing.T) {
+	base := exported(t)
+	meta := entryBody(base, "meta.json")
+	hidden := strings.Replace(meta, `"suite":"toy"`, `"suite":"toy","notice":"\u0070assword: `+importPlanted+`","notice":"ok"`, 1)
+	_, _, err := importInto(t, tarOf(t, indexed(t, replaced(base, "meta.json", hidden), resize("report/meta.json", hidden))))
+	var invalid *Invalid
+	if !errors.As(err, &invalid) || !slices.Equal(invalid.Files, []string{"report/meta.json"}) || strings.Contains(err.Error(), importPlanted) {
+		t.Fatalf("want meta.json refused, got %v", err)
+	}
+	repeated, distinct := 0, 0
+	for text, want := range map[string]bool{
+		`{"a":1,"a":2}`:                     true,
+		`{"a":{"b":1,"b":2}}`:               true,
+		`[{"a":1},{"a":1}]`:                 false,
+		`{"a":["a","a"],"b":{"a":1},"c":1}`: false,
+		`{"a":{"x":1},"a":[]}`:              true,
+	} {
+		if repeatedKey([]byte(text)) != want {
+			t.Errorf("%s: want repeated %v", text, want)
+		}
+		if want {
+			repeated++
+		} else {
+			distinct++
+		}
+	}
+	if repeated != 3 || distinct != 2 {
+		t.Fatalf("cases %d repeated, %d distinct", repeated, distinct)
 	}
 }

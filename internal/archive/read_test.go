@@ -25,7 +25,7 @@ var importMutations = []porttest.Mutation{
 	{"the index lists exactly the files of the archive", "drop the comparison loops in reader.checkIndex", "red: the unlisted and the resized files unpack", "TestTheIndexMustListExactlyTheFilesOfTheArchive"},
 	{"the bundle has its summary and its metadata", "drop the required-file loop in reader.checkBundle", "red: the archive without meta.json fails later with an error that is no refusal", "TestABundleWithoutItsSummaryOrMetadataOrOfAnotherRunIsRefused"},
 	{"the metadata reads strictly and names the same run", "decode meta.json with json.Unmarshal and skip the id check in reader.checkBundle", "red: the metadata of another run unpacks", "TestABundleWithoutItsSummaryOrMetadataOrOfAnotherRunIsRefused"},
-	{"every file passes the default masking rules", "skip the Mask(text) comparison in reader.reportFile", "red: the planted password is stored", "TestAFileOrPathTheDefaultRulesStillChangeRefusesTheImportAndIsNamedMasked"},
+	{"every file passes the default masking rules", "skip the Mask(text) comparison in reader.reportFile", "red: the planted password in not-proven.md is stored", "TestAFileOrPathTheDefaultRulesStillChangeRefusesTheImportAndIsNamedMasked"},
 	{"every report path passes the default masking rules", "skip the Mask(rel) comparison in reader.reportFile", "red: the path with the planted token is stored", "TestAFileOrPathTheDefaultRulesStillChangeRefusesTheImportAndIsNamedMasked"},
 	{"a refused path is named masked", "append rel as it is in reader.reportFile", "red: files carries the planted token", "TestAFileOrPathTheDefaultRulesStillChangeRefusesTheImportAndIsNamedMasked"},
 	{"each wire call is proven again with the take's public fields", "skip proveTakes in reader.finish", "red: the call with the planted password is stored", "TestAWireCallThatNoLongerProvesCleanRefusesTheImport"},
@@ -80,8 +80,8 @@ func TestAnEntryOutsideTheShapeTheHubWritesRefusesTheImport(t *testing.T) {
 	}{
 		"two roots":     {entry{name: other + "/" + ledger, body: "{}"}, ledger, "ledger"},
 		"no run root":   {entry{name: "notes/" + ledger, body: "{}"}, ledger, "ledger"},
-		"symbolic link": {entry{name: runID + "/" + ledger, typ: tar.TypeSymlink, link: "/etc/passwd"}, ledger, "ledger"},
-		"hard link":     {entry{name: runID + "/" + ledger, typ: tar.TypeLink, link: runID + "/report/seal.json"}, ledger, "ledger"},
+		"symbolic link": {entry{name: runID + "/report/source/link.ts", typ: tar.TypeSymlink, link: "/etc/passwd"}, "report/source/link.ts", "source"},
+		"hard link":     {entry{name: runID + "/report/source/link.ts", typ: tar.TypeLink, link: runID + "/report/seal.json"}, "report/source/link.ts", "source"},
 		"directory":     {entry{name: runID + "/report/e2e/exec/", typ: tar.TypeDir}, "report/e2e/exec/", "exec"},
 		"dot-dot":       {entry{name: runID + "/report/source/../../../escape.ts", body: "x"}, "report/source/../../../escape.ts", "source"},
 		"top dot-dot":   {entry{name: runID + "/../escape.json", body: "{}"}, "../escape.json", "source"},
@@ -95,7 +95,7 @@ func TestAnEntryOutsideTheShapeTheHubWritesRefusesTheImport(t *testing.T) {
 	}
 	refused := 0
 	for name, c := range cases {
-		list := indexed(t, append(slices.Clone(base), c.extra), listed(c.path, c.kind, c.extra.body))
+		list := indexed(t, append([]entry{c.extra}, base...), listed(c.path, c.kind, c.extra.body))
 		_, _, err := importInto(t, tarOf(t, list))
 		var invalid *Invalid
 		if !errors.As(err, &invalid) || len(invalid.Files) != 1 {
@@ -206,11 +206,11 @@ func entryBody(list []entry, rel string) string {
 
 func TestAFileOrPathTheDefaultRulesStillChangeRefusesTheImportAndIsNamedMasked(t *testing.T) {
 	base := exported(t)
-	result := `{"complete":true,"note":"password: ` + importPlanted + `"}`
+	result := "# Not proven\n\n- password: " + importPlanted + "\n"
 	path := "source/flows/token=" + importPlanted + ".ts"
-	list := indexed(t, append(replaced(base, "e2e/result.json", result), entry{name: runID + "/report/" + path, body: "x"}), func(a *contract.Archive) {
+	list := indexed(t, append(replaced(base, "not-proven.md", result), entry{name: runID + "/report/" + path, body: "x"}), func(a *contract.Archive) {
 		for i := range a.Files {
-			if a.Files[i].Path == "report/e2e/result.json" {
+			if a.Files[i].Path == "report/not-proven.md" {
 				a.Files[i].Bytes = int64(len(result))
 			}
 		}
@@ -218,13 +218,13 @@ func TestAFileOrPathTheDefaultRulesStillChangeRefusesTheImportAndIsNamedMasked(t
 	})
 	_, stage, err := importInto(t, tarOf(t, list))
 	var unmasked *Unmasked
-	if !errors.As(err, &unmasked) || !slices.Equal(unmasked.Files[:2], []string{FileIndex, "report/e2e/result.json"}) || len(unmasked.Files) != 3 {
+	if !errors.As(err, &unmasked) || !slices.Equal(unmasked.Files[:2], []string{FileIndex, "report/not-proven.md"}) || len(unmasked.Files) != 3 {
 		t.Fatalf("want the index, the result and the path refused, got %v", err)
 	}
 	if strings.Contains(strings.Join(unmasked.Files, " "), importPlanted) || !strings.Contains(unmasked.Files[2], "****") {
 		t.Fatalf("the refused path is not masked: %q", unmasked.Files)
 	}
-	if raw, err := os.ReadFile(filepath.Join(stage, DirReport, "e2e", "result.json")); err == nil {
+	if raw, err := os.ReadFile(filepath.Join(stage, DirReport, "not-proven.md")); err == nil {
 		t.Fatalf("the refused file is stored: %s", raw)
 	}
 }
