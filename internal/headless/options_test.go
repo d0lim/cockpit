@@ -7,12 +7,12 @@ import (
 )
 
 func TestRunArgumentsAcceptProjectSuiteOutputsAndFlagsAndRejectEverythingElse(t *testing.T) {
-	o, err := Parse([]string{"--project", "toy", "--suite", "smoke", "--unseal-check", "--keep", "--out", "bundle", "--archive", "run.tar.gz"})
+	o, err := Parse([]string{"--project", "toy", "--suite", "smoke", "--unseal-check", "--wire", "--keep", "--out", "bundle", "--archive", "run.tar.gz"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	abs := func(p, suffix string) bool { return filepath.IsAbs(p) && strings.HasSuffix(p, suffix) }
-	if !abs(o.Project, "/toy") || !abs(o.Out, "/bundle") || !abs(o.Archive, "/run.tar.gz") || o.Suite != "smoke" || !o.UnsealCheck || !o.Keep {
+	if !abs(o.Project, "/toy") || !abs(o.Out, "/bundle") || !abs(o.Archive, "/run.tar.gz") || o.Suite != "smoke" || !o.UnsealCheck || !o.Wire || !o.Keep {
 		t.Fatalf("options %+v", o)
 	}
 	bad := map[string][]string{

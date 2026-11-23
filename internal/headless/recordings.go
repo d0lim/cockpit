@@ -7,6 +7,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/envops"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/pipeline"
+	"github.com/d0lim/cockpit/internal/signal"
 )
 
 func (r *run) share() { r.shared.Store(r.env.Masker) }
@@ -44,4 +45,14 @@ func (r *run) quiet() {
 		cause = lifecycle.CauseReporting
 	}
 	r.observed.Drain(context.Background(), r.meta.ID, cause)
+}
+
+func (r *run) recorder() *envops.RunWire {
+	if !r.opts.Wire {
+		return nil
+	}
+	return &envops.RunWire{
+		ID: r.meta.ID, Dir: r.env.Layout.Root, Decl: &r.loaded.Declaration, Docker: r.deps.Docker, Mask: r.maskShared, Log: r.logger,
+		Stream: func() *signal.Stream { return r.stream },
+	}
 }

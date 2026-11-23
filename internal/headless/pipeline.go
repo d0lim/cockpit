@@ -19,6 +19,7 @@ import (
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/cli"
 	"github.com/d0lim/cockpit/internal/hub/config"
+	"github.com/d0lim/cockpit/internal/hub/pipeline"
 	hubstages "github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/mask"
@@ -92,11 +93,11 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 		return cli.ExitRejected
 	}
 	r := &run{opts: opts, deps: deps, env: &hubstages.Env{
-		Masker: m, RunnerUser: hubstages.HostRunnerUser(), Docker: deps.Docker, Limits: deps.Limits, Now: deps.Now, ListenCanary: deps.ListenCanary,
+		Masker: m, RunnerUser: hubstages.HostRunnerUser(), Wire: opts.Wire, Docker: deps.Docker, Limits: deps.Limits, Now: deps.Now, ListenCanary: deps.ListenCanary,
 	}}
 	r.share()
 	r.st = &stages{out: deps.Out, mask: r.mask}
-	r.meta = store.Meta{CockpitVersion: version.String(), Submitter: deps.Submitter, Keep: opts.Keep, CreatedAt: store.Timestamp(deps.Now())}
+	r.meta = store.Meta{CockpitVersion: version.String(), Submitter: deps.Submitter, Keep: opts.Keep, Wire: opts.Wire, CreatedAt: store.Timestamp(deps.Now())}
 	refused := !r.prepare(ctx)
 	if !refused {
 		r.pipeline(ctx)
@@ -148,6 +149,9 @@ func (r *run) prepare(ctx context.Context) bool {
 		}
 		if r.opts.UnsealCheck && loaded.Declaration.NetworkLevel() == contract.NetworkOpen {
 			return "", fmt.Errorf("--unseal-check needs network level sealed; this commit declares network: open")
+		}
+		if err := pipeline.WireRefusal(r.opts.Wire, r.meta.SHA, loaded.Declaration); err != nil {
+			return "", err
 		}
 		suite, err := pickSuite(loaded, r.opts.Suite)
 		r.meta.Suite = suite

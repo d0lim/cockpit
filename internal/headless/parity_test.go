@@ -20,7 +20,7 @@ var parityExcluded = map[string]string{
 	"generatedAt": "each report has its own time",
 }
 
-func hubSummary(t *testing.T, repo string, f *fakedocker.Fake) map[string]any {
+func hubSummary(t *testing.T, repo string, f *fakedocker.Fake, wire bool) map[string]any {
 	t.Helper()
 	limits := config.Defaults()
 	opts := pipeline.Options{
@@ -36,7 +36,7 @@ func hubSummary(t *testing.T, repo string, f *fakedocker.Fake) map[string]any {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { sched.Dispose(); sched.Idle(); hub.Close() })
-	res := sched.Submit(context.Background(), scheduler.SubmitInput{Worktree: repo, Submitter: "tester"})
+	res := sched.Submit(context.Background(), scheduler.SubmitInput{Worktree: repo, Submitter: "tester", Wire: wire})
 	if res.Fail != nil {
 		t.Fatalf("submit: %+v", res.Fail)
 	}
@@ -69,17 +69,22 @@ func TestTheSameFakeRunThroughTheHubAndThroughCockpitRunWritesTheSameSummaryButI
 	cases := []struct {
 		name    string
 		verdict string
+		wire    bool
 		mutate  func(*fakedocker.Fake)
 	}{
-		{"passing", "passed", nil},
-		{"failing step", "failed", func(f *fakedocker.Fake) { f.RunnerCode, f.Steps, f.StoppedAt = 1, failing, stop }},
+		{"passing", "passed", false, nil},
+		{"failing step", "failed", false, func(f *fakedocker.Fake) { f.RunnerCode, f.Steps, f.StoppedAt = 1, failing, stop }},
+		{"recording", "passed", true, func(f *fakedocker.Fake) { f.Steps, f.Wire.Calls = timedSteps(), recordedCalls() }},
 	}
 	compared := 0
 	for _, c := range cases {
 		repo := toyProject(t)
-		hub := hubSummary(t, repo, newFake(c.mutate))
+		if c.wire {
+			repo = toyProject(t, declareWire(t))
+		}
+		hub := hubSummary(t, repo, newFake(c.mutate), c.wire)
 		out := filepath.Join(t.TempDir(), "bundle")
-		code, text := runFake(t, repo, newFake(c.mutate), Options{Out: out})
+		code, text := runFake(t, repo, newFake(c.mutate), Options{Out: out, Wire: c.wire})
 		one := readJSON(t, filepath.Join(out, "summary.json"))
 		if hub["verdict"] != c.verdict || one["verdict"] != c.verdict || code != map[string]int{"passed": 0, "failed": 1}[c.verdict] {
 			t.Fatalf("%s: hub verdict %v, cockpit run verdict %v exit %d\n%s", c.name, hub["verdict"], one["verdict"], code, text)
@@ -89,6 +94,9 @@ func TestTheSameFakeRunThroughTheHubAndThroughCockpitRunWritesTheSameSummaryButI
 		frozen := map[string]any{"status": "ok"}
 		if !reflect.DeepEqual(hubStages["signals"], frozen) || !reflect.DeepEqual(oneStages["signals"], frozen) {
 			t.Fatalf("%s: canary: both must freeze their signal stream: hub %v, cockpit run %v", c.name, hubStages["signals"], oneStages["signals"])
+		}
+		if hubWire, _ := hub["wire"].(map[string]any); c.wire && (hubWire["state"] != "taken" || hubWire["calls"] != float64(2)) {
+			t.Fatalf("%s: canary: the hub must take the record of both calls: %v", c.name, hub["wire"])
 		}
 		hub, one = withoutExcluded(t, hub), withoutExcluded(t, one)
 		for key := range hub {
@@ -101,7 +109,7 @@ func TestTheSameFakeRunThroughTheHubAndThroughCockpitRunWritesTheSameSummaryButI
 		}
 		compared++
 	}
-	if compared != 2 {
-		t.Fatalf("%d of 2 cases compared", compared)
+	if compared != len(cases) || compared != 3 {
+		t.Fatalf("%d of 3 cases compared", compared)
 	}
 }

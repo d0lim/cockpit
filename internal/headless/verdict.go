@@ -75,7 +75,7 @@ func (r *run) report(ctx context.Context) (string, error) {
 		Runner: r.suiteRun, Boot: r.booted, Masker: r.env.Masker, Now: now,
 	})
 	bundle.Signals = r.stream
-	out, err := pipeline.AssembleReport(context.WithoutCancel(ctx), bundle, pipeline.Recordings{Stream: r.stream, Exited: r.exited, Now: now})
+	out, err := pipeline.AssembleReport(context.WithoutCancel(ctx), bundle, pipeline.Recordings{Stream: r.stream, Exited: r.exited, Now: now, Wire: r.recorder()})
 	if ctx.Err() != nil {
 		r.walk(lifecycle.Abort, lifecycle.Detail{})
 	}
