@@ -13,7 +13,10 @@ import (
 	"github.com/d0lim/cockpit/internal/mask"
 )
 
-const maxFrozenLine = 4 << 20
+const (
+	maxFrozenLine = 4 << 20
+	FrozenPath    = Dir + "/" + streamFile
+)
 
 var ErrNoFrozenCopy = errors.New("the report bundle has no frozen signal copy")
 
@@ -74,6 +77,34 @@ func ReadFrozen(bundleDir string, m *mask.Masker, req ReadRequest) (ReadResponse
 		resp.Next = max(resp.Next, resp.FrozenSeq)
 	}
 	return resp, nil
+}
+
+func Remask(m *mask.Masker, from io.Reader, to io.Writer) (int, error) {
+	if m == nil {
+		return 0, errors.New("no masker for the frozen copy")
+	}
+	r := bufio.NewReaderSize(from, 64<<10)
+	lines := 0
+	for {
+		line, err := readLine(r)
+		if errors.Is(err, io.EOF) {
+			return lines, nil
+		}
+		if err != nil {
+			return lines, err
+		}
+		if len(line) == 0 {
+			continue
+		}
+		masked, err := remask(m, line)
+		if err != nil {
+			return lines, fmt.Errorf("the frozen copy has a broken line: %w", err)
+		}
+		if _, err := to.Write(append(masked, '\n')); err != nil {
+			return lines, err
+		}
+		lines++
+	}
 }
 
 func readLine(r *bufio.Reader) ([]byte, error) {

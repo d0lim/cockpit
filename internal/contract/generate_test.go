@@ -201,7 +201,7 @@ func TestGeneratedDirectoriesHoldOnlyFilesNamedByRootsAndModules(t *testing.T) {
 			t.Fatalf("files in %s/ %v, want %v", dir, got, sorted(want...))
 		}
 	}
-	if len(schemas) != 9 || len(sdk) != 4 {
+	if len(schemas) != 10 || len(sdk) != 4 {
 		t.Fatalf("%d roots, %d sdk files", len(schemas), len(sdk))
 	}
 }

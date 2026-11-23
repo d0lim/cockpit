@@ -37,6 +37,7 @@ func Roots() []Root {
 		root[BundleMeta]("meta"),
 		root[Declaration]("declaration"),
 		root[Signal]("signal"),
+		root[Archive]("archive"),
 	}
 }
 
@@ -60,6 +61,8 @@ func Enums() []Enum {
 		enum(SpanStatusOK, SpanStatusError, SpanStatusIncomplete),
 		enum(MetricTypeGauge, MetricTypeSum, MetricTypeHistogram, MetricTypeSummary),
 		enum(WireStateTaken, WireStateLost, WireStateWithheld, WireStateFailed),
+		enum(ArchiveFormat1),
+		enum(ArchiveKindSummary, ArchiveKindMeta, ArchiveKindNotProven, ArchiveKindSeal, ArchiveKindManifest, ArchiveKindResult, ArchiveKindLedger, ArchiveKindContext, ArchiveKindExec, ArchiveKindSourceIndex, ArchiveKindSource, ArchiveKindSignals, ArchiveKindWireIndex, ArchiveKindWireCalls, ArchiveKindSchema),
 	}
 }
 

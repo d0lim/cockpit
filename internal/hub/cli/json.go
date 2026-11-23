@@ -108,11 +108,15 @@ func (x *ctx) call(method, path string, body any, limit time.Duration) (reply, e
 	if err != nil {
 		return reply{}, unreachable{err}
 	}
-	r := reply{status: res.StatusCode, body: map[string]any{}}
+	return replyOf(res.StatusCode, raw), nil
+}
+
+func replyOf(status int, raw []byte) reply {
+	r := reply{status: status, body: map[string]any{}}
 	if len(bytes.TrimSpace(raw)) > 0 && json.Unmarshal(raw, &r.body) != nil {
-		r.body = map[string]any{"message": fmt.Sprintf("a response that is not a JSON object (HTTP %d)", res.StatusCode)}
+		r.body = map[string]any{"message": fmt.Sprintf("a response that is not a JSON object (HTTP %d)", status)}
 	}
-	return r, nil
+	return r
 }
 
 func decode[T any](body map[string]any) (T, error) {

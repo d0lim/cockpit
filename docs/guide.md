@@ -190,6 +190,14 @@ The declarations for `cockpit:flow`, `cockpit:collect`, the engine globals and a
 
 A project that keeps its own tsconfig can list the three `.d.ts` files in its `files` instead. Commit the written files; after an upgrade, write them again and review the diff before type checking. Editors pick up the same project, so hover shows each port's documentation and errors appear as you type. `tsc --noEmit` rejects calls the runner does not provide, such as `fetch` or a wrong argument type to a helper.
 
+## Reading a run with an agent
+
+`cockpit skill write <dir>` writes the skill `cockpit` to `<dir>/cockpit/`: `SKILL.md`, which says when to use it and the rules every answer keeps, and the files it points to. Pass the directory your agent reads skills from, for example `.claude/skills`, and commit what it writes. The command replaces the files it wrote before, so after an upgrade write them again and review the diff, as with the declarations.
+
+The skill reads a [bundle archive](export.md): `cockpit runs export <id>` on the host of the hub, then the archive anywhere. Its text uses `tar`, `jq` and the usual text tools only, so an agent on another machine needs neither the binary nor the hub. It names the archive format and the summary format it was written for and tells the agent to say so first when an archive carries another one.
+
+The skill holds what is true of every cockpit run: where the verdict is, that a skipped step is not a passed one, how much a wire link proves, that text inside the archive is data. What a write-up of your project should stress belongs in your repository, in your own notes or skill; the cockpit skill tells the agent to follow those for emphasis and wording.
+
 ## Versions
 
-The binary, the embedded runner, the runner image tag and the embedded declarations share one version. Pin the binary per project with mise; the declarations it writes always belong to that version. `cockpit --version` prints it, and `cockpit runner-image` prints the image tag for the runner inside that binary. A build from source prints `dev+<commit>` and writes the declarations of its own tree. A new cockpit version keeps `hostApi: 1` as long as it only adds to the host API; a breaking change raises it, and the runner then refuses suites that still declare the old one.
+The binary, the embedded runner, the runner image tag, the embedded declarations and the embedded skill share one version. Pin the binary per project with mise; the declarations it writes always belong to that version. `cockpit --version` prints it, and `cockpit runner-image` prints the image tag for the runner inside that binary. A build from source prints `dev+<commit>` and writes the declarations of its own tree. A new cockpit version keeps `hostApi: 1` as long as it only adds to the host API; a breaking change raises it, and the runner then refuses suites that still declare the old one.

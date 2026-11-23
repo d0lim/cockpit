@@ -183,6 +183,7 @@ cockpit runs submit --wait
 `submit` sends the repository of the current directory at `HEAD` (or `--commit`), and with one suite in the commit picks it; otherwise name it with `--suite`. The exit code follows the verdict (`0` passed, `1` failed, `2` error; the full table is in [api](api.md#cli)). Then:
 
 - `cockpit runs report <id>` prints the flows and steps, and the screen at `/runs/<id>` shows the report, each flow's steps with their requests and refs, and the signals.
+- `cockpit runs export <id>` writes the run's report bundle to `<id>.tar.gz`, masked again on the way out, for reading away from the hub ([bundle archive](export.md)). `cockpit skill write <dir>` writes the skill an agent reads it with ([usage guide](guide.md#reading-a-run-with-an-agent)).
 - When the run ends its containers stop, and the environment stays in the kept pool. `cockpit runs resume <id>` brings it back, `cockpit runs exec <id> -- <flow>` reruns one flow against it, and `cockpit runs destroy <id>` removes it. The report bundle stays after a destroy. A cockpit upgrade that changes the harness version keeps the runs of the old hub listed, but refuses to resume them or run exec in them: destroy them and submit again ([Harness version](lifecycle.md#harness-version)).
 
 ## 8. Record a run's service calls

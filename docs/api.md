@@ -37,6 +37,7 @@ The CLI sends `Origin` and `X-Cockpit` on every write.
 | GET | `/api/runs/{id}` | `RunDetail` |
 | POST | `/api/runs/{id}/{op}` | `OpReply` for `keep`, `unkeep`, `stop`, `resume`, `destroy` (200) and `abort` (202, for the active pipeline or a running exec); `ExecView` for `exec` |
 | GET | `/api/runs/{id}/report` | `ReportView` |
+| GET | `/api/runs/{id}/export` | the bundle archive as `application/gzip` |
 | GET | `/api/runs/{id}/kit` | `KitView` |
 | GET | `/api/runs/{id}/flows/{flow}` | `FlowView` |
 | GET | `/api/runs/{id}/source` | `SourceView` for `?file=<path>` |
@@ -65,6 +66,7 @@ Because that schema follows the struct, it cannot see a field that disappears. `
   - `redaction-failed` with the bundle paths the rescan caught.
   - `meta-only` with the failed stage, notice and tail when there is no bundle.
   - `bundle` with `summary`, `meta`, `flows`, `steps`, `stoppedAt`, `notProven` and `reportDir`.
+- **Export**: `GET /api/runs/{id}/export` answers no JSON on success. Its body is the bundle archive of the run ([bundle archive](export.md)), built whole before the first byte, with `Content-Disposition: attachment; filename="<id>.tar.gz"` and `Content-Length`. Every file in it passes the read layer of its kind with the run masker. It answers 409 `NOT_AVAILABLE` before the report or without a run masker, 409 `READ_REFUSED` with `files` when the rescan discarded the bundle or the bundle holds an entry that is not a regular file, and 404 when the run ended without a bundle.
 - **`KitView`**: services, kit files, the `cockpit runs exec` command with the repeatable flows, and the report directory.
 - **`ExecView`**: `exitCode`, `oomKilled`, `timedOut`, `flows`, `lines` and `reason`. On a run submitted with `wire`, `lines` ends with one `wire record:` line when the exec was not recorded or its take could not be stored. An exec whose runner could not run answers with a failure, and that line ends its reason.
 - **`FlowView`** and **`SourceView`**: read from the bundle when it exists (`source: bundle`). Otherwise they are read live from `work/e2e` and `work/scripts` and pass the run masker (`source: live`). The live source view serves only files the manifest points to, and it refuses to answer without a run masker.
@@ -99,11 +101,12 @@ Rules:
 
 ## CLI
 
-`cockpit runs <submit|list|get|show|report|wait|keep|unkeep|stop|resume|destroy|abort|exec>` calls the hub at `COCKPIT_URL` (default `http://127.0.0.1:7710`).
+`cockpit runs <submit|list|get|show|report|export|wait|keep|unkeep|stop|resume|destroy|abort|exec>` calls the hub at `COCKPIT_URL` (default `http://127.0.0.1:7710`).
 
 - `submit` sends the git top level of the current directory, `--commit` (default `HEAD`), `--suite`, `--submitter` (then `COCKPIT_SUBMITTER`, then `cli`), `--new` and `--wire`.
 - `--wait` and `wait` poll the run until it settles. They reconnect for 60 seconds when the hub goes away.
 - `exec <id> -- <flow id>` reruns one flow in a finished run whose environment is up.
+- `export <id> [--out <file>]` downloads the run's [bundle archive](export.md) to `<id>.tar.gz` in the current directory, or to `--out`. It never replaces an existing file (exit 3), and a download that breaks off leaves no file (exit 2). `--json` adds `id`, `file` and `bytes`.
 - `--help`, `-h` or `help` prints the usage and exits 0, with or without a command.
 - `--json` prints exactly one JSON object line: `{"schemaVersion": 1, "code": <stable code>, ...}`. The stable codes are `cli.StableCodes()`: the CLI's own codes plus the hub's `api.Codes`.
 
