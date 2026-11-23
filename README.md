@@ -21,7 +21,7 @@ or with [mise](https://mise.jdx.dev), globally or pinned per project:
 
 ```sh
 mise use -g github:d0lim/cockpit
-mise use github:d0lim/cockpit@0.5.0
+mise use github:d0lim/cockpit@0.6.0
 ```
 
 Docker is required: `cockpit runner-image` imports the embedded runner as a local image.

@@ -43,7 +43,7 @@ The minutes a consumer pays are the job's wall time. `docs/hub.md` now shows the
 - [x] `make verify` in a clean copy. Evidence: exit 0, the build and the size measurement at the end of its log.
 - [x] A live run past a kept project. Evidence: stopped containers labelled with the `-h1` id of each of the next 21 seconds stood in for a kept project. The run took `run-20261123-133559-5fe50cd-h2`, ended `verdict passed`, removed its claim, and left all 21 stand-ins in place.
 - [ ] Two live `cockpit run` processes on `testdata/toy-project` with Docker Desktop, started in the same second with different `TMPDIR` values and different port bases, get different ids, both pass, and leave no claim container or labelled resource. Evidence: both started at 13:25:58 on commit `5fe50cd`, one with `TMPDIR=tmp1` and port base 22000, the other with `TMPDIR=tmp2` and port base 23000. They got `run-20261123-132558-5fe50cd-h1` and `-h2`, each `run id` stage took about 200 ms, both ended `verdict passed`, both printed `release run id ... removed`, and `docker ps -a --filter label=io.cockpit.claim` was empty afterwards.
-- [ ] CI green on the PR.
+- [x] CI green on the PR. Evidence: verify, integration, action and Greptile Review passed on `d48cce7`, the tree that #19 merged as.
 
 ## Left open
 
