@@ -1,0 +1,83 @@
+{
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "runId": {
+      "type": "string"
+    },
+    "exportedAt": {
+      "type": "string"
+    },
+    "cockpitVersion": {
+      "type": "string"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "meta",
+              "not-proven",
+              "seal",
+              "manifest",
+              "result",
+              "ledger",
+              "context",
+              "exec",
+              "source-index",
+              "source",
+              "signals",
+              "wire-index",
+              "wire-calls",
+              "schema"
+            ]
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "lines": {
+            "type": "integer"
+          },
+          "schema": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "bytes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "omitted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "archive",
+  "required": [
+    "format",
+    "runId",
+    "exportedAt",
+    "cockpitVersion",
+    "files",
+    "omitted"
+  ],
+  "additionalProperties": false
+}

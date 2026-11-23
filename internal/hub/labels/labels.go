@@ -62,6 +62,9 @@ const (
 	MsgExecExit         Message = "execExit"
 	MsgHostAPINotice    Message = "hostApiNotice"
 	MsgUnexpected       Message = "unexpected"
+	MsgExported         Message = "exported"
+	MsgExportExists     Message = "exportExists"
+	MsgExportBroken     Message = "exportBroken"
 )
 
 var messages = map[Message]string{
@@ -103,6 +106,9 @@ var messages = map[Message]string{
 	MsgExecExit:         "runner exit code {code}",
 	MsgHostAPINotice:    "notice: {notice}",
 	MsgUnexpected:       "unexpected error: {error}",
+	MsgExported:         "{id} · {bytes} bytes · {file}",
+	MsgExportExists:     "the file exists and is not replaced: {file}",
+	MsgExportBroken:     "the download broke off and nothing was kept: {file}",
 }
 
 var verdicts = map[string]string{

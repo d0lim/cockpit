@@ -74,6 +74,10 @@ Flows are checked against declarations that cockpit generates and embeds in the 
 
 Commit the written files. After upgrading cockpit, write them again and review the diff: it shows every declaration the new version changed, before `tsc` checks the flows against them.
 
+## Reading a run with an agent
+
+`cockpit runs export <id>` writes a run's report bundle to one archive, masked again on the way out, and `cockpit skill write <dir>` writes the skill an agent reads it with. The skill uses `tar`, `jq` and the usual text tools, so the agent needs neither the binary nor the hub. The [bundle archive](docs/export.md) page says what the archive holds.
+
 ## Releases
 
 A `v*` tag builds the binaries with GoReleaser and attaches them to the GitHub release; mise installs from there. When `sdk/` changed since the previous tag, the release notes carry a "Declarations changed" section with the host API and the diff. The cask in [d0lim/homebrew-tap](https://github.com/d0lim/homebrew-tap) is written by that repository's own workflow from the published release. `hostApi` in `.cockpit/project.yaml` is the compatibility key: the runner refuses a declaration whose host API differs from its own, and a declaration change that breaks scripts written for the current host API raises it.

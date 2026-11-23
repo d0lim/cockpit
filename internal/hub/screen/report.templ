@@ -99,7 +99,8 @@ templ bundleReport(st *state, v api.ReportView, s contract.Summary) {
 		<span class="text-muted">Report bundle</span>
 		<span class="ml-2 font-mono text-xs break-all">{ v.ReportDir }</span>
 		<button type="button" class="link ml-2 text-xs" data-copy={ v.ReportDir }>copy</button>
-		<p class="mt-1 text-xs text-muted">The raw files (runner results, signals, sources) are in this directory. The hub does not serve them.</p>
+		<a class="link ml-2 text-xs" href={ templ.SafeURL("/api/runs/" + v.ID + "/export") } hx-boost="false" download>Download archive</a>
+		<p class="mt-1 text-xs text-muted">The raw files (runner results, signals, sources) are in this directory. The archive holds the same files, masked again, for reading away from the hub.</p>
 	</div>
 }
 

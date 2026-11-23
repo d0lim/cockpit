@@ -85,10 +85,15 @@ func TestTheReportShowsTheVerdictTheFlowsWhatWasNotCountedAndFailedCollection(t 
 		"verdict Failed", "seal passed", "Steps 6 of 6", "failed steps: 1, the first at alpha › a2",
 		`href="/runs/` + rid(1) + `/report/alpha?step=a2"`, `href="/runs/` + rid(1) + `/report/alpha"`,
 		"1 skipped steps in 1 flows", `href="/runs/` + rid(1) + `/report/alpha?step=a3"`, "Collection failed · pulse deadline",
+		`href="/api/runs/` + rid(1) + `/export" hx-boost="false" download>Download archive</a>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
+	}
+	f.seed(runMeta(2, lifecycle.State{Phase: lifecycle.Testing, Env: lifecycle.EnvUp}, doneUp))
+	if _, _, pending := f.get("/runs/" + rid(2) + "/report"); strings.Contains(pending, "/export") || !strings.Contains(pending, rid(2)) {
+		t.Fatal("a run without a report offers its archive")
 	}
 }
 

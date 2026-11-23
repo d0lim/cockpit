@@ -26,7 +26,7 @@ func TestVersionFlagPrintsHubPrefixAndVersion(t *testing.T) {
 }
 
 func TestNoArgsUnknownCommandOrIncompleteSubcommandPrintsUsageAndExits2(t *testing.T) {
-	for _, args := range [][]string{nil, {"fly"}, {"sdk"}, {"sdk", "write"}, {"sdk", "read", "x"}, {"runner-image", "extra"}} {
+	for _, args := range [][]string{nil, {"fly"}, {"sdk"}, {"sdk", "write"}, {"sdk", "read", "x"}, {"skill"}, {"skill", "write"}, {"skill", "read", "x"}, {"runner-image", "extra"}} {
 		code, _, errOut := call(nil, args...)
 		if code != 2 || !strings.Contains(errOut, "usage") {
 			t.Fatalf("%v: exit %d stderr %q", args, code, errOut)
@@ -46,6 +46,29 @@ func TestSdkWriteWritesDeclarationsToDirAndPrintsOnePathPerLine(t *testing.T) {
 	}
 	if lines := strings.Split(strings.TrimSpace(out), "\n"); len(lines) != 4 || !strings.HasSuffix(lines[1], "cockpit-flow.d.ts") {
 		t.Fatalf("stdout %q", out)
+	}
+}
+
+func TestSkillWriteWritesTheSkillUnderItsNameAndPrintsOnePathPerLine(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "skills")
+	code, out, errOut := call(nil, "skill", "write", dir)
+	if code != 0 {
+		t.Fatalf("exit %d stderr %q", code, errOut)
+	}
+	entry, err := os.ReadFile(filepath.Join(dir, "cockpit", "SKILL.md"))
+	if err != nil || !strings.Contains(string(entry), "name: cockpit") {
+		t.Fatalf("the entry was not written: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if len(lines) != 2 || lines[0] != filepath.Join(dir, "cockpit", "SKILL.md") || lines[1] != filepath.Join(dir, "cockpit", "reading.md") {
+		t.Fatalf("stdout %q", out)
+	}
+	blocked := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(blocked, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, errOut := call(nil, "skill", "write", blocked); code != 2 || !strings.Contains(errOut, "cannot write the skill") {
+		t.Fatalf("a directory that is a file: exit %d stderr %q", code, errOut)
 	}
 }
 
