@@ -10,7 +10,19 @@ This page holds the five seals, the static assertion table and the rules of the 
 | Isolation between sessions | Each run leases its own port block, its own project name and labels (`io.cockpit.managed`, `io.cockpit.run-id`), and its own run directory opened through `os.Root`. Edge ports bind `127.0.0.1` only. |
 | Pinned commit | The source, the suite, the declaration and the consumer overlays come from the git objects of one commit and of the submodule commits it pins, extracted twice (`src/`, `build/`) and checked against each repository's file count in the tree. The harness and the runner come from the cockpit version. |
 | Independence from host tools | The hub runs no consumer code on the host: environment generation, building, probing and the suite all run in containers, and every hub git call is hardened against repository configuration. |
-| Zero external communication at runtime | The default network and every project network are internal. Among long-running services only the edge joins `egress`, and it proxies only to service names of the project on declared offset ports. The static assertions prove the configuration, and the probes prove the network. |
+| Zero external communication at runtime | At network level `sealed`: the default network and every project network are internal. Among long-running services only the edge joins `egress`, and it proxies only to service names of the project on declared offset ports. The static assertions prove the configuration, and the probes prove the network. At level `open` this seal is not held; see [Network level](#network-level). |
+
+## Network level
+
+The declaration's `network` field picks the level of the fifth seal: `sealed` (the default when the field is absent) or `open`. The level changes three things and nothing else:
+
+| | `sealed` | `open` |
+| --- | --- | --- |
+| Harness | `default` and every project network are `internal` | the harness does not set `internal`, so project networks route out through Docker's bridge |
+| Static assertions | all 25 | the 24 other than `networks.internal`; `services.networks` still confines every service to the networks of its role |
+| Probes | the four sealed attempts and their control | not run, because an open network is expected to reach out |
+
+The other four seals hold at both levels: fresh state, isolation between sessions (host ports only on the edge, only on `127.0.0.1`), the pinned commit and independence from host tools, with every privilege, mount, path and build assertion. `seal.json` records the level as `network`. The report records it in `summary.json` as `network`, and a run at `open` adds a `notProven.declared` line saying that runtime isolation was not proven. Use `open` for a stack that must call a real outside service; a stack whose outside calls can be faked keeps `sealed`.
 
 ## Static assertions
 
@@ -21,8 +33,8 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 1 | `roles.present` | Exactly one service holds each harness role (`cockpit-edge`, `cockpit-runner`, `cockpit-probe`, `cockpit-probe-control`, `cockpit-otlp` when `telemetry.otlp.services` names a service, `cockpit-wire` when the run records, and `builder` when declared), and every service carries the run labels. Without this, an empty or partial render would pass the rest vacuously. |
 | 2 | `files.overlays` | No compose file the render reads (the declared files, every file they include, and the harness) matches an entry of `compose.forbidden`. |
 | 3 | `networks.set` | `default` and `egress` exist, and no network is external. |
-| 4 | `networks.internal` | Every network other than `egress` is internal. |
-| 5 | `services.networks` | The edge joins every internal network and `egress`; the builder and `cockpit-probe-control` join only `egress`; every other service joins only internal networks. |
+| 4 | `networks.internal` | Every network other than `egress` is internal. Not run at network level `open`. |
+| 5 | `services.networks` | The edge joins every project network and `egress`; the builder and `cockpit-probe-control` join only `egress`; every other service joins only project networks. A project network is any network other than `egress` that is not external. |
 | 6 | `services.ports` | Host ports appear only on the edge. |
 | 7 | `services.network-mode` | `network_mode` appears nowhere. |
 | 8 | `services.extra-hosts` | `extra_hosts` appears only on `cockpit-probe` and `cockpit-probe-control`, and there it is exactly `host.docker.internal=host-gateway`. That entry gives both probes the same name for the host on every Docker, and it opens no route: the sealed probe sits on an internal network, which has no gateway. |
@@ -48,7 +60,7 @@ Assertions 2 to 24 keep the names and order of the previous cockpit. The edge as
 
 ## Probes
 
-After the build and before the services start, the hub runs `cockpit-runner probe <canary>` twice: once as `cockpit-probe` on the internal `default` network, then as `cockpit-probe-control` on `egress`. While both run, the hub listens on `<canary host>:<base + 99>` as the canary, where the canary host is `127.0.0.1` on macOS and Windows and the `docker0` address on Linux (see the end of this section). Each run prints one `probe=<n> rc=<code>` line per attempt:
+At network level `open` the hub skips this stage and writes no probe results. At level `sealed`, after the build and before the services start, the hub runs `cockpit-runner probe <canary>` twice: once as `cockpit-probe` on the internal `default` network, then as `cockpit-probe-control` on `egress`. While both run, the hub listens on `<canary host>:<base + 99>` as the canary, where the canary host is `127.0.0.1` on macOS and Windows and the `docker0` address on Linux (see the end of this section). Each run prints one `probe=<n> rc=<code>` line per attempt:
 
 | n | Attempt | Sealed probe expects | Control expects |
 | --- | --- | --- | --- |
@@ -84,7 +96,7 @@ Every line on the screen passes the run redactor. Each stage prints one line. A 
 | 5 | verdict `aborted` |
 | 130 | interrupted; a run interrupted in its run stage still writes its bundle, `--out` and `--archive` |
 
-`--unseal-check` proves that the probes measure the seal. It starts a second project, `<run>-unsealed`, whose only difference is one extra file setting `networks.default.internal: false`. It runs the same probes there and removes the project. The check passes only when all four sealed attempts turn into violations.
+`--unseal-check` proves that the probes measure the seal. It starts a second project, `<run>-unsealed`, whose only difference is one extra file setting `networks.default.internal: false`. It runs the same probes there and removes the project. The check passes only when all four sealed attempts turn into violations. A commit at network level `open` has no probes to measure, so `--unseal-check` refuses it in the declaration step (exit 3).
 
 The static assertions are tested against `internal/seal/testdata/config.toy.json`, which the fake Docker of the hub tests also serves as its `compose config`. It is generated, not edited: `make seal-fixture` renders the toy consumer through the real harness and `docker compose config` (run id `r-toy`, run directory `/fixture/runs/r-toy`, port base 22000, runner image `cockpit-runner:0123456789ab`, a fixed `.env`) and writes it with every service `environment` emptied, so no credential value is committed. `TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer` (with `COCKPIT_INTEGRATION=1`) fails when the committed file differs from a fresh render, for example after the toy's compose files or image inputs change. Compose versions differ in how they print defaults, so the render is normalised before it is compared or written, and only in documented ways: every service `environment` is emptied (credentials), and `bind.create_host_path: true` is dropped from bind volumes, because Compose v2 prints that default explicitly and v5 omits it (the fixture is written with Compose v5.6.1; CI renders it with the Compose of `ubuntu-latest`, v2.38.2 at the time of writing). `TestFixtureNormalisationDropsOnlyTheDefaultCreateHostPathAndKeepsEverySealViolationVisible` runs every violating copy of the static assertion table through the normalisation and requires the same assertion to fail, so the normalisation cannot hide a seal-relevant key. Any other difference fails the drift test: a Compose upgrade that changes the rendering needs a regenerated fixture or a new documented normalisation with that test extended.
 

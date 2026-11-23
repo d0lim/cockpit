@@ -120,7 +120,7 @@ printf '{"local":{"adminToken":"%s"}}\n' "$admin" > e2e.private.env.json
 
 ## 4. External services
 
-At runtime the long-running services have no route out of the run: the hub makes every consumer network internal and the seal check proves it. A service that calls an outside API fails inside a sealed run. Point it at a fake on the stack instead, in the overlay:
+By default the long-running services have no route out of the run at runtime: the hub makes every consumer network internal and the seal check proves it. A service that calls an outside API fails inside a sealed run. Point it at a fake on the stack instead, in the overlay:
 
 ```yaml
 services:
@@ -132,6 +132,14 @@ services:
 ```
 
 Building is the exception: `compose build` runs with network access, so a Dockerfile may download dependencies. Downloads that do not fit a Dockerfile (vendoring dependencies into the source before the build) can run in the declared `project.builder`, a service that runs in the build stage, alone on the outside network, binding only the run's build copy of the commit; see [sealing](sealing.md).
+
+When a service must call a real outside service at runtime, declare the open network level:
+
+```yaml
+network: open
+```
+
+The project networks then route out, the hub skips the network probes, and every other seal still holds: host ports only on the edge and only on `127.0.0.1`, no privileges, no binds outside the run, credentials generated inside the run. The report records `network: open` and lists runtime isolation under what the run did not prove ([sealing](sealing.md#network-level)).
 
 ## 5. Readiness
 
@@ -235,5 +243,5 @@ The record hides the run's known credentials and every value under a key that na
 | `submodule` | run `git submodule update --init --recursive` in the main checkout of the allowed repository; the message names the gitlink |
 | `missing`, `schema`, `confinement`, `host-api`, `ports`, `compose` | the field the message names; see [harness](harness.md#reading-the-declaration) |
 | a suite name is needed | pass `--suite`; the message lists the commit's suites |
-| the seal check fails | a service reaches outside the run or binds a path outside it; the report's seal result names the assertion ([sealing](sealing.md)) |
+| the seal check fails | a service reaches outside the run at network level `sealed`, or binds a path outside it; the report's seal result names the assertion ([sealing](sealing.md)) |
 | boot fails | the notice names the service that exited non-zero, died or stayed unhealthy, and the run's tail holds the last 40 lines of its log, masked: the run's page shows the tail, and `cockpit runs report <id>` prints its last lines. The containers stay stopped until the run is destroyed |

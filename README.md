@@ -4,7 +4,7 @@ cockpit runs end-to-end flows against a compose stack. You write flows in TypeSc
 
 There are two ways to run a suite:
 
-- **On the hub** (`cockpit hub`): one commit and one suite on a fresh sealed environment, with credentials generated inside the run, no route out at runtime, a verdict and a report bundle. [Running on the hub](docs/hub.md) takes a compose project to its first sealed run. A run can also [record its service calls](docs/wire.md) and show, per flow and step, what each server was asked and what it answered as a sequence diagram or a trace.
+- **On the hub** (`cockpit hub`): one commit and one suite on a fresh sealed environment, with credentials generated inside the run, no route out at runtime unless the commit declares `network: open`, a verdict and a report bundle. [Running on the hub](docs/hub.md) takes a compose project to its first sealed run. A run can also [record its service calls](docs/wire.md) and show, per flow and step, what each server was asked and what it answered as a sequence diagram or a trace.
 - **The runner alone**, against a stack you start yourself. It is the quickest way to write and debug flows, and it is what the quick start below sets up. The [usage guide](docs/guide.md) covers it.
 
 ![The hub's screen: a failed step, the calls its request caused, and the request and response of one of them](docs/images/screen.png)

@@ -101,15 +101,22 @@ func Harness(in HarnessInput) ([]byte, error) {
 	}
 	decl, model := in.Loaded.Declaration, in.Loaded.Model
 	inner := []string{DefaultNetwork}
+	projectNetwork := func() map[string]any {
+		network := map[string]any{"labels": labels(in.RunID, "")}
+		if decl.NetworkLevel() == contract.NetworkSealed {
+			network["internal"] = true
+		}
+		return network
+	}
 	networks := map[string]any{
-		DefaultNetwork: map[string]any{"internal": true, "labels": labels(in.RunID, "")},
+		DefaultNetwork: projectNetwork(),
 		EgressNetwork:  map[string]any{"labels": labels(in.RunID, "")},
 	}
 	for _, name := range sortedKeys(model.Networks) {
 		if model.Networks[name] || name == DefaultNetwork {
 			continue
 		}
-		networks[name] = map[string]any{"internal": true, "labels": labels(in.RunID, "")}
+		networks[name] = projectNetwork()
 		inner = append(inner, name)
 	}
 	volumes := map[string]any{}

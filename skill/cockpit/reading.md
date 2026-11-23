@@ -17,7 +17,7 @@ cat report/not-proven.md
 - `reasons[0]` names the rule that held. When the run has a stop point, `reasons[1]` is `flow › step — message`, the runner's own text.
 - `steps` counts `expected` (the manifest), `actual` (the result), `failed`, `skipped` and `requests`.
 - `notProven` is counted by the first query. `report/not-proven.md` holds the entries as text, ready to quote.
-- `seal` is the seal check: `passed`, `failed` or `error`. `report/seal.json` lists every assertion under `static` and every probe under `probes`, each with `name`, `ok`, `expected` and `actual`.
+- `seal` is the seal check: `passed`, `failed` or `error`. `network` is `sealed` or `open`; at `open` the services could reach outside the run, the probes did not run, and `notProven.declared` says so, so an outside dependency is a possible cause of a failure. `report/seal.json` lists every assertion under `static` and every probe under `probes`, each with `name`, `ok`, `expected` and `actual`.
 - `boot` says whether the expected services came up, and which were still `waiting`.
 - `runner` holds the runner's exit `code`, `oomKilled`, `timedOut`, `aborted` and its last output `lines`.
 - `stages` lists the hub's own readers (`runner.<file>`, `source`, `signals`) and one entry per collector. `absent` means there was nothing to read, which is the normal state of `runner.exec` in a run where no flow was run again. `error` is the status to report.

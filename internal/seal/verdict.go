@@ -26,8 +26,9 @@ func Verdict(results []Result) contract.SealVerdict {
 }
 
 type Report struct {
-	Static []Result
-	Probes []Result
+	Network contract.NetworkLevel
+	Static  []Result
+	Probes  []Result
 }
 
 type entry struct {
@@ -40,11 +41,12 @@ type entry struct {
 }
 
 type file struct {
-	CheckedAt string               `json:"checkedAt"`
-	Verdict   contract.SealVerdict `json:"verdict"`
-	OK        bool                 `json:"ok"`
-	Static    []entry              `json:"static"`
-	Probes    []entry              `json:"probes"`
+	CheckedAt string                `json:"checkedAt"`
+	Verdict   contract.SealVerdict  `json:"verdict"`
+	Network   contract.NetworkLevel `json:"network"`
+	OK        bool                  `json:"ok"`
+	Static    []entry               `json:"static"`
+	Probes    []entry               `json:"probes"`
 }
 
 const FileName = "seal.json"
@@ -66,6 +68,7 @@ func Encode(report Report, now time.Time, mask func(string) string) ([]byte, err
 	body := file{
 		CheckedAt: now.UTC().Format(time.RFC3339Nano),
 		Verdict:   Verdict(all),
+		Network:   report.Network,
 		OK:        ok,
 		Static:    entries(report.Static, mask),
 		Probes:    entries(report.Probes, mask),

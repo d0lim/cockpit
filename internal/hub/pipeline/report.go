@@ -28,18 +28,19 @@ const (
 	stageWire   = "wire record"
 )
 
-func sealVerdict(runDir string) contract.SealVerdict {
+func sealOf(runDir string) (contract.SealVerdict, contract.NetworkLevel) {
 	data, err := os.ReadFile(filepath.Join(runDir, seal.FileName))
 	if err != nil {
-		return contract.SealError
+		return contract.SealError, ""
 	}
 	var doc struct {
-		Verdict contract.SealVerdict `json:"verdict"`
+		Verdict contract.SealVerdict  `json:"verdict"`
+		Network contract.NetworkLevel `json:"network"`
 	}
 	if json.Unmarshal(data, &doc) != nil || doc.Verdict == "" {
-		return contract.SealError
+		return contract.SealError, ""
 	}
-	return doc.Verdict
+	return doc.Verdict, doc.Network
 }
 
 func runnerOutcome(r *compose.RunnerResult, m *mask.Masker) *contract.RunnerOutcome {
@@ -102,7 +103,8 @@ func ReportBundle(in RunReport) (report.Bundle, string) {
 	if notice != "" && meta.Verdict == lifecycle.VerdictNone {
 		meta.Verdict, meta.Notice = lifecycle.VerdictError, notice
 	}
-	inputs := report.Inputs{Manifest: collected.Manifest, Result: collected.Result, Boot: in.Boot, Seal: sealVerdict(in.RunDir)}
+	sealVerdict, network := sealOf(in.RunDir)
+	inputs := report.Inputs{Manifest: collected.Manifest, Result: collected.Result, Boot: in.Boot, Seal: sealVerdict, Network: network}
 	if in.Runner != nil {
 		inputs.RunnerCode, inputs.OOMKilled = in.Runner.Code, in.Runner.OOMKilled
 	}

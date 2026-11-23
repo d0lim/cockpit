@@ -116,16 +116,16 @@ func schemaProperties(t *testing.T, name string) []string {
 	return keys
 }
 
-func TestSummaryFormat3KeysAreFormat2KeysWithoutOpaPlusThreeFields(t *testing.T) {
+func TestSummaryFormat3KeysAreFormat2KeysWithoutOpaPlusTheFormat3Fields(t *testing.T) {
 	format2 := []string{"format", "runId", "suite", "verdict", "reasons", "steps", "flows", "stoppedAt", "notProven", "boot", "seal", "runner", "stages", "commit", "harness", "hubCommit", "ports", "images", "versions", "opa", "generatedAt"}
-	want := sorted(append(slices.DeleteFunc(slices.Clone(format2), func(k string) bool { return k == "opa" }), "cockpitVersion", "hostApi", "runnerImage", "wire")...)
+	want := sorted(append(slices.DeleteFunc(slices.Clone(format2), func(k string) bool { return k == "opa" }), "cockpitVersion", "hostApi", "runnerImage", "wire", "network")...)
 	if got := jsonNames(reflect.TypeFor[Summary]()); !slices.Equal(got, want) {
 		t.Fatalf("Summary fields %v\nwant %v", got, want)
 	}
 	if got := schemaProperties(t, "summary"); !slices.Equal(got, want) {
 		t.Fatalf("schema/summary.json properties %v\nwant %v", got, want)
 	}
-	if len(want) != len(format2)+3 {
+	if len(want) != len(format2)+4 {
 		t.Fatalf("key count %d", len(want))
 	}
 }

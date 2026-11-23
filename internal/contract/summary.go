@@ -133,6 +133,7 @@ type Summary struct {
 	NotProven      NotProven               `json:"notProven"`
 	Boot           *BootVerdict            `json:"boot,omitempty"`
 	Seal           SealVerdict             `json:"seal"`
+	Network        NetworkLevel            `json:"network,omitempty"`
 	Runner         *RunnerOutcome          `json:"runner,omitempty"`
 	Stages         map[string]CollectStage `json:"stages"`
 	Commit         string                  `json:"commit"`

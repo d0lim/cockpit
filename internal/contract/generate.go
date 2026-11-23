@@ -53,6 +53,7 @@ func Enums() []Enum {
 		enum(FlowOutcomePassed, FlowOutcomeFailed, FlowOutcomeSkipped, FlowOutcomeNotRun, FlowOutcomeIncomplete),
 		enum(CollectStageOK, CollectStageSkipped, CollectStageAbsent, CollectStageError),
 		enum(OpenBrowser, OpenLink, OpenCopy),
+		enum(NetworkSealed, NetworkOpen),
 		enum(DriverMySQL, DriverPostgres),
 		enum(SecretFormatDotenv, SecretFormatJSON, SecretFormatPEM),
 		enum(SignalKindMetric, SignalKindEvent, SignalKindSpan),

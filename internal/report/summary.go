@@ -43,6 +43,7 @@ func Summary(in Inputs, j Judgement, s SummaryInput, unread []string) contract.S
 		NotProven:      NotProvenOf(j, unread),
 		Boot:           in.Boot,
 		Seal:           in.Seal,
+		Network:        in.Network,
 		Runner:         s.Runner,
 		Stages:         orEmpty(s.Stages),
 		Commit:         s.Commit,

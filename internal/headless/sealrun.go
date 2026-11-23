@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	hubstages "github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/seal"
 )
@@ -24,6 +25,9 @@ func (r *run) build(ctx context.Context) (string, error) {
 
 func (r *run) sealProbes(ctx context.Context) (string, error) {
 	accepted, err := r.env.SealProbes(ctx)
+	if err == nil && r.loaded.Declaration.NetworkLevel() == contract.NetworkOpen {
+		return fmt.Sprintf("network open: the probes did not run; %s written", seal.FileName), nil
+	}
 	results := r.env.Probes
 	verdict := seal.Verdict(append(slices.Clone(r.env.Static), results...))
 	detail := fmt.Sprintf("%s: probe %d/4 blocked, control %d/4 reached, canary accepted %d; %s written",
