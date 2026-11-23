@@ -133,6 +133,20 @@ type WireSection struct {
 	PublicFields []WirePublicField `json:"publicFields,omitempty"`
 }
 
+type NetworkLevel string
+
+const (
+	NetworkSealed NetworkLevel = "sealed"
+	NetworkOpen   NetworkLevel = "open"
+)
+
+func (d Declaration) NetworkLevel() NetworkLevel {
+	if d.Network == NetworkOpen {
+		return NetworkOpen
+	}
+	return NetworkSealed
+}
+
 type Declaration struct {
 	HostAPI   int              `json:"hostApi"`
 	Project   ProjectSection   `json:"project"`
@@ -148,4 +162,5 @@ type Declaration struct {
 	Kit       KitSection       `json:"kit,omitzero"`
 	Telemetry TelemetrySection `json:"telemetry,omitzero"`
 	Wire      WireSection      `json:"wire,omitzero"`
+	Network   NetworkLevel     `json:"network,omitempty"`
 }

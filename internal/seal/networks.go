@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/contract"
 )
 
 func joinedNetworks(v any) []string {
@@ -25,10 +26,10 @@ func joinedNetworks(v any) []string {
 	return out
 }
 
-func internalNetworks(config doc) []string {
+func projectNetworks(config doc) []string {
 	var out []string
 	for name, raw := range record(config["networks"]) {
-		if name != compose.EgressNetwork && record(raw)["internal"] == true && record(raw)["external"] != true {
+		if name != compose.EgressNetwork && record(raw)["external"] != true {
 			out = append(out, name)
 		}
 	}
@@ -36,7 +37,7 @@ func internalNetworks(config doc) []string {
 	return out
 }
 
-func networkChecks(config doc, svcs []service, builder string) []Result {
+func networkChecks(config doc, svcs []service, builder string, level contract.NetworkLevel) []Result {
 	nets := record(config["networks"])
 	var set []string
 	for _, required := range []string{compose.DefaultNetwork, compose.EgressNetwork} {
@@ -54,7 +55,7 @@ func networkChecks(config doc, svcs []service, builder string) []Result {
 			notInternal = append(notInternal, name+" is not internal")
 		}
 	}
-	inner := internalNetworks(config)
+	inner := projectNetworks(config)
 	egressOnly := []string{compose.RoleProbeControl}
 	if builder != "" {
 		egressOnly = append(egressOnly, builder)
@@ -83,11 +84,11 @@ func networkChecks(config doc, svcs []service, builder string) []Result {
 			}
 		}
 	}
-	return []Result{
-		result("networks.set", "the networks are default, egress and project-owned networks; none is external", set),
-		result("networks.internal", "every network other than egress is internal", notInternal),
-		result("services.networks", "the edge joins every internal network and egress, the builder and probe-control join only egress, every other service joins only internal networks", wrong),
+	out := []Result{result("networks.set", "the networks are default, egress and project-owned networks; none is external", set)}
+	if level != contract.NetworkOpen {
+		out = append(out, result("networks.internal", "every network other than egress is internal", notInternal))
 	}
+	return append(out, result("services.networks", "the edge joins every project network and egress, the builder and probe-control join only egress, every other service joins only project networks", wrong))
 }
 
 func sortedNames(m doc) []string {

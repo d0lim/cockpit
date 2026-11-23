@@ -79,7 +79,7 @@ func violations(t *testing.T) map[string]func(in *Input) {
 		"networks.set": func(in *Input) {
 			record(in.Config["networks"])["shared"] = map[string]any{"external": true, "internal": true}
 		},
-		"networks.internal": func(in *Input) { record(in.Config["networks"])["side"] = map[string]any{} },
+		"networks.internal": func(in *Input) { record(record(in.Config["networks"])["default"])["internal"] = false },
 		"services.networks": func(in *Input) {
 			record(svc(t, *in, "cockpit-runner")["networks"])["egress"] = nil
 		},

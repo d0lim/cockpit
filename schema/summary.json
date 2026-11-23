@@ -342,6 +342,13 @@
         "error"
       ]
     },
+    "network": {
+      "type": "string",
+      "enum": [
+        "sealed",
+        "open"
+      ]
+    },
     "runner": {
       "type": "object",
       "properties": {

@@ -37,6 +37,7 @@ type Inputs struct {
 	Result     ResultRead
 	Boot       *contract.BootVerdict
 	Seal       contract.SealVerdict
+	Network    contract.NetworkLevel
 	RunnerCode *int
 	OOMKilled  bool
 }
@@ -121,8 +122,13 @@ func StopPoint(res ResultRead) *contract.SummaryStop {
 	return stop
 }
 
+const OpenNetworkNotProven = "Runtime isolation — not proven: the commit declares network: open, so the services could reach outside the run and the seal probes did not run"
+
 func unproven(in Inputs) (skipped, declared []string) {
 	skipped, declared = []string{}, []string{}
+	if in.Network == contract.NetworkOpen {
+		declared = append(declared, OpenNetworkNotProven)
+	}
 	if in.Manifest.Value != nil {
 		for _, s := range in.Manifest.Value.Stages {
 			if s.NotProven != "" {

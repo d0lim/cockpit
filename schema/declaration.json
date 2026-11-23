@@ -462,6 +462,14 @@
       },
       "description": "What a run submitted with `wire` may record: the calls between services, with their headers and bodies masked. Without the submission option nothing is recorded.",
       "additionalProperties": false
+    },
+    "network": {
+      "type": "string",
+      "description": "The run's network level. `sealed`, the default, makes every project network internal and proves with the seal probes that nothing reaches out at runtime. `open` lets the project networks route out, skips the probes and records in the report that runtime isolation was not proven; every other seal still holds.",
+      "enum": [
+        "sealed",
+        "open"
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

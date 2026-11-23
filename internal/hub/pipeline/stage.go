@@ -121,7 +121,11 @@ func sealStage(ctx context.Context, l *live) (outcome, error) {
 	if _, err := l.env.SealProbes(ctx); err != nil {
 		return outcome{}, err
 	}
-	l.say("sealed: the four probes failed on the sealed network and succeeded on egress")
+	if l.env.Loaded.Declaration.NetworkLevel() == contract.NetworkOpen {
+		l.say("network open: the probes did not run, and the report lists runtime isolation as not proven")
+	} else {
+		l.say("sealed: the four probes failed on the sealed network and succeeded on egress")
+	}
 	return outcome{event: lifecycle.Sealed}, nil
 }
 

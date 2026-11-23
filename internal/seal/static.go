@@ -37,6 +37,7 @@ type Input struct {
 	RunnerImage string
 	Wire        bool
 	WireRoutes  []compose.WireRoute
+	Network     contract.NetworkLevel
 	Realpath    func(path string) (string, bool)
 }
 
@@ -139,7 +140,7 @@ func Static(in Input) []Result {
 	svcs := services(in.Config)
 	out := []Result{roles(in)}
 	out = append(out, result("files.overlays", "the file set holds no compose file matching compose.forbidden", overlays(in)))
-	out = append(out, networkChecks(in.Config, svcs, in.Builder)...)
+	out = append(out, networkChecks(in.Config, svcs, in.Builder, in.Network)...)
 	out = append(out,
 		result("services.ports", "host ports (ports) appear only on the edge", using(svcs, "ports", compose.RoleEdge)),
 		result("services.network-mode", "network_mode appears nowhere", using(svcs, "network_mode")),

@@ -44,6 +44,10 @@ func Probe(ctx context.Context, p compose.Project, base int, listen CanaryListen
 }
 
 func (e *Env) SealProbes(ctx context.Context) (int, error) {
+	if e.Loaded.Declaration.NetworkLevel() == contract.NetworkOpen {
+		e.Probes = nil
+		return 0, e.WriteSeal()
+	}
 	ctx, cancel := context.WithTimeout(ctx, e.Limits.Call)
 	defer cancel()
 	results, accepted, err := Probe(ctx, e.Project, e.Base, e.ListenCanary)

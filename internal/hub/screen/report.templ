@@ -63,6 +63,9 @@ templ bundleReport(st *state, v api.ReportView, s contract.Summary) {
 				@badge(verdictTone(v.Verdict), "verdict "+*v.VerdictLabel)
 			}
 			@badge(sealTone(s.Seal), "seal "+orElse(string(s.Seal), "-"))
+			if s.Network == contract.NetworkOpen {
+				@badge(ToneWarn, "network open")
+			}
 			if v.Steps != nil {
 				<span class="text-sm">
 					Steps { count(v.Steps.Actual) } of { count(v.Steps.Expected) } · failed { itoa(v.Steps.Failed) } · skipped { itoa(v.Steps.Skipped) } · requests { itoa(v.Steps.Requests) }

@@ -131,6 +131,9 @@ func (r *run) prepare(ctx context.Context) bool {
 		if len(dirty) > 0 {
 			note = fmt.Sprintf("; warning: %d uncommitted changes, the run uses HEAD", len(dirty))
 		}
+		if r.opts.UnsealCheck && loaded.Declaration.NetworkLevel() == contract.NetworkOpen {
+			return "", fmt.Errorf("--unseal-check needs network level sealed; this commit declares network: open")
+		}
 		suite, err := pickSuite(loaded, r.opts.Suite)
 		r.meta.Suite = suite
 		return fmt.Sprintf("hostApi %d, suite %s%s", loaded.Declaration.HostAPI, suite, note), err
