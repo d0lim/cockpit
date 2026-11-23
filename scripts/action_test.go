@@ -1,0 +1,142 @@
+package scripts
+
+import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+
+	"github.com/d0lim/cockpit/internal/ports/porttest"
+)
+
+var actionMutations = []porttest.Mutation{
+	{"the action installs only an archive that matches checksums.txt", "drop the sha256sum check from action-install.sh", "red: a changed archive installs and runs", "TestTheActionInstallsAMatchingReleaseAndRefusesAChangedArchive"},
+	{"the action never publishes an archive this run did not write", "emit archive whenever the file exists in action-run.sh", "red: a file left by an earlier step is published as this run's archive", "TestTheActionPublishesOnlyAnArchiveThisRunWrote"},
+}
+
+func TestActionMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
+	porttest.AssertMutationRecord(t, "action_test.go", actionMutations)
+}
+
+const fakeCurl = `#!/usr/bin/env bash
+out=""
+url=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o) out="$2"; shift 2 ;;
+    -*) shift ;;
+    *) url="$1"; shift ;;
+  esac
+done
+cp "$FAKE_RELEASE/${url##*/}" "$out"
+`
+
+func releaseArchive(t *testing.T, version string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(zw)
+	body := []byte("#!/bin/sh\necho cockpit " + version + "\n")
+	if err := tw.WriteHeader(&tar.Header{Name: "cockpit", Mode: 0o755, Size: int64(len(body))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tw.Write(body); err != nil {
+		t.Fatal(err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+func writeFile(t *testing.T, path string, data []byte, mode os.FileMode) {
+	t.Helper()
+	if err := os.WriteFile(path, data, mode); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func install(t *testing.T, tamper bool) (string, string, error) {
+	t.Helper()
+	release, bin, temp := t.TempDir(), t.TempDir(), t.TempDir()
+	name := "cockpit_9.9.9_linux_" + runtime.GOARCH + ".tar.gz"
+	archive := releaseArchive(t, "9.9.9")
+	sum := sha256.Sum256(archive)
+	writeFile(t, filepath.Join(release, "checksums.txt"), []byte(hex.EncodeToString(sum[:])+"  "+name+"\n"), 0o644)
+	if tamper {
+		archive = releaseArchive(t, "6.6.6")
+	}
+	writeFile(t, filepath.Join(release, name), archive, 0o644)
+	writeFile(t, filepath.Join(bin, "curl"), []byte(fakeCurl), 0o755)
+	cmd := exec.Command("bash", "action-install.sh")
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "FAKE_RELEASE="+release, "RUNNER_TEMP="+temp,
+		"GITHUB_PATH="+filepath.Join(temp, "path"), "COCKPIT_VERSION=9.9.9", "COCKPIT_PATH=", "ACTION_REF=")
+	out, err := cmd.CombinedOutput()
+	return filepath.Join(temp, "cockpit", "bin", "cockpit"), string(out), err
+}
+
+func TestTheActionInstallsAMatchingReleaseAndRefusesAChangedArchive(t *testing.T) {
+	installed, out, err := install(t, false)
+	if err != nil || !strings.Contains(out, "cockpit 9.9.9") {
+		t.Fatalf("canary: a matching release did not install: %v\n%s", err, out)
+	}
+	if _, err := os.Stat(installed); err != nil {
+		t.Fatalf("canary: no installed binary: %v", err)
+	}
+	installed, out, err = install(t, true)
+	if err == nil || strings.Contains(out, "cockpit 6.6.6") {
+		t.Fatalf("a changed archive installed or ran: %v\n%s", err, out)
+	}
+	if _, err := os.Stat(installed); !os.IsNotExist(err) {
+		t.Fatalf("a changed archive left a binary: %v", err)
+	}
+}
+
+func runAction(t *testing.T, cockpitScript string, leftover bool) string {
+	t.Helper()
+	bin, work, project := t.TempDir(), t.TempDir(), t.TempDir()
+	writeFile(t, filepath.Join(bin, "cockpit"), []byte(cockpitScript), 0o755)
+	archive := filepath.Join(work, "cockpit-run.tar.gz")
+	if leftover {
+		writeFile(t, archive, []byte("an earlier step's archive"), 0o644)
+	}
+	output, summary := filepath.Join(work, "output"), filepath.Join(work, "summary.md")
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("bash", "action-run.sh")
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "RUNNER_TEMP="+work, "GITHUB_WORKSPACE="+work,
+		"GITHUB_OUTPUT="+output, "GITHUB_STEP_SUMMARY="+summary, "GITHUB_ACTION_PATH="+filepath.Dir(wd),
+		"GITHUB_RUN_ID=1", "GITHUB_RUN_ATTEMPT=1", "COCKPIT_PROJECT="+project, "COCKPIT_ARCHIVE=cockpit-run.tar.gz", "COCKPIT_SUITE=")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("action-run.sh: %v\n%s", err, out)
+	}
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
+func TestTheActionPublishesOnlyAnArchiveThisRunWrote(t *testing.T) {
+	writes := "#!/usr/bin/env bash\nwhile [[ $# -gt 0 ]]; do if [[ $1 = --archive ]]; then echo new > \"$2\"; fi; shift; done\n"
+	if got := runAction(t, writes, false); !strings.Contains(got, "archive=") || !strings.Contains(got, "exit-code=0") {
+		t.Fatalf("canary: a fresh archive is not published:\n%s", got)
+	}
+	refuses := "#!/usr/bin/env bash\nexit 3\n"
+	got := runAction(t, refuses, true)
+	if strings.Contains(got, "archive=") || !strings.Contains(got, "exit-code=3") {
+		t.Fatalf("a leftover archive is published as this run's:\n%s", got)
+	}
+}

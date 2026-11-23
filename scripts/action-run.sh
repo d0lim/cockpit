@@ -7,6 +7,11 @@ archive="${COCKPIT_ARCHIVE:-cockpit-run.tar.gz}"
 out="$RUNNER_TEMP/cockpit-report-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
 rm -rf "$out"
 
+preexisting=0
+if [[ -e "$archive" ]]; then
+  preexisting=1
+fi
+
 args=(run --project "$project" --out "$out" --archive "$archive")
 if [[ -n "${COCKPIT_SUITE:-}" ]]; then
   args+=(--suite "$COCKPIT_SUITE")
@@ -15,7 +20,7 @@ fi
 code=0
 cockpit "${args[@]}" || code=$?
 echo "exit-code=$code" >> "$GITHUB_OUTPUT"
-if [[ -f "$archive" ]]; then
+if [[ "$preexisting" = 0 && -f "$archive" ]]; then
   echo "archive=$archive" >> "$GITHUB_OUTPUT"
 fi
 
