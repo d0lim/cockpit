@@ -53,7 +53,7 @@ func TestKeptRunWithOnlyVolumesLeftIsStoppedForRecreationAndNotDestroyed(t *test
 
 func TestUnlabelledProjectsAreLeftAloneAndLabelledProjectsWithoutRecordsAreOnlyMarkedOrphans(t *testing.T) {
 	w := setup(t)
-	handMade := "run-env-20261012-164840-f837814"
+	handMade := "run-20261012-164840-f837814"
 	w.docker.ls = []Project{{Name: "acme", Status: "running(14)"}, {Name: handMade, Status: "running(12)"}}
 	w.docker.labelled["acme"] = Labelled{Volumes: 4}
 	w.docker.labelled[handMade] = Labelled{Containers: 12, Networks: 2, Volumes: 3}

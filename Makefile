@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 export CGO_ENABLED := 0
 BIN := bin
 
-.PHONY: verify vet test generate-check licenses runners build size clean run-env seal-fixture
+.PHONY: verify vet test generate-check licenses runners build size clean run seal-fixture
 
 verify: vet test generate-check licenses build size
 
@@ -33,8 +33,8 @@ build: runners
 size: build
 	@printf 'cockpit %s bytes\ncockpit-runner %s bytes\n' "$$(wc -c < $(BIN)/cockpit | tr -d ' ')" "$$(wc -c < $(BIN)/cockpit-runner | tr -d ' ')"
 
-run-env: build
-	scripts/run-env.sh $(RUN_ENV_ARGS)
+run: build
+	scripts/run.sh $(RUN_ARGS)
 
 seal-fixture:
 	COCKPIT_INTEGRATION=1 COCKPIT_UPDATE_SEAL_FIXTURE=1 go test -count=1 -run TestIntegrationTheCommittedSealFixtureEqualsAFreshRenderOfTheToyConsumer ./internal/seal

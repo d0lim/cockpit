@@ -15,7 +15,7 @@ import (
 )
 
 var verdictMutations = []porttest.Mutation{
-	{"OOM, the time limit and exit codes outside 0 and 1 close as error", "skip the runner checks in DefaultReport", "red: an OOM-killed or exit-3 runner passes", "TestRunnerOOMTimeLimitAndExitCodesOutsideZeroAndOneCloseAsErrorAndExitOneFails"},
+	{"OOM, the time limit and exit codes outside 0 and 1 close as error", "skip the runner checks in ReportBundle", "red: an OOM-killed or exit-3 runner passes", "TestRunnerOOMTimeLimitAndExitCodesOutsideZeroAndOneCloseAsErrorAndExitOneFails"},
 	{"a runner identity that differs from the pin closes as error with both values", "skip IdentityMismatch", "red: a foreign runner image passes", "TestRunnerIdentityDifferentFromThePinClosesAsErrorNamingBothValues"},
 	{"a runner version differs only when both sides name a revision or a release", "make SameVersion return true", "red: runner 1.0.1 under hub 1.0.0 passes", "TestRunnerIdentityDifferentFromThePinClosesAsErrorNamingBothValues"},
 	{"the tag is checked against the pinned ID before the runner runs", "skip EnsurePinned in runSuite", "red: no retag or re-import before compose run runner", "TestTagPointingAwayFromThePinnedIDIsRepairedBeforeTheRunnerRuns"},

@@ -1,4 +1,4 @@
-package runenv
+package headless
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/hub/cli"
 	"github.com/d0lim/cockpit/internal/runnerbin"
 	"github.com/d0lim/cockpit/internal/seal"
 )
@@ -43,9 +44,9 @@ func toyProject(t *testing.T) string {
 	return real
 }
 
-var keptRunID = regexp.MustCompile(`docker compose -p (run-env-[0-9a-z-]+) `)
+var keptRunID = regexp.MustCompile(`docker compose -p (run-[0-9]{8}-[0-9]{6}-[0-9a-f]{7}) `)
 
-func TestIntegrationToyRunEnvPassesTheSealAndTheUnsealCheckTurnsTheProbesRed(t *testing.T) {
+func TestIntegrationAHeadlessToyRunPassesTheSealWritesAPassedBundleAndTheUnsealCheckTurnsTheProbesRed(t *testing.T) {
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
 		t.Skip("needs COCKPIT_INTEGRATION=1, a Docker daemon and scripts/build-runners.sh")
 	}
@@ -71,7 +72,7 @@ func TestIntegrationToyRunEnvPassesTheSealAndTheUnsealCheckTurnsTheProbesRed(t *
 			p.Down(context.Background())
 		})
 	}
-	if code != ExitPassed {
+	if code != cli.ExitOK {
 		t.Fatalf("exit %d\n%s", code, text)
 	}
 	for _, want := range []string{"seal static (", "25/25 passed", "the probes turn red", "5 steps: 5 passed"} {
@@ -79,7 +80,7 @@ func TestIntegrationToyRunEnvPassesTheSealAndTheUnsealCheckTurnsTheProbesRed(t *
 			t.Errorf("output lacks %q\n%s", want, text)
 		}
 	}
-	files, _ := filepath.Glob(filepath.Join(runs, "cockpit-run-env-*", seal.FileName))
+	files, _ := filepath.Glob(filepath.Join(runs, "cockpit-run-*", seal.FileName))
 	if len(files) != 1 {
 		t.Fatalf("seal.json files %v", files)
 	}
@@ -91,5 +92,12 @@ func TestIntegrationToyRunEnvPassesTheSealAndTheUnsealCheckTurnsTheProbesRed(t *
 	data, _ := os.ReadFile(files[0])
 	if err := json.Unmarshal(data, &report); err != nil || report.Verdict != "passed" || len(report.Static) != 25 || len(report.Probes) != 8 {
 		t.Fatalf("seal.json %s: %v", data, err)
+	}
+	var summary struct {
+		Verdict string `json:"verdict"`
+	}
+	data, _ = os.ReadFile(filepath.Join(filepath.Dir(files[0]), "report", "summary.json"))
+	if err := json.Unmarshal(data, &summary); err != nil || summary.Verdict != "passed" || !strings.Contains(text, "verdict passed") {
+		t.Fatalf("summary.json %s: %v", data, err)
 	}
 }

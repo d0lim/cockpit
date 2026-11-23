@@ -12,7 +12,7 @@ import (
 	"github.com/d0lim/cockpit/internal/version"
 )
 
-const usage = "usage: cockpit init [--base-url <url>] [<dir>] | sdk write <dir> | skill write <dir> | runner-image | run-env --project <path> [--suite <name>] [--unseal-check] [--keep] | hub | runs <command> ... | --version"
+const usage = "usage: cockpit init [--base-url <url>] [<dir>] | sdk write <dir> | skill write <dir> | runner-image | run --project <path> [--suite <name>] [--unseal-check] [--keep] [--out <dir>] [--archive <file>] | hub | runs <command> ... | --version"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -40,8 +40,8 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		if len(args) == 3 && args[1] == "write" {
 			return skillWrite(args[2], stdout, stderr)
 		}
-	case "run-env":
-		return runEnv(ctx, args[1:], getenv, stdout, stderr)
+	case "run":
+		return runHeadless(ctx, args[1:], getenv, stdout, stderr)
 	case "hub":
 		return hub(ctx, args[1:], getenv, stderr)
 	case "runs":

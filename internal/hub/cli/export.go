@@ -52,7 +52,7 @@ func (x *ctx) export(id, out string) (int, error) {
 		}
 		return x.refused(replyOf(res.StatusCode, raw)), nil
 	}
-	written, err := save(target, res.Body)
+	written, err := Save(target, res.Body)
 	if err != nil && !errors.Is(err, errExportBroken) {
 		return 0, err
 	}
@@ -64,7 +64,7 @@ func (x *ctx) export(id, out string) (int, error) {
 	return x.emit(ExitOK, CodeOK, map[string]any{"id": id, "file": target, "bytes": written}, []string{line}, false), nil
 }
 
-func save(target string, from io.Reader) (int64, error) {
+func Save(target string, from io.Reader) (int64, error) {
 	partial := target + exportPartial
 	f, err := os.OpenFile(partial, os.O_WRONLY|os.O_CREATE|os.O_EXCL, exportMode)
 	if err != nil {

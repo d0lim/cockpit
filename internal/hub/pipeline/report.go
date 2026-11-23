@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
@@ -56,40 +57,48 @@ func runnerOutcome(r *compose.RunnerResult, m *mask.Masker) *contract.RunnerOutc
 	return out
 }
 
-func suiteDir(in envops.ReportInput) string {
-	return filepath.Join(in.RunDir, "work", "scripts")
-}
-
-func identityPreset(in envops.ReportInput, manifest *contract.Manifest) string {
+func identityPreset(meta store.Meta, manifest *contract.Manifest) string {
 	if manifest == nil {
 		return ""
 	}
-	cockpitVersion := in.Meta.CockpitVersion
+	cockpitVersion := meta.CockpitVersion
 	if cockpitVersion == "" {
 		cockpitVersion = version.String()
 	}
-	return IdentityMismatch(manifest, in.Meta.RunnerImage, cockpitVersion)
+	return IdentityMismatch(manifest, meta.RunnerImage, cockpitVersion)
 }
 
-func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.ReportOutcome, string, error) {
-	if in.Masker == nil {
-		return reconcile.ReportOutcome{}, "", errors.New("the run has no masker")
+type RunReport struct {
+	Meta   store.Meta
+	RunDir string
+	Ports  map[string]int
+	Runner *compose.RunnerResult
+	Boot   *contract.BootVerdict
+	Masker *mask.Masker
+	Now    time.Time
+}
+
+func RunPorts(decl contract.Declaration, base int) map[string]int {
+	ports := map[string]int{}
+	for _, p := range decl.Ports {
+		ports[string(p.Name)] = compose.HostPort(base, p)
 	}
+	return ports
+}
+
+func ReportBundle(in RunReport) (report.Bundle, string) {
 	collected := report.ReadRunnerFiles(filepath.Join(in.RunDir, runfiles.E2EDir))
 	files, stages := collected.Files, collected.Stages
-	sources, sourceStage := report.SuiteSources(suiteDir(in), collected.Manifest.Value)
+	sources, sourceStage := report.SuiteSources(filepath.Join(in.RunDir, "work", "scripts"), collected.Manifest.Value)
 	for name, data := range sources {
 		files[name] = data
 	}
 	stages[stageSource] = sourceStage
-	unread := append(collectorStages(in, stages), reportSpans(in, collected.Result.Value)...)
-	wireStatus, wireUnread := takeSuiteWire(ctx, in, collected.Result.Value)
-	unread = append(unread, wireUnread...)
 	if data, err := os.ReadFile(filepath.Join(in.RunDir, seal.FileName)); err == nil {
 		files[seal.FileName] = data
 	}
 	meta := in.Meta
-	notice := identityPreset(in, collected.Manifest.Value)
+	notice := identityPreset(meta, collected.Manifest.Value)
 	if notice != "" && meta.Verdict == lifecycle.VerdictNone {
 		meta.Verdict, meta.Notice = lifecycle.VerdictError, notice
 	}
@@ -105,11 +114,22 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 		RunID: meta.ID, Suite: meta.Suite, Commit: meta.SHA, Harness: compose.HarnessVersion, HubCommit: version.Commit(),
 		HostAPI: meta.HostAPI, CockpitVersion: meta.CockpitVersion, RunnerImage: pin, Ports: in.Ports,
 		ImageKeys: meta.ImageKeys, ImageDigests: meta.ImageDigests, Versions: map[string]string{"cockpit": version.String()},
-		Stages: stages, Runner: runnerOutcome(in.Runner, in.Masker), Wire: wireStatus, GeneratedAt: store.Timestamp(in.Now),
+		Stages: stages, Runner: runnerOutcome(in.Runner, in.Masker), GeneratedAt: store.Timestamp(in.Now),
 	}
-	bundle := report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker, Unread: unread,
-		Patch: func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(meta.ID, change); return err }}
+	return report.Bundle{RunDir: in.RunDir, Meta: meta, Inputs: inputs, Summary: summary, Files: files, Mask: in.Masker}, notice
+}
+
+func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.ReportOutcome, string, error) {
+	if in.Masker == nil {
+		return reconcile.ReportOutcome{}, "", errors.New("the run has no masker")
+	}
+	bundle, notice := ReportBundle(RunReport{Meta: in.Meta, RunDir: in.RunDir, Ports: in.Ports, Runner: in.Runner, Boot: in.Boot, Masker: in.Masker, Now: in.Now})
+	result := bundle.Inputs.Result.Value
+	unread := append(collectorStages(in, bundle.Summary.Stages), reportSpans(in, result)...)
+	wireStatus, wireUnread := takeSuiteWire(ctx, in, result)
+	bundle.Unread, bundle.Summary.Wire = append(unread, wireUnread...), wireStatus
 	bundle.Signals = in.Signals
+	bundle.Patch = func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(bundle.Meta.ID, change); return err }
 	if in.Wire != nil {
 		bundle.Keep = wire.StagingDir
 	}

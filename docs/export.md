@@ -8,6 +8,7 @@ The archive holds the report bundle and nothing else of the run. The run tree's 
 
 - `GET /api/runs/{id}/export` answers the archive as `application/gzip` with `Content-Disposition: attachment; filename="<id>.tar.gz"` and its length.
 - `cockpit runs export <id> [--out <file>]` writes it to `<id>.tar.gz` in the current directory, or to `--out`. The file is 600. The command refuses to replace an existing file, writes through a temporary file beside the target, and removes it when the download breaks off.
+- `cockpit run --archive <file>` writes the archive of the run it has just closed, before it removes the run directory ([headless path](sealing.md#headless-path-and-the-unseal-check)). It builds the archive with the same `archive.Write` and the run masker, in a spool as the hub does, and saves it with the same code as `runs export`. It refuses a file that exists before the run starts.
 
 The hub builds the whole archive before it answers, so a refusal is a failure body and never half a file. It builds it in a temporary file that it unlinks as soon as it is open, so nothing of an archive stays on the hub's disk, even after a crash.
 

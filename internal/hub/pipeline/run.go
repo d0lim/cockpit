@@ -153,21 +153,28 @@ func (l *live) tail() []string {
 	return out
 }
 
+func FailureEvent(err error, aborted bool) (lifecycle.Event, lifecycle.Detail) {
+	var failed *stages.Failed
+	switch {
+	case aborted || errors.Is(err, errAborted):
+		return lifecycle.Abort, lifecycle.Detail{}
+	case errors.As(err, &failed) && failed.Violation:
+		return lifecycle.Fail, lifecycle.Detail{Verdict: lifecycle.VerdictFailed}
+	}
+	return lifecycle.Fail, lifecycle.Detail{}
+}
+
 func (l *live) failure(ctx context.Context, err error) outcome {
 	stage := l.stage
-	if ctx.Err() != nil || errors.Is(err, errAborted) || (l.runner != nil && l.runner.Aborted) {
-		return outcome{event: lifecycle.Abort, extra: func(m *store.Meta) {
+	event, detail := FailureEvent(err, ctx.Err() != nil || (l.runner != nil && l.runner.Aborted))
+	if event == lifecycle.Abort {
+		return outcome{event: event, extra: func(m *store.Meta) {
 			m.FailedStage = stage
 			m.Notice = "aborted during the " + lifecycle.StageLabel(stage) + " stage"
 		}}
 	}
-	var failed *stages.Failed
-	detail := lifecycle.Detail{}
-	if errors.As(err, &failed) && failed.Violation {
-		detail.Verdict = lifecycle.VerdictFailed
-	}
 	tail, notice := l.tail(), l.env.Mask(err.Error())
-	return outcome{event: lifecycle.Fail, detail: detail, extra: func(m *store.Meta) {
+	return outcome{event: event, detail: detail, extra: func(m *store.Meta) {
 		m.FailedStage, m.Tail, m.Notice = stage, tail, notice
 	}}
 }

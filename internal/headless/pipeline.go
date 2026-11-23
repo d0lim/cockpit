@@ -1,4 +1,4 @@
-package runenv
+package headless
 
 import (
 	"context"
@@ -12,41 +12,53 @@ import (
 	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/contract"
+	"github.com/d0lim/cockpit/internal/hub/cli"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	hubstages "github.com/d0lim/cockpit/internal/hub/stages"
+	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/runnerbin"
+	"github.com/d0lim/cockpit/internal/version"
 )
 
 const (
-	ExitPassed      = 0
-	ExitFailed      = 1
-	ExitRefused     = 2
 	ExitInterrupted = 130
-	logFile         = "run-env.log"
+	logFile         = "run.log"
 )
 
 type Deps struct {
-	Docker      compose.Docker
-	EnsureImage func(ctx context.Context) (runnerbin.Image, error)
-	Home        string
-	Out         io.Writer
-	Free        func(port int) bool
-	TempDir     string
-	Now         func() time.Time
+	Docker       compose.Docker
+	EnsureImage  func(ctx context.Context) (runnerbin.Image, error)
+	Home         string
+	Out          io.Writer
+	Free         func(port int) bool
+	TempDir      string
+	Now          func() time.Time
+	Submitter    string
+	ListenCanary hubstages.CanaryListener
 }
 
 type run struct {
-	opts   Options
-	deps   Deps
-	st     *stages
-	sha    string
-	runID  string
-	loaded compose.Loaded
-	image  runnerbin.Image
-	base   int
-	env    *hubstages.Env
-	log    *os.File
+	opts     Options
+	deps     Deps
+	st       *stages
+	loaded   compose.Loaded
+	base     int
+	env      *hubstages.Env
+	log      *os.File
+	meta     store.Meta
+	lines    []string
+	suiteRun *compose.RunnerResult
+	booted   *contract.BootVerdict
+	reasons  []string
+	bundle   string
+	broken   bool
+}
+
+type check struct {
+	name string
+	fn   func() (string, error)
 }
 
 func (r *run) mask(s string) string { return r.env.Mask(s) }
@@ -61,29 +73,34 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 	m, err := mask.New(mask.Options{Mode: mask.Hub})
 	if err != nil {
 		fmt.Fprintln(deps.Out, err)
-		return ExitRefused
+		return cli.ExitRejected
 	}
-	r := &run{opts: opts, deps: deps, env: &hubstages.Env{Masker: m, RunnerUser: hubstages.HostRunnerUser(), Docker: deps.Docker, Limits: hubstages.DefaultLimits(), Now: deps.Now}}
+	r := &run{opts: opts, deps: deps, env: &hubstages.Env{
+		Masker: m, RunnerUser: hubstages.HostRunnerUser(), Docker: deps.Docker, Limits: hubstages.DefaultLimits(), Now: deps.Now, ListenCanary: deps.ListenCanary,
+	}}
 	r.st = &stages{out: deps.Out, mask: r.mask}
-	if !r.prepare(ctx) {
-		r.st.say("\n%s", r.st.summary())
-		return ExitRefused
+	r.meta = store.Meta{CockpitVersion: version.String(), Submitter: deps.Submitter, Keep: opts.Keep, CreatedAt: store.Timestamp(deps.Now())}
+	refused := !r.prepare(ctx)
+	if !refused {
+		r.pipeline(ctx)
+		r.deliver()
+		r.cleanup(ctx)
+		r.verdict()
 	}
-	r.pipeline(ctx)
-	r.cleanup(ctx)
-	r.st.say("\n%s", r.st.summary())
 	switch {
 	case ctx.Err() != nil:
 		return ExitInterrupted
-	case r.st.passed():
-		return ExitPassed
+	case refused:
+		return cli.ExitRejected
+	case r.broken:
+		return cli.ExitError
 	}
-	return ExitFailed
+	return cli.VerdictExit(string(r.meta.Verdict))
 }
 
 func (r *run) prepare(ctx context.Context) bool {
 	git := compose.Git{Dir: r.opts.Project}
-	return r.st.run("project", func() (string, error) {
+	checks := []check{{"outputs", r.outputs}, {"project", func() (string, error) {
 		top, err := git.TopLevel(ctx)
 		if err != nil {
 			return "", err
@@ -91,17 +108,17 @@ func (r *run) prepare(ctx context.Context) bool {
 		if top != realOrSelf(r.opts.Project) {
 			return "", fmt.Errorf("--project must be the top of a git worktree (%s)", top)
 		}
-		if r.sha, err = git.ResolveCommit(ctx, "HEAD"); err != nil {
+		if r.meta.SHA, err = git.ResolveCommit(ctx, "HEAD"); err != nil {
 			return "", err
 		}
-		r.runID = fmt.Sprintf("run-env-%s-%s", r.deps.Now().UTC().Format("20060102-150405"), r.sha[:7])
-		return fmt.Sprintf("%s at %s, run %s", top, r.sha[:12], r.runID), nil
-	}) && r.st.run("declaration", func() (string, error) {
-		loaded, err := compose.ReadDeclaration(ctx, git, r.sha)
+		r.meta.ID = store.NewRunID(r.deps.Now(), r.meta.SHA, nil)
+		return fmt.Sprintf("%s at %s, run %s", top, r.meta.SHA[:12], r.meta.ID), nil
+	}}, {"declaration", func() (string, error) {
+		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA)
 		if err != nil {
 			return "", err
 		}
-		r.loaded = loaded
+		r.loaded, r.meta.HostAPI = loaded, loaded.Declaration.HostAPI
 		dirty, err := git.Dirty(ctx, loaded.Tree, relPaths(loaded.Declaration.Inputs.Dirty))
 		if err != nil {
 			return "", err
@@ -111,23 +128,31 @@ func (r *run) prepare(ctx context.Context) bool {
 			note = fmt.Sprintf("; warning: %d uncommitted changes, the run uses HEAD", len(dirty))
 		}
 		suite, err := pickSuite(loaded, r.opts.Suite)
-		r.opts.Suite = suite
+		r.meta.Suite = suite
 		return fmt.Sprintf("hostApi %d, suite %s%s", loaded.Declaration.HostAPI, suite, note), err
-	}) && r.st.run("docker", func() (string, error) {
+	}}, {"docker", func() (string, error) {
 		if err := compose.CheckVersions(ctx, r.deps.Docker); err != nil {
 			return "", err
 		}
 		img, err := r.deps.EnsureImage(ctx)
-		r.image = img
+		r.meta.RunnerImage = &contract.RunnerImage{Tag: img.Tag, ID: img.ID}
 		return "runner image " + img.Tag, err
-	}) && r.st.run("port block", func() (string, error) {
+	}}, {"port block", func() (string, error) {
 		cfg, err := config.Load(r.deps.Home)
 		if err != nil {
 			return "", err
 		}
 		r.base, err = FreeBlock(cfg, r.deps.Free)
+		slot := (r.base - cfg.Limits.PortBase) / compose.PortWidth
+		r.meta.Slot = &slot
 		return fmt.Sprintf("%d-%d, canary %d", r.base, r.base+compose.PortWidth-1, compose.CanaryPort(r.base)), err
-	})
+	}}}
+	for _, c := range checks {
+		if r.st.run(c.name, c.fn) != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func realOrSelf(p string) string {

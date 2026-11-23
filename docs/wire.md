@@ -21,7 +21,7 @@ wire:
 cockpit runs submit --wire --suite smoke
 ```
 
-`POST /api/runs` takes `"wire": true`, and the form on the Runs screen has a checkbox. A submission with `wire` for a commit without `wire.routes` is refused with the kind `declaration`. A queued run absorbs a new submission only when `wire` matches too. `cockpit run-env` never records.
+`POST /api/runs` takes `"wire": true`, and the form on the Runs screen has a checkbox. A submission with `wire` for a commit without `wire.routes` is refused with the kind `declaration`. A queued run absorbs a new submission only when `wire` matches too. `cockpit run` never records.
 
 Service DNS cannot be intercepted, so each address that should pass the recorder reads a variable. The variable holds `host:port` and is set only for a recording run:
 
