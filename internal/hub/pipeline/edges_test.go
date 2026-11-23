@@ -141,7 +141,7 @@ func TestASealWhoseControlCannotSucceedClosesAsErrorAndBringsTheProjectDown(t *t
 	var w *world
 	w = newWorldWith(t, func(o *Options) {
 		o.ListenCanary = func(int) (*seal.Canary, error) {
-			c, err := seal.ListenCanary(0)
+			c, err := seal.ListenCanaryAt("127.0.0.1", 0)
 			closed, lerr := net.Listen("tcp", "127.0.0.1:0")
 			if lerr == nil {
 				w.fake.SetCanaryPort(closed.Addr().(*net.TCPAddr).Port)

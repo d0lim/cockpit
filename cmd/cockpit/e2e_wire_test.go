@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -32,9 +31,6 @@ func needSealedDocker(t *testing.T) {
 	t.Helper()
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
 		t.Skip("needs COCKPIT_INTEGRATION=1, a Docker daemon and scripts/build-runners.sh")
-	}
-	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" {
-		t.Skip("needs Docker Desktop: the seal probes reach the host canary through host.docker.internal, which Docker on " + runtime.GOOS + " does not provide (docs/sealing.md, Probes)")
 	}
 	if _, err := ensureImage(t.Context(), runnerbin.FilePins{Path: filepath.Join(t.TempDir(), pinsFile)}); errors.Is(err, runnerbin.ErrNotEmbedded) {
 		t.Skip("the runner is not embedded; run scripts/build-runners.sh first")

@@ -25,7 +25,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 5 | `services.networks` | The edge joins every internal network and `egress`; the builder and `cockpit-probe-control` join only `egress`; every other service joins only internal networks. |
 | 6 | `services.ports` | Host ports appear only on the edge. |
 | 7 | `services.network-mode` | `network_mode` appears nowhere. |
-| 8 | `services.extra-hosts` | `extra_hosts` appears nowhere. |
+| 8 | `services.extra-hosts` | `extra_hosts` appears only on `cockpit-probe` and `cockpit-probe-control`, and there it is exactly `host.docker.internal=host-gateway`. That entry gives both probes the same name for the host on every Docker, and it opens no route: the sealed probe sits on an internal network, which has no gateway. |
 | 9 | `edge.upstreams` | The edge runs the runner image in `edge` mode without an entrypoint override, and every route of its offset map targets a project service that is not a harness service. The edge also joins `egress`, where Docker DNS forwards unknown names outward, so one route to an outside host would break the seal. |
 | 10 | `edge.proxy-pass` | The listen ports of the offset map are exactly the targets of the edge `ports`. |
 | 11 | `edge.listen` | The edge listens only on the container ports of the declared offsets (`30000 + offset`). |
@@ -48,7 +48,7 @@ Assertions 2 to 24 keep the names and order of the previous cockpit. The edge as
 
 ## Probes
 
-After the build and before the services start, the hub runs `cockpit-runner probe <canary>` twice: once as `cockpit-probe` on the internal `default` network, then as `cockpit-probe-control` on `egress`. While both run, the hub listens on `127.0.0.1:<base + 99>` as the canary. Each run prints one `probe=<n> rc=<code>` line per attempt:
+After the build and before the services start, the hub runs `cockpit-runner probe <canary>` twice: once as `cockpit-probe` on the internal `default` network, then as `cockpit-probe-control` on `egress`. While both run, the hub listens on `<canary host>:<base + 99>` as the canary, where the canary host is `127.0.0.1` on macOS and Windows and the `docker0` address on Linux (see the end of this section). Each run prints one `probe=<n> rc=<code>` line per attempt:
 
 | n | Attempt | Sealed probe expects | Control expects |
 | --- | --- | --- | --- |
@@ -75,4 +75,4 @@ The static assertions are tested against `internal/seal/testdata/config.toy.json
 
 `make run-env` runs `make build`, which builds the embedded runners and then the hub, and runs the headless path on `testdata/toy-project` copied into a fresh git repository. Pass flags with `RUN_ENV_ARGS`, for example `make run-env RUN_ENV_ARGS=--unseal-check`.
 
-The canary listens on the host loopback, and probes reach it through `host.docker.internal`. Docker Desktop provides both. A Linux host needs a canary address on the Docker bridge, which comes with Linux host support.
+Both probe services map `host.docker.internal` to `host-gateway`, the address Docker gives for the host. The canary listens where that address leads. On macOS and Windows, where Docker Desktop runs the daemon, it is the host loopback, so the canary listens on `127.0.0.1`. On Linux it is the address of the `docker0` bridge, so the canary listens on the first IPv4 address of `docker0` and never on a wildcard address. `seal.CanaryHost` makes that choice from the hub's operating system. A Linux hub without `docker0` cannot open the canary, and the seal check ends in an error. A daemon whose `host-gateway-ip` points elsewhere gives the control no canary connection, so the seal is inconclusive rather than passed.

@@ -189,6 +189,9 @@
         "22099"
       ],
       "entrypoint": null,
+      "extra_hosts": [
+        "host.docker.internal=host-gateway"
+      ],
       "image": "cockpit-runner:0123456789ab",
       "labels": {
         "io.cockpit.managed": "true",
@@ -218,6 +221,9 @@
         "22099"
       ],
       "entrypoint": null,
+      "extra_hosts": [
+        "host.docker.internal=host-gateway"
+      ],
       "image": "cockpit-runner:0123456789ab",
       "labels": {
         "io.cockpit.managed": "true",

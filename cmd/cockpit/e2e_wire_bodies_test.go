@@ -170,7 +170,7 @@ func (w wireRun) assertScreenShowsWire() {
 	if !strings.Contains(page, "passed through the wire recorder") {
 		t.Error("the overview does not say the run was recorded")
 	}
-	_, screen := w.get("/runs/" + w.id + "/wire")
+	_, screen := w.get("/runs/" + w.id + "/wire?flow=relay&step=child-span")
 	for _, want := range []string{"child-span", "POST", "/relay"} {
 		if !strings.Contains(screen, want) {
 			t.Errorf("the Wire screen lacks %q", want)

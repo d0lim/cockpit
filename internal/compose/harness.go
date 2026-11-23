@@ -11,6 +11,8 @@ import (
 
 const HarnessVersion = 8
 
+const ProbeHostEntry = "host.docker.internal:host-gateway"
+
 const (
 	LabelManaged     = "io.cockpit.managed"
 	LabelRunID       = "io.cockpit.run-id"
@@ -122,6 +124,9 @@ func Harness(in HarnessInput) ([]byte, error) {
 		if name == decl.Project.Builder {
 			svc["labels"] = labels(in.RunID, RoleBuilder)
 			svc["networks"] = tagged{"!override", []string{EgressNetwork}}
+			if in.RunnerUser != "" {
+				svc["user"] = in.RunnerUser
+			}
 		}
 		services[name] = svc
 	}
@@ -155,6 +160,7 @@ func Harness(in HarnessInput) ([]byte, error) {
 		probe["profiles"] = []string{ProfileProbe}
 		probe["networks"] = nets
 		probe["command"] = []string{"probe", strconv.Itoa(CanaryPort(in.PortBase))}
+		probe["extra_hosts"] = []string{ProbeHostEntry}
 		services[role] = probe
 	}
 	if OTLPDeclared(decl) {

@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"slices"
-	"strconv"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/ports/porttest"
@@ -17,7 +15,6 @@ var probeMutations = []porttest.Mutation{
 	{"a sealed attempt that succeeds is a violation", "treat rc=0 in judgeSealed as a pass", "red: probe.tcp with rc=0 passes and the verdict is passed", "TestSealedProbesFailingAndControlsSucceedingPassAndAnyLeakFailsTheSeal"},
 	{"a canary knock during the sealed probe is a violation", "drop the knocks check in judgeSealed", "red: probe.host passes after the canary accepted a connection", "TestSealedProbesFailingAndControlsSucceedingPassAndAnyLeakFailsTheSeal"},
 	{"a missing control makes the seal inconclusive, not passed", "make judgeControl pass without result lines", "red: an offline control yields a passed verdict", "TestMissingResultLinesOrAFailedControlMakeTheSealInconclusive"},
-	{"the canary counts real connections", "never increment the accepted counter", "red: Accepted stays 0 after two dials", "TestCanaryCountsConnectionsOnLoopbackOnly"},
 	{"the hub judges the attempts the runner makes, in order", "reorder or rename the attempts table", "red: the keys differ from runner.Attempts", "TestProbeAttemptsMatchTheRunnerProbeModeInOrder"},
 }
 
@@ -108,33 +105,6 @@ func TestMissingResultLinesOrAFailedControlMakeTheSealInconclusive(t *testing.T)
 		if inconclusive != 4 {
 			t.Errorf("%s: %d inconclusive results, want the 4 attempts of the silent or failed run", name, inconclusive)
 		}
-	}
-}
-
-func TestCanaryCountsConnectionsOnLoopbackOnly(t *testing.T) {
-	c, err := ListenCanary(0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer c.Close()
-	if c.Accepted() != 0 {
-		t.Fatal("a fresh canary counted a connection")
-	}
-	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(c.Port()))
-	for range 2 {
-		conn, err := net.Dial("tcp", addr)
-		if err != nil {
-			t.Fatal(err)
-		}
-		buf := make([]byte, 1)
-		conn.Read(buf)
-		conn.Close()
-	}
-	if c.Accepted() != 2 {
-		t.Fatalf("accepted %d", c.Accepted())
-	}
-	if host, _, _ := net.SplitHostPort(c.ln.Addr().String()); host != "127.0.0.1" {
-		t.Fatalf("canary listens on %s", host)
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -47,9 +46,6 @@ func includedCacheToy(t *testing.T) string {
 func TestIntegrationAToyWhoseCacheComesFromAnIncludeInASubmodulePassesTheSealBootsAndRunsTheSuite(t *testing.T) {
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {
 		t.Skip("needs COCKPIT_INTEGRATION=1, a Docker daemon and scripts/build-runners.sh")
-	}
-	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" {
-		t.Skip("needs Docker Desktop: the seal probes reach the host canary through host.docker.internal, which Docker on " + runtime.GOOS + " does not provide (docs/sealing.md, Probes)")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
