@@ -1,0 +1,69 @@
+name: cockpit run
+description: Run one commit's E2E suite in a sealed compose environment and keep its verdict and bundle archive.
+inputs:
+  version:
+    description: The cockpit release to install, such as 0.6.0. Defaults to the tag this action is used at.
+    required: false
+    default: ""
+  suite:
+    description: The suite to run. May be empty when the commit declares one suite.
+    required: false
+    default: ""
+  project:
+    description: The repository directory that holds .cockpit/project.yaml.
+    required: false
+    default: "."
+  archive:
+    description: Where the bundle archive is written.
+    required: false
+    default: cockpit-run.tar.gz
+  artifact-name:
+    description: The name of the uploaded workflow artifact. Empty skips the upload.
+    required: false
+    default: cockpit-run
+  cockpit-path:
+    description: A cockpit binary to use instead of installing a release.
+    required: false
+    default: ""
+outputs:
+  verdict:
+    description: passed, failed, error or aborted; empty when the run stopped before its suite.
+    value: ${{ steps.run.outputs.verdict }}
+  exit-code:
+    description: The exit code of cockpit run.
+    value: ${{ steps.run.outputs.exit-code }}
+  archive:
+    description: The bundle archive path, when one was written.
+    value: ${{ steps.run.outputs.archive }}
+runs:
+  using: composite
+  steps:
+    - name: Install cockpit
+      shell: bash
+      env:
+        COCKPIT_VERSION: ${{ inputs.version }}
+        COCKPIT_PATH: ${{ inputs.cockpit-path }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        "$GITHUB_ACTION_PATH/scripts/action-install.sh"
+    - name: Run the suite
+      id: run
+      shell: bash
+      env:
+        COCKPIT_SUITE: ${{ inputs.suite }}
+        COCKPIT_PROJECT: ${{ inputs.project }}
+        COCKPIT_ARCHIVE: ${{ inputs.archive }}
+      run: |
+        "$GITHUB_ACTION_PATH/scripts/action-run.sh"
+    - name: Upload the bundle archive
+      if: always() && inputs.artifact-name != '' && steps.run.outputs.archive != ''
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.run.outputs.archive }}
+        if-no-files-found: error
+    - name: Pass on the verdict
+      shell: bash
+      env:
+        EXIT_CODE: ${{ steps.run.outputs.exit-code }}
+      run: exit "${EXIT_CODE:-2}"

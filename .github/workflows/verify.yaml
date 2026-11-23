@@ -26,3 +26,34 @@ jobs:
       - run: go test -count=1 -timeout 40m ./...
         env:
           COCKPIT_INTEGRATION: "1"
+
+  action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac
+      - run: make build
+      - name: Commit the toy project in a repository of its own
+        run: |
+          toy="$RUNNER_TEMP/toy"
+          cp -R testdata/toy-project "$toy"
+          rm -rf "$toy/.env" "$toy/e2e.private.env.json" "$toy/mock/bin" "$toy/.git"
+          git -C "$toy" init -q -b main
+          git -C "$toy" add -A
+          git -C "$toy" -c user.name=cockpit -c user.email=cockpit@example.invalid commit -q -m toy
+      - id: cockpit
+        uses: ./
+        with:
+          cockpit-path: bin/cockpit
+          project: ${{ runner.temp }}/toy
+          artifact-name: cockpit-toy-run
+      - name: Check the outputs of the action
+        env:
+          VERDICT: ${{ steps.cockpit.outputs.verdict }}
+          EXIT_CODE: ${{ steps.cockpit.outputs.exit-code }}
+          ARCHIVE: ${{ steps.cockpit.outputs.archive }}
+        run: |
+          test "$VERDICT" = passed
+          test "$EXIT_CODE" = 0
+          tar -tzf "$ARCHIVE" | grep -q '/report/summary.json$'
