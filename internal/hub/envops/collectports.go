@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/collect/observer"
@@ -100,10 +102,42 @@ func (o *Ops) register(ctx context.Context, id string) error {
 	return nil
 }
 
+type ObserverInput struct {
+	RunID  string
+	Decl   contract.Declaration
+	Docker compose.Docker
+	Stream *signal.Stream
+	Mask   ports.Mask
+	Now    func() time.Time
+	Log    *slog.Logger
+}
+
+type RunObservers struct {
+	Config collect.RunConfig
+	Docker *dockerport.Port
+	OTLP   *observer.OTLP
+}
+
+func NewRunObservers(in ObserverInput) (RunObservers, error) {
+	dport, err := dockerport.New(dockerport.Options{Project: in.RunID, RunID: in.RunID, Builder: in.Decl.Project.Builder, Docker: in.Docker, Allow: in.Decl.Exec.Allow, Mask: in.Mask, Log: in.Log})
+	if err != nil {
+		return RunObservers{}, err
+	}
+	out := RunObservers{Docker: dport, Config: collect.RunConfig{RunID: in.RunID, Signals: in.Stream, Mask: in.Mask, Observers: []collect.Observer{
+		&observer.Logs{Lister: dport, Docker: in.Docker, Emit: in.Stream, Mask: in.Mask, Now: in.Now},
+		&observer.Services{Source: dport, Emit: in.Stream},
+	}}}
+	if len(in.Decl.Telemetry.OTLP.Services) > 0 {
+		out.OTLP = &observer.OTLP{RunID: in.RunID, Lister: dport, Docker: in.Docker, Stream: in.Stream, Mask: in.Mask, Log: in.Log}
+		out.Config.Observers = append(out.Config.Observers, out.OTLP)
+	}
+	return out, nil
+}
+
 func (o *Ops) runConfig(id string, r *Run, c *collected, stream *signal.Stream, m ports.Mask) (collect.RunConfig, []func() error, error) {
 	docker := o.DockerFor(procgroup.Hooks{})
 	runPorts := o.RunPorts(r)
-	dport, err := dockerport.New(dockerport.Options{Project: id, RunID: id, Builder: r.Decl.Project.Builder, Docker: docker, Allow: r.Decl.Exec.Allow, Mask: m, Log: o.log()})
+	obs, err := NewRunObservers(ObserverInput{RunID: id, Decl: *r.Decl, Docker: docker, Stream: stream, Mask: m, Now: o.Now, Log: o.log()})
 	if err != nil {
 		return collect.RunConfig{}, nil, err
 	}
@@ -111,7 +145,7 @@ func (o *Ops) runConfig(id string, r *Run, c *collected, stream *signal.Stream, 
 	if err != nil {
 		return collect.RunConfig{}, nil, err
 	}
-	shared := map[string]ports.Handler{ports.PortDocker: dport, ports.PortHTTP: edge}
+	shared := map[string]ports.Handler{ports.PortDocker: obs.Docker, ports.PortHTTP: edge}
 	var closers []func() error
 	if len(r.Decl.Databases) > 0 {
 		targets, err := DatabaseTargets(*r.Decl, runPorts)
@@ -128,26 +162,18 @@ func (o *Ops) runConfig(id string, r *Run, c *collected, stream *signal.Stream, 
 	for _, d := range c.defs {
 		collectors = append(collectors, collect.Collector{ID: d.ID, Code: d.Code, Interval: d.Interval, Allowed: d.Allowed})
 	}
-	cfg := collect.RunConfig{
-		RunID: id, Collectors: collectors, Signals: stream, Alive: collect.FileAlive{Dir: r.Layout.Root}, Mask: m,
-		Ports: func(collector string) map[string]ports.Handler {
-			out := map[string]ports.Handler{
-				ports.PortSignal: &signalport.Port{Collector: collector, Store: stream, Mask: m},
-				ports.PortState:  &stateport.Port{Collector: collector, Store: stream, Mask: m},
-			}
-			for name, h := range shared {
-				out[name] = h
-			}
-			return out
-		},
-		Observers: []collect.Observer{
-			&observer.Logs{Lister: dport, Docker: docker, Emit: stream, Mask: m, Now: o.Now},
-			&observer.Services{Source: dport, Emit: stream},
-		},
+	cfg := obs.Config
+	cfg.Collectors, cfg.Alive = collectors, collect.FileAlive{Dir: r.Layout.Root}
+	cfg.Ports = func(collector string) map[string]ports.Handler {
+		out := map[string]ports.Handler{
+			ports.PortSignal: &signalport.Port{Collector: collector, Store: stream, Mask: m},
+			ports.PortState:  &stateport.Port{Collector: collector, Store: stream, Mask: m},
+		}
+		for name, h := range shared {
+			out[name] = h
+		}
+		return out
 	}
-	if len(r.Decl.Telemetry.OTLP.Services) > 0 {
-		c.otlp = &observer.OTLP{RunID: id, Lister: dport, Docker: docker, Stream: stream, Mask: m, Log: o.log()}
-		cfg.Observers = append(cfg.Observers, c.otlp)
-	}
+	c.otlp = obs.OTLP
 	return cfg, closers, nil
 }

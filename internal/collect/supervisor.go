@@ -130,8 +130,8 @@ func New(opts Options) *Supervisor {
 }
 
 func (s *Supervisor) Register(cfg RunConfig) error {
-	if cfg.RunID == "" || cfg.Ports == nil {
-		return errors.New("a run config needs a run id and a port factory")
+	if cfg.RunID == "" || cfg.Ports == nil && len(cfg.Collectors) > 0 {
+		return errors.New("a run config needs a run id, and a port factory when it holds collectors")
 	}
 	if cfg.Mask == nil {
 		cfg.Mask = ports.Identity
