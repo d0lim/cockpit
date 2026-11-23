@@ -16,6 +16,9 @@ args=(run --project "$project" --out "$out" --archive "$archive")
 if [[ -n "${COCKPIT_SUITE:-}" ]]; then
   args+=(--suite "$COCKPIT_SUITE")
 fi
+if [[ "${COCKPIT_WIRE:-false}" = true ]]; then
+  args+=(--wire)
+fi
 
 code=0
 cockpit "${args[@]}" || code=$?
