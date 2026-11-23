@@ -64,11 +64,8 @@ func (r *run) pipeline(ctx context.Context) {
 }
 
 func (r *run) runDirectory(ctx context.Context) (string, error) {
-	dir, err := os.MkdirTemp(r.deps.TempDir, "cockpit-run-")
+	dir, err := filepath.EvalSymlinks(r.claim)
 	if err != nil {
-		return "", err
-	}
-	if dir, err = filepath.EvalSymlinks(dir); err != nil {
 		return "", err
 	}
 	e := r.env

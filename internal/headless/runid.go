@@ -8,11 +8,42 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/hub/store"
 )
 
-func takenRunIDs(ctx context.Context, d compose.Docker, home string) ([]string, error) {
+const claimLimit = 1000
+
+func claimRunID(ctx context.Context, d compose.Docker, dir string, now time.Time, sha string) (string, string, error) {
+	taken, err := takenRunIDs(ctx, d)
+	if err != nil {
+		return "", "", err
+	}
+	held := make(map[string]bool, len(taken))
+	for _, id := range taken {
+		held[id] = true
+	}
+	for n := 1; n <= claimLimit; n++ {
+		id := store.HeadlessRunID(now, sha, n)
+		if held[id] {
+			continue
+		}
+		claim := filepath.Join(dir, "cockpit-"+id)
+		err := os.Mkdir(claim, 0o700)
+		if errors.Is(err, fs.ErrExist) {
+			continue
+		}
+		if err != nil {
+			return "", "", err
+		}
+		return id, claim, nil
+	}
+	return "", "", fmt.Errorf("no free run id among the %d after %s", claimLimit, store.HeadlessRunID(now, sha, 0))
+}
+
+func takenRunIDs(ctx context.Context, d compose.Docker) ([]string, error) {
 	var taken []string
 	format := `{{.Label "` + compose.LabelRunID + `"}}`
 	for _, args := range [][]string{
@@ -31,13 +62,6 @@ func takenRunIDs(ctx context.Context, d compose.Docker, home string) ([]string, 
 				taken = append(taken, id)
 			}
 		}
-	}
-	entries, err := os.ReadDir(filepath.Join(home, "runs"))
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, err
-	}
-	for _, e := range entries {
-		taken = append(taken, e.Name())
 	}
 	return taken, nil
 }

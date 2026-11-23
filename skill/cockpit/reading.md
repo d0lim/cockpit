@@ -2,7 +2,7 @@
 
 Run every command inside the directory the archive extracts to. `<...>` marks a value to fill in.
 
-The time in a run id is the hub's local time. Every timestamp inside the archive is UTC.
+The time in a run id is the local time of the machine that made the run. An id that ends in `-h<n>` comes from a run made without a hub, for example in CI. Every timestamp inside the archive is UTC.
 
 ## Verdict
 

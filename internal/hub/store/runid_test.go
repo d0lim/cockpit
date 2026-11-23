@@ -9,7 +9,7 @@ import (
 const sha = "997a37e0c1d2b3a4f5e6d7c8b9a0f1e2d3c4b5a6"
 
 func TestIsRunIDAcceptsTheRunIDShapeAndRejectsPathsCaseAndOverlongSequences(t *testing.T) {
-	allow := []string{"run-20261012-153000-997a37e", "run-20261012-153000-997a37e-2", "run-20261012-153000-997a37e-12"}
+	allow := []string{"run-20261012-153000-997a37e", "run-20261012-153000-997a37e-2", "run-20261012-153000-997a37e-12", "run-20261012-153000-997a37e-h1", "run-20261012-153000-997a37e-h12"}
 	deny := []string{
 		"../x",
 		"run-20261012-153000-997a37e/../x",
@@ -20,6 +20,8 @@ func TestIsRunIDAcceptsTheRunIDShapeAndRejectsPathsCaseAndOverlongSequences(t *t
 		"run-20261012-153000-997a37e-" + strings.Repeat("1", 40),
 		"run-20261012-153000-997a37e\n",
 		"run-20261012-153000-997a37e-",
+		"run-20261012-153000-997a37e-h",
+		"run-20261012-153000-997a37e-h2-3",
 	}
 	for _, id := range allow {
 		if !IsRunID(id) {
@@ -31,7 +33,7 @@ func TestIsRunIDAcceptsTheRunIDShapeAndRejectsPathsCaseAndOverlongSequences(t *t
 			t.Errorf("%q accepted", id)
 		}
 	}
-	if len(allow)+len(deny) != 12 {
+	if len(allow)+len(deny) != 16 {
 		t.Fatal("case count")
 	}
 }
@@ -54,5 +56,29 @@ func TestNewRunIDUsesLocalTimeAndTheShortSHAAndNumbersCollisionsFromTwo(t *testi
 	}
 	if got := NewRunID(time.Date(2026, 1, 2, 3, 4, 5, 0, time.Local), sha, nil); got != "run-20260102-030405-997a37e" {
 		t.Fatalf("zero padding: %q", got)
+	}
+}
+
+func TestTheHubNeverMakesAHeadlessRunIDEvenWhenEveryOtherIDIsTaken(t *testing.T) {
+	at := time.Date(2026, 10, 12, 15, 30, 0, 0, time.Local)
+	headless := HeadlessRunID(at, sha, 1)
+	if headless != "run-20261012-153000-997a37e-h1" || !IsRunID(headless) {
+		t.Fatalf("canary: headless id %q", headless)
+	}
+	var taken []string
+	for n := 1; n <= 50; n++ {
+		taken = append(taken, HeadlessRunID(at, sha, n))
+	}
+	seen := 0
+	for i := 0; i < 50; i++ {
+		got := NewRunID(at, sha, taken)
+		if strings.Contains(got, "-h") || !IsRunID(got) {
+			t.Fatalf("the hub made %q", got)
+		}
+		taken = append(taken, got)
+		seen++
+	}
+	if seen != 50 {
+		t.Fatalf("ran %d ids", seen)
 	}
 }

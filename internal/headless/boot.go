@@ -72,6 +72,9 @@ func (r *run) cleanup(ctx context.Context) {
 	if r.log != nil {
 		defer r.log.Close()
 	}
+	if r.env.Root == nil {
+		os.RemoveAll(r.claim)
+	}
 	if r.opts.Keep {
 		if r.env.Root != nil {
 			r.st.say("kept: run directory %s; remove with: docker compose -p %s --profile '*' down -v --remove-orphans && rm -rf %s", r.env.Layout.Root, r.meta.ID, r.env.Layout.Root)
