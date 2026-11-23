@@ -24,7 +24,9 @@ func (r *run) boot(ctx context.Context) (string, error) {
 		return "", err
 	}
 	r.booted = &contract.BootVerdict{OK: true}
-	r.observe()
+	if err := r.observe(); err != nil {
+		r.logger.Warn("observers cannot be started", "run", r.meta.ID, "err", r.mask(err.Error()))
+	}
 	return fmt.Sprintf("%d expected services running and healthy", len(r.loaded.Declaration.Project.ExpectedServices)), nil
 }
 
