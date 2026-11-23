@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"io"
 	"mime"
 	"net/http"
 	"os"
@@ -21,34 +22,44 @@ type Imported struct {
 }
 
 func (a *api) importRun(w http.ResponseWriter, r *http.Request) error {
-	if media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); media != ExportMedia {
-		return &Problem{Status: http.StatusUnsupportedMediaType, Code: CodeBadRequest, Message: "an import body is a bundle archive sent as " + ExportMedia}
+	if media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); media != ExportMedia && media != ZipMedia {
+		return &Problem{Status: http.StatusUnsupportedMediaType, Code: CodeBadRequest, Message: "an import body is a bundle archive sent as " + ExportMedia + ", or an artifact zip that holds one sent as " + ZipMedia}
 	}
-	m, err := mask.New(mask.Options{Mode: mask.Hub})
+	got, err := a.importArchive(http.MaxBytesReader(w, r.Body, archive.ImportMaxBytes))
 	if err != nil {
 		return err
+	}
+	writeJSON(a.log(), w, http.StatusCreated, got)
+	return nil
+}
+
+func (a *api) importArchive(body io.Reader) (Imported, error) {
+	m, err := mask.New(mask.Options{Mode: mask.Hub})
+	if err != nil {
+		return Imported{}, err
 	}
 	stage, err := a.d.Store.ImportStage()
 	if err != nil {
-		return err
+		return Imported{}, err
 	}
 	defer os.RemoveAll(stage)
-	got, err := archive.Unpack(http.MaxBytesReader(w, r.Body, archive.ImportMaxBytes), stage, m)
+	got, err := archive.UnpackFile(body, stage, m)
 	if err != nil {
-		return importProblem(err, m)
+		return Imported{}, importProblem(err, m)
 	}
 	meta := store.ImportedMeta(got.Meta)
 	err = a.d.Store.Adopt(stage, meta)
 	if errors.Is(err, store.ErrRunExists) {
-		return &Problem{Status: http.StatusConflict, Code: string(ticker.CodeConflictState), Message: got.RunID + ": " + err.Error()}
+		return Imported{}, &Problem{Status: http.StatusConflict, Code: string(ticker.CodeConflictState), Message: got.RunID + ": " + err.Error()}
 	}
 	if err != nil {
-		return &Problem{Status: http.StatusInternalServerError, Code: CodeInternal, Message: m.Mask(err.Error())}
+		return Imported{}, &Problem{Status: http.StatusInternalServerError, Code: CodeInternal, Message: m.Mask(err.Error())}
 	}
 	a.changed()
-	writeJSON(a.log(), w, http.StatusCreated, Imported{ID: got.RunID, Verdict: got.Meta.Verdict, Files: got.Files, Run: MetaItem(meta)})
-	return nil
+	return Imported{ID: got.RunID, Verdict: got.Meta.Verdict, Files: got.Files, Run: MetaItem(meta)}, nil
 }
+
+func (r *Reader) Import(body io.Reader) (Imported, error) { return r.a.importArchive(body) }
 
 func importProblem(err error, m *mask.Masker) *Problem {
 	var tooBig *http.MaxBytesError

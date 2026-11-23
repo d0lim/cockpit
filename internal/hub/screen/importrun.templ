@@ -1,0 +1,24 @@
+package screen
+
+import "github.com/d0lim/cockpit/internal/hub/api"
+
+templ importForm() {
+	<details class="new-run import-run" aria-label="Import a run">
+		<summary class="btn">Import</summary>
+		<section class="card">
+			<form hx-post="/runs/import" hx-encoding="multipart/form-data" hx-target="#import-result" hx-swap="innerHTML" class="flex flex-wrap items-end gap-3">
+				<label class="grid min-w-0 flex-1 gap-1 text-xs text-muted">
+					Bundle archive or artifact zip
+					<input type="file" name="archive" accept=".zip,.tar.gz,.tgz,application/zip,application/gzip" required class="field"/>
+				</label>
+				<button type="submit" class="btn btn-primary">Import</button>
+			</form>
+			<p class="mt-2 text-xs text-muted">The zip a GitHub Actions artifact downloads as, or the cockpit-run.tar.gz inside it. The run opens as a destroyed run with its report.</p>
+			<div id="import-result" class="mt-3" aria-live="polite"></div>
+		</section>
+	</details>
+}
+
+templ importedResult(got api.Imported) {
+	<p class="notice tone-ok">Imported <a href={ templ.SafeURL("/runs/" + got.ID) }>{ got.ID }</a>.</p>
+}

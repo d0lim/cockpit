@@ -106,6 +106,7 @@ func (s *Screen) Handler() http.Handler {
 	}
 	mux.HandleFunc("POST /runs/{id}/do/{op}", s.act)
 	mux.HandleFunc("POST /runs/submit", s.submit)
+	mux.HandleFunc("POST /runs/import", s.importRun)
 	mux.HandleFunc("GET /runs/suites", s.suites)
 	if s.d.Assets != nil {
 		files := http.StripPrefix("/assets/", http.FileServerFS(s.d.Assets))

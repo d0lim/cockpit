@@ -104,6 +104,9 @@
 	.new-run > section {
 		@apply mt-4;
 	}
+	.import-run > summary {
+		@apply right-28;
+	}
 	.toast {
 		@apply fixed right-4 bottom-4 z-40 w-[min(28rem,calc(100vw-2rem))];
 	}

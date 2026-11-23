@@ -8,6 +8,7 @@ templ runsPage(st *state) {
 	<main class="page page-text">
 		<div class="new-run-row">
 			<h1 class="page-title">Runs</h1>
+			@importForm()
 			@submitForm(st)
 		</div>
 		@runsRegion(st)

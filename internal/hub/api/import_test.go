@@ -2,6 +2,7 @@ package api
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
@@ -26,6 +27,7 @@ var importMutations = []porttest.Mutation{
 	{"an import body must be a bundle archive", "drop the media type check in importRun", "red: the archive sent as JSON is imported", "TestAnImportIsRefusedWithoutTheGuardAsAnotherMediaTypeOrUnmaskedAndLeavesNothing"},
 	{"a refused import leaves no stage behind", "drop the deferred RemoveAll of the stage in importRun", "red: runs holds an .import- directory", "TestAnImportIsRefusedWithoutTheGuardAsAnotherMediaTypeOrUnmaskedAndLeavesNothing"},
 	{"a file the default rules change is refused with its name masked", "answer an Unmasked refusal as 400 in importProblem", "red: the planted archive answers 400", "TestAnImportIsRefusedWithoutTheGuardAsAnotherMediaTypeOrUnmaskedAndLeavesNothing"},
+	{"an artifact zip is taken as application/zip", "drop ZipMedia from the media check in importRun", "red: the zip answers 415", "TestAnArtifactZipThatHoldsTheArchiveImportsAsTheArchiveDoes"},
 	{"a run id the hub holds is a conflict", "drop the Lstat check in store.Adopt", "red: the second import answers 500", "TestAnImportedArchiveOpensAsADestroyedRunWithItsReportAndASecondImportConflicts"},
 }
 
@@ -166,4 +168,19 @@ func retar(t *testing.T, raw []byte, rel, body string) []byte {
 	w.Close()
 	zipped.Close()
 	return out.Bytes()
+}
+
+func TestAnArtifactZipThatHoldsTheArchiveImportsAsTheArchiveDoes(t *testing.T) {
+	f := newFixture(t, nil)
+	var body bytes.Buffer
+	w := zip.NewWriter(&body)
+	entry, _ := w.Create("cockpit-run.tar.gz")
+	entry.Write(importArchive(t, `{"complete":true}`))
+	w.Close()
+	header := f.gzipHeader()
+	header.Set("Content-Type", ZipMedia)
+	code, raw := f.importBody(body.Bytes(), header)
+	if code != http.StatusCreated || !strings.Contains(string(raw), `"id":"`+importedID+`"`) {
+		t.Fatalf("zip import: %d %s", code, raw)
+	}
 }

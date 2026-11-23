@@ -74,3 +74,14 @@ func TestImportOfARunTheHubHoldsIsAConflictAndAMissingFileIsAUsageError(t *testi
 		t.Fatalf("no file: %+v", got)
 	}
 }
+
+func TestImportSendsAnArtifactZipAsAZip(t *testing.T) {
+	dir := t.TempDir()
+	body := []byte("PK\x03\x04 zip bytes")
+	os.WriteFile(filepath.Join(dir, "cockpit-joint.zip"), body, 0o600)
+	h := &importHub{status: http.StatusCreated}
+	got, _ := importIn(t, h, dir, "cockpit-joint.zip")
+	if got.code != ExitOK || !bytes.Equal(h.got, body) || h.header.Get("Content-Type") != "application/zip" {
+		t.Fatalf("zip import: %+v, headers %v", got, h.header)
+	}
+}

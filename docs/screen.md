@@ -40,7 +40,7 @@ The registry changes only what the screen shows. The running cap counts every ru
 
 | Path | Screen | Question | Holds |
 |---|---|---|---|
-| `/` | Runs | What is happening on this hub now? | The kept pool and the running cap as meters, the queue and the active run, the kept runs, the ended runs, and a form that submits a run. A row is the verdict, suite and commit, run id, submitter, when it finished and how long it took, lifecycle, and for a run that did not pass the reason it kept. It links to the run's default screen. |
+| `/` | Runs | What is happening on this hub now? | The kept pool and the running cap as meters, the queue and the active run, the kept runs, the ended runs, a form that submits a run, and a form that imports a bundle archive. A row is the verdict, suite and commit, run id, submitter, when it finished and how long it took, lifecycle, and for a run that did not pass the reason it kept. It links to the run's default screen. |
 | `/runs/{id}` | Overview | What state is this run in? | Where the run stands and why, the notices, where a failed run stopped, the pipeline stages it passed and the facts of its submission. |
 | `/runs/{id}/report` | Report | Did it pass, and if not, why? | The flow tree, and beside it the verdict and its reasons, the step counts, where the run stopped and what was not counted as passed. |
 | `/runs/{id}/report/{flow}` | Flow | What did this flow do, and where did it stop? | The flow tree, and beside it the picked flow with its steps, or the picked step with its message, the requests it sent, the ids it marked and what the environment recorded under those ids, or its line in the suite source. |
@@ -138,6 +138,8 @@ The run actions are forms that post to `POST /runs/{id}/do/{op}`, where `op` is 
 - The run's new state reaches the page through the live connection, not through the action's answer.
 - Destroy asks for confirmation with `hx-confirm`.
 - The Runs screen submits a run with `POST /runs/submit`, from the form that `New run` opens: a repository from the hub's `allowedRepositories`, a commit (default `HEAD`) and a suite chosen from the suites that the repository declares at that commit (`GET /runs/suites?worktree=<path>&commit=<ref>` answers the options again whenever the repository or the commit changes), and a box that records the run's service calls ([wire record](wire.md)). It runs the same submission as `POST /api/runs`, with the submitter `ui`, and answers with a notice that links to the new run.
+
+- The Runs screen imports a run with `POST /runs/import`, from the form that `Import` opens: one file, the bundle archive or the zip of a GitHub Actions artifact that holds one, sent as `multipart/form-data` in the field `archive`. It runs the same import as `POST /api/runs/import` ([importing](export.md#importing)). On success it answers `HX-Redirect` with the run's Overview, so the browser opens the imported run; a request without `HX-Request` gets a 303 to the same place. On refusal it answers a notice with the problem message and code, as the other actions do. The form part is limited to the import body limit.
 
 ## Assets
 

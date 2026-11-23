@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -12,6 +13,8 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/api"
 	"github.com/d0lim/cockpit/internal/hub/labels"
 )
+
+var zipMagic = []byte("PK\x03\x04")
 
 func (x *ctx) importArchive(a args) (int, error) {
 	if len(a.positional) != 1 {
@@ -30,6 +33,14 @@ func (x *ctx) importArchive(a args) (int, error) {
 	if err != nil || !info.Mode().IsRegular() {
 		return x.usage(labels.Text(labels.MsgImportUnreadable, map[string]string{"file": file})), nil
 	}
+	media := api.ExportMedia
+	head := make([]byte, len(zipMagic))
+	if n, _ := io.ReadFull(f, head); bytes.Equal(head[:n], zipMagic) {
+		media = api.ZipMedia
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return 0, err
+	}
 	c, cancel := context.WithTimeout(x, exportLimit)
 	defer cancel()
 	origin := x.base.Scheme + "://" + x.base.Host
@@ -38,7 +49,7 @@ func (x *ctx) importArchive(a args) (int, error) {
 		return 0, err
 	}
 	req.ContentLength = info.Size()
-	req.Header.Set("Content-Type", api.ExportMedia)
+	req.Header.Set("Content-Type", media)
 	req.Header.Set("Origin", origin)
 	req.Header.Set("X-Cockpit", "1")
 	res, err := x.io.Client.Do(req)
