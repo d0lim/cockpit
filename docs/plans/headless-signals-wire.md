@@ -18,8 +18,8 @@ Goal. A run that `cockpit run` makes in GitHub Actions, exported as a bundle arc
 ## Checklist
 
 - [x] Docs first: `docs/sealing.md` (headless path, usage), `docs/verdict.md` (the shared report function), `docs/export.md` (an imported headless run has signals), `docs/wire.md` (`cockpit run --wire`), `docs/hub.md` (action input `wire`), `docs/signals.md` (headless stream and stage spans). Evidence: the first commit of this branch.
-- [ ] Shared functions, hub callers migrated. Evidence: pending.
-- [ ] Headless signal stream, stage spans and observers. Evidence: pending.
+- [x] Shared functions, hub callers migrated. Evidence: the two refactor commits. The hub's `DefaultReport`, `endingStage`, `Accept`, `runConfig`, `DrainOTLP` and `RunWire` now call `AssembleReport`, `StageOutcome`, `WireRefusal`, `NewRunObservers`, `SettleOTLP` and `OTLPDrainLine`, and every hub, collect and headless test passed unchanged but for the moved `reportSpans` call. `TestARunOfObserversAloneRegistersWithoutAPortFactoryAndOneWithCollectorsDoesNot` covers the port factory rule.
+- [x] Headless signal stream, stage spans and observers. Evidence: `internal/headless/signals_test.go`. The bundle of a passing run holds the `pipeline`, five `stage:*`, `run`, `flow:` and `step:` spans under the run id, parents first and all `ok`, the container log lines with `****` in place of a planted value, and the service rows; `signals` is `ok`. OTLP lines that arrive while the runner refreshes the masker are frozen and the runner line names the drain. The parity test now requires the hub and `cockpit run` to agree on `signals`, with a canary that both froze a stream. With the masker read straight from `r.env.Masker`, `go test -race` reported a data race between `RefreshMasker` and an OTLP append, so the run publishes its masker through an atomic pointer.
 - [ ] `cockpit run --wire`. Evidence: pending.
 - [ ] Action input `wire`. Evidence: pending.
 - [ ] Mutations, each run in a scratch copy, each red. Evidence: pending.

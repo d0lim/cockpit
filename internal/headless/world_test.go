@@ -10,12 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/config"
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 	"github.com/d0lim/cockpit/internal/hub/procgroup"
+	hubstages "github.com/d0lim/cockpit/internal/hub/stages"
 	"github.com/d0lim/cockpit/internal/runnerbin"
 	"github.com/d0lim/cockpit/internal/seal"
 	"github.com/d0lim/cockpit/internal/version"
@@ -92,8 +94,15 @@ func runFakeIn(ctx context.Context, t *testing.T, project string, f *fakedocker.
 		TempDir:      t.TempDir(),
 		Submitter:    "tester",
 		ListenCanary: canaryFor(f),
+		Limits:       testLimits(),
 	})
 	return code, out.String()
+}
+
+func testLimits() hubstages.Limits {
+	limits := hubstages.DefaultLimits()
+	limits.OTLPQuiet, limits.OTLPDrain = 50*time.Millisecond, time.Second
+	return limits
 }
 
 func readJSON(t *testing.T, path string) map[string]any {

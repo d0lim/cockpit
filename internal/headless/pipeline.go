@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/d0lim/cockpit/internal/collect"
+	"github.com/d0lim/cockpit/internal/collect/observer"
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/cli"
@@ -19,6 +23,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/mask"
 	"github.com/d0lim/cockpit/internal/runnerbin"
+	"github.com/d0lim/cockpit/internal/signal"
 	"github.com/d0lim/cockpit/internal/version"
 )
 
@@ -37,6 +42,7 @@ type Deps struct {
 	Now          func() time.Time
 	Submitter    string
 	ListenCanary hubstages.CanaryListener
+	Limits       hubstages.Limits
 }
 
 type run struct {
@@ -47,6 +53,12 @@ type run struct {
 	base     int
 	env      *hubstages.Env
 	log      *os.File
+	logger   *slog.Logger
+	shared   atomic.Pointer[mask.Masker]
+	stream   *signal.Stream
+	observed *collect.Supervisor
+	otlp     *observer.OTLP
+	exited   time.Time
 	meta     store.Meta
 	lines    []string
 	suiteRun *compose.RunnerResult
@@ -71,14 +83,18 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 	if deps.Now == nil {
 		deps.Now = time.Now
 	}
+	if deps.Limits == (hubstages.Limits{}) {
+		deps.Limits = hubstages.DefaultLimits()
+	}
 	m, err := mask.New(mask.Options{Mode: mask.Hub})
 	if err != nil {
 		fmt.Fprintln(deps.Out, err)
 		return cli.ExitRejected
 	}
 	r := &run{opts: opts, deps: deps, env: &hubstages.Env{
-		Masker: m, RunnerUser: hubstages.HostRunnerUser(), Docker: deps.Docker, Limits: hubstages.DefaultLimits(), Now: deps.Now, ListenCanary: deps.ListenCanary,
+		Masker: m, RunnerUser: hubstages.HostRunnerUser(), Docker: deps.Docker, Limits: deps.Limits, Now: deps.Now, ListenCanary: deps.ListenCanary,
 	}}
+	r.share()
 	r.st = &stages{out: deps.Out, mask: r.mask}
 	r.meta = store.Meta{CockpitVersion: version.String(), Submitter: deps.Submitter, Keep: opts.Keep, CreatedAt: store.Timestamp(deps.Now())}
 	refused := !r.prepare(ctx)

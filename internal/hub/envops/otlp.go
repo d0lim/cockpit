@@ -26,7 +26,10 @@ func (o *Ops) otlpOf(id string) *observer.OTLP {
 }
 
 func (o *Ops) DrainOTLP(ctx context.Context, id string, quiet, limit time.Duration) (OTLPDrain, bool) {
-	obs := o.otlpOf(id)
+	return SettleOTLP(ctx, o.otlpOf(id), quiet, limit)
+}
+
+func SettleOTLP(ctx context.Context, obs *observer.OTLP, quiet, limit time.Duration) (OTLPDrain, bool) {
 	if obs == nil || quiet <= 0 {
 		return OTLPDrain{}, false
 	}

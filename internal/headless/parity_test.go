@@ -16,9 +16,8 @@ import (
 )
 
 var parityExcluded = map[string]string{
-	"runId":          "each run has its own id",
-	"generatedAt":    "each report has its own time",
-	"stages.signals": "the hub freezes its signal stream into the bundle and the headless path has no stream",
+	"runId":       "each run has its own id",
+	"generatedAt": "each report has its own time",
 }
 
 func hubSummary(t *testing.T, repo string, f *fakedocker.Fake) map[string]any {
@@ -52,15 +51,10 @@ func hubSummary(t *testing.T, repo string, f *fakedocker.Fake) map[string]any {
 
 func withoutExcluded(t *testing.T, doc map[string]any) map[string]any {
 	t.Helper()
-	summaryStages, _ := doc["stages"].(map[string]any)
 	removed := 0
 	for field := range parityExcluded {
-		parent, key := doc, field
-		if field == "stages.signals" {
-			parent, key = summaryStages, "signals"
-		}
-		if _, ok := parent[key]; ok {
-			delete(parent, key)
+		if _, ok := doc[field]; ok {
+			delete(doc, field)
 			removed++
 		}
 	}
@@ -92,8 +86,9 @@ func TestTheSameFakeRunThroughTheHubAndThroughCockpitRunWritesTheSameSummaryButI
 		}
 		hubStages, _ := hub["stages"].(map[string]any)
 		oneStages, _ := one["stages"].(map[string]any)
-		if reflect.DeepEqual(hubStages["signals"], oneStages["signals"]) {
-			t.Fatalf("%s: canary: the signals stage is the same in both, so its exclusion hides nothing: %v", c.name, hubStages["signals"])
+		frozen := map[string]any{"status": "ok"}
+		if !reflect.DeepEqual(hubStages["signals"], frozen) || !reflect.DeepEqual(oneStages["signals"], frozen) {
+			t.Fatalf("%s: canary: both must freeze their signal stream: hub %v, cockpit run %v", c.name, hubStages["signals"], oneStages["signals"])
 		}
 		hub, one = withoutExcluded(t, hub), withoutExcluded(t, one)
 		for key := range hub {
