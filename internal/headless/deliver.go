@@ -61,6 +61,14 @@ func (r *run) copyBundle() (string, error) {
 	if err := os.Mkdir(r.opts.Out, 0o700); err != nil {
 		return "", err
 	}
+	detail, err := r.fillBundleCopy()
+	if err != nil {
+		os.RemoveAll(r.opts.Out)
+	}
+	return detail, err
+}
+
+func (r *run) fillBundleCopy() (string, error) {
 	if err := os.CopyFS(r.opts.Out, os.DirFS(r.bundle)); err != nil {
 		return "", err
 	}

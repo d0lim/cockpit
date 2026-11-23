@@ -111,7 +111,11 @@ func (r *run) prepare(ctx context.Context) bool {
 		if r.meta.SHA, err = git.ResolveCommit(ctx, "HEAD"); err != nil {
 			return "", err
 		}
-		r.meta.ID = store.NewRunID(r.deps.Now(), r.meta.SHA, nil)
+		taken, err := takenRunIDs(ctx, r.deps.Docker, r.deps.Home)
+		if err != nil {
+			return "", err
+		}
+		r.meta.ID = store.NewRunID(r.deps.Now(), r.meta.SHA, taken)
 		return fmt.Sprintf("%s at %s, run %s", top, r.meta.SHA[:12], r.meta.ID), nil
 	}}, {"declaration", func() (string, error) {
 		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA)
