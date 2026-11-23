@@ -48,7 +48,7 @@ Assertions 2 to 24 keep the names and order of the previous cockpit. The edge as
 
 ## Probes
 
-After the build and before the services start, the hub runs `cockpit-runner probe <canary>` twice: once as `cockpit-probe` on the internal `default` network, then as `cockpit-probe-control` on `egress`. While both run, the hub listens on `127.0.0.1:<base + 99>` as the canary. Each run prints one `probe=<n> rc=<code>` line per attempt:
+After the build and before the services start, the hub runs `cockpit-runner probe <canary>` twice: once as `cockpit-probe` on the internal `default` network, then as `cockpit-probe-control` on `egress`. While both run, the hub listens on `<canary host>:<base + 99>` as the canary, where the canary host is `127.0.0.1` on macOS and Windows and the `docker0` address on Linux (see the end of this section). Each run prints one `probe=<n> rc=<code>` line per attempt:
 
 | n | Attempt | Sealed probe expects | Control expects |
 | --- | --- | --- | --- |
