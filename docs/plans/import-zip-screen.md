@@ -19,5 +19,5 @@ The web downloads an Actions artifact as a zip that holds `cockpit-run.tar.gz`. 
 - [x] API, CLI and screen. Evidence: `TestAnArtifactZipThatHoldsTheArchiveImportsAsTheArchiveDoes`, `TestImportSendsAnArtifactZipAsAZip`, `TestTheRunsScreenImportsAnArtifactZipAndOpensTheRun` and `TestAScreenImportWithoutAnArchiveSaysSoAndAPlainPostIsRedirected`.
 - [x] Mutations: 7 new and the 25 of the import, run in a working copy, all red.
 - [x] Live: the zip downloaded from the web for a real Actions run imported with `cockpit runs import <zip>` on a check hub. The same zip, picked in the Import form in Aside, opened the run's Overview ("imported from a bundle archive; it ran elsewhere").
-- [ ] `make verify` in a clean copy.
+- [x] `make verify` in a clean copy. Evidence: vet, `go test -race`, the screen typecheck, the generated-files check, the license gate, the build and the size measurement passed in a fresh copy with its own commit.
 - [ ] CI green on the PR.
