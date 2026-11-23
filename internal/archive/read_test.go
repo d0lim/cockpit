@@ -252,13 +252,7 @@ func TestAWireCallThatNoLongerProvesCleanRefusesTheImport(t *testing.T) {
 		t.Fatalf("the take keeps no public token to prove against: %s", calls)
 	}
 	planted := strings.Replace(calls, `"note":"seeded-call-value"`, `"note":"seeded-call-value","clientSecret":"`+importPlanted+`"`, 1)
-	list := indexed(t, replaced(base, "wire/suite/calls.jsonl", planted), func(a *contract.Archive) {
-		for i := range a.Files {
-			if a.Files[i].Path == "report/wire/suite/calls.jsonl" {
-				a.Files[i].Bytes = int64(len(planted))
-			}
-		}
-	})
+	list := withTake(t, base, planted, nil)
 	_, stage, err := importInto(t, tarOf(t, list))
 	var unmasked *Unmasked
 	if !errors.As(err, &unmasked) || !slices.Equal(unmasked.Files, []string{"report/wire/suite/calls.jsonl"}) {

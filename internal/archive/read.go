@@ -23,6 +23,8 @@ const (
 	importTotalBytes  = 512 << 20
 	importIndexBytes  = 16 << 20
 	importSchemaBytes = 1 << 20
+	importMaxEntries  = 10000
+	importTrailBytes  = 1 << 20
 )
 
 var ErrTooLarge = errors.New("the archive is over the import limits")
@@ -89,6 +91,13 @@ func Unpack(body io.Reader, stage string, m *mask.Masker) (Imported, error) {
 			return Imported{}, err
 		}
 	}
+	trail, err := io.Copy(io.Discard, io.LimitReader(zipped, importTrailBytes+1))
+	if err != nil {
+		return Imported{}, &Invalid{Reason: "the body is not a whole tar.gz", cause: err}
+	}
+	if trail > importTrailBytes {
+		return Imported{}, fmt.Errorf("data after the tar end: %w", ErrTooLarge)
+	}
 	return r.finish()
 }
 
@@ -102,6 +111,9 @@ func (r *reader) entry(h *tar.Header, body io.Reader) error {
 		return r.invalid("every entry sits under one directory named after a run", h.Name)
 	}
 	r.runID = id
+	if len(r.names) >= importMaxEntries {
+		return fmt.Errorf("more than %d entries: %w", importMaxEntries, ErrTooLarge)
+	}
 	if h.Typeflag != tar.TypeReg {
 		return r.invalid("an entry is not a regular file", h.Name)
 	}
@@ -146,7 +158,11 @@ func (r *reader) reportFile(h *tar.Header, body io.Reader, rel string) error {
 	}
 	r.report[rel] = h.Size
 	text := string(data)
-	if r.m.Mask(rel) != rel || kind.Name != contract.ArchiveKindWireCalls && r.m.Mask(text) != text {
+	clean, err := r.decodedClean(rel, kind, data)
+	if err != nil {
+		return err
+	}
+	if r.m.Mask(rel) != rel || !clean || kind.Name != contract.ArchiveKindWireCalls && r.m.Mask(text) != text {
 		r.left = append(r.left, r.m.Mask(DirReport+"/"+rel))
 		return nil
 	}

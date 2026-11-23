@@ -25,4 +25,10 @@ A run made by `cockpit run` leaves its verdict and report bundle as a bundle arc
 - [x] Mutations, each run in a scratch copy, each red. They are recorded at the head of `read_test.go` and `import_test.go`.
 - [x] A live import of the archive from a real GitHub Actions run of a consumer suite (31 report files, 133 steps, `cockpit run` 0.6.0) into a check hub. Evidence: the CLI printed the run id, `passed` and the run page. Its overview, report, flow and environment pages answered 200, a flow page showed its code from the bundle, the signals page said the bundle holds no frozen signals, the export answered 200, and the second import exited 5 with `CONFLICT_STATE`.
 - [x] `make verify` in a clean copy. Evidence: vet, `go test -race`, the screen typecheck, the generated-files check, the license gate, the build and the size measurement all passed in a fresh copy with its own commit.
+- [x] Review round 1 (Greptile on #21, four findings, each checked against the code and fixed with a test and a recorded mutation):
+  - A wire head could name any length, and `wire.Store.CallAt` allocated it. Each head must now point at exactly one line of its calls, and `CallAt` refuses a head outside the take limit (`TestAWireIndexWhoseHeadsMissTheLinesOfItsCallsIsRefused`, `TestCallAtRefusesAHeadOutsideTheTakeLimitBeforeItAllocates`).
+  - A JSON escape such as `\u0070assword` hid a key from the text pass. JSON files are now checked again once decoded (`TestAnEscapedSecretInAJSONFileIsFoundOnceItIsDecoded`).
+  - Empty files escaped the byte limits. An archive now holds at most 10,000 entries (`TestAnArchiveWithMoreEntriesThanTheLimitIsRefused`).
+  - Reading stopped at the tar end, before the gzip footer. The stream is now read to its end, so a cut or corrupt stream is refused, and at most 1 MiB may follow the tar (`TestAGzipStreamCutShortCorruptOrWithDataAfterTheTarIsRefused`).
+  The real archive from the Actions run still imports and opens after these checks.
 - [ ] CI green on the PR.

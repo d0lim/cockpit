@@ -62,14 +62,24 @@ func (r *reader) proveTake(dir string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, line := range bytes.Split(bytes.TrimSuffix(calls, []byte("\n")), []byte("\n")) {
-		if len(line) == 0 && len(calls) == 0 {
-			break
-		}
+	lines := bytes.Split(bytes.TrimSuffix(calls, []byte("\n")), []byte("\n"))
+	if len(calls) == 0 {
+		lines = nil
+	}
+	if len(lines) != len(index.Heads) {
+		return false, r.invalid("a wire index does not point at the lines of its calls", dir+wire.IndexFile)
+	}
+	var offset int64
+	for i, line := range lines {
 		var l wire.Line
 		if err := json.Unmarshal(line, &l); err != nil || l.Call == nil {
 			return false, &Invalid{Reason: "a wire call does not read as one", Files: []string{r.m.Mask(dir + wire.CallsFile)}}
 		}
+		head := index.Heads[i]
+		if head.Offset != offset || head.Length != int64(len(line)) || head.Seq != l.Call.Seq {
+			return false, r.invalid("a wire index does not point at the lines of its calls", dir+wire.IndexFile)
+		}
+		offset += int64(len(line)) + 1
 		before, err := json.Marshal(l)
 		if err != nil {
 			return false, err

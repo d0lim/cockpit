@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/d0lim/cockpit/internal/contract"
@@ -136,4 +137,44 @@ func importInto(t *testing.T, raw []byte) (Imported, string, error) {
 		t.Fatalf("the import wrote beside its stage: %v", names)
 	}
 	return got, stage, err
+}
+
+func withTake(t *testing.T, list []entry, calls string, heads func([]map[string]any)) []entry {
+	t.Helper()
+	var index map[string]any
+	if err := json.Unmarshal([]byte(entryBody(list, "wire/suite/index.json")), &index); err != nil {
+		t.Fatal(err)
+	}
+	list = replaced(list, "wire/suite/calls.jsonl", calls)
+	got, _ := index["heads"].([]any)
+	var offset int
+	all := []map[string]any{}
+	for i, line := range strings.Split(strings.TrimSuffix(calls, "\n"), "\n") {
+		head := got[i].(map[string]any)
+		head["offset"], head["length"] = offset, len(line)
+		offset += len(line) + 1
+		all = append(all, head)
+	}
+	if heads != nil {
+		heads(all)
+	}
+	kept := []any{}
+	for _, head := range all {
+		if head["drop"] == nil {
+			kept = append(kept, head)
+		}
+	}
+	index["heads"] = kept
+	raw, _ := json.Marshal(index)
+	list = replaced(list, "wire/suite/index.json", string(raw))
+	return indexed(t, list, func(a *contract.Archive) {
+		for i := range a.Files {
+			switch a.Files[i].Path {
+			case "report/wire/suite/calls.jsonl":
+				a.Files[i].Bytes = int64(len(calls))
+			case "report/wire/suite/index.json":
+				a.Files[i].Bytes = int64(len(raw))
+			}
+		}
+	})
 }

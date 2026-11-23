@@ -147,6 +147,9 @@ func (s Store) CallAt(take string, head Head) (Call, error) {
 		return Call{}, err
 	}
 	defer f.Close()
+	if head.Length <= 0 || head.Length > maxTakeBytes || head.Offset < 0 {
+		return Call{}, fmt.Errorf("call %d of take %s has no readable line in its index", head.Seq, take)
+	}
 	text := make([]byte, head.Length)
 	if _, err := f.ReadAt(text, head.Offset); err != nil {
 		return Call{}, fmt.Errorf("call %d of take %s cannot be read: %w", head.Seq, take, err)
