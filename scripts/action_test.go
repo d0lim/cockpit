@@ -38,6 +38,8 @@ done
 cp "$FAKE_RELEASE/${url##*/}" "$out"
 `
 
+const shasumWrapper = "#!/usr/bin/env bash\nexec shasum -a 256 \"$@\"\n"
+
 func releaseArchive(t *testing.T, version string) []byte {
 	t.Helper()
 	var buf bytes.Buffer
@@ -78,6 +80,9 @@ func install(t *testing.T, tamper bool) (string, string, error) {
 	}
 	writeFile(t, filepath.Join(release, name), archive, 0o644)
 	writeFile(t, filepath.Join(bin, "curl"), []byte(fakeCurl), 0o755)
+	if _, err := exec.LookPath("sha256sum"); err != nil {
+		writeFile(t, filepath.Join(bin, "sha256sum"), []byte(shasumWrapper), 0o755)
+	}
 	cmd := exec.Command("bash", "action-install.sh")
 	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "FAKE_RELEASE="+release, "RUNNER_TEMP="+temp,
 		"GITHUB_PATH="+filepath.Join(temp, "path"), "COCKPIT_VERSION=9.9.9", "COCKPIT_PATH=", "ACTION_REF=")
