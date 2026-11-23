@@ -29,6 +29,7 @@ var responseTypes = map[string]reflect.Type{
 	"KitView":      reflect.TypeFor[KitView](),
 	"WireView":     reflect.TypeFor[WireView](),
 	"WireCallView": reflect.TypeFor[WireCallView](),
+	"Imported":     reflect.TypeFor[Imported](),
 	"Problem":      reflect.TypeFor[Problem](),
 }
 

@@ -48,7 +48,7 @@ var (
 var usageLines = []string{
 	"usage: " + Cmd + " <command> ...",
 	"  submit [--commit <ref>] [--suite <name>] [--submitter <label>] [--new] [--wire] [--wait] [--timeout <seconds>] [--json]",
-	"  list · get|show <id> · report <id> · wait <id> [--timeout <seconds>] · export <id> [--out <file>]",
+	"  list · get|show <id> · report <id> · wait <id> [--timeout <seconds>] · export <id> [--out <file>] · import <file>",
 	"  keep|unkeep|stop|resume|destroy|abort <id> [--force] · exec <id> -- <flow id>",
 	"The hub address is COCKPIT_URL (default " + DefaultURL + "); the submitter label is --submitter, then COCKPIT_SUBMITTER, then cli.",
 }
@@ -206,6 +206,8 @@ func (x *ctx) dispatch(words []string) (int, error) {
 		return withID(a, x.report)
 	case "export":
 		return withID(a, func(id string) (int, error) { return x.export(id, a.flags["out"]) })
+	case "import":
+		return x.importArchive(a)
 	case "wait":
 		timeout, err := timeoutOf(a)
 		if err != nil {

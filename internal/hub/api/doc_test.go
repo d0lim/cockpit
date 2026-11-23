@@ -29,7 +29,7 @@ func TestAPIDocumentRouteTableMatchesTheRegisteredRoutesBothWays(t *testing.T) {
 	registered := Routes()
 	slices.Sort(documented)
 	slices.Sort(registered)
-	if !slices.Equal(documented, registered) || len(registered) != 15 {
+	if !slices.Equal(documented, registered) || len(registered) != 16 {
 		t.Fatalf("documented %q\nregistered %q", documented, registered)
 	}
 }

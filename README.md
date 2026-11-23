@@ -76,7 +76,7 @@ Commit the written files. After upgrading cockpit, write them again and review t
 
 ## Reading a run with an agent
 
-`cockpit runs export <id>` writes a run's report bundle to one archive, masked again on the way out, and `cockpit skill write <dir>` writes the skill an agent reads it with. The skill uses `tar`, `jq` and the usual text tools, so the agent needs neither the binary nor the hub. The [bundle archive](docs/export.md) page says what the archive holds.
+`cockpit runs export <id>` writes a run's report bundle to one archive, masked again on the way out, and `cockpit skill write <dir>` writes the skill an agent reads it with. The skill uses `tar`, `jq` and the usual text tools, so the agent needs neither the binary nor the hub. `cockpit runs import <file>` takes an archive back into a hub as a destroyed run, so a run made in GitHub Actions opens on the screen like a local one. The [bundle archive](docs/export.md) page says what the archive holds and what an import checks.
 
 ## Releases
 

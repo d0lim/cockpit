@@ -39,12 +39,14 @@ var StopLabels = map[StopReason]string{
 type DestroyReason string
 
 const (
-	DestroyNone   DestroyReason = ""
-	DestroyPerson DestroyReason = "person"
-	DestroyPool   DestroyReason = "pool"
+	DestroyNone     DestroyReason = ""
+	DestroyPerson   DestroyReason = "person"
+	DestroyPool     DestroyReason = "pool"
+	DestroyImported DestroyReason = "imported"
 )
 
 var DestroyLabels = map[DestroyReason]string{
-	DestroyPerson: "destroyed by a person",
-	DestroyPool:   "destroyed because the kept pool overflowed",
+	DestroyPerson:   "destroyed by a person",
+	DestroyPool:     "destroyed because the kept pool overflowed",
+	DestroyImported: "imported from a bundle archive; it ran elsewhere",
 }
