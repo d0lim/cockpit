@@ -24,5 +24,5 @@ A run made by `cockpit run` leaves its verdict and report bundle as a bundle arc
 - [x] `POST /api/runs/import` and `cockpit runs import`. Evidence: `internal/hub/api/import_test.go` and `internal/hub/cli/import_test.go`. An imported archive answers 201 and opens as a destroyed run with a report, and the second import is a conflict. A request without the guard header, of another media type, not gzip, or carrying a planted password is refused and leaves nothing in `runs/`.
 - [x] Mutations, each run in a scratch copy, each red. They are recorded at the head of `read_test.go` and `import_test.go`.
 - [x] A live import of the archive from a real GitHub Actions run of a consumer suite (31 report files, 133 steps, `cockpit run` 0.6.0) into a check hub. Evidence: the CLI printed the run id, `passed` and the run page. Its overview, report, flow and environment pages answered 200, a flow page showed its code from the bundle, the signals page said the bundle holds no frozen signals, the export answered 200, and the second import exited 5 with `CONFLICT_STATE`.
-- [ ] `make verify` in a clean copy.
+- [x] `make verify` in a clean copy. Evidence: vet, `go test -race`, the screen typecheck, the generated-files check, the license gate, the build and the size measurement all passed in a fresh copy with its own commit.
 - [ ] CI green on the PR.
