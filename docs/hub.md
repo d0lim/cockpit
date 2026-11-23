@@ -180,7 +180,7 @@ An umbrella repository whose services live in git submodules runs like any other
 cockpit runs submit --wait
 ```
 
-`submit` sends the repository of the current directory at `HEAD` (or `--commit`), and with one suite in the commit picks it; otherwise name it with `--suite`. The exit code follows the verdict (`0` passed, `1` failed, `2` error; the full table is in [api](api.md#cli)). Then:
+`submit` sends the repository of the current directory at `HEAD` (or `--commit`), and with one suite in the commit picks it; otherwise name it with `--suite`. The exit code follows the verdict (`0` passed, `1` failed, `2` error; the full table is in [api](api.md#cli)). Without a hub, for example in a CI job, `cockpit run --project . --out <dir> --archive <file>` runs the same stages once and exits with the same verdict and the same report bundle ([headless path](sealing.md#headless-path-and-the-unseal-check)). Then:
 
 - `cockpit runs report <id>` prints the flows and steps, and the screen at `/runs/<id>` shows the report, each flow's steps with their requests and refs, and the signals.
 - `cockpit runs export <id>` writes the run's report bundle to `<id>.tar.gz`, masked again on the way out, for reading away from the hub ([bundle archive](export.md)). `cockpit skill write <dir>` writes the skill an agent reads it with ([usage guide](guide.md#reading-a-run-with-an-agent)).

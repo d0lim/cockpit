@@ -105,11 +105,7 @@ func build(ctx context.Context, l *live) (outcome, error) {
 }
 
 func (l *live) runPorts() map[string]int {
-	ports := map[string]int{}
-	for _, p := range l.env.Loaded.Declaration.Ports {
-		ports[string(p.Name)] = compose.HostPort(l.env.Base, p)
-	}
-	return ports
+	return RunPorts(l.env.Loaded.Declaration, l.env.Base)
 }
 
 func (l *live) edgePorts() map[string]int {

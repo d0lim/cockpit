@@ -33,7 +33,7 @@ A run does not pass on its exit code alone. The hub reads the rules from the top
 
 ## Report bundle
 
-`report.Assemble` writes the bundle to `runs/<id>/report.partial/` and renames it to `runs/<id>/report/` only when the rescan is clean. Directories are 700 and files 600.
+`report.Assemble` writes the bundle to `runs/<id>/report.partial/` and renames it to `runs/<id>/report/` only when the rescan is clean; `cockpit run` does the same in its temporary run directory. Directories are 700 and files 600.
 
 ```text
 report/
@@ -63,6 +63,8 @@ The usual cause is a signal segment frozen with an older value list than the one
 ## Boundary
 
 The run pipeline calls the package at its report stage with plain inputs. The package does not start containers, call Docker or read the run store.
+
+The hub's report stage and `cockpit run` build the bundle with one function, `pipeline.ReportBundle(RunReport)`. It reads the runner files, the suite sources and `seal.json` from the run directory, presets `error` with a notice when the manifest's runner identity differs from the run's pin, and fills `Inputs` and `Summary` from the run meta. The hub then adds its collector stages and unread records, its signal stream, the wire record and `Patch` before it calls `Assemble`. The headless path adds nothing, so its bundle has no signal segment, its `signals` stage is `skipped`, and a rescan hit only discards the bundle ([headless path](sealing.md#headless-path-and-the-unseal-check)).
 
 | Call | Input | Output |
 |---|---|---|

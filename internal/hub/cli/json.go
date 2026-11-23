@@ -49,6 +49,13 @@ var verdictExit = map[string]struct {
 	"aborted": {ExitConflict, CodeAborted},
 }
 
+func VerdictExit(verdict string) int {
+	if v, ok := verdictExit[verdict]; ok {
+		return v.exit
+	}
+	return ExitError
+}
+
 type reply struct {
 	status int
 	body   map[string]any

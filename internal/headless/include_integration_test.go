@@ -1,4 +1,4 @@
-package runenv
+package headless
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/compose/composetest"
+	"github.com/d0lim/cockpit/internal/hub/cli"
 	"github.com/d0lim/cockpit/internal/runnerbin"
 )
 
@@ -71,7 +72,7 @@ func TestIntegrationAToyWhoseCacheComesFromAnIncludeInASubmodulePassesTheSealBoo
 			p.Down(context.Background())
 		})
 	}
-	if code != ExitPassed {
+	if code != cli.ExitOK {
 		t.Fatalf("exit %d\n%s", code, text)
 	}
 	for _, want := range []string{"seal static (", "25/25 passed", "5 steps: 5 passed"} {
@@ -79,7 +80,7 @@ func TestIntegrationAToyWhoseCacheComesFromAnIncludeInASubmodulePassesTheSealBoo
 			t.Errorf("output lacks %q\n%s", want, text)
 		}
 	}
-	included, _ := filepath.Glob(filepath.Join(runs, "cockpit-run-env-*", "src", "deps", "cache", "compose.yaml"))
+	included, _ := filepath.Glob(filepath.Join(runs, "cockpit-run-*", "src", "deps", "cache", "compose.yaml"))
 	if len(included) != 1 {
 		t.Fatalf("extracted included files %v", included)
 	}

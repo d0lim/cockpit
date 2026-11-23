@@ -1,4 +1,4 @@
-package runenv
+package headless
 
 import (
 	"context"
@@ -74,10 +74,10 @@ func (r *run) unsealCheck(ctx context.Context) (string, error) {
 		return "", err
 	}
 	unsealed := r.env.Project
-	unsealed.Name = r.runID + "-unsealed"
+	unsealed.Name = r.meta.ID + "-unsealed"
 	unsealed.Args = append(slices.Clone(r.env.Project.Args), "-f", r.env.Layout.Root+"/"+unsealFile)
 	unsealed.Args[slices.Index(unsealed.Args, "-p")+1] = unsealed.Name
-	results, accepted, err := hubstages.Probe(ctx, unsealed, r.base, nil)
+	results, accepted, err := hubstages.Probe(ctx, unsealed, r.base, r.env.ListenCanary)
 	downErr := unsealed.Down(context.WithoutCancel(ctx))
 	if err != nil {
 		return "", err
