@@ -18,16 +18,17 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/ports/porttest"
 	"github.com/d0lim/cockpit/internal/signal"
+	"github.com/d0lim/cockpit/internal/tracectx"
 )
 
 var signalsMutations = []porttest.Mutation{
-	{"the stream and the observers read the refreshed run masker", "drop both r.share() calls after the generation and the runner", "red: the planted value shows in the frozen container log line", "TestAPassingRunFreezesItsStageAndRunnerSpansAndTheServiceLogsMaskedIntoItsBundle"},
+	{"the stream and the observers read the refreshed run masker", "drop both r.share() calls after the generation and the runner", "red: the stream freezes the planted container log value, so the rescan discards the bundle and no copy is written", "TestAPassingRunFreezesItsStageAndRunnerSpansAndTheServiceLogsMaskedIntoItsBundle"},
 	{"the report appends the stage and runner spans", "pass Recordings without its Stream in report", "red: the frozen copy holds no pipeline, stage, run, flow or step span", "TestAPassingRunFreezesItsStageAndRunnerSpansAndTheServiceLogsMaskedIntoItsBundle"},
 	{"the run records each stage from its start to the event that closes it", "drop StartStage from walk", "red: the frozen copy holds no pipeline or stage span", "TestAPassingRunFreezesItsStageAndRunnerSpansAndTheServiceLogsMaskedIntoItsBundle"},
 	{"the observers run from the end of the boot stage", "drop the r.observe() call from boot", "red: the frozen copy holds no container log line and no service row", "TestAPassingRunFreezesItsStageAndRunnerSpansAndTheServiceLogsMaskedIntoItsBundle"},
 	{"the report freezes the stream into the bundle", "drop bundle.Signals = r.stream from report", "red: the bundle has no signals/stream.jsonl and its signals stage is skipped", "TestAPassingRunFreezesItsStageAndRunnerSpansAndTheServiceLogsMaskedIntoItsBundle"},
-	{"the run masker reaches the observers through an atomic pointer", "read r.env.Masker in the stream's masker and in maskShared", "red under -race: a data race between RefreshMasker and an OTLP append", "TestOTLPSignalsThatArriveWhileTheRunnerRefreshesTheMaskerAreFrozenAndTheDrainIsNamed"},
-	{"the run stage waits for the OTLP stream to go quiet", "return an empty note from drainOTLP without settling", "red: the runner line does not name the drain", "TestOTLPSignalsThatArriveWhileTheRunnerRefreshesTheMaskerAreFrozenAndTheDrainIsNamed"},
+	{"the run masker reaches the observers through an atomic pointer", "read r.env.Masker in the stream's masker and in maskShared", "red under -race: a data race between RefreshMasker and an OTLP append", "TestOTLPSpansThatArriveWhileTheRunnerRefreshesTheMaskerJoinTheFrozenRunTraceAndTheDrainIsNamed"},
+	{"the run stage waits for the OTLP stream to go quiet", "return an empty note from drainOTLP without settling", "red: the runner line does not name the drain", "TestOTLPSpansThatArriveWhileTheRunnerRefreshesTheMaskerJoinTheFrozenRunTraceAndTheDrainIsNamed"},
 }
 
 func TestSignalsMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -120,29 +121,30 @@ func TestAPassingRunFreezesItsStageAndRunnerSpansAndTheServiceLogsMaskedIntoItsB
 	}
 }
 
-func otlpEvents(string) []fakedocker.OTLPLine {
+func otlpSpans(runID string) []fakedocker.OTLPLine {
 	var lines []fakedocker.OTLPLine
-	for i := range 40 {
-		line := fmt.Sprintf(`{"v":1,"signal":{"kind":"event","attrs":{"service":"app"},"event":{"body":"otlp line %d"}}}`, i)
-		lines = append(lines, fakedocker.OTLPLine{After: time.Duration(2*i) * time.Millisecond, Line: line})
+	for i := range 60 {
+		line := fmt.Sprintf(`{"v":1,"signal":{"kind":"span","id":"w3c:%016x","attrs":{"service":"app"},"span":{"traceId":"w3c:%s","name":"app call","start":"2026-10-19T01:00:02.110Z","end":"2026-10-19T01:00:02.120Z","status":"ok"}}}`, i+1, tracectx.TraceID(runID))
+		lines = append(lines, fakedocker.OTLPLine{After: time.Duration(5*i) * time.Millisecond, Line: line})
 	}
 	return lines
 }
 
-func TestOTLPSignalsThatArriveWhileTheRunnerRefreshesTheMaskerAreFrozenAndTheDrainIsNamed(t *testing.T) {
+func TestOTLPSpansThatArriveWhileTheRunnerRefreshesTheMaskerJoinTheFrozenRunTraceAndTheDrainIsNamed(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "bundle")
-	f := newFake(func(f *fakedocker.Fake) { f.OTLP, f.RunnerDelay = otlpEvents, 300*time.Millisecond })
+	f := newFake(func(f *fakedocker.Fake) { f.OTLP = otlpSpans })
 	code, text := runFake(t, toyProject(t), f, Options{Out: out})
 	if code != cli.ExitOK || !strings.Contains(text, "otlp drained after") {
 		t.Fatalf("exit %d, the runner line must name the drain\n%s", code, text)
 	}
-	received := 0
+	id, _ := readJSON(t, filepath.Join(out, "summary.json"))["runId"].(string)
+	joined := 0
 	for _, sig := range frozenStream(t, out) {
-		if sig.Collector == signal.OTLPCollector && sig.Event != nil && strings.HasPrefix(sig.Event.Body, "otlp line ") {
-			received++
+		if sig.Collector == signal.OTLPCollector && sig.Span != nil && sig.Span.TraceID == id {
+			joined++
 		}
 	}
-	if received == 0 {
-		t.Fatal("the frozen copy holds no OTLP line")
+	if joined < 50 {
+		t.Fatalf("%d of 60 service spans joined the frozen run trace", joined)
 	}
 }

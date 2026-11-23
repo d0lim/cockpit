@@ -24,10 +24,10 @@ const wireSection = `wire:
 `
 
 var wireMutations = []porttest.Mutation{
-	{"a commit without routes refuses --wire before the run", "drop the WireRefusal check from the declaration step", "red: the run claims an id and starts", "TestWireOnACommitWithoutRoutesIsRefusedBeforeTheRunClaimsAnID"},
+	{"a commit without routes refuses --wire before the run", "pass false for wire to WireRefusal in the declaration step", "red: the run claims an id, starts and closes as error with exit 2", "TestWireOnACommitWithoutRoutesIsRefusedBeforeTheRunClaimsAnID"},
 	{"the take masks with this run's declaration", "pass an empty declaration to the RunWire of recorder", "red: the planted value shows in the copied calls.jsonl", "TestARunWithWireCarriesItsMaskedSuiteRecordInItsBundleCopyAndArchive"},
 	{"the report takes the suite record of a recording run", "return nil from recorder", "red: the bundle has no wire/suite and summary.wire is absent", "TestARunWithWireCarriesItsMaskedSuiteRecordInItsBundleCopyAndArchive"},
-	{"a recording run renders the recorder", "stop passing Wire to the stages.Env in Run", "red: the take finds no recorder and the record is lost", "TestARunWithWireCarriesItsMaskedSuiteRecordInItsBundleCopyAndArchive"},
+	{"a recording run renders the recorder", "stop passing Wire to the stages.Env in Run", "red: the harness has no recorder, so the runner leaves no captured values and the record is withheld", "TestARunWithWireCarriesItsMaskedSuiteRecordInItsBundleCopyAndArchive"},
 	{"a run without --wire records nothing", "set Wire on every stages.Env in Run", "red: the kept harness of the plain run holds the recorder", "TestARunWithoutWireRendersNoRecorderEvenWhenTheCommitDeclaresRoutes"},
 }
 
