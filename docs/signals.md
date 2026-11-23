@@ -55,7 +55,7 @@ From these entries the hub writes spans into the run trace (the trace id is the 
 
 - The report appends the stage spans before the runner spans (`pipeline.AssembleReport`), so every parent has a lower `seq` than its children. The report stage is still open at that point, so the frozen copy holds the stages from `prepare` to `suite`.
 - When the run ends, the pipeline appends the stage spans again from the record. A span that repeats its winner is not written (see Reads), so for a reported run this adds only `stage:report` and a revision of `pipeline` that ends with it, both in the tail. A kept run reads six stage spans live, and a destroyed run reads five from its bundle. A run that ends before its report gets all of its stage spans at this point.
-- A run of `cockpit run` keeps the same entries in its run record in memory and reports them the same way, so its bundle holds the stages from `prepare` to `suite`. It removes its run directory when it ends, so no stage spans follow the report.
+- A run of `cockpit run` keeps the same entries in its run record in memory and reports them the same way, so its bundle holds the stages from `prepare` to `suite`. It appends no stage spans after the report, kept or not.
 - A run that the hub reports after a restart gets the stage spans of the entries that ended before the restart, the interrupted one included with status `error`, and no `stage:report`. A run that the hub closes after a restart without a report gets no stage spans, and neither does an entry that the pipeline could not close because another event moved the run first. A resume or an exec adds no stage spans.
 
 ## Runner spans
