@@ -144,7 +144,7 @@ func (r *run) prepare(ctx context.Context) bool {
 		r.meta.RunnerImage = &contract.RunnerImage{Tag: img.Tag, ID: img.ID}
 		return "runner image " + img.Tag, err
 	}}, {"run id", func() (string, error) {
-		id, err := claimRunID(ctx, r.deps.Docker, r.meta.RunnerImage.Tag, r.deps.Now(), r.meta.SHA)
+		id, err := claimRunID(ctx, r.deps.Docker, r.meta.RunnerImage.Tag, r.deps.Now(), r.meta.SHA, claimTimeout)
 		if id != "" {
 			r.meta.ID, r.claimed = id, true
 		}

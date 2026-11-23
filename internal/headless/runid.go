@@ -19,13 +19,13 @@ const (
 
 func claimName(id string) string { return "cockpit-claim-" + id }
 
-func claimRunID(ctx context.Context, d compose.Docker, image string, now time.Time, sha string) (string, error) {
+func claimRunID(ctx context.Context, d compose.Docker, image string, now time.Time, sha string, limit time.Duration) (string, error) {
 	for n := 1; n <= claimLimit; n++ {
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
 		id := store.HeadlessRunID(now, sha, n)
-		won, err := claimOne(ctx, d, image, id)
+		won, err := claimOne(ctx, d, image, id, limit)
 		if err != nil {
 			return "", err
 		}
@@ -36,8 +36,8 @@ func claimRunID(ctx context.Context, d compose.Docker, image string, now time.Ti
 	return "", fmt.Errorf("no free run id among the %d after %s", claimLimit, store.HeadlessRunID(now, sha, 0))
 }
 
-func claimOne(ctx context.Context, d compose.Docker, image, id string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), claimTimeout)
+func claimOne(parent context.Context, d compose.Docker, image, id string, limit time.Duration) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), limit)
 	defer cancel()
 	res, err := d.Run(ctx, compose.Command{Args: []string{"create", "--name", claimName(id), "--label", claimLabel + "=" + id, "--network", "none", image}})
 	if err != nil {
@@ -53,7 +53,7 @@ func claimOne(ctx context.Context, d compose.Docker, image, id string) (bool, er
 	if err == nil && !busy {
 		return true, nil
 	}
-	if rmErr := removeClaim(ctx, d, id); rmErr != nil {
+	if rmErr := removeClaim(parent, d, id, limit); rmErr != nil {
 		return false, rmErr
 	}
 	return false, err
@@ -76,7 +76,9 @@ func occupied(ctx context.Context, d compose.Docker, id string) (bool, error) {
 	return false, nil
 }
 
-func removeClaim(ctx context.Context, d compose.Docker, id string) error {
+func removeClaim(parent context.Context, d compose.Docker, id string, limit time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), limit)
+	defer cancel()
 	res, err := d.Run(ctx, compose.Command{Args: []string{"rm", "-f", claimName(id)}})
 	if err == nil && res.Code != 0 {
 		err = fmt.Errorf("docker rm %s exited %d", claimName(id), res.Code)
@@ -88,9 +90,7 @@ func (r *run) release(ctx context.Context) {
 	if !r.claimed {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupLimit)
-	defer cancel()
 	r.settle(r.st.run("release run id", func() (string, error) {
-		return "container " + claimName(r.meta.ID) + " removed", removeClaim(ctx, r.deps.Docker, r.meta.ID)
+		return "container " + claimName(r.meta.ID) + " removed", removeClaim(ctx, r.deps.Docker, r.meta.ID, claimTimeout)
 	}))
 }

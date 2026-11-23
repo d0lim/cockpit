@@ -3,6 +3,7 @@ package headless
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,7 @@ var runIDMutations = []porttest.Mutation{
 	{"a headless run never takes the id of a project on the host, kept ones included", "accept the claim without the occupied check", "red: the run takes the id of a kept project", "TestTheRunIDSkipsIDsThatProjectsOrClaimsHold"},
 	{"two headless runs never claim the same id", "treat every docker create result as a claim", "red: concurrent runs share an id", "TestRunsThatClaimAtTheSameTimeNeverShareAnID"},
 	{"an interrupt during the claim keeps the claim it made", "run the claim commands on the run's context", "red: the claim the interrupted create made is lost", "TestAnInterruptDuringTheClaimStillReturnsTheClaimSoItIsReleased"},
+	{"a claim whose check timed out is still removed", "remove the claim on the check's context", "red: the claim container stays after a slow check", "TestAClaimWhoseCheckTimesOutIsStillRemoved"},
 	{"a run gives its claim back whether it is refused or finishes", "drop the docker rm of the claim container in release", "red: the claim container stays", "TestARunReleasesItsClaimWhetherItIsRefusedOrFinishes"},
 	{"a failed bundle copy leaves no partial directory", "drop the RemoveAll after a failed fill in copyBundle", "red: the half-copied --out directory stays", "TestAFailedBundleCopyRemovesTheDirectoryItCreated"},
 	{"the stage tail passes the run redactor", "return r.lines unmasked from tail", "red: the planted value shows in the tail", "TestTheStageTailMasksAPlantedValue"},
@@ -40,6 +42,7 @@ type claimDocker struct {
 	names    map[string]string
 	refuse   string
 	onCreate func()
+	slowPS   bool
 	creates  int
 	removes  int
 }
@@ -67,9 +70,16 @@ func (d *claimDocker) Run(ctx context.Context, cmd compose.Command) (compose.Res
 		d.names[name] = label
 		return compose.Result{}, ctx.Err()
 	case "rm":
+		if ctx.Err() != nil {
+			return compose.Result{}, ctx.Err()
+		}
 		d.removes++
 		delete(d.names, cmd.Args[2])
 		return compose.Result{}, nil
+	}
+	if d.slowPS && cmd.Args[0] == "ps" {
+		<-ctx.Done()
+		return compose.Result{}, ctx.Err()
 	}
 	id := strings.TrimPrefix(cmd.Args[len(cmd.Args)-1], "label="+compose.LabelRunID+"=")
 	if d.projects[id] == cmd.Args[0] {
@@ -85,13 +95,13 @@ const claimSHA = "0123456789abcdef"
 func TestTheRunIDSkipsIDsThatProjectsOrClaimsHold(t *testing.T) {
 	h := func(n int) string { return store.HeadlessRunID(claimNow, claimSHA, n) }
 	empty := newClaimDocker(nil)
-	id, err := claimRunID(context.Background(), empty, "img", claimNow, claimSHA)
+	id, err := claimRunID(context.Background(), empty, "img", claimNow, claimSHA, claimTimeout)
 	if err != nil || id != h(1) || !store.IsRunID(id) || empty.names[claimName(h(1))] != claimLabel+"="+h(1) || empty.removes != 0 {
 		t.Fatalf("canary: an empty host gives %s %v %v", id, err, empty.names)
 	}
 	d := newClaimDocker(map[string]string{h(1): "ps", h(3): "network"})
 	d.names[claimName(h(2))] = "held"
-	id, err = claimRunID(context.Background(), d, "img", claimNow, claimSHA)
+	id, err = claimRunID(context.Background(), d, "img", claimNow, claimSHA, claimTimeout)
 	if err != nil || id != h(4) || d.creates != 4 || d.removes != 2 {
 		t.Fatalf("id %s %v, want %s after 4 creates and 2 removes, made %d and %d", id, err, h(4), d.creates, d.removes)
 	}
@@ -100,8 +110,20 @@ func TestTheRunIDSkipsIDsThatProjectsOrClaimsHold(t *testing.T) {
 	}
 	broken := newClaimDocker(nil)
 	broken.refuse = "Unable to find image 'img' locally"
-	if id, err := claimRunID(context.Background(), broken, "img", claimNow, claimSHA); err == nil || broken.creates != 1 {
+	if id, err := claimRunID(context.Background(), broken, "img", claimNow, claimSHA, claimTimeout); err == nil || broken.creates != 1 {
 		t.Fatalf("a docker error other than a name conflict gave %s after %d creates", id, broken.creates)
+	}
+}
+
+func TestAClaimWhoseCheckTimesOutIsStillRemoved(t *testing.T) {
+	d := newClaimDocker(nil)
+	d.slowPS = true
+	id, err := claimRunID(context.Background(), d, "img", claimNow, claimSHA, 50*time.Millisecond)
+	if id != "" || !errors.Is(err, context.DeadlineExceeded) || d.creates != 1 {
+		t.Fatalf("canary: a timed-out check gave %q %v after %d creates", id, err, d.creates)
+	}
+	if d.removes != 1 || len(d.names) != 0 {
+		t.Fatalf("the claim stayed: %d removes, claims %v", d.removes, d.names)
 	}
 }
 
@@ -109,11 +131,11 @@ func TestAnInterruptDuringTheClaimStillReturnsTheClaimSoItIsReleased(t *testing.
 	ctx, cancel := context.WithCancel(context.Background())
 	d := newClaimDocker(nil)
 	d.onCreate = cancel
-	id, err := claimRunID(ctx, d, "img", claimNow, claimSHA)
+	id, err := claimRunID(ctx, d, "img", claimNow, claimSHA, claimTimeout)
 	if id != store.HeadlessRunID(claimNow, claimSHA, 1) || err != nil || ctx.Err() == nil || d.names[claimName(id)] == "" {
 		t.Fatalf("an interrupted claim gave %q %v, claims %v", id, err, d.names)
 	}
-	if id, err := claimRunID(ctx, newClaimDocker(nil), "img", claimNow, claimSHA); id != "" || err == nil {
+	if id, err := claimRunID(ctx, newClaimDocker(nil), "img", claimNow, claimSHA, claimTimeout); id != "" || err == nil {
 		t.Fatalf("a claim after the interrupt gave %q %v", id, err)
 	}
 }
@@ -127,7 +149,7 @@ func TestRunsThatClaimAtTheSameTimeNeverShareAnID(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			id, err := claimRunID(context.Background(), d, "img", claimNow, claimSHA)
+			id, err := claimRunID(context.Background(), d, "img", claimNow, claimSHA, claimTimeout)
 			if err != nil {
 				t.Error(err)
 			}
