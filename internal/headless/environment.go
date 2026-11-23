@@ -64,7 +64,7 @@ func (r *run) pipeline(ctx context.Context) {
 }
 
 func (r *run) runDirectory(ctx context.Context) (string, error) {
-	dir, err := os.MkdirTemp(r.deps.TempDir, "cockpit-run-")
+	dir, err := os.MkdirTemp(r.deps.TempDir, "cockpit-"+r.meta.ID+"-")
 	if err != nil {
 		return "", err
 	}

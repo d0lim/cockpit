@@ -44,7 +44,7 @@ func toyProject(t *testing.T) string {
 	return real
 }
 
-var keptRunID = regexp.MustCompile(`docker compose -p (run-[0-9]{8}-[0-9]{6}-[0-9a-f]{7}) `)
+var keptRunID = regexp.MustCompile(`docker compose -p (run-[0-9]{8}-[0-9]{6}-[0-9a-f]{7}-h[0-9]+) `)
 
 func TestIntegrationAHeadlessToyRunPassesTheSealWritesAPassedBundleAndTheUnsealCheckTurnsTheProbesRed(t *testing.T) {
 	if os.Getenv("COCKPIT_INTEGRATION") != "1" {

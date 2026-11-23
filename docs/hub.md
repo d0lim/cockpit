@@ -239,9 +239,15 @@ The record hides the run's known credentials and every value under a key that na
 The repository root of cockpit is a composite action. It installs a cockpit release, checks the archive against the release's `checksums.txt`, runs `cockpit run` on the checked-out commit, writes the verdict, the steps, the seal with its network level and the reasons to the job summary, uploads the bundle archive as a workflow artifact, and exits with the code of `cockpit run`:
 
 ```yaml
+on:
+  pull_request:
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@<sha>
         with:
@@ -261,6 +267,8 @@ jobs:
 | `cockpit-path` | empty | a cockpit binary to use instead of a release |
 
 The outputs are `verdict` (empty when the run closed before its suite), `exit-code` and `archive`. Runners are Linux, where the seal probes reach the canary on the `docker0` bridge ([sealing](sealing.md#probes)), and the builder runs as the runner's user. Submodules must be checked out, because the run reads each pinned submodule commit from the checkout. Read the downloaded archive with the skill (`cockpit skill write <dir>`) or open it as files ([bundle archive](export.md)).
+
+A job is billed by its minutes, and a run spends most of them building the commit's images and running its suite; installing cockpit and checking the seal take seconds. The example keeps the minutes bounded: it runs on pull requests rather than every push, `cancel-in-progress` stops the run of a commit that a newer push replaced, and `timeout-minutes` ends a job whose suite hangs instead of letting it run to the six-hour default. Linux runners are the cheapest hosted runners and the only ones the action supports. Each job gets its own machine, so runs of different jobs never share a Docker host.
 
 ## Common refusals
 

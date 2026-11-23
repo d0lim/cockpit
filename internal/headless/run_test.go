@@ -15,7 +15,7 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 )
 
-var hubRunID = regexp.MustCompile(`^run-[0-9]{8}-[0-9]{6}-[0-9a-f]{7}$`)
+var headlessRunID = regexp.MustCompile(`^run-[0-9]{8}-[0-9]{6}-[0-9a-f]{7}-h[0-9]+$`)
 
 func TestAPassingFakeRunExitsZeroAndCopiesABundleWhoseSummarySaysPassed(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "bundle")
@@ -26,7 +26,7 @@ func TestAPassingFakeRunExitsZeroAndCopiesABundleWhoseSummarySaysPassed(t *testi
 	summary := readJSON(t, filepath.Join(out, "summary.json"))
 	meta := readJSON(t, filepath.Join(out, "meta.json"))
 	id, _ := summary["runId"].(string)
-	if summary["verdict"] != "passed" || !hubRunID.MatchString(id) || meta["id"] != id || meta["submitter"] != "tester" {
+	if summary["verdict"] != "passed" || !headlessRunID.MatchString(id) || meta["id"] != id || meta["submitter"] != "tester" {
 		t.Fatalf("summary verdict %v id %v meta %v", summary["verdict"], summary["runId"], meta)
 	}
 	for _, want := range []string{"ok   seal static", "ok   report", "ok   bundle copy", "verdict passed"} {
@@ -115,7 +115,7 @@ func TestTheArchiveIndexListsEveryBundleFileUnderTheRunID(t *testing.T) {
 			}
 		}
 	}
-	if !hubRunID.MatchString(id) || index.RunID != id || !strings.Contains(text, "ok   archive ("+"") {
+	if !headlessRunID.MatchString(id) || index.RunID != id || !strings.Contains(text, "ok   archive ("+"") {
 		t.Fatalf("index of %q: %+v\n%s", id, index, text)
 	}
 	listed := map[string]bool{}

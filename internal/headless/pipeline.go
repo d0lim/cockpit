@@ -53,6 +53,7 @@ type run struct {
 	booted   *contract.BootVerdict
 	reasons  []string
 	bundle   string
+	claimed  bool
 	broken   bool
 }
 
@@ -85,6 +86,9 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 		r.pipeline(ctx)
 		r.deliver()
 		r.cleanup(ctx)
+	}
+	r.release(ctx)
+	if !refused {
 		r.verdict()
 	}
 	switch {
@@ -111,12 +115,7 @@ func (r *run) prepare(ctx context.Context) bool {
 		if r.meta.SHA, err = git.ResolveCommit(ctx, "HEAD"); err != nil {
 			return "", err
 		}
-		taken, err := takenRunIDs(ctx, r.deps.Docker, r.deps.Home)
-		if err != nil {
-			return "", err
-		}
-		r.meta.ID = store.NewRunID(r.deps.Now(), r.meta.SHA, taken)
-		return fmt.Sprintf("%s at %s, run %s", top, r.meta.SHA[:12], r.meta.ID), nil
+		return fmt.Sprintf("%s at %s", top, r.meta.SHA[:12]), nil
 	}}, {"declaration", func() (string, error) {
 		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA)
 		if err != nil {
@@ -144,6 +143,15 @@ func (r *run) prepare(ctx context.Context) bool {
 		img, err := r.deps.EnsureImage(ctx)
 		r.meta.RunnerImage = &contract.RunnerImage{Tag: img.Tag, ID: img.ID}
 		return "runner image " + img.Tag, err
+	}}, {"run id", func() (string, error) {
+		id, err := claimRunID(ctx, r.deps.Docker, r.meta.RunnerImage.Tag, r.deps.Now(), r.meta.SHA, claimTimeout)
+		if id != "" {
+			r.meta.ID, r.claimed = id, true
+		}
+		if err == nil {
+			err = ctx.Err()
+		}
+		return fmt.Sprintf("run %s, held by container %s", id, claimName(id)), err
 	}}, {"port block", func() (string, error) {
 		cfg, err := config.Load(r.deps.Home)
 		if err != nil {
