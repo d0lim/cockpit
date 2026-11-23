@@ -53,7 +53,7 @@ type run struct {
 	booted   *contract.BootVerdict
 	reasons  []string
 	bundle   string
-	claim    string
+	claimed  bool
 	broken   bool
 }
 
@@ -71,9 +71,6 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 	if deps.Now == nil {
 		deps.Now = time.Now
 	}
-	if deps.TempDir == "" {
-		deps.TempDir = os.TempDir()
-	}
 	m, err := mask.New(mask.Options{Mode: mask.Hub})
 	if err != nil {
 		fmt.Fprintln(deps.Out, err)
@@ -85,13 +82,13 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 	r.st = &stages{out: deps.Out, mask: r.mask}
 	r.meta = store.Meta{CockpitVersion: version.String(), Submitter: deps.Submitter, Keep: opts.Keep, CreatedAt: store.Timestamp(deps.Now())}
 	refused := !r.prepare(ctx)
-	if refused && r.claim != "" {
-		os.Remove(r.claim)
-	}
 	if !refused {
 		r.pipeline(ctx)
 		r.deliver()
 		r.cleanup(ctx)
+	}
+	r.release(ctx)
+	if !refused {
 		r.verdict()
 	}
 	switch {
@@ -118,10 +115,7 @@ func (r *run) prepare(ctx context.Context) bool {
 		if r.meta.SHA, err = git.ResolveCommit(ctx, "HEAD"); err != nil {
 			return "", err
 		}
-		if r.meta.ID, r.claim, err = claimRunID(ctx, r.deps.Docker, r.deps.TempDir, r.deps.Now(), r.meta.SHA); err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("%s at %s, run %s", top, r.meta.SHA[:12], r.meta.ID), nil
+		return fmt.Sprintf("%s at %s", top, r.meta.SHA[:12]), nil
 	}}, {"declaration", func() (string, error) {
 		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA)
 		if err != nil {
@@ -149,6 +143,13 @@ func (r *run) prepare(ctx context.Context) bool {
 		img, err := r.deps.EnsureImage(ctx)
 		r.meta.RunnerImage = &contract.RunnerImage{Tag: img.Tag, ID: img.ID}
 		return "runner image " + img.Tag, err
+	}}, {"run id", func() (string, error) {
+		id, err := claimRunID(ctx, r.deps.Docker, r.meta.RunnerImage.Tag, r.deps.Now(), r.meta.SHA)
+		if err != nil {
+			return "", err
+		}
+		r.meta.ID, r.claimed = id, true
+		return fmt.Sprintf("run %s, held by container %s", id, claimName(id)), nil
 	}}, {"port block", func() (string, error) {
 		cfg, err := config.Load(r.deps.Home)
 		if err != nil {

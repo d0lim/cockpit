@@ -23,8 +23,8 @@ import (
 
 var runIDMutations = []porttest.Mutation{
 	{"a headless run never takes the id of a project on the host", "return no ids from takenRunIDs", "red: the run gets the id a container already carries", "TestTheRunIDSkipsIDsThatContainersNetworksOrClaimsHold"},
-	{"two headless runs never claim the same id", "create the claim with os.MkdirAll instead of os.Mkdir", "red: concurrent runs share an id", "TestRunsThatClaimAtTheSameTimeNeverShareAnID"},
-	{"a refused run gives its claim back", "drop the os.Remove of the claim after a refused prepare", "red: the claim directory of the refused run stays", "TestARunReleasesItsClaimWhetherItIsRefusedOrFinishes"},
+	{"two headless runs never claim the same id", "treat every docker create result as a claim", "red: concurrent runs share an id", "TestRunsThatClaimAtTheSameTimeNeverShareAnID"},
+	{"a run gives its claim back whether it is refused or finishes", "drop the docker rm of the claim container in release", "red: the claim container stays", "TestARunReleasesItsClaimWhetherItIsRefusedOrFinishes"},
 	{"a failed bundle copy leaves no partial directory", "drop the RemoveAll after a failed fill in copyBundle", "red: the half-copied --out directory stays", "TestAFailedBundleCopyRemovesTheDirectoryItCreated"},
 	{"the stage tail passes the run redactor", "return r.lines unmasked from tail", "red: the planted value shows in the tail", "TestTheStageTailMasksAPlantedValue"},
 }
@@ -33,10 +33,34 @@ func TestRunIDMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 	porttest.AssertMutationRecord(t, "runid_test.go", runIDMutations)
 }
 
-type labelDocker map[string]string
+type claimDocker struct {
+	mu      sync.Mutex
+	labels  map[string]string
+	names   map[string]string
+	refuse  string
+	creates int
+}
 
-func (d labelDocker) Run(ctx context.Context, cmd compose.Command) (compose.Result, error) {
-	return compose.Result{Stdout: []byte(d[cmd.Args[0]])}, nil
+func newClaimDocker(labels map[string]string) *claimDocker {
+	return &claimDocker{labels: labels, names: map[string]string{}}
+}
+
+func (d *claimDocker) Run(ctx context.Context, cmd compose.Command) (compose.Result, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if cmd.Args[0] != "create" {
+		return compose.Result{Stdout: []byte(d.labels[cmd.Args[0]])}, nil
+	}
+	d.creates++
+	name, label := cmd.Args[2], cmd.Args[4]
+	if d.refuse != "" {
+		return compose.Result{Code: 1, Stderr: []byte(d.refuse)}, nil
+	}
+	if _, ok := d.names[name]; ok {
+		return compose.Result{Code: 125, Stderr: []byte(`Error response from daemon: Conflict. The container name "/` + name + `" is already in use by container "0123".`)}, nil
+	}
+	d.names[name] = label
+	return compose.Result{}, nil
 }
 
 var claimNow = time.Date(2026, 11, 23, 2, 0, 0, 0, time.UTC)
@@ -45,35 +69,35 @@ const claimSHA = "0123456789abcdef"
 
 func TestTheRunIDSkipsIDsThatContainersNetworksOrClaimsHold(t *testing.T) {
 	first := store.HeadlessRunID(claimNow, claimSHA, 1)
-	id, claim, err := claimRunID(context.Background(), labelDocker{}, t.TempDir(), claimNow, claimSHA)
-	if err != nil || id != first || !store.IsRunID(id) || filepath.Base(claim) != "cockpit-"+first {
-		t.Fatalf("canary: an empty host gives %s %s %v", id, claim, err)
+	empty := newClaimDocker(nil)
+	id, err := claimRunID(context.Background(), empty, "img", claimNow, claimSHA)
+	if err != nil || id != first || !store.IsRunID(id) || empty.names[claimName(first)] != claimLabel+"="+first {
+		t.Fatalf("canary: an empty host gives %s %v %v", id, err, empty.names)
 	}
-	dir := t.TempDir()
-	if err := os.Mkdir(filepath.Join(dir, "cockpit-"+store.HeadlessRunID(claimNow, claimSHA, 2)), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	d := labelDocker{"ps": first + "\nrun-20260101-000000-aaaaaaa\n", "network": store.HeadlessRunID(claimNow, claimSHA, 3) + "\n"}
-	id, claim, err = claimRunID(context.Background(), d, dir, claimNow, claimSHA)
+	d := newClaimDocker(map[string]string{"ps": first + "\nrun-20260101-000000-aaaaaaa\n", "network": store.HeadlessRunID(claimNow, claimSHA, 3) + "\n"})
+	d.names[claimName(store.HeadlessRunID(claimNow, claimSHA, 2))] = "held"
+	id, err = claimRunID(context.Background(), d, "img", claimNow, claimSHA)
 	want := store.HeadlessRunID(claimNow, claimSHA, 4)
-	if err != nil || id != want {
-		t.Fatalf("id %s %v, want %s", id, err, want)
+	if err != nil || id != want || d.names[claimName(want)] != claimLabel+"="+want || d.creates != 2 {
+		t.Fatalf("id %s %v, want %s after 2 creates, made %d", id, err, want, d.creates)
 	}
-	if info, err := os.Stat(claim); err != nil || !info.IsDir() || claim != filepath.Join(dir, "cockpit-"+want) {
-		t.Fatalf("claim %s: %v", claim, err)
+	broken := newClaimDocker(nil)
+	broken.refuse = "Unable to find image 'img' locally"
+	if id, err := claimRunID(context.Background(), broken, "img", claimNow, claimSHA); err == nil || broken.creates != 1 {
+		t.Fatalf("a docker error other than a name conflict gave %s after %d creates", id, broken.creates)
 	}
 }
 
 func TestRunsThatClaimAtTheSameTimeNeverShareAnID(t *testing.T) {
 	const runs = 32
-	dir := t.TempDir()
+	d := newClaimDocker(nil)
 	ids := make(chan string, runs)
 	var wg sync.WaitGroup
 	for i := 0; i < runs; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			id, _, err := claimRunID(context.Background(), labelDocker{}, dir, claimNow, claimSHA)
+			id, err := claimRunID(context.Background(), d, "img", claimNow, claimSHA)
 			if err != nil {
 				t.Error(err)
 			}
@@ -97,27 +121,29 @@ func TestRunsThatClaimAtTheSameTimeNeverShareAnID(t *testing.T) {
 func TestARunReleasesItsClaimWhetherItIsRefusedOrFinishes(t *testing.T) {
 	project := toyProject(t)
 	head := strings.TrimSpace(gitOut(t, project, "rev-parse", "HEAD"))
-	held := "cockpit-" + store.HeadlessRunID(claimNow, head, 1)
+	id := store.HeadlessRunID(claimNow, head, 1)
 	for _, c := range []struct {
-		suite string
-		code  int
-	}{{"", cli.ExitOK}, {"absent", cli.ExitRejected}} {
-		tmp := t.TempDir()
-		if err := os.Mkdir(filepath.Join(tmp, held), 0o700); err != nil {
-			t.Fatal(err)
-		}
+		free bool
+		code int
+	}{{true, cli.ExitOK}, {false, cli.ExitRejected}} {
 		f := newFake(nil)
 		var out bytes.Buffer
-		code := Run(context.Background(), Options{Project: project, Suite: c.suite}, Deps{
+		code := Run(context.Background(), Options{Project: project}, Deps{
 			Docker: f.For(procgroup.Hooks{}), EnsureImage: func(context.Context) (runnerbin.Image, error) { return fakeImage, nil },
-			Home: t.TempDir(), Out: &out, Free: func(int) bool { return true }, TempDir: tmp, Submitter: "tester", ListenCanary: canaryFor(f), Now: func() time.Time { return claimNow },
+			Home: t.TempDir(), Out: &out, Free: func(int) bool { return c.free }, TempDir: t.TempDir(), Submitter: "tester", ListenCanary: canaryFor(f), Now: func() time.Time { return claimNow },
 		})
-		if code != c.code || !strings.Contains(out.String(), "run "+store.HeadlessRunID(claimNow, head, 2)) {
-			t.Fatalf("suite %q: exit %d, want %d, and the id after the held one\n%s", c.suite, code, c.code, out.String())
+		created, removed := 0, 0
+		for _, call := range f.Calls() {
+			line := strings.Join(call.Args, " ")
+			if strings.HasPrefix(line, "create --name "+claimName(id)+" ") {
+				created++
+			}
+			if line == "rm -f "+claimName(id) {
+				removed++
+			}
 		}
-		left, err := os.ReadDir(tmp)
-		if err != nil || len(left) != 1 || left[0].Name() != held {
-			t.Fatalf("suite %q: the temp dir holds %v %v", c.suite, left, err)
+		if code != c.code || created != 1 || removed != 1 || !strings.Contains(out.String(), "run "+id) {
+			t.Fatalf("free %v: exit %d, want %d; claim created %d, removed %d\n%s", c.free, code, c.code, created, removed, out.String())
 		}
 	}
 }

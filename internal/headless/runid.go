@@ -1,12 +1,9 @@
 package headless
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,12 +11,17 @@ import (
 	"github.com/d0lim/cockpit/internal/hub/store"
 )
 
-const claimLimit = 1000
+const (
+	claimLimit = 1000
+	claimLabel = "io.cockpit.claim"
+)
 
-func claimRunID(ctx context.Context, d compose.Docker, dir string, now time.Time, sha string) (string, string, error) {
+func claimName(id string) string { return "cockpit-claim-" + id }
+
+func claimRunID(ctx context.Context, d compose.Docker, image string, now time.Time, sha string) (string, error) {
 	taken, err := takenRunIDs(ctx, d)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	held := make(map[string]bool, len(taken))
 	for _, id := range taken {
@@ -30,17 +32,33 @@ func claimRunID(ctx context.Context, d compose.Docker, dir string, now time.Time
 		if held[id] {
 			continue
 		}
-		claim := filepath.Join(dir, "cockpit-"+id)
-		err := os.Mkdir(claim, 0o700)
-		if errors.Is(err, fs.ErrExist) {
-			continue
-		}
+		res, err := d.Run(ctx, compose.Command{Args: []string{"create", "--name", claimName(id), "--label", claimLabel + "=" + id, "--network", "none", image}})
 		if err != nil {
-			return "", "", err
+			return "", err
 		}
-		return id, claim, nil
+		if res.Code == 0 {
+			return id, nil
+		}
+		if !bytes.Contains(res.Stderr, []byte("is already in use")) {
+			return "", fmt.Errorf("docker create %s exited %d: %s", claimName(id), res.Code, strings.TrimSpace(string(res.Stderr)))
+		}
 	}
-	return "", "", fmt.Errorf("no free run id among the %d after %s", claimLimit, store.HeadlessRunID(now, sha, 0))
+	return "", fmt.Errorf("no free run id among the %d after %s", claimLimit, store.HeadlessRunID(now, sha, 0))
+}
+
+func (r *run) release(ctx context.Context) {
+	if !r.claimed {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupLimit)
+	defer cancel()
+	r.settle(r.st.run("release run id", func() (string, error) {
+		res, err := r.deps.Docker.Run(ctx, compose.Command{Args: []string{"rm", "-f", claimName(r.meta.ID)}})
+		if err == nil && res.Code != 0 {
+			err = fmt.Errorf("docker rm %s exited %d", claimName(r.meta.ID), res.Code)
+		}
+		return "container " + claimName(r.meta.ID) + " removed", err
+	}))
 }
 
 func takenRunIDs(ctx context.Context, d compose.Docker) ([]string, error) {
