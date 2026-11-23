@@ -115,6 +115,7 @@ A cell decides the verdict only while the verdict is still `null`, so the report
 - A submission of the same commit, suite and `wire` option as a run that is still queued returns that run instead of a new one. `new` (the CLI `--new`) always queues a new run.
 - The queue holds at most 10 runs (`QUEUE_FULL` beyond that).
 - When the head cannot start, every queued run records the wait reason: `active-run`, `in-progress`, `pool-over`, `pool-all-kept`, `docker-unavailable` or `no-port-block`.
+- An imported run ([importing](export.md#importing)) enters `done/destroyed` directly, with the destroy reason `imported` and the verdict of its bundle, and never passes through any other state.
 - Destroying a queued run removes it from the queue and leaves only its record (`done/destroyed`, verdict `aborted`).
 
 ## Kept pool

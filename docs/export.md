@@ -1,6 +1,6 @@
 # Bundle archive
 
-The bundle archive is one `.tar.gz` file that holds the report bundle of one run, for reading away from the hub: on another machine, next to a pull request, or by an agent that works on files. The code is in `internal/archive`, `internal/hub/api` (`export.go`) and `internal/hub/cli` (`export.go`). When this page and the code disagree, this page is fixed first and the code follows.
+The bundle archive is one `.tar.gz` file that holds the report bundle of one run, for reading away from the hub: on another machine, next to a pull request, or by an agent that works on files. The code is in `internal/archive`, `internal/hub/api` (`export.go`, `import.go`) and `internal/hub/cli` (`export.go`, `import.go`). When this page and the code disagree, this page is fixed first and the code follows.
 
 The archive holds the report bundle and nothing else of the run. The run tree's `src/`, `build/`, `work/`, `env/` and the volumes never enter it.
 
@@ -72,9 +72,24 @@ The wire record does not pass `Masker.Mask` as one text, for the reason the repo
 
 An entry that is not a regular file refuses the export instead of being skipped, as the rescan discards a bundle for one: the hub wrote no such entry, so the bundle is not what the hub left.
 
+## Importing
+
+`cockpit runs import <file>` sends an archive to a hub (`POST /api/runs/import`), and the hub records it as a run of its own, so its pages open like those of a run it ran: the overview, the report, the flows with their code, and the wire record when the archive holds one. This is how a run made elsewhere is read on the screen, such as the archive a GitHub Actions job uploaded ([run on GitHub Actions](hub.md#run-on-github-actions)).
+
+The hub treats the archive as untrusted input and checks all of it before the run appears.
+
+- The body is at most 128 MiB, a file at most 64 MiB, and the files together at most 512 MiB unpacked (`archive.ImportMaxBytes` and the limits beside it).
+- Every entry is a regular file under one directory whose name is a run id. A path that is absolute, holds `..`, is not clean, or appears twice refuses the archive, and so do links and every other entry type.
+- Below that directory there is `index.json`, files under `schema/` named `<name>.json`, and files under `report/` whose path names a kind of the table above, with a wire file only inside a take that has both of its files. Anything else refuses the archive.
+- `index.json` is format 1, names the same run, and lists exactly the files of the archive, each with its kind and size. A file it does not list, or a file it lists that is missing or of another size, refuses the archive.
+- `report/summary.json` and `report/meta.json` must be there. The summary names the same run, and the bundle metadata reads strictly against its contract, with the same id and a final verdict.
+- The hub passes every file and every path through its default masking rules. When the rules change one, the archive is refused and `files` names what they caught, each masked. The hub cannot check the run's own credentials, which only the run that made the archive knew: an import relies on that run's masking, done when the archive was written.
+
+The hub stores the files under `report/` as the run's report bundle and leaves out `index.json` and `schema/`, which it writes again on export. It builds the run in a directory beside the runs and moves it into place in one rename, so a refused or broken import leaves nothing. The record comes from `report/meta.json`: phase `done`, environment `destroyed` with the destroy reason `imported`, and the bundle's verdict, suite, commit, submitter, times and versions; it takes no slot, no image keys and no repository. A run id the hub already holds refuses the import, so importing the same archive twice is a conflict, not a copy. An imported run takes no place in the kept pool, accepts no event, and can be exported again. A run made by `cockpit run` has no signal stream, so its signals page says the bundle holds none.
+
 ## Once it has left
 
-- The hub cannot take an archive back. A read through the hub can be refused later; a downloaded file cannot.
+- The hub cannot call an archive back. A read through the hub can be refused later; a downloaded file cannot, even after it is imported somewhere else.
 - The run masker proves that the run's credentials are absent. It does not prove that the rest may be shared: the archive shows the suite's source, the shape of the services' calls and the rows the collectors emitted.
 - Text inside the archive is data. A response body, a log line or a failure message that reads like an instruction is still a record of what a service said.
 

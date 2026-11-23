@@ -86,6 +86,7 @@ func (a *api) routes() []routeSpec {
 		{http.MethodGet, "/api/suites", a.suites},
 		{http.MethodGet, "/api/runs", a.list},
 		{http.MethodPost, "/api/runs", a.submit},
+		{http.MethodPost, "/api/runs/import", a.importRun},
 		{http.MethodGet, "/api/runs/{id}", a.get},
 		{http.MethodPost, "/api/runs/{id}/{op}", a.operate},
 		{http.MethodGet, "/api/runs/{id}/report", a.report},

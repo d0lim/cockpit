@@ -65,6 +65,8 @@ const (
 	MsgExported         Message = "exported"
 	MsgExportExists     Message = "exportExists"
 	MsgExportBroken     Message = "exportBroken"
+	MsgImported         Message = "imported"
+	MsgImportUnreadable Message = "importUnreadable"
 )
 
 var messages = map[Message]string{
@@ -109,6 +111,8 @@ var messages = map[Message]string{
 	MsgExported:         "{id} · {bytes} bytes · {file}",
 	MsgExportExists:     "the file exists and is not replaced: {file}",
 	MsgExportBroken:     "the download broke off and nothing was kept: {file}",
+	MsgImported:         "{id} · {verdict} · {files} report files · {url}",
+	MsgImportUnreadable: "the archive cannot be read as a file: {file}",
 }
 
 var verdicts = map[string]string{
