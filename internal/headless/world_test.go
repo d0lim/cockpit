@@ -66,7 +66,7 @@ func newFake(mutate func(*fakedocker.Fake)) *fakedocker.Fake {
 
 func canaryFor(f *fakedocker.Fake) func(int) (*seal.Canary, error) {
 	return func(int) (*seal.Canary, error) {
-		c, err := seal.ListenCanary(0)
+		c, err := seal.ListenCanaryAt("127.0.0.1", 0)
 		if err == nil {
 			f.SetCanaryPort(c.Port())
 		}
