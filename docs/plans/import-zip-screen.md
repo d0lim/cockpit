@@ -20,4 +20,5 @@ The web downloads an Actions artifact as a zip that holds `cockpit-run.tar.gz`. 
 - [x] Mutations: 7 new and the 25 of the import, run in a working copy, all red.
 - [x] Live: the zip downloaded from the web for a real Actions run imported with `cockpit runs import <zip>` on a check hub. The same zip, picked in the Import form in Aside, opened the run's Overview ("imported from a bundle archive; it ran elsewhere").
 - [x] `make verify` in a clean copy. Evidence: vet, `go test -race`, the screen typecheck, the generated-files check, the license gate, the build and the size measurement passed in a fresh copy with its own commit.
+- [x] Review round 1 (Greptile on #23). The screen capped the whole form, not the file, so a gzip archive between 128 and 129 MiB passed there while the API refused it. `UnpackFile` now caps every upload at the body limit, the archive as well as the zip (`TestAnUploadOverTheBodyLimitIsRefusedWhetherArchiveOrZip`, its mutation red).
 - [ ] CI green on the PR.

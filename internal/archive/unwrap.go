@@ -19,11 +19,27 @@ var (
 
 const archiveSuffix = ".tar.gz"
 
+var importBodyBytes int64 = ImportMaxBytes
+
+type capped struct {
+	r    io.Reader
+	read int64
+}
+
+func (c *capped) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.read += int64(n)
+	if c.read > importBodyBytes {
+		return n, fmt.Errorf("the upload: %w", ErrTooLarge)
+	}
+	return n, err
+}
+
 func UnpackFile(body io.Reader, stage string, m *mask.Masker) (Imported, error) {
 	if m == nil {
 		return Imported{}, errors.New("archive: no masker")
 	}
-	peek := bufio.NewReader(body)
+	peek := bufio.NewReader(&capped{r: body})
 	head, _ := peek.Peek(len(zipMagic))
 	switch {
 	case bytes.HasPrefix(head, gzipMagic):
@@ -44,14 +60,10 @@ func unzipOne(body io.Reader, m *mask.Masker) (io.Reader, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	size, err := io.Copy(spool, io.LimitReader(body, ImportMaxBytes+1))
+	size, err := io.Copy(spool, body)
 	if err != nil {
 		spool.Close()
 		return nil, nil, &Invalid{Reason: "the zip did not arrive whole", cause: err}
-	}
-	if size > ImportMaxBytes {
-		spool.Close()
-		return nil, nil, fmt.Errorf("the zip: %w", ErrTooLarge)
 	}
 	z, err := zip.NewReader(spool, size)
 	if err != nil {

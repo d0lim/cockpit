@@ -19,6 +19,7 @@ var unwrapMutations = []porttest.Mutation{
 	{"the file in the zip is a regular *.tar.gz", "drop the mode and suffix check in theArchive", "red: the zip holding notes.txt answers a refusal of the tar instead", "TestAZipThatIsNotOneStoredOrDeflatedArchiveIsRefused"},
 	{"the file in the zip is stored or deflated", "drop the method check in theArchive", "red: the entry with method 99 answers an open error instead", "TestAZipThatIsNotOneStoredOrDeflatedArchiveIsRefused"},
 	{"the file in the zip is within the body limit unpacked", "drop the size check in theArchive", "red: the entry that declares 129 MiB answers a refusal that is no ErrTooLarge", "TestAZipThatIsNotOneStoredOrDeflatedArchiveIsRefused"},
+	{"every upload is capped at the body limit, the archive as well as the zip", "read the body without capped in UnpackFile", "red: the archive one byte over the limit unpacks", "TestAnUploadOverTheBodyLimitIsRefusedWhetherArchiveOrZip"},
 	{"a name in a refused zip is masked", "list the zip names as they are in theArchive", "red: files carries the planted token", "TestAZipThatIsNotOneStoredOrDeflatedArchiveIsRefused"},
 }
 
@@ -127,5 +128,27 @@ func TestAZipThatIsNotOneStoredOrDeflatedArchiveIsRefused(t *testing.T) {
 	}
 	if refused != 7 {
 		t.Fatalf("refused %d of %d", refused, len(cases))
+	}
+}
+
+func TestAnUploadOverTheBodyLimitIsRefusedWhetherArchiveOrZip(t *testing.T) {
+	archive := tarOf(t, exported(t))
+	wrapped := zipOf(t, zipped{name: "cockpit-run.tar.gz", body: archive, method: zip.Deflate})
+	t.Cleanup(func() { importBodyBytes = ImportMaxBytes })
+	checked := 0
+	for name, body := range map[string][]byte{"archive": archive, "zip": wrapped} {
+		importBodyBytes = int64(len(body))
+		if _, _, err := unpackFile(t, body); err != nil {
+			t.Fatalf("%s at the limit: %v", name, err)
+		}
+		importBodyBytes = int64(len(body)) - 1
+		if _, _, err := unpackFile(t, body); !errors.Is(err, ErrTooLarge) {
+			t.Errorf("%s one byte over: want ErrTooLarge, got %v", name, err)
+			continue
+		}
+		checked++
+	}
+	if checked != 2 {
+		t.Fatalf("checked %d of 2", checked)
 	}
 }
