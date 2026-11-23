@@ -84,6 +84,8 @@ services:
         command:
             - probe
             - "22099"
+        extra_hosts:
+            - host.docker.internal:host-gateway
         image: cockpit-runner:0123456789ab
         labels:
             io.cockpit.managed: "true"
@@ -105,6 +107,8 @@ services:
         command:
             - probe
             - "22099"
+        extra_hosts:
+            - host.docker.internal:host-gateway
         image: cockpit-runner:0123456789ab
         labels:
             io.cockpit.managed: "true"

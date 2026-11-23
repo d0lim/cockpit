@@ -145,7 +145,7 @@ func newWorldWith(t *testing.T, option func(*Options), mutate func(*fakedocker.F
 			return runnerbin.Image{Tag: tag, ID: fakedocker.PinnedID, Arch: "arm64"}, nil
 		},
 		ListenCanary: func(int) (*seal.Canary, error) {
-			c, err := seal.ListenCanary(0)
+			c, err := seal.ListenCanaryAt("127.0.0.1", 0)
 			if err == nil {
 				w.fake.SetCanaryPort(c.Port())
 			}

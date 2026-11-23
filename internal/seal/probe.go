@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -41,10 +42,46 @@ type Canary struct {
 	done     chan struct{}
 }
 
-func ListenCanary(port int) (*Canary, error) {
-	ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+const bridgeInterface = "docker0"
+
+func CanaryHost(goos string, addrs func(iface string) ([]net.Addr, error)) (string, error) {
+	if goos != "linux" {
+		return "127.0.0.1", nil
+	}
+	list, err := addrs(bridgeInterface)
 	if err != nil {
-		return nil, fmt.Errorf("cannot open the seal canary on 127.0.0.1:%d: %w", port, err)
+		return "", fmt.Errorf("cannot find the %s bridge for the seal canary: %w", bridgeInterface, err)
+	}
+	for _, a := range list {
+		ipnet, ok := a.(*net.IPNet)
+		if ok && ipnet.IP.To4() != nil && !ipnet.IP.IsUnspecified() {
+			return ipnet.IP.String(), nil
+		}
+	}
+	return "", fmt.Errorf("the %s bridge has no IPv4 address for the seal canary", bridgeInterface)
+}
+
+func interfaceAddrs(name string) ([]net.Addr, error) {
+	iface, err := net.InterfaceByName(name)
+	if err != nil {
+		return nil, err
+	}
+	return iface.Addrs()
+}
+
+func ListenCanary(port int) (*Canary, error) {
+	host, err := CanaryHost(runtime.GOOS, interfaceAddrs)
+	if err != nil {
+		return nil, err
+	}
+	return ListenCanaryAt(host, port)
+}
+
+func ListenCanaryAt(host string, port int) (*Canary, error) {
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("cannot open the seal canary on %s: %w", addr, err)
 	}
 	c := &Canary{ln: ln, done: make(chan struct{})}
 	go func() {

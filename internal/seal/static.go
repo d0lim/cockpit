@@ -114,6 +114,24 @@ func using(svcs []service, field string, allow ...string) []string {
 	return out
 }
 
+var probeHostRendered = strings.Replace(compose.ProbeHostEntry, ":", "=", 1)
+
+func extraHosts(svcs []service) []string {
+	var out []string
+	for _, s := range svcs {
+		value := s.doc["extra_hosts"]
+		if !present(value) {
+			continue
+		}
+		probe := s.name == compose.RoleProbe || s.name == compose.RoleProbeControl
+		entries := list(value)
+		if !probe || len(entries) != 1 || text(entries[0]) != probeHostRendered {
+			out = append(out, s.name)
+		}
+	}
+	return out
+}
+
 func Static(in Input) []Result {
 	if in.Realpath == nil {
 		in.Realpath = RealPath
@@ -125,7 +143,7 @@ func Static(in Input) []Result {
 	out = append(out,
 		result("services.ports", "host ports (ports) appear only on the edge", using(svcs, "ports", compose.RoleEdge)),
 		result("services.network-mode", "network_mode appears nowhere", using(svcs, "network_mode")),
-		result("services.extra-hosts", "extra_hosts appears nowhere", using(svcs, "extra_hosts")),
+		result("services.extra-hosts", "extra_hosts appears only on the probes, as exactly "+probeHostRendered, extraHosts(svcs)),
 	)
 	out = append(out, edgeChecks(in, svcs)...)
 	out = append(out, mountChecks(in, svcs)...)

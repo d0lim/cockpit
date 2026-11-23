@@ -73,8 +73,8 @@ Every compose call of a run names the project `-p <run id>` and `--project-direc
 | --- | --- | --- | --- |
 | `cockpit-edge` | `edge` | the internal networks and `egress` | publishes `127.0.0.1:<base + offset>` to container port `30000 + offset` and proxies to `<service>:<port>`; without declared `ports` it listens on nothing and runs until it is stopped |
 | `cockpit-runner` | `run` (profile `runner`) | the internal networks | binds only `work/` paths; only `/work/e2e` is writable; its `environment` takes `E2E_EXEC_OUT` and `COCKPIT_TRACE_ID` from the compose process environment |
-| `cockpit-probe` | `probe` (profile `probe`) | `default` | canary port `base + 99` |
-| `cockpit-probe-control` | `probe` (profile `probe`) | `egress` | the positive control of the probe |
+| `cockpit-probe` | `probe` (profile `probe`) | `default` | canary port `base + 99`; `extra_hosts: host.docker.internal:host-gateway` |
+| `cockpit-probe-control` | `probe` (profile `probe`) | `egress` | the positive control of the probe; the same `extra_hosts` entry |
 | `cockpit-otlp` | `otlp :4318` | the internal networks | the [OTLP receiver](#otlp-receiver); no ports, no binds and no profile, so it starts with the stack like the edge |
 | `cockpit-wire` | `wire --project <run id> [--public-field <key>=<base64url>]... <41001 + index>=<service>:<port>...` | the internal networks | the [wire recorder](wire.md#the-recorder), only in a recording run; no ports, binds, volumes or tmpfs; healthcheck `cockpit-runner wire-ctl ping` every second, 30 retries. Every consumer service except the builder waits for it with `depends_on: {condition: service_healthy}`, and the runner gets `COCKPIT_WIRE_ROUTES` |
 
@@ -92,7 +92,7 @@ For each service that `telemetry.otlp.services` names, the harness sets five var
 
 The harness file comes after the consumer files, so these keys win over the same keys in the consumer's `environment`, whether written as a map, a list or in an included file. Other services get none of them. The receiver is reachable only on the internal networks, and the seal assertions that confine every harness service (`services.ports`, `services.networks`, `mounts.binds`) confine it too.
 
-On Linux the `cockpit-runner` service runs as the hub's uid:gid so it can write `work/e2e` (700) and read the private env (600) that the hub owns; a hub running as root keeps the image user `65532:65532`. On Docker Desktop (macOS) the file sharing layer maps ownership, so the image user stays.
+On Linux the `cockpit-runner` service runs as the hub's uid:gid so it can write `work/e2e` (700) and read the private env (600) that the hub owns; a hub running as root keeps the image user `65532:65532`. The builder runs as the hub's uid:gid on Linux too, so every file it writes under `build/` belongs to the hub, which removes `build/` after the build; a builder that needs another user's home or cache points it under `/tmp` or `build/`. On Docker Desktop (macOS) the file sharing layer maps ownership, so both keep their image user.
 
 Collector ids are the `.ts` basenames under `scripts.collectors`. They must match `^[a-z][a-z0-9-]{1,40}$`, and `runner`, `logs`, `services`, `supervisor`, `pipeline` and `otlp` are reserved for the hub's own signal sources. The secret sources and env outputs of the declaration are also treated as credential file names in the run record.
 
