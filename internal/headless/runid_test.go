@@ -22,8 +22,9 @@ import (
 )
 
 var runIDMutations = []porttest.Mutation{
-	{"a headless run never takes the id of a project on the host", "return no ids from takenRunIDs", "red: the run gets the id a container already carries", "TestTheRunIDSkipsIDsThatContainersNetworksOrClaimsHold"},
+	{"a headless run never takes the id of a project on the host, kept ones included", "accept the claim without the occupied check", "red: the run takes the id of a kept project", "TestTheRunIDSkipsIDsThatProjectsOrClaimsHold"},
 	{"two headless runs never claim the same id", "treat every docker create result as a claim", "red: concurrent runs share an id", "TestRunsThatClaimAtTheSameTimeNeverShareAnID"},
+	{"an interrupt during the claim keeps the claim it made", "run the claim commands on the run's context", "red: the claim the interrupted create made is lost", "TestAnInterruptDuringTheClaimStillReturnsTheClaimSoItIsReleased"},
 	{"a run gives its claim back whether it is refused or finishes", "drop the docker rm of the claim container in release", "red: the claim container stays", "TestARunReleasesItsClaimWhetherItIsRefusedOrFinishes"},
 	{"a failed bundle copy leaves no partial directory", "drop the RemoveAll after a failed fill in copyBundle", "red: the half-copied --out directory stays", "TestAFailedBundleCopyRemovesTheDirectoryItCreated"},
 	{"the stage tail passes the run redactor", "return r.lines unmasked from tail", "red: the planted value shows in the tail", "TestTheStageTailMasksAPlantedValue"},
@@ -34,32 +35,46 @@ func TestRunIDMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
 }
 
 type claimDocker struct {
-	mu      sync.Mutex
-	labels  map[string]string
-	names   map[string]string
-	refuse  string
-	creates int
+	mu       sync.Mutex
+	projects map[string]string
+	names    map[string]string
+	refuse   string
+	onCreate func()
+	creates  int
+	removes  int
 }
 
-func newClaimDocker(labels map[string]string) *claimDocker {
-	return &claimDocker{labels: labels, names: map[string]string{}}
+func newClaimDocker(projects map[string]string) *claimDocker {
+	return &claimDocker{projects: projects, names: map[string]string{}}
 }
 
 func (d *claimDocker) Run(ctx context.Context, cmd compose.Command) (compose.Result, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if cmd.Args[0] != "create" {
-		return compose.Result{Stdout: []byte(d.labels[cmd.Args[0]])}, nil
+	switch cmd.Args[0] {
+	case "create":
+		d.creates++
+		if d.onCreate != nil {
+			d.onCreate()
+		}
+		name, label := cmd.Args[2], cmd.Args[4]
+		if d.refuse != "" {
+			return compose.Result{Code: 1, Stderr: []byte(d.refuse)}, nil
+		}
+		if _, ok := d.names[name]; ok {
+			return compose.Result{Code: 125, Stderr: []byte(`Error response from daemon: Conflict. The container name "/` + name + `" is already in use by container "0123".`)}, nil
+		}
+		d.names[name] = label
+		return compose.Result{}, ctx.Err()
+	case "rm":
+		d.removes++
+		delete(d.names, cmd.Args[2])
+		return compose.Result{}, nil
 	}
-	d.creates++
-	name, label := cmd.Args[2], cmd.Args[4]
-	if d.refuse != "" {
-		return compose.Result{Code: 1, Stderr: []byte(d.refuse)}, nil
+	id := strings.TrimPrefix(cmd.Args[len(cmd.Args)-1], "label="+compose.LabelRunID+"=")
+	if d.projects[id] == cmd.Args[0] {
+		return compose.Result{Stdout: []byte("0123\n")}, nil
 	}
-	if _, ok := d.names[name]; ok {
-		return compose.Result{Code: 125, Stderr: []byte(`Error response from daemon: Conflict. The container name "/` + name + `" is already in use by container "0123".`)}, nil
-	}
-	d.names[name] = label
 	return compose.Result{}, nil
 }
 
@@ -67,24 +82,39 @@ var claimNow = time.Date(2026, 11, 23, 2, 0, 0, 0, time.UTC)
 
 const claimSHA = "0123456789abcdef"
 
-func TestTheRunIDSkipsIDsThatContainersNetworksOrClaimsHold(t *testing.T) {
-	first := store.HeadlessRunID(claimNow, claimSHA, 1)
+func TestTheRunIDSkipsIDsThatProjectsOrClaimsHold(t *testing.T) {
+	h := func(n int) string { return store.HeadlessRunID(claimNow, claimSHA, n) }
 	empty := newClaimDocker(nil)
 	id, err := claimRunID(context.Background(), empty, "img", claimNow, claimSHA)
-	if err != nil || id != first || !store.IsRunID(id) || empty.names[claimName(first)] != claimLabel+"="+first {
+	if err != nil || id != h(1) || !store.IsRunID(id) || empty.names[claimName(h(1))] != claimLabel+"="+h(1) || empty.removes != 0 {
 		t.Fatalf("canary: an empty host gives %s %v %v", id, err, empty.names)
 	}
-	d := newClaimDocker(map[string]string{"ps": first + "\nrun-20260101-000000-aaaaaaa\n", "network": store.HeadlessRunID(claimNow, claimSHA, 3) + "\n"})
-	d.names[claimName(store.HeadlessRunID(claimNow, claimSHA, 2))] = "held"
+	d := newClaimDocker(map[string]string{h(1): "ps", h(3): "network"})
+	d.names[claimName(h(2))] = "held"
 	id, err = claimRunID(context.Background(), d, "img", claimNow, claimSHA)
-	want := store.HeadlessRunID(claimNow, claimSHA, 4)
-	if err != nil || id != want || d.names[claimName(want)] != claimLabel+"="+want || d.creates != 2 {
-		t.Fatalf("id %s %v, want %s after 2 creates, made %d", id, err, want, d.creates)
+	if err != nil || id != h(4) || d.creates != 4 || d.removes != 2 {
+		t.Fatalf("id %s %v, want %s after 4 creates and 2 removes, made %d and %d", id, err, h(4), d.creates, d.removes)
+	}
+	if len(d.names) != 2 || d.names[claimName(h(2))] != "held" || d.names[claimName(h(4))] != claimLabel+"="+h(4) {
+		t.Fatalf("claims left %v", d.names)
 	}
 	broken := newClaimDocker(nil)
 	broken.refuse = "Unable to find image 'img' locally"
 	if id, err := claimRunID(context.Background(), broken, "img", claimNow, claimSHA); err == nil || broken.creates != 1 {
 		t.Fatalf("a docker error other than a name conflict gave %s after %d creates", id, broken.creates)
+	}
+}
+
+func TestAnInterruptDuringTheClaimStillReturnsTheClaimSoItIsReleased(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	d := newClaimDocker(nil)
+	d.onCreate = cancel
+	id, err := claimRunID(ctx, d, "img", claimNow, claimSHA)
+	if id != store.HeadlessRunID(claimNow, claimSHA, 1) || err != nil || ctx.Err() == nil || d.names[claimName(id)] == "" {
+		t.Fatalf("an interrupted claim gave %q %v, claims %v", id, err, d.names)
+	}
+	if id, err := claimRunID(ctx, newClaimDocker(nil), "img", claimNow, claimSHA); id != "" || err == nil {
+		t.Fatalf("a claim after the interrupt gave %q %v", id, err)
 	}
 }
 

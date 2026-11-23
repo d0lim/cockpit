@@ -145,11 +145,13 @@ func (r *run) prepare(ctx context.Context) bool {
 		return "runner image " + img.Tag, err
 	}}, {"run id", func() (string, error) {
 		id, err := claimRunID(ctx, r.deps.Docker, r.meta.RunnerImage.Tag, r.deps.Now(), r.meta.SHA)
-		if err != nil {
-			return "", err
+		if id != "" {
+			r.meta.ID, r.claimed = id, true
 		}
-		r.meta.ID, r.claimed = id, true
-		return fmt.Sprintf("run %s, held by container %s", id, claimName(id)), nil
+		if err == nil {
+			err = ctx.Err()
+		}
+		return fmt.Sprintf("run %s, held by container %s", id, claimName(id)), err
 	}}, {"port block", func() (string, error) {
 		cfg, err := config.Load(r.deps.Home)
 		if err != nil {
