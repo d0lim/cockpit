@@ -74,7 +74,9 @@ An entry that is not a regular file refuses the export instead of being skipped,
 
 ## Importing
 
-`cockpit runs import <file>` sends an archive to a hub (`POST /api/runs/import`), and the hub records it as a run of its own, so its pages open like those of a run it ran: the overview, the report, the flows with their code, and the wire record when the archive holds one. This is how a run made elsewhere is read on the screen, such as the archive a GitHub Actions job uploaded ([run on GitHub Actions](hub.md#run-on-github-actions)).
+`cockpit runs import <file>` sends an archive to a hub (`POST /api/runs/import`), and so does the Import form of the Runs screen ([screen](screen.md#actions)). The hub records it as a run of its own, so its pages open like those of a run it ran: the overview, the report, the flows with their code, and the wire record when the archive holds one. This is how a run made elsewhere is read on the screen, such as the archive a GitHub Actions job uploaded ([run on GitHub Actions](hub.md#run-on-github-actions)).
+
+The file may be the archive itself or the zip a GitHub Actions artifact downloads as from the web, which holds the archive as its one file. The hub tells them apart by their first bytes. A zip must hold exactly one regular file, named `*.tar.gz`, stored or deflated, of at most the body limit unpacked; the hub reads it from a spool it unlinks as soon as it is open, and checks the archive inside as below. Any other zip, and any file that is neither, is refused.
 
 The hub treats the archive as untrusted input and checks all of it before the run appears.
 

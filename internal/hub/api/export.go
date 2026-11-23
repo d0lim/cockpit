@@ -14,6 +14,7 @@ import (
 
 const (
 	ExportMedia  = "application/gzip"
+	ZipMedia     = "application/zip"
 	ExportSuffix = ".tar.gz"
 )
 
