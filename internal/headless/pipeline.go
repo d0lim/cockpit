@@ -134,7 +134,7 @@ func (r *run) prepare(ctx context.Context) bool {
 		}
 		return fmt.Sprintf("%s at %s", top, r.meta.SHA[:12]), nil
 	}}, {"declaration", func() (string, error) {
-		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA)
+		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA, "")
 		if err != nil {
 			return "", err
 		}

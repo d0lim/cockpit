@@ -114,7 +114,7 @@ func replaceIn(t *testing.T, path, old, new string) {
 func loadToy(t *testing.T, mutate func(dir string)) (Loaded, error) {
 	t.Helper()
 	dir, sha := toyRepo(t, mutate)
-	return ReadDeclaration(context.Background(), Git{Dir: dir}, sha)
+	return ReadDeclaration(context.Background(), Git{Dir: dir}, sha, "")
 }
 
 func mustLoadToy(t *testing.T) Loaded {
@@ -128,7 +128,7 @@ func mustLoadToy(t *testing.T) Loaded {
 
 func toyDeclaration(t *testing.T) contract.Declaration {
 	t.Helper()
-	decl, err := ParseDeclaration([]byte(readFile(t, filepath.Join(toyDir(t), DeclarationPath))))
+	decl, err := ParseDeclaration(DeclarationPath, []byte(readFile(t, filepath.Join(toyDir(t), DeclarationPath))))
 	if err != nil {
 		t.Fatal(err)
 	}

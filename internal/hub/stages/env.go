@@ -113,7 +113,7 @@ func (e *Env) wireRoutes() []compose.WireRoute {
 
 func (e *Env) WriteRunFiles() error {
 	decl := e.Loaded.Declaration
-	if err := compose.MakeWorkTree(e.Root, decl); err != nil {
+	if err := compose.MakeWorkTree(e.Root, decl, e.Loaded.File); err != nil {
 		return err
 	}
 	keys, err := compose.ImageKeys(e.Loaded)

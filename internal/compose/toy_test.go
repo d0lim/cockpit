@@ -87,7 +87,7 @@ func TestToyScriptsTypeCheckAgainstTheGeneratedDeclarations(t *testing.T) {
 			checked++
 		}
 	}
-	if want := len(toyScripts(t, "suites")) + len(toyScripts(t, "flows")) + len(toyScripts(t, "collectors")); checked != want || want == 0 {
+	if want := len(toyScripts(t, "suites")) + len(toyScripts(t, "alt")) + len(toyScripts(t, "flows")) + len(toyScripts(t, "collectors")); checked != want || want == 0 {
 		t.Fatalf("tsc checked %d toy files, want %d\n%s", checked, want, out)
 	}
 }

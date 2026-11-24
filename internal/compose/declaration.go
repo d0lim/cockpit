@@ -55,30 +55,32 @@ var ServedHostAPIs = []int{contract.HostAPI}
 
 type Loaded struct {
 	Declaration contract.Declaration
+	File        contract.DeclarationFile
 	Tree        Tree
 	Model       Model
 }
 
-func ReadDeclaration(ctx context.Context, git Git, sha string) (Loaded, error) {
+func ReadDeclaration(ctx context.Context, git Git, sha string, file contract.DeclarationFile) (Loaded, error) {
 	tree, err := git.ListTree(ctx, sha)
 	if err != nil {
 		return Loaded{}, err
 	}
-	entry, ok := tree.Entries[DeclarationPath]
+	name := file.Path()
+	entry, ok := tree.Entries[name]
 	if !ok {
-		return Loaded{}, reject(RejectMissing, "", "commit %s has no %s; add a project declaration with hostApi %s", sha[:12], DeclarationPath, servedText())
+		return Loaded{}, reject(RejectMissing, "", "commit %s has no %s; add a project declaration with hostApi %s", sha[:12], name, servedText())
 	}
-	if link, linked := tree.Link(DeclarationPath); linked {
-		return Loaded{}, reject(RejectUnreadable, "", "%s passes through the symbolic link %s in the commit", DeclarationPath, link)
+	if link, linked := tree.Link(name); linked {
+		return Loaded{}, reject(RejectUnreadable, "", "%s passes through the symbolic link %s in the commit", name, link)
 	}
 	if entry.Type != "blob" {
-		return Loaded{}, reject(RejectUnreadable, "", "%s is not a regular file in the commit", DeclarationPath)
+		return Loaded{}, reject(RejectUnreadable, "", "%s is not a regular file in the commit", name)
 	}
-	raw, err := tree.Blob(ctx, DeclarationPath)
+	raw, err := tree.Blob(ctx, name)
 	if err != nil {
-		return Loaded{}, reject(RejectUnreadable, "", "cannot read %s: %v", DeclarationPath, err)
+		return Loaded{}, reject(RejectUnreadable, "", "cannot read %s: %v", name, err)
 	}
-	decl, err := ParseDeclaration(raw)
+	decl, err := ParseDeclaration(name, raw)
 	if err != nil {
 		return Loaded{}, err
 	}
@@ -110,7 +112,7 @@ func ReadDeclaration(ctx context.Context, git Git, sha string) (Loaded, error) {
 	if err := model.check(decl); err != nil {
 		return Loaded{}, err
 	}
-	return Loaded{Declaration: decl, Tree: tree, Model: model}, nil
+	return Loaded{Declaration: decl, File: file, Tree: tree, Model: model}, nil
 }
 
 func servedText() string {
@@ -121,21 +123,21 @@ func servedText() string {
 	return strings.Join(parts, ", ")
 }
 
-func ParseDeclaration(raw []byte) (contract.Declaration, error) {
+func ParseDeclaration(name string, raw []byte) (contract.Declaration, error) {
 	var doc any
 	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return contract.Declaration{}, reject(RejectUnreadable, "", "%s is not valid YAML: %v", DeclarationPath, err)
+		return contract.Declaration{}, reject(RejectUnreadable, "", "%s is not valid YAML: %v", name, err)
 	}
 	if _, ok := doc.(map[string]any); !ok {
-		return contract.Declaration{}, reject(RejectUnreadable, "", "%s must hold a YAML mapping", DeclarationPath)
+		return contract.Declaration{}, reject(RejectUnreadable, "", "%s must hold a YAML mapping", name)
 	}
 	data, err := json.Marshal(doc)
 	if err != nil {
-		return contract.Declaration{}, reject(RejectUnreadable, "", "%s holds values that are not plain data: %v", DeclarationPath, err)
+		return contract.Declaration{}, reject(RejectUnreadable, "", "%s holds values that are not plain data: %v", name, err)
 	}
 	var plain any
 	if err := json.Unmarshal(data, &plain); err != nil {
-		return contract.Declaration{}, reject(RejectUnreadable, "", "%s: %v", DeclarationPath, err)
+		return contract.Declaration{}, reject(RejectUnreadable, "", "%s: %v", name, err)
 	}
 	schema, err := declarationSchema()
 	if err != nil {

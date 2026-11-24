@@ -38,7 +38,7 @@ func (h *Hub) Accept(ctx context.Context, in scheduler.SubmitInput) (scheduler.A
 	if err != nil {
 		return scheduler.Accepted{}, rejected(scheduler.KindCommit, "%s", err.Error())
 	}
-	loaded, err := compose.ReadDeclaration(ctx, git, sha)
+	loaded, err := compose.ReadDeclaration(ctx, git, sha, "")
 	var rejection *compose.Rejection
 	if errors.As(err, &rejection) && rejection.Kind == compose.RejectHostAPI {
 		return scheduler.Accepted{SHA: sha, HostAPI: declaredHostAPI(ctx, git, sha), Repository: repo}, nil

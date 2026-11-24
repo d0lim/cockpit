@@ -70,7 +70,7 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsPortsOnlyOnTheEdgeAnd
 		replaceIn(t, filepath.Join(d, "compose.yaml"), "      CACHE_ADDR: cache:6379\n", "      CACHE_ADDR: cache:6379\n      OTEL_EXPORTER_OTLP_ENDPOINT: http://elsewhere:4318\n")
 	})
 	g := Git{Dir: dir}
-	loaded, err := ReadDeclaration(ctx, g, sha)
+	loaded, err := ReadDeclaration(ctx, g, sha, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestIntegrationToyHarnessRendersWithEveryRoleRunLabelsPortsOnlyOnTheEdgeAnd
 	if err := GenerateEnv(ctx, CLI{}, root, envIn); err != nil {
 		t.Fatal(err)
 	}
-	if err := MakeWorkTree(root, decl); err != nil {
+	if err := MakeWorkTree(root, decl, ""); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := ImageKeys(loaded)
