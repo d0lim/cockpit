@@ -96,9 +96,22 @@ Every path is relative to the repository root, and a path may lead into a git su
 - **`ports`** publishes a service on the host. Offset `n` is reachable at `127.0.0.1:<base + n>` while the run's environment is up, and its name is how collectors reach it (`ctx.http`, `databases[].port`). Offset 99 is reserved for the seal probe.
 - **`databases`** lets collectors read a database through `ctx.sql.query(name, ...)`, where `name` is `databases[].name`. The database must also be published under `ports`. `rootSecret` is a key in a `dotenv` source of `secrets.sources`; the hub logs in as `rootUser` (default `postgres` or `root`) with that value only to create a read-only user for the run, and reads as that user. For PostgreSQL `readSchemas` are schemas inside `database` (default `postgres`), and the reader can select from the tables that exist when the collectors start; name the role that creates later tables in `ownerRole`. For MySQL `readSchemas` are databases.
 - **`telemetry.otlp.services`** names the compose services that export OpenTelemetry traces and metrics. The hub then adds the `cockpit-otlp` receiver to the run and sets the standard `OTEL_*` variables in each named service, pointing its exporter at `http://cockpit-otlp:4318` over HTTP with protobuf, with metrics every 2 s, spans batched every 500 ms and parent-based sampling that keeps every request the runner sends ([harness](harness.md#generated-harness) lists the five variables). A service whose OpenTelemetry SDK reads these variables needs nothing else; one that maps only some of them, such as Spring Boot, also sets its own properties in the overlay. Each name must be a service of the compose files, and not the builder. Telemetry never leaves the run's internal networks.
-- **`scripts`**: suites are `<scripts.suites>/<name>.ts`, collectors `<scripts.collectors>/<id>.ts`, and both directories sit inside `scripts.dir`, which is what the runner sees as `/work/scripts`. `env.json` lives at the top of `scripts.dir`.
+- **`scripts`**: suites are `<scripts.suites>/<name>.ts`, collectors `<scripts.collectors>/<id>.ts`, and both directories sit inside `scripts.dir`, which is what the runner sees as `/work/scripts`. `env.json` lives at the top of `scripts.dir`. `scripts.env` names another file inside `scripts.dir` for the runner to read as its public env instead, such as `e2e/env.large.json`.
 
 The hub checks the declaration in a fixed order and rejects a submit with the first problem's kind and field; the table is in [harness](harness.md#reading-the-declaration).
+
+### More than one declaration
+
+A repository can keep more declarations beside `.cockpit/project.yaml`, each a complete declaration in `.cockpit/<name>.yaml`, for example one per stack. A run reads `.cockpit/project.yaml` unless it names another with `--declaration .cockpit/<name>.yaml` (`cockpit runs submit`, `cockpit run`), the submit body field `declaration`, or the action input `declaration`. The name is lowercase letters, digits and `-`; any other value, such as an absolute path, a `..` segment or a file outside `.cockpit/`, is refused before a run is created. The run reads the named file from the commit with the same checks, and inside the run it sits where the default does, at `/work/.cockpit/project.yaml`. Declarations may share `scripts.dir`; give each its own `scripts.suites` or suite names, and its own `scripts.env` when its flows need other addresses:
+
+```yaml
+scripts:
+  dir: e2e
+  suites: e2e/suites-large
+  env: e2e/env.large.json
+```
+
+`cockpit runs get <id>` prints the declaration a run read, and the run record and its report bundle keep it. A queued run absorbs a new submission only when the declaration matches too. The screen's submit form always reads `.cockpit/project.yaml`.
 
 ## 3. Credentials
 
@@ -188,7 +201,7 @@ An umbrella repository whose services live in git submodules runs like any other
 cockpit runs submit --wait
 ```
 
-`submit` sends the repository of the current directory at `HEAD` (or `--commit`), and with one suite in the commit picks it; otherwise name it with `--suite`. The exit code follows the verdict (`0` passed, `1` failed, `2` error; the full table is in [api](api.md#cli)). Without a hub, for example in a CI job, `cockpit run --project . --out <dir> --archive <file>` runs the same stages once and exits with the same verdict and the same report bundle ([headless path](sealing.md#headless-path-and-the-unseal-check)). Then:
+`submit` sends the repository of the current directory at `HEAD` (or `--commit`), and with one suite in the commit picks it; otherwise name it with `--suite`. `--declaration` picks [another declaration](#more-than-one-declaration). The exit code follows the verdict (`0` passed, `1` failed, `2` error; the full table is in [api](api.md#cli)). Without a hub, for example in a CI job, `cockpit run --project . --out <dir> --archive <file>` runs the same stages once and exits with the same verdict and the same report bundle ([headless path](sealing.md#headless-path-and-the-unseal-check)). Then:
 
 - `cockpit runs report <id>` prints the flows and steps, and the screen at `/runs/<id>` shows the report, each flow's steps with their requests and refs, and the signals.
 - `cockpit runs export <id>` writes the run's report bundle to `<id>.tar.gz`, masked again on the way out, for reading away from the hub ([bundle archive](export.md)). `cockpit runs import <file>` takes such an archive back into a hub as a destroyed run, for one made elsewhere such as in GitHub Actions ([importing](export.md#importing)). `cockpit skill write <dir>` writes the skill an agent reads it with ([usage guide](guide.md#reading-a-run-with-an-agent)).
@@ -264,6 +277,7 @@ jobs:
 | `version` | the tag the action is used at | the release to install, such as `0.6.0`; required when the action is used at a branch or a SHA |
 | `suite` | empty | the suite; may stay empty when the commit declares one |
 | `project` | `.` | the repository directory that holds `.cockpit/project.yaml` |
+| `declaration` | empty | `.cockpit/<name>.yaml` passes `--declaration`, so the run reads [that declaration](#more-than-one-declaration); empty reads `.cockpit/project.yaml`. The job summary names the declaration |
 | `archive` | `cockpit-run.tar.gz` | where the bundle archive is written, relative to the workspace |
 | `artifact-name` | `cockpit-run` | the uploaded artifact; empty skips the upload |
 | `cockpit-path` | empty | a cockpit binary to use instead of a release |
