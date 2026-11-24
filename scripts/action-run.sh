@@ -19,6 +19,9 @@ fi
 if [[ "${COCKPIT_WIRE:-false}" = true ]]; then
   args+=(--wire)
 fi
+if [[ -n "${COCKPIT_DECLARATION_FILE:-}" ]]; then
+  args+=(--declaration "$COCKPIT_DECLARATION_FILE")
+fi
 
 code=0
 cockpit "${args[@]}" || code=$?
@@ -38,4 +41,4 @@ if [[ ! -f "$summary" ]]; then
 fi
 
 echo "verdict=$(jq -r '.verdict' "$summary")" >> "$GITHUB_OUTPUT"
-jq -r --arg code "$code" -f "$GITHUB_ACTION_PATH/scripts/action-summary.jq" "$summary" >> "$GITHUB_STEP_SUMMARY"
+jq -r --arg code "$code" --arg declaration "${COCKPIT_DECLARATION_FILE:-.cockpit/project.yaml}" -f "$GITHUB_ACTION_PATH/scripts/action-summary.jq" "$summary" >> "$GITHUB_STEP_SUMMARY"

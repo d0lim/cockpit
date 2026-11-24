@@ -20,6 +20,8 @@ var actionMutations = []porttest.Mutation{
 	{"the action installs only an archive that matches checksums.txt", "drop the sha256sum check from action-install.sh", "red: a changed archive installs and runs", "TestTheActionInstallsAMatchingReleaseAndRefusesAChangedArchive"},
 	{"the action never publishes an archive this run did not write", "emit archive whenever the file exists in action-run.sh", "red: a file left by an earlier step is published as this run's archive", "TestTheActionPublishesOnlyAnArchiveThisRunWrote"},
 	{"the action records the wire only when its input says true", "add --wire to every cockpit run in action-run.sh", "red: the run with the default input passes --wire", "TestTheActionPassesWireOnlyWhenItsInputIsTrue"},
+	{"the action passes a declaration only when its input names one", "add --declaration .cockpit/project.yaml to every cockpit run in action-run.sh", "red: the run with the empty input passes --declaration", "TestTheActionPassesTheDeclarationOnlyWhenItsInputNamesOneAndTheSummaryNamesIt"},
+	{"the job summary names the declaration the run read", "drop the Declaration row from action-summary.jq", "red: the summary of the alt run does not name .cockpit/alt.yaml", "TestTheActionPassesTheDeclarationOnlyWhenItsInputNamesOneAndTheSummaryNamesIt"},
 }
 
 func TestActionMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -108,7 +110,7 @@ func TestTheActionInstallsAMatchingReleaseAndRefusesAChangedArchive(t *testing.T
 	}
 }
 
-func runAction(t *testing.T, cockpitScript string, leftover bool, env ...string) string {
+func runAction(t *testing.T, cockpitScript string, leftover bool, env ...string) (string, string) {
 	t.Helper()
 	bin, work, project := t.TempDir(), t.TempDir(), t.TempDir()
 	writeFile(t, filepath.Join(bin, "cockpit"), []byte(cockpitScript), 0o755)
@@ -133,16 +135,17 @@ func runAction(t *testing.T, cockpitScript string, leftover bool, env ...string)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return string(data)
+	written, _ := os.ReadFile(summary)
+	return string(data), string(written)
 }
 
 func TestTheActionPublishesOnlyAnArchiveThisRunWrote(t *testing.T) {
 	writes := "#!/usr/bin/env bash\nwhile [[ $# -gt 0 ]]; do if [[ $1 = --archive ]]; then echo new > \"$2\"; fi; shift; done\n"
-	if got := runAction(t, writes, false); !strings.Contains(got, "archive=") || !strings.Contains(got, "exit-code=0") {
+	if got, _ := runAction(t, writes, false); !strings.Contains(got, "archive=") || !strings.Contains(got, "exit-code=0") {
 		t.Fatalf("canary: a fresh archive is not published:\n%s", got)
 	}
 	refuses := "#!/usr/bin/env bash\nexit 3\n"
-	got := runAction(t, refuses, true)
+	got, _ := runAction(t, refuses, true)
 	if strings.Contains(got, "archive=") || !strings.Contains(got, "exit-code=3") {
 		t.Fatalf("a leftover archive is published as this run's:\n%s", got)
 	}
@@ -150,13 +153,26 @@ func TestTheActionPublishesOnlyAnArchiveThisRunWrote(t *testing.T) {
 
 func TestTheActionPassesWireOnlyWhenItsInputIsTrue(t *testing.T) {
 	echoes := "#!/usr/bin/env bash\necho \"args=$*\" >> \"$GITHUB_OUTPUT\"\n"
-	if got := runAction(t, echoes, false, "COCKPIT_WIRE=true"); !strings.Contains(got, " --wire") {
+	if got, _ := runAction(t, echoes, false, "COCKPIT_WIRE=true"); !strings.Contains(got, " --wire") {
 		t.Fatalf("canary: the input true does not pass --wire:\n%s", got)
 	}
 	for _, value := range []string{"false", ""} {
-		got := runAction(t, echoes, false, "COCKPIT_WIRE="+value)
+		got, _ := runAction(t, echoes, false, "COCKPIT_WIRE="+value)
 		if !strings.Contains(got, "args=run --project") || strings.Contains(got, "--wire") {
 			t.Fatalf("the input %q passes --wire or runs nothing:\n%s", value, got)
 		}
+	}
+}
+
+func TestTheActionPassesTheDeclarationOnlyWhenItsInputNamesOneAndTheSummaryNamesIt(t *testing.T) {
+	reports := "#!/usr/bin/env bash\necho \"args=$*\" >> \"$GITHUB_OUTPUT\"\n" +
+		"while [[ $# -gt 0 ]]; do if [[ $1 = --out ]]; then mkdir -p \"$2\"; echo '{\"verdict\":\"passed\",\"suite\":\"alt\",\"commit\":\"0123456789abcdef\"}' > \"$2/summary.json\"; fi; shift; done\n"
+	got, summary := runAction(t, reports, false, "COCKPIT_DECLARATION_FILE=.cockpit/alt.yaml")
+	if !strings.Contains(got, " --declaration .cockpit/alt.yaml") || !strings.Contains(summary, "| Declaration | `.cockpit/alt.yaml` |") {
+		t.Fatalf("canary: the input .cockpit/alt.yaml is not passed or not in the summary:\n%s\n%s", got, summary)
+	}
+	got, summary = runAction(t, reports, false, "COCKPIT_DECLARATION_FILE=")
+	if !strings.Contains(got, "args=run --project") || strings.Contains(got, "--declaration") || !strings.Contains(summary, "| Declaration | `.cockpit/project.yaml` |") {
+		t.Fatalf("the empty input passes --declaration or the summary does not name the default:\n%s\n%s", got, summary)
 	}
 }

@@ -57,3 +57,21 @@ jobs:
           test "$VERDICT" = passed
           test "$EXIT_CODE" = 0
           tar -tzf "$ARCHIVE" | grep -q '/report/summary.json$'
+      - id: alt
+        uses: ./
+        with:
+          cockpit-path: bin/cockpit
+          project: ${{ runner.temp }}/toy
+          declaration: .cockpit/alt.yaml
+          archive: cockpit-alt-run.tar.gz
+          artifact-name: cockpit-toy-alt-run
+      - name: Check the outputs of the alt declaration
+        env:
+          VERDICT: ${{ steps.alt.outputs.verdict }}
+          EXIT_CODE: ${{ steps.alt.outputs.exit-code }}
+          ARCHIVE: ${{ steps.alt.outputs.archive }}
+        run: |
+          test "$VERDICT" = passed
+          test "$EXIT_CODE" = 0
+          tar -xzOf "$ARCHIVE" --wildcards '*/report/meta.json' | jq -e '.declaration == ".cockpit/alt.yaml"'
+          tar -xzOf "$ARCHIVE" --wildcards '*/report/summary.json' | jq -e '.suite == "alt"'
