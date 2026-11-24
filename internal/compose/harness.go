@@ -160,7 +160,7 @@ func Harness(in HarnessInput) ([]byte, error) {
 	runner["volumes"] = runnerBinds(in.Layout, decl.Inputs.RunnerSources)
 	runnerEnv := map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}", "COCKPIT_TRACE_ID": "${COCKPIT_TRACE_ID:-}"}
 	inScripts := func(p contract.RelPath) string {
-		return "/work/scripts/" + strings.TrimPrefix(string(p), string(decl.Scripts.Dir)+"/")
+		return strings.ReplaceAll("/work/scripts/"+strings.TrimPrefix(string(p), string(decl.Scripts.Dir)+"/"), "$", "$$")
 	}
 	if decl.Scripts.Env != "" {
 		runnerEnv["E2E_ENV"] = inScripts(decl.Scripts.Env)

@@ -22,7 +22,7 @@ func TestTheRunnerGetsCOCKPITSUITESOnlyWhenTheSuitesDirectoryIsNotSuitesUnderThe
 	if _, set := env["COCKPIT_SUITES"]; set || env["COCKPIT_RUNNER_IMAGE"] != in.RunnerImage {
 		t.Fatalf("runner environment of the toy declaration: %v", env)
 	}
-	for value, want := range map[contract.RelPath]string{"scripts/alt": "/work/scripts/alt", "scripts/cases/large": "/work/scripts/cases/large"} {
+	for value, want := range map[contract.RelPath]string{"scripts/alt": "/work/scripts/alt", "scripts/cases/large": "/work/scripts/cases/large", "scripts/cases$STACK": "/work/scripts/cases$$STACK"} {
 		in.Loaded.Declaration.Scripts.Suites = value
 		doc, _, _ := harnessDocFrom(t, in)
 		env := service(t, doc, RoleRunner)["environment"].(map[string]any)

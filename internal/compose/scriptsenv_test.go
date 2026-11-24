@@ -12,6 +12,7 @@ var scriptsEnvMutations = []porttest.Mutation{
 	{"scripts.env stays inside scripts.dir", "drop scripts.env from the scripts.dir prefix loop in confine", "red: scripts.env fixtures/seed.json passes", "TestScriptsEnvOutsideTheScriptsDirectoryOrNotAFileIsRejectedAndAFileInsideIsAccepted"},
 	{"scripts.env names a file of the commit", "add scripts.env to declaredPaths with mustFile false", "red: scripts.env scripts/suites and scripts/missing.json pass", "TestScriptsEnvOutsideTheScriptsDirectoryOrNotAFileIsRejectedAndAFileInsideIsAccepted"},
 	{"the runner reads another public env only when the declaration names one", "set E2E_ENV in the runner environment of Harness whatever scripts.env holds", "red: a harness without scripts.env carries E2E_ENV", "TestTheRunnerGetsE2EEnvAtItsPathUnderWorkScriptsOnlyWhenScriptsEnvIsSet"},
+	{"compose keeps a dollar sign of a declared path literal", "drop the $ to $$ replacement in Harness", "red: scripts/env$STACK.json reaches the harness as an unescaped variable", "TestTheRunnerGetsE2EEnvAtItsPathUnderWorkScriptsOnlyWhenScriptsEnvIsSet"},
 }
 
 func TestScriptsEnvMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -56,7 +57,7 @@ func TestTheRunnerGetsE2EEnvAtItsPathUnderWorkScriptsOnlyWhenScriptsEnvIsSet(t *
 	if _, set := env["E2E_ENV"]; set || env["COCKPIT_RUNNER_IMAGE"] != in.RunnerImage {
 		t.Fatalf("runner environment without scripts.env: %v", env)
 	}
-	for value, want := range map[contract.RelPath]string{"scripts/env.alt.json": "/work/scripts/env.alt.json", "scripts/envs/large.json": "/work/scripts/envs/large.json"} {
+	for value, want := range map[contract.RelPath]string{"scripts/env.alt.json": "/work/scripts/env.alt.json", "scripts/envs/large.json": "/work/scripts/envs/large.json", "scripts/env$STACK.json": "/work/scripts/env$$STACK.json"} {
 		in.Loaded.Declaration.Scripts.Env = value
 		doc, _, _ := harnessDocFrom(t, in)
 		env := service(t, doc, RoleRunner)["environment"].(map[string]any)
