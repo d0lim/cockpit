@@ -118,6 +118,28 @@ func TestAQueuedRunAbsorbsASubmissionOnlyWhenItsWireOptionMatches(t *testing.T) 
 	}
 }
 
+func TestAQueuedRunAbsorbsASubmissionOnlyWhenItsDeclarationMatches(t *testing.T) {
+	s, w := setup(t, nil)
+	s.Submit(ctx, sub("c0"))
+	s.Tick()
+	plain := s.Submit(ctx, sub("c1"))
+	alt := s.Submit(ctx, sub("c1", func(in *SubmitInput) { in.Declaration = ".cockpit/alt.yaml" }))
+	if alt.Merged || alt.ID == plain.ID || alt.Fail != nil {
+		t.Fatalf("a submission of another declaration joined the queued run: %+v", alt)
+	}
+	joined := s.Submit(ctx, sub("c1", func(in *SubmitInput) { in.Declaration = ".cockpit/alt.yaml"; in.Submitter = "ui" }))
+	if !joined.Merged || joined.ID != alt.ID {
+		t.Fatalf("a submission of the same declaration: %+v, want %s", joined, alt.ID)
+	}
+	again := s.Submit(ctx, sub("c1"))
+	if !again.Merged || again.ID != plain.ID {
+		t.Fatalf("a submission of the default declaration: %+v, want %s", again, plain.ID)
+	}
+	if read(t, w, alt.ID).Declaration != ".cockpit/alt.yaml" || read(t, w, plain.ID).Declaration != "" {
+		t.Fatalf("declarations of the records: %q %q", read(t, w, alt.ID).Declaration, read(t, w, plain.ID).Declaration)
+	}
+}
+
 func TestSubmitWhileDockerIsSilentWaitsAsDockerUnavailableAndStartsAfterRecovery(t *testing.T) {
 	s, w := setup(t, nil, func(d *Deps) { d.TickInterval = 20 * time.Millisecond })
 	w.dockerUp = false

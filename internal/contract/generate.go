@@ -73,6 +73,7 @@ func Patterns() []Pattern {
 		pattern[RelPath](RelPathPattern),
 		pattern[PinnedImage](PinnedImagePattern),
 		pattern[ImageKeyName](ImageKeyPattern),
+		pattern[DeclarationFile](DeclarationFilePattern),
 	}
 }
 

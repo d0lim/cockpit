@@ -132,7 +132,7 @@ func TestSummaryFormat3KeysAreFormat2KeysWithoutOpaPlusTheFormat3Fields(t *testi
 
 func TestBundleMetaKeysAreMetaFieldsPlusIdVerdictReportedAtAndThreeFields(t *testing.T) {
 	metaFields := []string{"sha", "suite", "harness", "hubCommit", "submitter", "keep", "createdAt", "startedAt", "finishedAt", "slot", "imageKeys", "imageDigests", "failedStage", "notice", "tail"}
-	want := sorted(append(slices.Clone(metaFields), "id", "verdict", "reportedAt", "cockpitVersion", "hostApi", "runnerImage", "wire")...)
+	want := sorted(append(slices.Clone(metaFields), "id", "verdict", "reportedAt", "cockpitVersion", "hostApi", "runnerImage", "wire", "declaration")...)
 	if got := jsonNames(reflect.TypeFor[BundleMeta]()); !slices.Equal(got, want) {
 		t.Fatalf("BundleMeta fields %v\nwant %v", got, want)
 	}
