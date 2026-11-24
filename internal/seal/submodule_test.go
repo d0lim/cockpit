@@ -19,6 +19,8 @@ var submoduleMutations = []porttest.Mutation{
 	{"a configs or secrets file that reaches a gitlink the run does not splice fails paths.configs-secrets", "drop the leftOut call on configs and secrets files in pathChecks", "red: the config file inside vendor/extra passes paths.configs-secrets", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"a path that contains a left-out gitlink reaches it", "drop the loop over contained gitlinks in compose Tree.LeftOut", "red: the bind of src/vendor and the additional context at the build root pass", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"paths under build/ are judged against the tree as well as paths under src/", "map paths only under Layout.Src in leftOut", "red: the builder bind and the build context under build/ pass", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
+	{"a path that contains a tree root reaches every left-out gitlink of that tree", "map only paths inside Layout.Src or Layout.Build in leftOut, not paths that contain one", "red: the build context at the run directory passes paths.build", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
+	{"a gitlink reached through both trees is named once", "drop slices.Compact in leftOut", "red: the build context at the run directory names vendor/extra twice", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"a gitlink a declared path references is not left out", "test only the gitlink type, not whether it is spliced, in compose Tree.LeftOut", "red: the copies whose tree splices vendor/extra still fail", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"a path reaches a gitlink segment by segment, not by string prefix", "compare with strings.HasPrefix(at, path) in place of covers in compose Tree.LeftOut", "red: the bind of src/vendor/ext fails mounts.binds", "TestASiblingThatSharesAStringPrefixWithALeftOutSubmoduleDoesNotReachIt"},
 }
@@ -74,6 +76,9 @@ func reachCases(t *testing.T) []struct {
 		{"an additional context around the gitlink at the build root", "paths.build", func(in *Input) {
 			record(svc(t, *in, "app")["build"])["additional_contexts"] = map[string]any{"tree": fixtureRun + "/build"}
 		}},
+		{"a build context at the run directory, around both trees", "paths.build", func(in *Input) {
+			record(svc(t, *in, "app")["build"])["context"] = fixtureRun
+		}},
 		{"a config file inside the gitlink", "paths.configs-secrets", func(in *Input) {
 			in.Config["configs"] = map[string]any{"extra": map[string]any{"file": fixtureRun + "/src/vendor/extra/extra.conf"}}
 		}},
@@ -95,8 +100,8 @@ func TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItA
 			t.Errorf("%s with vendor/extra left out turned %v red, want %s", c.name, got, c.assertion)
 			continue
 		}
-		if d := detail(results, c.assertion); !strings.Contains(d, "the submodule vendor/extra, which no declared path references") {
-			t.Errorf("%s: %s does not name the gitlink: %s", c.name, c.assertion, d)
+		if d := detail(results, c.assertion); strings.Count(d, "the submodule vendor/extra, which no declared path references") != 1 {
+			t.Errorf("%s: %s does not name the gitlink exactly once: %s", c.name, c.assertion, d)
 			continue
 		}
 		denied++
@@ -109,8 +114,8 @@ func TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItA
 		}
 		passed++
 	}
-	if denied != 7 || passed != 7 {
-		t.Fatalf("%d of 7 copies denied and %d of 7 passed", denied, passed)
+	if denied != 8 || passed != 8 {
+		t.Fatalf("%d of 8 copies denied and %d of 8 passed", denied, passed)
 	}
 }
 
