@@ -31,3 +31,4 @@ Goal. A run that `cockpit run` makes in GitHub Actions, exported as a bundle arc
 - A live run in GitHub Actions with `wire: true`, imported into a hub. Pending.
 - Observer failures. The hub's report reads the supervisor's unread records, so an observer that keeps failing shows under Unread. The headless supervisor folds the same records but its report does not read them yet.
 - The job summary of the action lists no stages, so it shows no wire line; a take that is not `taken` shows in its Unread list.
+- [x] CI green on the PR. Evidence: verify, integration, action and Greptile Review (5/5) passed on `4233f34`, the tree that #25 merged as.
