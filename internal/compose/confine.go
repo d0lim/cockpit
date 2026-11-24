@@ -63,6 +63,15 @@ func declaredPaths(d contract.Declaration) []declaredPath {
 	return out
 }
 
+func referencedPaths(d contract.Declaration) []string {
+	declared := declaredPaths(d)
+	out := make([]string, len(declared))
+	for i, p := range declared {
+		out[i] = p.path
+	}
+	return out
+}
+
 func declaredNames(d contract.Declaration) []declaredName {
 	var out []declaredName
 	for i, p := range d.Ports {

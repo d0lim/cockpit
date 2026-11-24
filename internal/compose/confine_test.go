@@ -230,7 +230,7 @@ func TestPathsInsideASubmoduleAndASubmoduleRootAsADirectoryPassAndASubmoduleRoot
 		}
 	})
 	composetest.Submodule(t, dir, "mock", "mock")
-	tree, err := Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "rev-parse", "HEAD"))
+	tree, err := Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "rev-parse", "HEAD"), "mock")
 	if err != nil {
 		t.Fatal(err)
 	}

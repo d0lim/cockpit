@@ -191,7 +191,10 @@ func TestAnIncludeIntoASubmoduleReadsItsPinnedFilesAndAValueClimbingOutOfTheComm
 		"deps/queue/compose.yaml": "include:\n  - extra.yaml\n" + queueStack,
 		"deps/queue/extra.yaml":   "services:\n  worker:\n    image: docker.io/library/alpine:3.22\n",
 	}}
-	dir, _ := toyRepo(t, c.mutate(t))
+	dir, _ := toyRepo(t, func(d string) {
+		c.mutate(t)(d)
+		declare(t, d, "dirty: [.cockpit,", "dirty: [deps/queue, .cockpit,")
+	})
 	composetest.Submodule(t, dir, "deps/queue", "queue")
 	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, gitT(t, dir, "rev-parse", "HEAD"), "")
 	if err != nil {

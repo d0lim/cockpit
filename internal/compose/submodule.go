@@ -25,7 +25,7 @@ func (r repository) submodule(rel, commit string, names map[string]string, splic
 		return repository{}, reject(RejectSubmodule, at, "the gitlink path is not a clean relative path")
 	}
 	if spliced >= maxSubmodules {
-		return repository{}, reject(RejectSubmodule, at, "the commit pins more than %d submodules", maxSubmodules)
+		return repository{}, reject(RejectSubmodule, at, "the declaration references more than %d submodules", maxSubmodules)
 	}
 	name, ok := names[rel]
 	if !ok {
@@ -38,16 +38,16 @@ func (r repository) submodule(rel, commit string, names map[string]string, splic
 	return repository{prefix: at, parent: r.prefix, name: name, commit: commit, objects: store}, nil
 }
 
-func (o objects) submoduleNames(ctx context.Context, prefix string, listed map[string]Entry) (map[string]string, error) {
-	at := join(prefix, gitmodulesPath)
-	e, ok := listed[gitmodulesPath]
+func (t Tree) submoduleNames(ctx context.Context, r repository) (map[string]string, error) {
+	at := join(r.prefix, gitmodulesPath)
+	e, ok := t.Entries[at]
 	switch {
 	case !ok:
 		return map[string]string{}, nil
 	case e.Type != "blob" || e.Mode == symlinkMode:
 		return nil, reject(RejectSubmodule, at, "is not a regular file")
 	}
-	raw, err := o.config(ctx, e.ID)
+	raw, err := r.objects.config(ctx, e.ID)
 	if err != nil {
 		return nil, reject(RejectSubmodule, at, "is not readable git config: %v", err)
 	}

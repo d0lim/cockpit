@@ -61,11 +61,11 @@ type Loaded struct {
 }
 
 func ReadDeclaration(ctx context.Context, git Git, sha string, file contract.DeclarationFile) (Loaded, error) {
-	tree, err := git.ListTree(ctx, sha)
+	name := file.Path()
+	tree, err := git.ListTree(ctx, sha, name)
 	if err != nil {
 		return Loaded{}, err
 	}
-	name := file.Path()
 	entry, ok := tree.Entries[name]
 	if !ok {
 		return Loaded{}, reject(RejectMissing, "", "commit %s has no %s; add a project declaration with hostApi %s", sha[:12], name, servedText())
@@ -82,6 +82,9 @@ func ReadDeclaration(ctx context.Context, git Git, sha string, file contract.Dec
 	}
 	decl, err := ParseDeclaration(name, raw)
 	if err != nil {
+		return Loaded{}, err
+	}
+	if err := tree.splice(ctx, referencedPaths(decl)); err != nil {
 		return Loaded{}, err
 	}
 	if err := confine(decl, tree); err != nil {

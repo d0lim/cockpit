@@ -144,6 +144,9 @@ func (w *walk) confine(holder, base string, v includeValue) (string, *Rejection)
 	if link, ok := w.tree.Link(resolved); ok {
 		return refuse("%q passes through the symbolic link %s in the commit", v.value, link)
 	}
+	if gitlink, ok := w.tree.unspliced(resolved); ok {
+		return refuse("%q resolves to %q in the submodule %s, which no declared path references, so the run leaves it out", v.value, resolved, gitlink)
+	}
 	switch v.kind {
 	case includePath:
 		if !w.file(resolved) {

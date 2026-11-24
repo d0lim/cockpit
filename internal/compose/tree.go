@@ -28,7 +28,7 @@ type repository struct {
 	objects objects
 }
 
-func (g Git) ListTree(ctx context.Context, sha string) (Tree, error) {
+func (g Git) ListTree(ctx context.Context, sha string, paths ...string) (Tree, error) {
 	if !shaPattern.MatchString(sha) {
 		return Tree{}, fmt.Errorf("%w: tree listing needs a resolved sha, got %q", ErrCommitInput, sha)
 	}
@@ -37,13 +37,68 @@ func (g Git) ListTree(ctx context.Context, sha string) (Tree, error) {
 		return Tree{}, err
 	}
 	t := Tree{SHA: sha, Entries: map[string]Entry{}, repos: map[string]repository{}}
-	if err := t.splice(ctx, repository{commit: sha, objects: objects{dir: common}}); err != nil {
+	if err := t.add(ctx, repository{commit: sha, objects: objects{dir: common}}); err != nil {
+		return Tree{}, err
+	}
+	if err := t.splice(ctx, paths); err != nil {
 		return Tree{}, err
 	}
 	return t, nil
 }
 
-func (t Tree) splice(ctx context.Context, r repository) error {
+func (t Tree) splice(ctx context.Context, paths []string) error {
+	names := map[string]map[string]string{}
+	for links := t.referenced(paths); len(links) > 0; links = t.referenced(paths) {
+		for _, at := range links {
+			if err := t.open(ctx, at, names); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (t Tree) referenced(paths []string) []string {
+	var links []string
+	for at, e := range t.Entries {
+		if e.Type == submoduleType && !t.spliced(at) && slices.ContainsFunc(paths, func(p string) bool { return covers(at, p) || covers(p, at) }) {
+			links = append(links, at)
+		}
+	}
+	slices.Sort(links)
+	return links
+}
+
+func (t Tree) spliced(at string) bool {
+	_, ok := t.repos[at]
+	return ok
+}
+
+func (t Tree) open(ctx context.Context, at string, names map[string]map[string]string) error {
+	link := t.Entries[at]
+	parent := t.repos[link.repo]
+	known, ok := names[parent.prefix]
+	if !ok {
+		var err error
+		if known, err = t.submoduleNames(ctx, parent); err != nil {
+			return err
+		}
+		names[parent.prefix] = known
+	}
+	rel := at
+	if parent.prefix != "" {
+		rel = strings.TrimPrefix(at, parent.prefix+"/")
+	}
+	child, err := parent.submodule(rel, link.ID, known, len(t.repos)-1)
+	if err != nil {
+		return err
+	}
+	link.repo = child.prefix
+	t.Entries[at] = link
+	return t.add(ctx, child)
+}
+
+func (t Tree) add(ctx context.Context, r repository) error {
 	listed, err := r.objects.list(ctx, r.commit)
 	switch {
 	case err != nil && r.prefix == "":
@@ -52,33 +107,9 @@ func (t Tree) splice(ctx context.Context, r repository) error {
 		return reject(RejectSubmodule, r.prefix, "submodule %q pins commit %s, which %s does not hold (%v); %s", r.name, r.commit, r.objects.dir, err, submoduleHint)
 	}
 	t.repos[r.prefix] = r
-	var links []string
 	for rel, e := range listed {
 		e.repo = r.prefix
 		t.Entries[join(r.prefix, rel)] = e
-		if e.Type == submoduleType {
-			links = append(links, rel)
-		}
-	}
-	if len(links) == 0 {
-		return nil
-	}
-	names, err := r.objects.submoduleNames(ctx, r.prefix, listed)
-	if err != nil {
-		return err
-	}
-	slices.Sort(links)
-	for _, rel := range links {
-		child, err := r.submodule(rel, listed[rel].ID, names, len(t.repos)-1)
-		if err != nil {
-			return err
-		}
-		link := t.Entries[child.prefix]
-		link.repo = child.prefix
-		t.Entries[child.prefix] = link
-		if err := t.splice(ctx, child); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -99,10 +130,18 @@ func (t Tree) Blob(ctx context.Context, path string) ([]byte, error) {
 }
 
 func (t Tree) Link(path string) (string, bool) {
+	return t.atOrAbove(path, func(_ string, e Entry) bool { return e.Mode == symlinkMode })
+}
+
+func (t Tree) unspliced(path string) (string, bool) {
+	return t.atOrAbove(path, func(prefix string, e Entry) bool { return e.Type == submoduleType && !t.spliced(prefix) })
+}
+
+func (t Tree) atOrAbove(path string, match func(string, Entry) bool) (string, bool) {
 	parts := strings.Split(path, "/")
 	for i := range parts {
 		prefix := strings.Join(parts[:i+1], "/")
-		if e, ok := t.Entries[prefix]; ok && e.Mode == symlinkMode {
+		if e, ok := t.Entries[prefix]; ok && match(prefix, e) {
 			return prefix, true
 		}
 	}
