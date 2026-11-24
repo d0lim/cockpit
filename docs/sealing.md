@@ -8,7 +8,7 @@ This page holds the five seals, the static assertion table and the rules of the 
 | --- | --- |
 | Fresh state | Every run gets a new compose project named after the run id, with its own volumes, networks and run directory. Credentials are generated inside the run tree by `env.command` in a networkless one-shot container. Destruction removes the volumes (`down -v`). |
 | Isolation between sessions | Each run leases its own port block, its own project name and labels (`io.cockpit.managed`, `io.cockpit.run-id`), and its own run directory opened through `os.Root`. Edge ports bind `127.0.0.1` only. |
-| Pinned commit | The source, the suite, the declaration and the consumer overlays come from the git objects of one commit and of the pinned submodule commits its declaration references, extracted twice (`src/`, `build/`) and checked against each repository's file count in the tree. The harness and the runner come from the cockpit version. |
+| Pinned commit | The source, the suite, the declaration and the consumer overlays come from the git objects of one commit and of the pinned submodule commits its declaration references, extracted twice (`src/`, `build/`) and checked against each repository's file count in the tree. No bind, build context or config file reaches a submodule the declaration leaves out ([harness](harness.md#git)). The harness and the runner come from the cockpit version. |
 | Independence from host tools | The hub runs no consumer code on the host: environment generation, building, probing and the suite all run in containers, and every hub git call is hardened against repository configuration. |
 | Zero external communication at runtime | At network level `sealed`: the default network and every project network are internal. Among long-running services only the edge joins `egress`, and it proxies only to service names of the project on declared offset ports. The static assertions prove the configuration, and the probes prove the network. At level `open` this seal is not held; see [Network level](#network-level). |
 
@@ -43,7 +43,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 11 | `edge.listen` | The edge listens only on the container ports of the declared offsets (`30000 + offset`). |
 | 12 | `edge.host-ip` | Every edge port binds `127.0.0.1`. |
 | 13 | `edge.published` | Published ports are the declared offsets inside the leased block, distinct, and as many as the targets. |
-| 14 | `mounts.binds` | Bind sources resolve by real path under `build/` for the builder, under `work/` for the runner, under `src/` for project services; the edge, the probes, `cockpit-otlp` and `cockpit-wire` bind nothing. A path that cannot be resolved is a violation. |
+| 14 | `mounts.binds` | Bind sources resolve by real path under `build/` for the builder, under `work/` for the runner, under `src/` for project services; the edge, the probes, `cockpit-otlp` and `cockpit-wire` bind nothing. A path that cannot be resolved is a violation, and so is a source that reaches a submodule the run leaves out ([harness](harness.md#git)); the violation names the gitlink. |
 | 15 | `mounts.sockets` | No socket is bound. |
 | 16 | `volumes.named` | Named volumes are project-owned (`local` driver, no `driver_opts`), and an external volume may serve only the builder. |
 | 17 | `privileges.privileged` | `privileged` appears nowhere. |
@@ -51,9 +51,9 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 19 | `privileges.namespaces` | `pid`, `ipc` and `userns_mode` appear nowhere. |
 | 20 | `privileges.security-opt` | No `security_opt` contains `unconfined`. |
 | 21 | `privileges.cap-add` | `cap_add` appears nowhere. |
-| 22 | `paths.configs-secrets` | Top-level `configs` and `secrets` read files inside the run directory. |
+| 22 | `paths.configs-secrets` | Top-level `configs` and `secrets` read files inside the run directory, and none reaches a submodule the run leaves out. |
 | 23 | `paths.env-file` | `env_file` appears nowhere. |
-| 24 | `paths.build` | Build contexts and additional contexts are inside the run directory, and no build uses `ssh` or `secrets`. |
+| 24 | `paths.build` | Build contexts and additional contexts are inside the run directory and reach no submodule the run leaves out, and no build uses `ssh` or `secrets`. |
 | 25 | `wire.routes` | In a run that does not record, no service is named or labeled `cockpit-wire`. In a recording run, `cockpit-wire` runs the runner image in `wire` mode for this run id, without an entrypoint override, `volumes` or `tmpfs`, and its routes are exactly `compose.WireRoutes`, each to a project service that is not a harness service. The record then cannot reach a disk, and the recorder can reach no other address. |
 
 Assertions 2 to 24 keep the names and order of the previous cockpit. The edge assertions 9 to 11 read the rendered offset map (the edge `command`) instead of an nginx configuration, and `privileges.cap-add` allows no capability because the edge is the runner binary, not nginx.
