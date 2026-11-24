@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -70,7 +71,8 @@ func parseArgs(args []string) (string, []string, error) {
 }
 
 func driverSource(suites, name string) string {
-	return "import * as mod from \"./" + suites + "/" + name + ".ts\";\nimport { __drive } from \"cockpit:flow\";\nexport default () => __drive(mod);\n"
+	entry, _ := json.Marshal("./" + suites + "/" + name + ".ts")
+	return "import * as mod from " + string(entry) + ";\nimport { __drive } from \"cockpit:flow\";\nexport default () => __drive(mod);\n"
 }
 
 func Main(ctx context.Context, args []string, getenv func(string) string, deps Deps) int {
