@@ -72,7 +72,7 @@ Every compose call of a run names the project `-p <run id>` and `--project-direc
 | Service | Mode | Networks | Notes |
 | --- | --- | --- | --- |
 | `cockpit-edge` | `edge` | the internal networks and `egress` | publishes `127.0.0.1:<base + offset>` to container port `30000 + offset` and proxies to `<service>:<port>`; without declared `ports` it listens on nothing and runs until it is stopped |
-| `cockpit-runner` | `run` (profile `runner`) | the internal networks | binds only `work/` paths; only `/work/e2e` is writable; its `environment` takes `E2E_EXEC_OUT` and `COCKPIT_TRACE_ID` from the compose process environment, and holds `E2E_ENV=/work/scripts/<path inside scripts.dir>` only when the declaration sets `scripts.env` |
+| `cockpit-runner` | `run` (profile `runner`) | the internal networks | binds only `work/` paths; only `/work/e2e` is writable; its `environment` takes `E2E_EXEC_OUT` and `COCKPIT_TRACE_ID` from the compose process environment, holds `E2E_ENV=/work/scripts/<path inside scripts.dir>` only when the declaration sets `scripts.env`, and `COCKPIT_SUITES=/work/scripts/<path inside scripts.dir>` only when `scripts.suites` is not `<scripts.dir>/suites` |
 | `cockpit-probe` | `probe` (profile `probe`) | `default` | canary port `base + 99`; `extra_hosts: host.docker.internal:host-gateway` |
 | `cockpit-probe-control` | `probe` (profile `probe`) | `egress` | the positive control of the probe; the same `extra_hosts` entry |
 | `cockpit-otlp` | `otlp :4318` | the internal networks | the [OTLP receiver](#otlp-receiver); no ports, no binds and no profile, so it starts with the stack like the edge |

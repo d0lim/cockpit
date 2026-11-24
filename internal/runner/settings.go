@@ -17,7 +17,7 @@ import (
 )
 
 type settings struct {
-	dir, privPath, envPath, execOut, scripts, sources, declaration, image, traceID, wireRoutes string
+	dir, privPath, envPath, execOut, scripts, suites, sources, declaration, image, traceID, wireRoutes string
 }
 
 func loadSettings(getenv func(string) string) settings {
@@ -29,6 +29,7 @@ func loadSettings(getenv func(string) string) settings {
 	}
 	s := settings{}
 	s.scripts = or("COCKPIT_SCRIPTS", "/work/scripts")
+	s.suites = or("COCKPIT_SUITES", filepath.Join(s.scripts, "suites"))
 	s.dir = or("E2E_DIR", "/work/e2e")
 	s.privPath = or("E2E_PRIVATE_ENV", filepath.Join(s.dir, "e2e.private.env.json"))
 	s.envPath = or("E2E_ENV", filepath.Join(s.scripts, "env.json"))

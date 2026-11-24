@@ -46,8 +46,8 @@ func TestASubmissionOfAnotherDeclarationRunsItsSuiteWithItsEnvAndEveryLaterReadU
 		t.Fatalf("work/%s of the alt run:\n%s\n%v", compose.DeclarationPath, work, err)
 	}
 	harness, err := os.ReadFile(filepath.Join(dir, "harness.yaml"))
-	if err != nil || !strings.Contains(string(harness), "E2E_ENV: /work/scripts/env.alt.json") {
-		t.Fatalf("the harness of the alt run lacks E2E_ENV: %v\n%s", err, harness)
+	if err != nil || !strings.Contains(string(harness), "E2E_ENV: /work/scripts/env.alt.json") || !strings.Contains(string(harness), "COCKPIT_SUITES: /work/scripts/alt") {
+		t.Fatalf("the harness of the alt run lacks E2E_ENV or COCKPIT_SUITES: %v\n%s", err, harness)
 	}
 	r, err := w.hub.ops.Open(m.ID)
 	if err != nil || r.Decl == nil || r.Decl.Scripts.Suites != "scripts/alt" {
