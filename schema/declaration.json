@@ -356,6 +356,11 @@
           "type": "string",
           "description": "The collectors directory inside `dir`: each `\u003cid\u003e.ts` is a collector. Without it the run has no collectors.",
           "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+        },
+        "env": {
+          "type": "string",
+          "description": "A file inside `dir` the runner reads as its public env instead of `env.json`, so two declarations that share `dir` can give their flows different values.",
+          "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
         }
       },
       "description": "Where the TypeScript scripts live.",
@@ -474,7 +479,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "declaration",
-  "description": "The project declaration `.cockpit/project.yaml`, read from the submitted commit. Paths are relative to the repository root.",
+  "description": "The project declaration `.cockpit/project.yaml`, or the file `.cockpit/\u003cname\u003e.yaml` a run names with `--declaration`, read from the submitted commit. Paths are relative to the repository root.",
   "required": [
     "hostApi",
     "project",

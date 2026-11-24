@@ -48,12 +48,14 @@ func setPath(d *contract.Declaration, field string, value contract.RelPath) {
 		d.Scripts.Suites = value
 	case "scripts.collectors":
 		d.Scripts.Collectors = value
+	case "scripts.env":
+		d.Scripts.Env = value
 	}
 }
 
 var pathFields = []string{
 	"compose.files[0]", "compose.projectDirectory", "inputs.dirty[0]", "inputs.runnerSources[0].path", "images[0].inputs[0]",
-	"env.outputs[0]", "secrets.sources[0].path", "scripts.dir", "scripts.suites", "scripts.collectors",
+	"env.outputs[0]", "secrets.sources[0].path", "scripts.dir", "scripts.suites", "scripts.collectors", "scripts.env",
 }
 
 func TestEveryPathFieldWithParentSegmentsOrAnAbsolutePathIsRejectedWithItsLocation(t *testing.T) {

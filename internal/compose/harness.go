@@ -3,6 +3,7 @@ package compose
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"go.yaml.in/yaml/v3"
 
@@ -157,7 +158,11 @@ func Harness(in HarnessInput) ([]byte, error) {
 	runner["networks"] = inner
 	runner["tmpfs"] = []string{"/tmp"}
 	runner["volumes"] = runnerBinds(in.Layout, decl.Inputs.RunnerSources)
-	runner["environment"] = map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}", "COCKPIT_TRACE_ID": "${COCKPIT_TRACE_ID:-}"}
+	runnerEnv := map[string]string{"COCKPIT_RUNNER_IMAGE": in.RunnerImage, "E2E_EXEC_OUT": "${E2E_EXEC_OUT:-}", "COCKPIT_TRACE_ID": "${COCKPIT_TRACE_ID:-}"}
+	if decl.Scripts.Env != "" {
+		runnerEnv["E2E_ENV"] = "/work/scripts/" + strings.TrimPrefix(string(decl.Scripts.Env), string(decl.Scripts.Dir)+"/")
+	}
+	runner["environment"] = runnerEnv
 	if in.RunnerUser != "" {
 		runner["user"] = in.RunnerUser
 	}

@@ -103,6 +103,7 @@ type ScriptsSection struct {
 	Dir        RelPath `json:"dir"`
 	Suites     RelPath `json:"suites"`
 	Collectors RelPath `json:"collectors,omitempty"`
+	Env        RelPath `json:"env,omitempty"`
 }
 
 type KitSection struct {

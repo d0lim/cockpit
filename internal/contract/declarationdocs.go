@@ -2,7 +2,7 @@ package contract
 
 func DeclarationDocs() map[string]string {
 	return map[string]string{
-		"":                "The project declaration `.cockpit/project.yaml`, read from the submitted commit. Paths are relative to the repository root.",
+		"":                "The project declaration `.cockpit/project.yaml`, or the file `.cockpit/<name>.yaml` a run names with `--declaration`, read from the submitted commit. Paths are relative to the repository root.",
 		"hostApi":         "The host API the scripts are written against. The hub refuses a value outside the set it serves, and the runner refuses one that differs from its own.",
 		"project":         "The services of the stack.",
 		"project.builder": "A service that runs in the build stage before `compose build`, alone on the outside network and binding only the run's build copy of the commit, for downloads that do not fit a Dockerfile.",
@@ -53,6 +53,7 @@ func DeclarationDocs() map[string]string {
 		"scripts.dir":               "The directory the runner sees as `/work/scripts`; `env.json` sits at its top.",
 		"scripts.suites":            "The suites directory inside `dir`: each `<name>.ts` whose name is a suite name is a suite.",
 		"scripts.collectors":        "The collectors directory inside `dir`: each `<id>.ts` is a collector. Without it the run has no collectors.",
+		"scripts.env":               "A file inside `dir` the runner reads as its public env instead of `env.json`, so two declarations that share `dir` can give their flows different values.",
 		"kit":                       "The handoff text for a person using the run's environment.",
 		"kit.notes":                 "Text added to the run's kit README, shown on the screen's Environment page and in `env/README.md`.",
 		"telemetry":                 "What the services of the run export about themselves. Nothing of it leaves the run's internal networks.",

@@ -57,6 +57,9 @@ func declaredPaths(d contract.Declaration) []declaredPath {
 	if d.Scripts.Collectors != "" {
 		add("scripts.collectors", string(d.Scripts.Collectors), true, false)
 	}
+	if d.Scripts.Env != "" {
+		add("scripts.env", string(d.Scripts.Env), false, true)
+	}
 	return out
 }
 
@@ -102,7 +105,7 @@ func confine(d contract.Declaration, tree Tree) error {
 	for _, field := range []struct {
 		name string
 		path contract.RelPath
-	}{{"scripts.suites", d.Scripts.Suites}, {"scripts.collectors", d.Scripts.Collectors}} {
+	}{{"scripts.suites", d.Scripts.Suites}, {"scripts.collectors", d.Scripts.Collectors}, {"scripts.env", d.Scripts.Env}} {
 		if field.path != "" && !strings.HasPrefix(string(field.path), string(d.Scripts.Dir)+"/") {
 			return reject(RejectConfinement, field.name, "%q must be inside scripts.dir %q", field.path, d.Scripts.Dir)
 		}
