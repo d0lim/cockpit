@@ -116,7 +116,7 @@ declare module "cockpit:flow" {
 	export function poll<T>(attempt: () => Promise<T>, done: (value: T) => boolean, opts: PollOptions): Promise<{ value: T; attempts: number }>;
 	/** The ports a step can use. Everything a flow touches goes through here; there is no fetch, file system or Node API. */
 	export interface Ctx {
-		/** The public env, read from env.json. */
+		/** The public env, read from env.json, or from the file the declaration names in `scripts.env`. */
 		readonly env: Readonly<Record<string, unknown>>;
 		/** The `local` section of the private env. Every value is masked as **** in the console, failure messages and output files. */
 		readonly priv: Readonly<Record<string, string>>;

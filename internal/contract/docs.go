@@ -36,7 +36,7 @@ func Docs() map[string]string {
 			"it throws when the next attempt would start after the deadline.",
 		"ServiceState.exitCode": "The exit code of a container that exited; absent while it runs.",
 		"Ctx":                   "The ports a step can use. Everything a flow touches goes through here; there is no fetch, file system or Node API.",
-		"Ctx.env":               "The public env, read from env.json.",
+		"Ctx.env":               "The public env, read from env.json, or from the file the declaration names in `scripts.env`.",
 		"Ctx.priv":              "The `local` section of the private env. Every value is masked as **** in the console, failure messages and output files.",
 		"Ctx.http":              "Requests to the origins listed in env.json.",
 		"Ctx.capture":           "Stores a value for later steps and flows in this run. Captured values are masked in all output, unless `ref` marked them public.",
