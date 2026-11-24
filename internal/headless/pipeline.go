@@ -97,7 +97,7 @@ func Run(ctx context.Context, opts Options, deps Deps) int {
 	}}
 	r.share()
 	r.st = &stages{out: deps.Out, mask: r.mask}
-	r.meta = store.Meta{CockpitVersion: version.String(), Submitter: deps.Submitter, Keep: opts.Keep, Wire: opts.Wire, CreatedAt: store.Timestamp(deps.Now())}
+	r.meta = store.Meta{CockpitVersion: version.String(), Submitter: deps.Submitter, Keep: opts.Keep, Wire: opts.Wire, Declaration: opts.Declaration, CreatedAt: store.Timestamp(deps.Now())}
 	refused := !r.prepare(ctx)
 	if !refused {
 		r.pipeline(ctx)
@@ -134,7 +134,7 @@ func (r *run) prepare(ctx context.Context) bool {
 		}
 		return fmt.Sprintf("%s at %s", top, r.meta.SHA[:12]), nil
 	}}, {"declaration", func() (string, error) {
-		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA, "")
+		loaded, err := compose.ReadDeclaration(ctx, git, r.meta.SHA, r.opts.Declaration)
 		if err != nil {
 			return "", err
 		}
@@ -155,7 +155,11 @@ func (r *run) prepare(ctx context.Context) bool {
 		}
 		suite, err := pickSuite(loaded, r.opts.Suite)
 		r.meta.Suite = suite
-		return fmt.Sprintf("hostApi %d, suite %s%s", loaded.Declaration.HostAPI, suite, note), err
+		named := ""
+		if r.opts.Declaration != "" {
+			named = ", declaration " + r.opts.Declaration.Path()
+		}
+		return fmt.Sprintf("hostApi %d, suite %s%s%s", loaded.Declaration.HostAPI, suite, named, note), err
 	}}, {"docker", func() (string, error) {
 		if err := compose.CheckVersions(ctx, r.deps.Docker); err != nil {
 			return "", err
