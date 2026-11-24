@@ -38,6 +38,14 @@ func includedCacheToy(t *testing.T) string {
 	if err := os.WriteFile(top, []byte("include:\n  - deps/cache/compose.yaml\n"+text[:start+1]+text[end+1:]), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	decl := filepath.Join(dir, compose.DeclarationPath)
+	raw, err := os.ReadFile(decl)
+	if err != nil || !strings.Contains(string(raw), "dirty: [.cockpit,") {
+		t.Fatalf("the toy declaration has no inputs.dirty to name deps/cache in: %v", err)
+	}
+	if err := os.WriteFile(decl, []byte(strings.Replace(string(raw), "dirty: [.cockpit,", "dirty: [deps/cache, .cockpit,", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	composetest.Git(t, dir, "add", "-A")
 	composetest.Git(t, dir, "commit", "-q", "-m", "include the cache from deps/cache")
 	composetest.Submodule(t, dir, "deps/cache", "cache")
