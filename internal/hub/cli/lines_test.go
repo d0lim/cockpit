@@ -56,6 +56,10 @@ func TestShowListAndExecLinesUseTheHubLabels(t *testing.T) {
 			t.Errorf("show: %q not in\n%s", w, show)
 		}
 	}
+	detail.Declaration = ".cockpit/alt.yaml"
+	if show := strings.Join(showLines(detail, nil), "\n"); !strings.Contains(show, "commit abc · suite - · declaration .cockpit/alt.yaml · submitter cli") {
+		t.Errorf("show does not name the declaration:\n%s", show)
+	}
 	tickErr := "boom"
 	list := strings.Join(listLines(api.HubList{Runs: []api.RunItem{detail.RunItem}, DockerDown: true, TickError: &tickErr}), "\n")
 	for _, w := range []string{id + "  Queued  -", "Docker does not respond", "tick error: boom"} {

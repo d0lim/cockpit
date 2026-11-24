@@ -56,6 +56,9 @@ func (x *ctx) submit(a args) (int, error) {
 	if s := a.flags["suite"]; s != "" {
 		body["suite"] = s
 	}
+	if d := a.flags["declaration"]; d != "" {
+		body["declaration"] = d
+	}
 	r, err := x.call(http.MethodPost, "/api/runs", body, requestLimit)
 	if err != nil {
 		return 0, err

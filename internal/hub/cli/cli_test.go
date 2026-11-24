@@ -235,3 +235,25 @@ func TestSubmitSendsTheWireOptionOnlyWhenTheFlagIsGiven(t *testing.T) {
 		t.Fatalf("bodies %+v", bodies)
 	}
 }
+
+func TestSubmitSendsTheDeclarationOnlyWhenTheFlagIsGiven(t *testing.T) {
+	var bodies []map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(map[string]any{"id": id, "phase": "queued", "position": 1, "merged": false})
+	}))
+	t.Cleanup(srv.Close)
+	for _, argv := range [][]string{{"submit", "--declaration", ".cockpit/alt.yaml"}, {"submit"}} {
+		if got := invoke(t, srv.URL, argv...); got.code != ExitOK {
+			t.Fatalf("%v: %+v", argv, got)
+		}
+	}
+	_, sent := bodies[1]["declaration"]
+	if len(bodies) != 2 || bodies[0]["declaration"] != ".cockpit/alt.yaml" || sent || bodies[1]["worktree"] == nil {
+		t.Fatalf("bodies %+v", bodies)
+	}
+}

@@ -21,6 +21,7 @@ type RunItem struct {
 	Mark           lifecycle.Mark          `json:"mark,omitempty"`
 	SHA            string                  `json:"sha"`
 	Suite          string                  `json:"suite"`
+	Declaration    string                  `json:"declaration"`
 	HostAPI        int                     `json:"hostApi"`
 	CockpitVersion string                  `json:"cockpitVersion"`
 	Submitter      string                  `json:"submitter"`
@@ -105,7 +106,7 @@ var userEvents = []lifecycle.Event{lifecycle.Stop, lifecycle.Resume, lifecycle.D
 func Item(v scheduler.RunView) RunItem {
 	m := v.Meta
 	return RunItem{
-		ID: m.ID, Phase: m.Phase, Env: m.Env, Verdict: m.Verdict, Mark: m.Mark, SHA: m.SHA, Suite: m.Suite,
+		ID: m.ID, Phase: m.Phase, Env: m.Env, Verdict: m.Verdict, Mark: m.Mark, SHA: m.SHA, Suite: m.Suite, Declaration: m.Declaration.Path(),
 		HostAPI: m.HostAPI, CockpitVersion: m.CockpitVersion, Submitter: m.Submitter, Keep: m.Keep, Wire: m.Wire,
 		CreatedAt: m.CreatedAt, StartedAt: m.StartedAt, FinishedAt: m.FinishedAt, LastUpAt: m.LastUpAt,
 		Slot: m.Slot, Position: v.Position, WaitReason: m.WaitReason, StopReason: m.StopReason,

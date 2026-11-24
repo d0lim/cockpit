@@ -73,7 +73,7 @@ func showLines(run api.RunDetail, kit *api.KitView) []string {
 	if run.Keep {
 		head += " · " + labels.Text(labels.MsgKeep, nil)
 	}
-	lines := []string{head, fmt.Sprintf("commit %s · suite %s · submitter %s · host API %d · cockpit %s", run.SHA, orDash(run.Suite), run.Submitter, run.HostAPI, run.CockpitVersion)}
+	lines := []string{head, fmt.Sprintf("commit %s · suite %s · declaration %s · submitter %s · host API %d · cockpit %s", run.SHA, orDash(run.Suite), orDash(run.Declaration), run.Submitter, run.HostAPI, run.CockpitVersion)}
 	if run.Phase == lifecycle.Queued {
 		lines = append(lines, progress(run.RunItem))
 	}

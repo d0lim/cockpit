@@ -111,8 +111,9 @@ func (o *Ops) Open(id string) (*Run, error) {
 		r.Root = nil
 	}
 	if r.Root != nil {
-		if raw, err := r.Root.ReadFile(path.Join("src", compose.DeclarationPath)); err == nil {
-			if decl, err := compose.ParseDeclaration(compose.DeclarationPath, raw); err == nil {
+		name := m.Declaration.Path()
+		if raw, err := r.Root.ReadFile(path.Join("src", name)); err == nil {
+			if decl, err := compose.ParseDeclaration(name, raw); err == nil {
 				r.Decl = &decl
 				r.Store = store.Open(o.Store.Home(), compose.SecretFilePatterns(decl)...)
 			}

@@ -41,13 +41,13 @@ var DefaultURL = "http://127.0.0.1:" + strconv.Itoa(lock.DefaultPort)
 
 var (
 	booleanFlags = map[string]bool{"wait": true, "new": true, "wire": true, "json": true, "force": true}
-	valueFlags   = map[string]bool{"commit": true, "suite": true, "submitter": true, "timeout": true, "out": true}
+	valueFlags   = map[string]bool{"commit": true, "suite": true, "submitter": true, "timeout": true, "out": true, "declaration": true}
 	urlPattern   = regexp.MustCompile(`^https?://[^/]+`)
 )
 
 var usageLines = []string{
 	"usage: " + Cmd + " <command> ...",
-	"  submit [--commit <ref>] [--suite <name>] [--submitter <label>] [--new] [--wire] [--wait] [--timeout <seconds>] [--json]",
+	"  submit [--commit <ref>] [--suite <name>] [--declaration <file>] [--submitter <label>] [--new] [--wire] [--wait] [--timeout <seconds>] [--json]",
 	"  list · get|show <id> · report <id> · wait <id> [--timeout <seconds>] · export <id> [--out <file>] · import <file>",
 	"  keep|unkeep|stop|resume|destroy|abort <id> [--force] · exec <id> -- <flow id>",
 	"The hub address is COCKPIT_URL (default " + DefaultURL + "); the submitter label is --submitter, then COCKPIT_SUBMITTER, then cli.",

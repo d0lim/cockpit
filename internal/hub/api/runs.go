@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 )
 
@@ -70,6 +71,18 @@ func text(body map[string]any, key string, required bool) (string, error) {
 	return s, nil
 }
 
+func declarationOf(body map[string]any) (contract.DeclarationFile, error) {
+	raw, err := text(body, "declaration", false)
+	if err != nil {
+		return "", err
+	}
+	file, err := contract.ParseDeclarationFile(raw)
+	if err != nil {
+		return "", badRequest(err.Error())
+	}
+	return file, nil
+}
+
 func flag(body map[string]any, key string) (bool, error) {
 	v, ok := body[key]
 	if !ok {
@@ -110,6 +123,9 @@ func (a *api) submit(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	if in.Wire, err = flag(body, "wire"); err != nil {
+		return err
+	}
+	if in.Declaration, err = declarationOf(body); err != nil {
 		return err
 	}
 	if in.Submitter, err = submitterOf(r, body); err != nil {
