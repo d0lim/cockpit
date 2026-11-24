@@ -61,7 +61,7 @@ func (t Tree) splice(ctx context.Context, paths []string) error {
 func (t Tree) referenced(paths []string) []string {
 	var links []string
 	for at, e := range t.Entries {
-		if e.Type == submoduleType && !t.spliced(at) && slices.ContainsFunc(paths, func(p string) bool { return covers(at, p) || covers(p, at) }) {
+		if t.isUnspliced(at, e) && slices.ContainsFunc(paths, func(p string) bool { return covers(at, p) || covers(p, at) }) {
 			links = append(links, at)
 		}
 	}
@@ -133,8 +133,26 @@ func (t Tree) Link(path string) (string, bool) {
 	return t.atOrAbove(path, func(_ string, e Entry) bool { return e.Mode == symlinkMode })
 }
 
+func (t Tree) isUnspliced(at string, e Entry) bool {
+	return e.Type == submoduleType && !t.spliced(at)
+}
+
 func (t Tree) unspliced(path string) (string, bool) {
-	return t.atOrAbove(path, func(prefix string, e Entry) bool { return e.Type == submoduleType && !t.spliced(prefix) })
+	return t.atOrAbove(path, t.isUnspliced)
+}
+
+func (t Tree) LeftOut(path string) []string {
+	if link, ok := t.unspliced(path); ok {
+		return []string{link}
+	}
+	var links []string
+	for at, e := range t.Entries {
+		if covers(path, at) && t.isUnspliced(at, e) {
+			links = append(links, at)
+		}
+	}
+	slices.Sort(links)
+	return links
 }
 
 func (t Tree) atOrAbove(path string, match func(string, Entry) bool) (string, bool) {

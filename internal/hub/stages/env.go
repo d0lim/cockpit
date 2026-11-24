@@ -173,7 +173,7 @@ func (e *Env) SealStatic(ctx context.Context) error {
 	e.Static = seal.Static(seal.Input{
 		Config: config, Files: compose.ReadFiles(e.Layout, e.Loaded.Model), Forbidden: decl.Compose.Forbidden, RunID: e.RunID, RunDir: e.Layout.Root,
 		Layout: e.Layout, PortBase: e.Base, Ports: decl.Ports, Builder: decl.Project.Builder, OTLP: compose.OTLPDeclared(decl), RunnerImage: e.Image,
-		Wire: e.Wire, WireRoutes: e.wireRoutes(), Network: decl.NetworkLevel(),
+		Wire: e.Wire, WireRoutes: e.wireRoutes(), Network: decl.NetworkLevel(), Tree: e.Loaded.Tree,
 	})
 	if err := e.WriteSeal(); err != nil {
 		return err

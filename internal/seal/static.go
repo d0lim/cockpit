@@ -38,6 +38,7 @@ type Input struct {
 	Wire        bool
 	WireRoutes  []compose.WireRoute
 	Network     contract.NetworkLevel
+	Tree        compose.Tree
 	Realpath    func(path string) (string, bool)
 }
 

@@ -46,6 +46,7 @@ func mountChecks(in Input, svcs []service) []Result {
 			case !inside(realRoot, resolved):
 				outside = append(outside, fmt.Sprintf("%s: %s is outside %s", s.name, source, label))
 			}
+			outside = append(outside, leftOut(in, s.name+": "+source, source)...)
 		}
 	}
 	return []Result{
