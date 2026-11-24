@@ -3,6 +3,7 @@ package headless
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -11,6 +12,7 @@ import (
 	"github.com/d0lim/cockpit/internal/compose"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/store"
+	"github.com/d0lim/cockpit/internal/signal"
 )
 
 type step struct {
@@ -58,6 +60,7 @@ func (r *run) pipeline(ctx context.Context) {
 			r.walk(passEvents[s.phase], lifecycle.Detail{})
 		}
 	}
+	r.quiet()
 	if r.meta.Phase == lifecycle.Reporting {
 		r.st.run("report", func() (string, error) { return r.report(ctx) })
 	}
@@ -81,12 +84,16 @@ func (r *run) runDirectory(ctx context.Context) (string, error) {
 	if r.log, err = e.Root.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600); err != nil {
 		return "", err
 	}
+	r.logger = slog.New(slog.NewTextHandler(r.log, nil))
+	if r.stream, err = signal.Open(dir, signal.Options{Masker: r.shared.Load}); err != nil {
+		return "", err
+	}
 	e.RunID, e.Loaded, e.Base, e.Image = r.meta.ID, r.loaded, r.base, r.meta.RunnerImage.Tag
 	e.Log = r.remember
 	if err := e.Extract(ctx); err != nil {
 		return dir, err
 	}
-	return fmt.Sprintf("%s, %d files extracted twice, child output in %s", dir, r.loaded.Tree.Files(), logFile), nil
+	return fmt.Sprintf("%s, %d files extracted twice, child output and warnings in %s, signals in %s", dir, r.loaded.Tree.Files(), logFile, signal.Dir), nil
 }
 
 func (r *run) remember(line string) {
@@ -98,7 +105,9 @@ func (r *run) remember(line string) {
 }
 
 func (r *run) generate(ctx context.Context) (string, error) {
-	if err := r.env.GenerateEnv(ctx); err != nil {
+	err := r.env.GenerateEnv(ctx)
+	r.share()
+	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%d outputs in a networkless container, redactor values refreshed", len(r.loaded.Declaration.Env.Outputs)), nil

@@ -19,7 +19,7 @@ import (
 	"github.com/d0lim/cockpit/internal/seal"
 )
 
-func toyProject(t *testing.T) string {
+func toyProject(t *testing.T, edits ...func(dir string)) string {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "toy")
 	if err := os.CopyFS(dir, os.DirFS(filepath.Join("..", "..", "testdata", "toy-project"))); err != nil {
@@ -27,6 +27,9 @@ func toyProject(t *testing.T) string {
 	}
 	for _, generated := range []string{".env", compose.PrivateEnvName, "mock/bin"} {
 		os.RemoveAll(filepath.Join(dir, generated))
+	}
+	for _, edit := range edits {
+		edit(dir)
 	}
 	env := append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_COUNT=4", "GIT_CONFIG_KEY_0=maintenance.auto", "GIT_CONFIG_VALUE_0=false", "GIT_CONFIG_KEY_1=gc.auto", "GIT_CONFIG_VALUE_1=0", "GIT_CONFIG_KEY_2=maintenance.autoDetach", "GIT_CONFIG_VALUE_2=false", "GIT_CONFIG_KEY_3=gc.autoDetach", "GIT_CONFIG_VALUE_3=false",
 		"GIT_AUTHOR_NAME=toy", "GIT_AUTHOR_EMAIL=toy@example.invalid", "GIT_COMMITTER_NAME=toy", "GIT_COMMITTER_EMAIL=toy@example.invalid")
@@ -94,10 +97,23 @@ func TestIntegrationAHeadlessToyRunPassesTheSealWritesAPassedBundleAndTheUnsealC
 		t.Fatalf("seal.json %s: %v", data, err)
 	}
 	var summary struct {
-		Verdict string `json:"verdict"`
+		Verdict string                       `json:"verdict"`
+		Stages  map[string]map[string]string `json:"stages"`
 	}
-	data, _ = os.ReadFile(filepath.Join(filepath.Dir(files[0]), "report", "summary.json"))
-	if err := json.Unmarshal(data, &summary); err != nil || summary.Verdict != "passed" || !strings.Contains(text, "verdict passed") {
+	bundle := filepath.Join(filepath.Dir(files[0]), "report")
+	data, _ = os.ReadFile(filepath.Join(bundle, "summary.json"))
+	if err := json.Unmarshal(data, &summary); err != nil || summary.Verdict != "passed" || summary.Stages["signals"]["status"] != "ok" || !strings.Contains(text, "verdict passed") {
 		t.Fatalf("summary.json %s: %v", data, err)
+	}
+	spans := map[string]bool{}
+	for _, sig := range frozenStream(t, bundle) {
+		if sig.Span != nil {
+			spans[sig.ID] = true
+		}
+	}
+	for _, want := range []string{"pipeline", "stage:suite", "run"} {
+		if !spans[want] {
+			t.Errorf("the frozen stream lacks the span %s", want)
+		}
 	}
 }

@@ -36,7 +36,12 @@ func (r *run) walk(event lifecycle.Event, detail lifecycle.Detail) {
 		return
 	}
 	if next.Phase != r.meta.Phase {
+		at := store.Timestamp(r.deps.Now())
 		r.lines = nil
+		r.meta.EndStage(at, pipeline.StageOutcome(event))
+		if next.Active() {
+			r.meta.StartStage(next.Phase, at)
+		}
 	}
 	r.meta.State = next
 }
@@ -64,11 +69,13 @@ func (r *run) tail() []string {
 }
 
 func (r *run) report(ctx context.Context) (string, error) {
+	now := r.deps.Now()
 	bundle, notice := pipeline.ReportBundle(pipeline.RunReport{
 		Meta: r.meta, RunDir: r.env.Layout.Root, Ports: pipeline.RunPorts(r.loaded.Declaration, r.base),
-		Runner: r.suiteRun, Boot: r.booted, Masker: r.env.Masker, Now: r.deps.Now(),
+		Runner: r.suiteRun, Boot: r.booted, Masker: r.env.Masker, Now: now,
 	})
-	out, err := report.Assemble(bundle)
+	bundle.Signals = r.stream
+	out, err := pipeline.AssembleReport(context.WithoutCancel(ctx), bundle, pipeline.Recordings{Stream: r.stream, Exited: r.exited, Now: now, Wire: r.recorder()})
 	if ctx.Err() != nil {
 		r.walk(lifecycle.Abort, lifecycle.Detail{})
 	}

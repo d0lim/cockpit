@@ -25,6 +25,10 @@ inputs:
     description: A cockpit binary to use instead of installing a release.
     required: false
     default: ""
+  wire:
+    description: true records the calls between the run's services into the bundle (cockpit run --wire). The commit must declare wire.routes.
+    required: false
+    default: "false"
 outputs:
   verdict:
     description: passed, failed, error or aborted; empty when the run stopped before its suite.
@@ -53,6 +57,7 @@ runs:
         COCKPIT_SUITE: ${{ inputs.suite }}
         COCKPIT_PROJECT: ${{ inputs.project }}
         COCKPIT_ARCHIVE: ${{ inputs.archive }}
+        COCKPIT_WIRE: ${{ inputs.wire }}
       run: |
         "$GITHUB_ACTION_PATH/scripts/action-run.sh"
     - name: Upload the bundle archive

@@ -10,7 +10,7 @@ import (
 )
 
 func (w *RunWire) spans(result *contract.Result) []wire.Span {
-	stream := w.ops.Stream(w.id)
+	stream := w.Stream()
 	if stream == nil {
 		return nil
 	}

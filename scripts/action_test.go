@@ -19,6 +19,7 @@ import (
 var actionMutations = []porttest.Mutation{
 	{"the action installs only an archive that matches checksums.txt", "drop the sha256sum check from action-install.sh", "red: a changed archive installs and runs", "TestTheActionInstallsAMatchingReleaseAndRefusesAChangedArchive"},
 	{"the action never publishes an archive this run did not write", "emit archive whenever the file exists in action-run.sh", "red: a file left by an earlier step is published as this run's archive", "TestTheActionPublishesOnlyAnArchiveThisRunWrote"},
+	{"the action records the wire only when its input says true", "add --wire to every cockpit run in action-run.sh", "red: the run with the default input passes --wire", "TestTheActionPassesWireOnlyWhenItsInputIsTrue"},
 }
 
 func TestActionMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -107,7 +108,7 @@ func TestTheActionInstallsAMatchingReleaseAndRefusesAChangedArchive(t *testing.T
 	}
 }
 
-func runAction(t *testing.T, cockpitScript string, leftover bool) string {
+func runAction(t *testing.T, cockpitScript string, leftover bool, env ...string) string {
 	t.Helper()
 	bin, work, project := t.TempDir(), t.TempDir(), t.TempDir()
 	writeFile(t, filepath.Join(bin, "cockpit"), []byte(cockpitScript), 0o755)
@@ -124,6 +125,7 @@ func runAction(t *testing.T, cockpitScript string, leftover bool) string {
 	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "RUNNER_TEMP="+work, "GITHUB_WORKSPACE="+work,
 		"GITHUB_OUTPUT="+output, "GITHUB_STEP_SUMMARY="+summary, "GITHUB_ACTION_PATH="+filepath.Dir(wd),
 		"GITHUB_RUN_ID=1", "GITHUB_RUN_ATTEMPT=1", "COCKPIT_PROJECT="+project, "COCKPIT_ARCHIVE=cockpit-run.tar.gz", "COCKPIT_SUITE=")
+	cmd.Env = append(cmd.Env, env...)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("action-run.sh: %v\n%s", err, out)
 	}
@@ -143,5 +145,18 @@ func TestTheActionPublishesOnlyAnArchiveThisRunWrote(t *testing.T) {
 	got := runAction(t, refuses, true)
 	if strings.Contains(got, "archive=") || !strings.Contains(got, "exit-code=3") {
 		t.Fatalf("a leftover archive is published as this run's:\n%s", got)
+	}
+}
+
+func TestTheActionPassesWireOnlyWhenItsInputIsTrue(t *testing.T) {
+	echoes := "#!/usr/bin/env bash\necho \"args=$*\" >> \"$GITHUB_OUTPUT\"\n"
+	if got := runAction(t, echoes, false, "COCKPIT_WIRE=true"); !strings.Contains(got, " --wire") {
+		t.Fatalf("canary: the input true does not pass --wire:\n%s", got)
+	}
+	for _, value := range []string{"false", ""} {
+		got := runAction(t, echoes, false, "COCKPIT_WIRE="+value)
+		if !strings.Contains(got, "args=run --project") || strings.Contains(got, "--wire") {
+			t.Fatalf("the input %q passes --wire or runs nothing:\n%s", value, got)
+		}
 	}
 }

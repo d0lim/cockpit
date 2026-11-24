@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-const Usage = "usage: cockpit run --project <path> [--suite <name>] [--unseal-check] [--keep] [--out <dir>] [--archive <file>]"
+const Usage = "usage: cockpit run --project <path> [--suite <name>] [--unseal-check] [--wire] [--keep] [--out <dir>] [--archive <file>]"
 
 var suiteName = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
 
@@ -15,6 +15,7 @@ type Options struct {
 	Project     string
 	Suite       string
 	UnsealCheck bool
+	Wire        bool
 	Keep        bool
 	Out         string
 	Archive     string
@@ -30,6 +31,9 @@ func Parse(args []string) (Options, error) {
 			continue
 		case "--keep":
 			o.Keep = true
+			continue
+		case "--wire":
+			o.Wire = true
 			continue
 		}
 		target, ok := values[args[i]]

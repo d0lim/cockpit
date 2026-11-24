@@ -180,13 +180,19 @@ func (l *live) drainOTLP(ctx context.Context) {
 	if ok {
 		l.h.o.Log.Info("otlp drained", "run", l.id, "waited", d.Waited.String(), "quiet", d.Quiet)
 	}
+	if line := OTLPDrainLine(ctx, d, ok, limits.OTLPDrain); line != "" {
+		l.say(line)
+	}
+}
+
+func OTLPDrainLine(ctx context.Context, d envops.OTLPDrain, ok bool, limit time.Duration) string {
 	switch {
 	case !ok, ctx.Err() != nil:
+		return ""
 	case d.Quiet:
-		l.say(fmt.Sprintf("otlp drained after %s", d.Waited.Round(100*time.Millisecond)))
-	default:
-		l.say(fmt.Sprintf("otlp drain stopped at its limit of %s", limits.OTLPDrain))
+		return fmt.Sprintf("otlp drained after %s", d.Waited.Round(100*time.Millisecond))
 	}
+	return fmt.Sprintf("otlp drain stopped at its limit of %s", limit)
 }
 
 func reportStage(ctx context.Context, l *live) (outcome, error) {

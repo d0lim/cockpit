@@ -39,7 +39,7 @@ func TestRunFlagsReachTheRunOptionsAndTheStateDirectoryAndSubmitterReachItsDeps(
 		submitter string
 	}{
 		{[]string{"run", "--project", project}, map[string]string{"COCKPIT_HOME": home}, headless.Options{Project: project}, "cli"},
-		{[]string{"run", "--project", project, "--suite", "smoke", "--unseal-check", "--keep"}, map[string]string{"COCKPIT_HOME": home, "COCKPIT_SUBMITTER": "ci"}, headless.Options{Project: project, Suite: "smoke", UnsealCheck: true, Keep: true}, "ci"},
+		{[]string{"run", "--project", project, "--suite", "smoke", "--unseal-check", "--wire", "--keep"}, map[string]string{"COCKPIT_HOME": home, "COCKPIT_SUBMITTER": "ci"}, headless.Options{Project: project, Suite: "smoke", UnsealCheck: true, Wire: true, Keep: true}, "ci"},
 		{[]string{"run", "--keep", "--project", filepath.Join(project, "."), "--out", out, "--archive", out + ".tar.gz"}, map[string]string{"COCKPIT_HOME": home}, headless.Options{Project: project, Keep: true, Out: out, Archive: out + ".tar.gz"}, "cli"},
 	}
 	if len(cases) != 3 {

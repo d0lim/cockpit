@@ -10,7 +10,6 @@ import (
 
 	"github.com/d0lim/cockpit/internal/collect"
 	"github.com/d0lim/cockpit/internal/contract"
-	"github.com/d0lim/cockpit/internal/hub/envops"
 	"github.com/d0lim/cockpit/internal/hub/fakedocker"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/store"
@@ -234,8 +233,7 @@ func TestAReparentFailureBecomesAnUnreadSpansEntryWithThePlantedValueMasked(t *t
 		t.Fatal(err)
 	}
 	res := &contract.Result{SchemaVersion: contract.SchemaVersion2, StartedAt: "2026-10-19T01:00:01.000Z", Steps: tracedSteps()}
-	in := envops.ReportInput{Meta: store.Meta{ID: runID}, Stream: s, Masker: m, Now: time.Date(2026, 10, 19, 1, 0, 9, 0, time.UTC)}
-	unread := reportSpans(in, res)
+	unread := reportSpans(Recordings{Stream: s, Now: time.Date(2026, 10, 19, 1, 0, 9, 0, time.UTC)}, store.Meta{ID: runID}, res, m)
 	if len(unread) != 1 || unread[0].Source != stageSpansSource || unread[0].Count != 1 || !strings.Contains(unread[0].Detail, "refused") {
 		t.Fatalf("the reparent failure must leave one unread spans entry, got %+v", unread)
 	}

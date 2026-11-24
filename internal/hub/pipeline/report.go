@@ -19,7 +19,6 @@ import (
 	"github.com/d0lim/cockpit/internal/report"
 	"github.com/d0lim/cockpit/internal/seal"
 	"github.com/d0lim/cockpit/internal/version"
-	"github.com/d0lim/cockpit/internal/wire"
 )
 
 const (
@@ -126,34 +125,13 @@ func DefaultReport(ctx context.Context, in envops.ReportInput) (reconcile.Report
 		return reconcile.ReportOutcome{}, "", errors.New("the run has no masker")
 	}
 	bundle, notice := ReportBundle(RunReport{Meta: in.Meta, RunDir: in.RunDir, Ports: in.Ports, Runner: in.Runner, Boot: in.Boot, Masker: in.Masker, Now: in.Now})
-	result := bundle.Inputs.Result.Value
-	unread := append(collectorStages(in, bundle.Summary.Stages), reportSpans(in, result)...)
-	wireStatus, wireUnread := takeSuiteWire(ctx, in, result)
-	bundle.Unread, bundle.Summary.Wire = append(unread, wireUnread...), wireStatus
-	bundle.Signals = in.Signals
+	bundle.Unread, bundle.Signals = collectorStages(in, bundle.Summary.Stages), in.Signals
 	bundle.Patch = func(change func(*store.Meta)) error { _, err := in.Store.PatchMeta(bundle.Meta.ID, change); return err }
-	if in.Wire != nil {
-		bundle.Keep = wire.StagingDir
-	}
-	out, err := report.Assemble(bundle)
+	out, err := AssembleReport(ctx, bundle, Recordings{Stream: in.Stream, Exited: in.RunnerExit, Now: in.Now, Wire: in.Wire})
 	if out.Redaction == nil && err != nil {
 		return reconcile.ReportOutcome{}, "", err
 	}
-	if in.Wire != nil && out.Dir != "" {
-		in.Wire.Attach()
-	}
 	return reconcile.ReportOutcome{Verdict: lifecycle.Verdict(out.Judgement.Verdict), Redaction: out.Redaction}, joinNotice(notice, reasonsNotice(out.Judgement)), nil
-}
-
-func takeSuiteWire(ctx context.Context, in envops.ReportInput, result *contract.Result) (*contract.WireStatus, []report.Unread) {
-	if in.Wire == nil {
-		return nil, nil
-	}
-	status := in.Wire.TakeSuite(ctx, result)
-	if status.State == contract.WireStateTaken {
-		return &status, nil
-	}
-	return &status, []report.Unread{{Source: stageWire, Detail: string(status.State) + ": " + status.Detail, Count: 1}}
 }
 
 func reasonsNotice(j report.Judgement) string {

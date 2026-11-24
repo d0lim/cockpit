@@ -24,13 +24,17 @@ func (r *run) boot(ctx context.Context) (string, error) {
 		return "", err
 	}
 	r.booted = &contract.BootVerdict{OK: true}
+	if err := r.observe(); err != nil {
+		r.logger.Warn("observers cannot be started", "run", r.meta.ID, "err", r.mask(err.Error()))
+	}
 	return fmt.Sprintf("%d expected services running and healthy", len(r.loaded.Declaration.Project.ExpectedServices)), nil
 }
 
 func (r *run) runner(ctx context.Context) (string, error) {
 	res, err := r.env.RunSuite(ctx, r.meta.Suite)
-	r.suiteRun = &res
+	r.suiteRun, r.exited = &res, r.deps.Now()
 	refreshErr := r.env.RefreshMasker()
+	r.share()
 	for _, line := range res.Lines {
 		r.env.Log(r.mask(line))
 	}
@@ -48,7 +52,11 @@ func (r *run) runner(ctx context.Context) (string, error) {
 	if res.Code != nil {
 		code = *res.Code
 	}
-	return fmt.Sprintf("suite %s exit code %d; %s", r.meta.Suite, code, r.stepCounts()), nil
+	detail := fmt.Sprintf("suite %s exit code %d; %s", r.meta.Suite, code, r.stepCounts())
+	if note := r.drainOTLP(ctx); note != "" {
+		detail += "; " + note
+	}
+	return detail, nil
 }
 
 func (r *run) stepCounts() string {
@@ -71,6 +79,9 @@ func (r *run) stepCounts() string {
 func (r *run) cleanup(ctx context.Context) {
 	if r.log != nil {
 		defer r.log.Close()
+	}
+	if r.stream != nil {
+		r.stream.Close()
 	}
 	if r.opts.Keep {
 		if r.env.Root != nil {

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/d0lim/cockpit/internal/compose"
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/scheduler"
 )
 
@@ -45,8 +46,8 @@ func (h *Hub) Accept(ctx context.Context, in scheduler.SubmitInput) (scheduler.A
 	if err != nil {
 		return scheduler.Accepted{}, rejected(scheduler.KindDeclaration, "%s", err.Error())
 	}
-	if in.Wire && len(loaded.Declaration.Wire.Routes) == 0 {
-		return scheduler.Accepted{}, rejected(scheduler.KindDeclaration, "commit %s declares no wire.routes, so this run cannot record", sha[:12])
+	if err := WireRefusal(in.Wire, sha, loaded.Declaration); err != nil {
+		return scheduler.Accepted{}, rejected(scheduler.KindDeclaration, "%s", err.Error())
 	}
 	dirty, err := git.Dirty(ctx, loaded.Tree, inputPaths(loaded))
 	if err != nil {
@@ -93,4 +94,11 @@ func declaredHostAPI(ctx context.Context, git compose.Git, sha string) int {
 		return 0
 	}
 	return doc.HostAPI
+}
+
+func WireRefusal(wire bool, sha string, decl contract.Declaration) error {
+	if !wire || len(decl.Wire.Routes) > 0 {
+		return nil
+	}
+	return fmt.Errorf("commit %s declares no wire.routes, so this run cannot record", sha[:12])
 }
