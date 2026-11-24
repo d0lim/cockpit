@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/api"
 	"github.com/d0lim/cockpit/internal/hub/labels"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
@@ -44,7 +45,11 @@ func listLines(hub api.HubList) []string {
 		if m.Position > 0 {
 			queued = labels.Text(labels.MsgQueued, map[string]string{"position": fmt.Sprint(m.Position)})
 		}
-		lines = append(lines, joinNonEmpty("  ", m.ID, m.PhaseLabel, verdict, m.Suite, m.Submitter, keep, queued))
+		declaration := ""
+		if m.Declaration != contract.DefaultDeclaration {
+			declaration = m.Declaration
+		}
+		lines = append(lines, joinNonEmpty("  ", m.ID, m.PhaseLabel, verdict, m.Suite, declaration, m.Submitter, keep, queued))
 	}
 	if len(lines) == 0 {
 		lines = append(lines, labels.Text(labels.MsgNoRuns, nil))

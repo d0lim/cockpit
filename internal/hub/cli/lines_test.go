@@ -73,3 +73,23 @@ func TestShowListAndExecLinesUseTheHubLabels(t *testing.T) {
 		t.Fatalf("exec\n%s", exec)
 	}
 }
+
+func TestListLinesNameTheDeclarationOnlyWhenARunReadsAnotherThanTheDefault(t *testing.T) {
+	runs := []api.RunItem{
+		{ID: "run-default", PhaseLabel: "Queued", Suite: "smoke", Submitter: "cli", Declaration: contract.DefaultDeclaration},
+		{ID: "run-unset", PhaseLabel: "Queued", Suite: "smoke", Submitter: "cli"},
+		{ID: "run-alt", PhaseLabel: "Queued", Suite: "smoke", Submitter: "cli", Declaration: ".cockpit/alt.yaml"},
+	}
+	lines := listLines(api.HubList{Runs: runs})
+	if len(lines) != len(runs)+1 {
+		t.Fatalf("want %d run lines and a footer, got\n%s", len(runs), strings.Join(lines, "\n"))
+	}
+	for i, want := range []string{"run-default  Queued  -  smoke  cli", "run-unset  Queued  -  smoke  cli", "run-alt  Queued  -  smoke  .cockpit/alt.yaml  cli"} {
+		if lines[i] != want {
+			t.Errorf("line %d = %q, want %q", i, lines[i], want)
+		}
+		if i < 2 && strings.Contains(lines[i], "project.yaml") {
+			t.Errorf("line %d names the default declaration: %q", i, lines[i])
+		}
+	}
+}

@@ -111,7 +111,7 @@ scripts:
   env: e2e/env.large.json
 ```
 
-`cockpit runs get <id>` prints the declaration a run read, and the run record and its report bundle keep it. A queued run absorbs a new submission only when the declaration matches too. The screen's submit form always reads `.cockpit/project.yaml`.
+`cockpit runs get <id>` prints the declaration a run read, `cockpit runs list` names it beside the suite when it is not the default, and the run record and its report bundle keep it. A queued run absorbs a new submission only when the declaration matches too. The screen's submit form always reads `.cockpit/project.yaml`.
 
 ## 3. Credentials
 
