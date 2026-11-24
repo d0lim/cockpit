@@ -47,7 +47,7 @@ Hubs register in a shared registry (`~/.local/state/cockpit-hubs`, moved with `C
 
 ## 2. The project declaration
 
-The hub reads `.cockpit/project.yaml` from the submitted commit. `schema/declaration.json` describes every field; this is a complete declaration for a project with an API, a worker, a PostgreSQL database and a fake for an external service:
+The hub reads `.cockpit/project.yaml` from the submitted commit, unless the run names [another declaration](#more-than-one-declaration). `schema/declaration.json` describes every field; this is a complete declaration for a project with an API, a worker, a PostgreSQL database and a fake for an external service:
 
 ```yaml
 hostApi: 1
@@ -276,7 +276,7 @@ jobs:
 | --- | --- | --- |
 | `version` | the tag the action is used at | the release to install, such as `0.6.0`; required when the action is used at a branch or a SHA |
 | `suite` | empty | the suite; may stay empty when the commit declares one |
-| `project` | `.` | the repository directory that holds `.cockpit/project.yaml` |
+| `project` | `.` | the repository directory that holds the declaration the run reads |
 | `declaration` | empty | `.cockpit/<name>.yaml` passes `--declaration`, so the run reads [that declaration](#more-than-one-declaration); empty reads `.cockpit/project.yaml`. The job summary names the declaration |
 | `archive` | `cockpit-run.tar.gz` | where the bundle archive is written, relative to the workspace |
 | `artifact-name` | `cockpit-run` | the uploaded artifact; empty skips the upload |
