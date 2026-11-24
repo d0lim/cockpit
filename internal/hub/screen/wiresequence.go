@@ -23,6 +23,9 @@ const (
 	seqBarHalf = 3.5
 	seqBarStep = 4.0
 	seqLaneCap = 13
+	seqGlyph   = 6.5
+	seqWide    = 11.5
+	seqWideMin = 0x1100
 )
 
 type seqEvent struct {
@@ -55,7 +58,7 @@ func wireSequence(m wireModel, links wireLinks) wireScene {
 		e := events[i]
 		if !e.reply && m.flow && e.node.head.Step != band {
 			band = e.node.head.Step
-			d.band("step " + band)
+			d.band(wireStepLabel(m.titles, band))
 			seen = false
 		}
 		if seen && e.at-last >= seqGapMs {
@@ -115,6 +118,22 @@ func (d *seqDraw) headName(name string) {
 	}
 }
 
+func wireFit(text string, width float64) string {
+	used, room := 0.0, 0
+	for _, r := range text {
+		w := seqGlyph
+		if r >= seqWideMin {
+			w = seqWide
+		}
+		if used+w > width {
+			return wireCut(text, max(room, 2))
+		}
+		used += w
+		room++
+	}
+	return text
+}
+
 func wireCut(text string, room int) string {
 	runes := []rune(text)
 	if len(runes) <= room {
@@ -125,7 +144,7 @@ func wireCut(text string, room int) string {
 
 func (d *seqDraw) band(label string) {
 	d.scene.Bands = append(d.scene.Bands, wireRect{Y: d.y, W: d.scene.Width, H: 18, Class: "wire-band"})
-	d.text(wireText{X: 6, Y: d.y + 13, Text: label, Class: "wire-name"})
+	d.text(wireText{X: 6, Y: d.y + 13, Text: wireFit(label, d.scene.Width-12), Class: "wire-name"})
 	d.y += seqBandRow
 }
 

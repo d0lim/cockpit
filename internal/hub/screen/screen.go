@@ -64,6 +64,7 @@ type state struct {
 	services  map[string]serviceState
 	corr      *correlation
 	flowsMemo flowsRead
+	suiteMemo suiteWireRead
 }
 
 func (s *Screen) load(ctx context.Context, path string, query url.Values) (*state, error) {

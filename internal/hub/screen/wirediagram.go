@@ -48,7 +48,19 @@ func (st *state) wireUnfoldHref(seq int64) string {
 }
 
 func (st *state) wireModel(v api.WireView) wireModel {
-	return newWireModel(v.Calls, st.wireTiedOnly(), v.Scope == api.WireScopeFlow, st.wireOpened())
+	m := newWireModel(v.Calls, st.wireTiedOnly(), v.Scope == api.WireScopeFlow, st.wireOpened())
+	m.titles = wireStepTitles(v)
+	return m
+}
+
+func wireStepTitles(v api.WireView) map[string]string {
+	titles := map[string]string{}
+	for _, s := range v.Steps {
+		if s.Flow == v.Flow && s.Title != "" {
+			titles[s.Step] = s.Title
+		}
+	}
+	return titles
 }
 
 func (st *state) wireLinks() wireLinks {

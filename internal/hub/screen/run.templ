@@ -62,9 +62,13 @@ templ runHead(st *state) {
 				<span>·</span>
 				<span>took { took }</span>
 			}
-			if st.run.Wire {
-				<span>·</span>
-				<span title="This run's service calls passed through the wire recorder.">wire</span>
+			<span>·</span>
+			if st.run.Wire && served(*st.run, st.list) {
+				<a class="calls-mark calls-on" href={ templ.SafeURL("/runs/" + st.run.ID + "/wire") } title="Submitted with wire: this run's service calls passed through the wire recorder.">calls recorded</a>
+			} else if st.run.Wire {
+				<span class="calls-mark calls-on" title="Submitted with wire: this run's service calls passed through the wire recorder.">calls recorded</span>
+			} else {
+				<span class="calls-mark" title="Submitted without wire: this run kept no record of its service calls.">calls not recorded</span>
 			}
 		</p>
 		<nav class="tabs" aria-label="Run screens">

@@ -118,7 +118,7 @@ func methodTag(method string) templ.Component {
 	})
 }
 
-func stepRecords(st *state, flow string, s contract.FlowStep) templ.Component {
+func stepRecords(st *state, flow string, s contract.FlowStep, calls callsTab) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -258,7 +258,7 @@ func stepRecords(st *state, flow string, s contract.FlowStep) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if st.run.Wire && s.Status != contract.StepStatusSkipped {
+			if calls.open {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"text-xs text-muted\">The bodies of these requests and of the calls they caused are under <a class=\"link\" href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

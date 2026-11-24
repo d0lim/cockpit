@@ -89,6 +89,26 @@
 	.subtab-on {
 		@apply border-accent font-medium text-fg;
 	}
+	.subtab-count {
+		@apply ml-1 rounded-full px-1.5 py-px text-[11px] text-fg tabular-nums;
+		background: color-mix(in oklab, var(--accent) 14%, transparent);
+	}
+	.subtab-off {
+		@apply cursor-not-allowed line-through decoration-1 opacity-60 hover:text-muted;
+	}
+	.subtab-why {
+		@apply ml-auto min-w-0 truncate self-center pl-3 text-xs text-muted;
+	}
+	.calls-mark {
+		@apply rounded-full border border-line px-2 py-px;
+	}
+	.calls-on {
+		@apply border-transparent text-fg;
+		background: color-mix(in oklab, var(--accent) 14%, transparent);
+	}
+	a.calls-on {
+		@apply hover:underline;
+	}
 	.new-run-row {
 		@apply relative mb-4 min-h-8;
 	}
