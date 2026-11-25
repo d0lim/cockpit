@@ -36,9 +36,17 @@ type wireNode struct {
 }
 
 type wireModel struct {
-	nodes []*wireNode
-	shown map[int64]*wireNode
-	flow  bool
+	nodes  []*wireNode
+	shown  map[int64]*wireNode
+	flow   bool
+	titles map[string]string
+}
+
+func wireStepLabel(titles map[string]string, step string) string {
+	if title := titles[step]; title != "" {
+		return "step " + step + " · " + title
+	}
+	return "step " + step
 }
 
 func wireMillis(n *wireNode) float64 { return n.end - n.start }

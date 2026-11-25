@@ -115,6 +115,9 @@
 	.row-on td {
 		background: color-mix(in oklab, var(--accent) 10%, transparent);
 	}
+	.row-band td {
+		@apply bg-bg py-1 text-xs font-semibold text-muted;
+	}
 	.rows {
 		@apply divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface;
 	}

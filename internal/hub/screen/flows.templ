@@ -29,7 +29,7 @@ templ flowTreeNav(t flowTree, pick treePick) {
 			<ol>
 				for _, f := range stage.flows {
 					<li>
-						<a href={ templ.SafeURL(f.href) } class={ "tree-flow", templ.KV("tree-on", f.on) } title={ f.id + " · " + statusLabel(f.status) } if f.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
+						<a href={ templ.SafeURL(f.href) } class={ "tree-flow", templ.KV("tree-on", f.on) } title={ flowRowTitle(f) } if f.on { aria-current="true" data-scroll-here={ treeKey(pick) } }>
 							@statusMark(f.status)
 							<span class="min-w-0 truncate font-mono text-xs font-medium">{ f.id }</span>
 							<span class="tree-meta">{ f.count }</span>
@@ -58,6 +58,14 @@ templ flowTreeNav(t flowTree, pick treePick) {
 			</a>
 		}
 	</nav>
+}
+
+func flowRowTitle(f treeFlow) string {
+	parts := []string{f.id}
+	if f.title != "" {
+		parts = append(parts, f.title)
+	}
+	return strings.Join(append(parts, statusLabel(f.status)), " · ")
 }
 
 func flowFacts(f contract.FlowSummary) string {
@@ -101,6 +109,9 @@ templ pickHead(st *state, f contract.FlowSummary, s *contract.FlowStep, source s
 	<div class="space-y-2">
 		<p class="flex flex-wrap items-center gap-1.5 font-mono text-xs text-muted">
 			<a class="hover:text-fg" href={ templ.SafeURL(st.flowHref(f.ID, "", "")) }>{ f.ID }</a>
+			if s != nil && f.Title != "" {
+				<span class="min-w-0 truncate font-sans" title={ f.Title }>{ f.Title }</span>
+			}
 			if s != nil {
 				<span>›</span>
 				<span class="text-fg">{ s.ID }</span>
@@ -137,7 +148,7 @@ func ranIn(f contract.FlowSummary, s *contract.FlowStep) bool {
 	return f.Steps == 0 || f.Skipped < f.Steps
 }
 
-templ paneTabs(st *state, flow, step, on string, calls bool) {
+templ paneTabs(st *state, flow, step, on string, calls callsTab) {
 	<nav class="subtabs" aria-label="Panes">
 		<a href={ templ.SafeURL(st.flowHref(flow, step, "")) } class={ "subtab", templ.KV("subtab-on", on == paneStep) } if on == paneStep { aria-current="page" }>
 			if step == "" {
@@ -146,10 +157,20 @@ templ paneTabs(st *state, flow, step, on string, calls bool) {
 				Step
 			}
 		</a>
-		if st.run.Wire && calls {
-			<a href={ templ.SafeURL(st.callsHref(flow, step)) } class={ "subtab", templ.KV("subtab-on", on == paneCalls) } title="What each server was asked, and what it answered" if on == paneCalls { aria-current="page" }>Calls</a>
+		if calls.open {
+			<a href={ templ.SafeURL(st.callsHref(flow, step)) } class={ "subtab", templ.KV("subtab-on", on == paneCalls) } title="What each server was asked, and what it answered" if on == paneCalls { aria-current="page" }>
+				Calls
+				if calls.counted {
+					<span class="subtab-count">{ itoa(calls.count) }</span>
+				}
+			</a>
+		} else {
+			<span class="subtab subtab-off" aria-disabled="true" title={ calls.why }>Calls</span>
 		}
 		<a href={ templ.SafeURL(st.flowHref(flow, step, paneSource)) } class={ "subtab", templ.KV("subtab-on", on == paneSource) } if on == paneSource { aria-current="page" }>Source</a>
+		if !calls.open {
+			<span class="subtab-why" data-calls-why title={ calls.why }>{ calls.why }</span>
+		}
 	</nav>
 }
 

@@ -70,7 +70,35 @@ templ wireCallHead(st *state, c api.WireCallView) {
 			<span>·</span>
 			<span class="font-mono text-fg">{ c.Head.Caller } → { c.Head.Target }:{ itoa(c.Head.Port) }</span>
 		</p>
+		@wireCallStep(st, c)
 	</header>
+}
+
+templ wireCallStep(st *state, c api.WireCallView) {
+	if c.Step == "" {
+		<p class="call-step" data-call-step>
+			<span class="call-step-lead">in</span>
+			<span>Outside any step</span>
+		</p>
+	} else if f, s := st.callStep(c); true {
+		<a class="call-step" data-call-step href={ templ.SafeURL(st.flowHref(c.Flow, c.Step, "")) } title="Open this step">
+			<span class="call-step-lead">{ callStepLead(c.Head) }</span>
+			if s != nil && c.Take == wire.SuiteTake {
+				@statusMark(string(s.Status))
+			}
+			<span class="min-w-0">
+				<span class="block">
+					<span class="font-mono text-muted">{ c.Flow } › { c.Step }</span>
+					if s != nil && s.Title != "" {
+						<span class="ml-1 font-medium text-fg">{ s.Title }</span>
+					}
+				</span>
+				if f != nil && f.Title != "" {
+					<span class="block text-muted">{ f.Title }</span>
+				}
+			</span>
+		</a>
+	}
 }
 
 templ wireFieldList(fields []wireField) {

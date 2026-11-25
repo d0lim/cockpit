@@ -189,7 +189,7 @@ func TestTheCallTreeOfAnExecTakeListsThatTakesFlowsWithItsOwnOutcomes(t *testing
 	base := "/runs/" + rid(1) + "/wire"
 	_, _, whole := f.get(base + "?flow=beta&step=b1")
 	first := section(t, whole, "wire")
-	for _, want := range []string{"flow=alpha&amp;scope=flow", ">basic<", ">late<", `aria-current="page">Calls<`, `All <span class="tabular-nums">3<`, `Failed <span class="tabular-nums">1<`} {
+	for _, want := range []string{"flow=alpha&amp;scope=flow", ">basic<", ">late<", `aria-current="page">Calls <span class="subtab-count">0</span>`, `All <span class="tabular-nums">3<`, `Failed <span class="tabular-nums">1<`} {
 		if !strings.Contains(first, want) {
 			t.Errorf("canary: the suite take lacks %q", want)
 		}
@@ -226,10 +226,10 @@ func TestCallsAreOfferedOnlyForAFlowOrAStepThatRan(t *testing.T) {
 	f := newFixture(t)
 	base := liveFlows(t, f)
 	f.seed(runMeta(1, lifecycle.State{Phase: lifecycle.Testing, Env: lifecycle.EnvUp}, doneUp, wireRun))
-	if _, _, ran := f.get(base + "/beta?step=b1"); !strings.Contains(ran, ">Calls<") || !strings.Contains(ran, "/wire?flow=beta&amp;step=b1") {
-		t.Fatal("canary: a step that ran offers its calls")
+	if _, _, ran := f.get(base + "/beta?step=b1"); !strings.Contains(ran, callsPending) || strings.Contains(ran, "/wire?") {
+		t.Fatal("a step of a run still testing links to calls its record does not hold yet, or does not say why")
 	}
-	if _, _, skipped := f.get(base + "/beta?step=b2"); strings.Contains(skipped, ">Calls<") || strings.Contains(skipped, "/wire?") || !strings.Contains(skipped, ">Source<") {
-		t.Fatal("a skipped step offers calls it cannot have, or lost its Source pane")
+	if _, _, skipped := f.get(base + "/beta?step=b2"); !strings.Contains(skipped, callsStepIdle) || strings.Contains(skipped, "/wire?") || !strings.Contains(skipped, ">Source<") {
+		t.Fatal("a skipped step links to calls it cannot have, does not say why, or lost its Source pane")
 	}
 }

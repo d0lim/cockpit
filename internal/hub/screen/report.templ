@@ -171,11 +171,11 @@ templ flowRegion(st *state) {
 				if step == nil && st.query.Get("step") != "" {
 					<p class="notice tone-warn">This flow has no step { st.query.Get("step") }.</p>
 				}
-				@paneTabs(st, fv.Flow.ID, stepID(step), orElse(st.pane(), paneStep), ranIn(fv.Flow, step))
+				@paneTabs(st, fv.Flow.ID, stepID(step), orElse(st.pane(), paneStep), st.callsTab(fv.Flow, step))
 				if st.pane() == paneSource {
 					@codeView(st, fv)
 				} else if step != nil {
-					@stepRecords(st, fv.Flow.ID, *step)
+					@stepRecords(st, fv.Flow.ID, *step, st.callsTab(fv.Flow, step))
 				} else {
 					@flowSteps(st, fv)
 				}
@@ -196,7 +196,12 @@ templ flowSteps(st *state, fv api.FlowView) {
 							@statusMark(string(s.Status))
 							<span class="font-mono text-xs text-muted">{ s.ID }</span>
 							<span class="text-sm">{ s.Title }</span>
-							<span class="ml-auto text-xs text-muted">{ string(s.Kind) } · { stepFacts(s) }</span>
+							<span class="ml-auto text-xs text-muted">
+								{ string(s.Kind) } · { stepFacts(s) }
+								if note := st.stepCallsNote(fv.Flow.ID, s); note != "" {
+									· <span class="text-fg">{ note }</span>
+								}
+							</span>
 						</span>
 						if s.Message != "" {
 							<span class={ "block pl-6 font-mono text-xs whitespace-pre-wrap", templ.KV("text-bad", s.Status == contract.StepStatusFailed), templ.KV("text-muted", s.Status != contract.StepStatusFailed) }>{ s.Message }</span>

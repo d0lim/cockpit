@@ -16,6 +16,15 @@
 	.call-part {
 		@apply space-y-2;
 	}
+	.call-step {
+		@apply flex items-start gap-2 rounded-md border border-line bg-bg px-2.5 py-1.5 text-xs;
+	}
+	a.call-step {
+		@apply hover:border-accent;
+	}
+	.call-step-lead {
+		@apply w-11 shrink-0 pt-px text-[11px] font-semibold tracking-wide text-muted uppercase;
+	}
 	.call-part > h3 {
 		@apply flex items-baseline gap-2 text-sm font-semibold;
 	}

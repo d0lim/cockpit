@@ -24,6 +24,7 @@ type treeStep struct {
 
 type treeFlow struct {
 	id     string
+	title  string
 	status string
 	count  string
 	href   string
@@ -116,7 +117,7 @@ func buildTree(flows []contract.FlowSummary, only string, pick treePick, links t
 		all += f.Steps
 		failed += f.Failed
 		skipped += f.Skipped
-		row := treeFlow{id: f.ID, status: string(f.Status), count: itoa(f.Passed) + " / " + itoa(f.Steps), href: links.flow(f.ID), on: pick.flow == f.ID && pick.step == ""}
+		row := treeFlow{id: f.ID, title: f.Title, status: string(f.Status), count: itoa(f.Passed) + " / " + itoa(f.Steps), href: links.flow(f.ID), on: pick.flow == f.ID && pick.step == ""}
 		if only != "" || pick.flow == f.ID {
 			for _, s := range f.StepList {
 				if !stepShown(only, s) {
@@ -266,7 +267,7 @@ func (st *state) callTree(v api.WireView) flowTree {
 			}
 			return st.href(set)
 		},
-		meta: func(flow string, s contract.FlowStep) string { return itoa(calls[treePick{flow, s.ID}]) },
+		meta: func(flow string, s contract.FlowStep) string { return wireCallsShort(calls[treePick{flow, s.ID}]) },
 	})
 	t.outside = &treeOutside{href: st.wireOutsideHref(), calls: v.Outside, on: v.Scope == api.WireScopeOutside}
 	return t

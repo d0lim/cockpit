@@ -17,6 +17,7 @@ import (
 const (
 	wireCallPanelID = "wire-call"
 	wireFlowHint    = "Every step of this flow, in the order the calls started."
+	wireNoRecord    = "This run did not record its service calls: it was submitted without wire, so no flow or step has Calls."
 )
 
 func wireNotHeld(err error) bool {
@@ -94,7 +95,7 @@ func silentRoutes(routes []api.WireRouteCalls) []string {
 
 func (st *state) wireRunNote() (wireNote, bool) {
 	if !st.run.Wire {
-		return wireNote{}, false
+		return wireNote{ToneIdle, wireNoRecord}, true
 	}
 	const lead = "This run's service calls passed through the wire recorder. "
 	s, err := st.s.d.Reader.WireStanding(st.run.ID)
@@ -199,6 +200,31 @@ func wirePageText(v api.WireView) string {
 type wireRow struct {
 	head   api.WireHead
 	offset string
+	band   string
+}
+
+func wireTimedHeading(v api.WireView) string {
+	if v.Scope == api.WireScopeFlow {
+		return "During this flow, not tied to its steps"
+	}
+	return "During this step, not tied to it"
+}
+
+func wireBands(v api.WireView, rows []wireRow) []wireRow {
+	if v.Scope != api.WireScopeFlow {
+		return rows
+	}
+	titles := wireStepTitles(v)
+	for i := range rows {
+		if i > 0 && rows[i].head.Step == rows[i-1].head.Step {
+			continue
+		}
+		rows[i].band = "Outside any step"
+		if s := rows[i].head.Step; s != "" {
+			rows[i].band = wireStepLabel(titles, s)
+		}
+	}
+	return rows
 }
 
 func wireRows(calls []api.WireHead) (linked, timed []wireRow) {

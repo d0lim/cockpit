@@ -19,7 +19,7 @@ templ wireRegion(st *state) {
 			<div class="detail">
 				if f := findFlow(st.treeFlows(), st.query.Get("flow")); f != nil {
 					@pickHead(st, *f, pickedStep(*f, st.query.Get("step")), "")
-					@paneTabs(st, f.ID, stepID(pickedStep(*f, st.query.Get("step"))), paneCalls, true)
+					@paneTabs(st, f.ID, stepID(pickedStep(*f, st.query.Get("step"))), paneCalls, callsTab{open: true})
 				}
 				if wireNotHeld(err) {
 					<p class="notice tone-warn">The record holds no call here: { err.Error() }.</p>
@@ -63,7 +63,7 @@ func wirePick(v api.WireView) treePick {
 templ wirePickHead(st *state, v api.WireView) {
 	if f := findFlow(st.treeFlows(), v.Flow); f != nil && v.Take == wire.SuiteTake && v.Scope != api.WireScopeOutside {
 		@pickHead(st, *f, pickedStep(*f, v.Step), "")
-		@paneTabs(st, v.Flow, v.Step, paneCalls, true)
+		@paneTabs(st, v.Flow, v.Step, paneCalls, wireTab(v, v.Flow, v.Step))
 		if v.Scope == api.WireScopeFlow {
 			<p class="text-xs text-muted">{ wireFlowHint }</p>
 		}
@@ -151,12 +151,12 @@ templ wireCalls(st *state, v api.WireView) {
 templ wireCallRows(st *state, v api.WireView) {
 	if linked, timed := wireRows(v.Calls); true {
 		if len(linked) > 0 {
-			@wireTable(st, linked)
+			@wireTable(st, wireBands(v, linked))
 		}
 		if len(timed) > 0 {
 			<div class="space-y-2 opacity-70">
-				<h4 class="text-xs font-semibold text-muted">During this step, not tied to it</h4>
-				@wireTable(st, timed)
+				<h4 class="text-xs font-semibold text-muted">{ wireTimedHeading(v) }</h4>
+				@wireTable(st, wireBands(v, timed))
 			</div>
 		}
 	}
@@ -170,6 +170,11 @@ templ wireTable(st *state, rows []wireRow) {
 			</thead>
 			<tbody>
 				for _, r := range rows {
+					if r.band != "" {
+						<tr class="row-band" data-band>
+							<td colspan="4">{ r.band }</td>
+						</tr>
+					}
 					<tr class={ templ.KV("row-on", st.query.Get("call") == itoa64(r.head.Seq)) } data-seq={ itoa64(r.head.Seq) } data-link={ string(r.head.Link) } data-depth={ itoa(r.head.Depth) } if st.query.Get("call") == itoa64(r.head.Seq) { data-scroll-here={ wireScrollKey(r.head.Seq) } }>
 						<td class="font-mono text-xs whitespace-nowrap text-muted">{ r.offset }</td>
 						<td class="w-full font-mono text-xs">
@@ -208,7 +213,7 @@ templ wireRunNotice(st *state) {
 	if n, ok := st.wireRunNote(); ok {
 		<p class={ "notice", "tone-" + string(n.tone) }>
 			{ n.text }
-			if served(*st.run, st.list) {
+			if st.run.Wire && served(*st.run, st.list) {
 				<a class="link ml-1" href={ templ.SafeURL("/runs/" + st.run.ID + "/wire") }>Open its calls</a>
 			}
 		</p>

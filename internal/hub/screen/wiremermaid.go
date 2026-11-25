@@ -29,7 +29,7 @@ func wireMermaid(m wireModel) string {
 		n, h := e.node, e.node.head
 		if !e.reply && m.flow && h.Step != step {
 			step = h.Step
-			b.WriteString("    Note over " + span + ": step " + wireMermaidText.Replace(step) + "\n")
+			b.WriteString("    Note over " + span + ": " + wireMermaidText.Replace(wireStepLabel(m.titles, step)) + "\n")
 		}
 		from, to := alias[h.Caller], alias[h.Target]
 		if e.reply {

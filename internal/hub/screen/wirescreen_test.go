@@ -49,8 +49,8 @@ func TestTheCallsPaneAndTheWirePathExistOnlyForARunThatRecorded(t *testing.T) {
 	if strings.Contains(plain, `/runs/`+rid(1)+`/wire`) || strings.Contains(plain, "wire recorder") {
 		t.Fatal("a run without wire links to its calls or shows the notice")
 	}
-	if _, _, flow := f.get("/runs/" + rid(1) + "/report/alpha"); strings.Contains(flow, ">Calls<") || !strings.Contains(flow, ">Source<") {
-		t.Fatal("a run without wire offers the Calls pane, or the canary Source pane is missing")
+	if _, _, flow := f.get("/runs/" + rid(1) + "/report/alpha"); strings.Contains(flow, "/wire?") || !strings.Contains(flow, `aria-disabled="true" title="`+callsNoWire+`">Calls<`) || !strings.Contains(flow, ">Source<") {
+		t.Fatal("a run without wire links to the Calls pane, does not say why it has none, or the canary Source pane is missing")
 	}
 	if status, _, _ := f.get("/runs/" + rid(1) + "/wire"); status != http.StatusNotFound {
 		t.Fatalf("a run without wire answers %d", status)
