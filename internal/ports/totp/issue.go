@@ -18,6 +18,8 @@ type Issuer struct {
 	Sleep func(ctx context.Context, ms int64) error
 	Steps Steps
 	Mask  ports.Mask
+
+	StepMillis int64
 }
 
 func (i Issuer) Issue(ctx context.Context, loginID string) (string, error) {
@@ -29,7 +31,11 @@ func (i Issuer) Issue(ctx context.Context, loginID string) (string, error) {
 		return "", ports.Unavailable(i.Mask, "two-factor seed for "+loginID+" is empty")
 	}
 	last, has := i.Steps.LastStep(loginID)
-	step, wait := ChooseStep(i.Clock.Millis(), last, has)
+	stepMillis := i.StepMillis
+	if stepMillis == 0 {
+		stepMillis = StandardStepMillis
+	}
+	step, wait := ChooseStep(i.Clock.Millis(), last, has, stepMillis)
 	if wait > 0 {
 		if err := i.Sleep(ctx, wait); err != nil {
 			return "", ports.Unavailable(i.Mask, "wait for the next two-factor window for "+loginID+" was cancelled")

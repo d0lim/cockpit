@@ -22,6 +22,7 @@ type Deps struct {
 	Priv     map[string]string
 	PrivPath string
 	SeedKeys map[string]string
+	TOTPStep int64
 	HTTP     *httpport.Client
 	Context  *capture.Context
 	Source   *source.Reader

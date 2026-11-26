@@ -24,6 +24,8 @@ var totpMutations = []porttest.Mutation{
 	{"RFC 6238 codes", "pin the HMAC dynamic truncation offset to 0", "red: the 59-second vector is not 287082", "TestRFC6238VectorsAndBase32DecodingMatch"},
 	{"a second issue in the same window waits for the next window", "ChooseStep ignores last", "red: the second issue returns the same step without waiting", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
 	{"the step is recorded before the code", "Issue calls CommitStep after making the code", "red: a code goes out even when recording the step fails", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
+	{"the issuer counts windows in the configured step length", "ChooseStep divides by StandardStepMillis instead of the given length", "red: the commits are 0, 1, 2 instead of 3, 4, 5", "TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow"},
+	{"the period outside 1 to 30 seconds is refused", "StepMillisFromEnv returns the value without the range check", "red: 0, -1 and 31 are accepted", "TestStepMillisFromEnvDefaultsToThirtySecondsAndRefusesPeriodsOutsideOneToThirty"},
 	{"the seed never appears in error messages", "put the seed value in the unknown account error", "red: the PLANTED seed shows in the error message", "TestUnknownAccountAndEmptySeedAreRejectedWithoutTheSeedInTheMessage"},
 	{"in-place save", "SeedFile.Save writes through rename", "red: the inode changes and the mode is not 0600", "TestSeedSaveRewritesPrivateEnvInPlaceAndKeepsOtherSections"},
 }
@@ -100,6 +102,57 @@ func TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst(t *test
 	steps.fail = true
 	if code, err := iss.Issue(context.Background(), "admin-1"); err == nil || code != "" {
 		t.Fatalf("no code goes out when recording the step fails: %q %v", code, err)
+	}
+}
+
+func TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow(t *testing.T) {
+	now := int64(9_000 + 100)
+	steps := &fakeSteps{last: map[string]int64{}}
+	var slept []int64
+	iss := issuer(&now, steps, &slept)
+	iss.StepMillis = 3_000
+	for range 3 {
+		if _, err := iss.Issue(context.Background(), "admin-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(steps.commits) != 3 || steps.commits[0] != 3 || steps.commits[1] != 4 || steps.commits[2] != 5 {
+		t.Fatalf("commits=%v", steps.commits)
+	}
+	if len(slept) != 1 || slept[0] != 4*3_000-(9_000+100)+300 {
+		t.Fatalf("slept=%v", slept)
+	}
+	code, err := At(rfcSeed, 5)
+	if err != nil || code == "" {
+		t.Fatalf("%q %v", code, err)
+	}
+}
+
+func TestStepMillisFromEnvDefaultsToThirtySecondsAndRefusesPeriodsOutsideOneToThirty(t *testing.T) {
+	accepted := map[string]int64{"absent": 30_000, "1": 1_000, "3": 3_000, "30": 30_000}
+	for name, want := range accepted {
+		env := map[string]any{}
+		if name != "absent" {
+			var n float64
+			if err := json.Unmarshal([]byte(name), &n); err != nil {
+				t.Fatal(err)
+			}
+			env["totpPeriodSeconds"] = n
+		}
+		got, err := StepMillisFromEnv(env)
+		if err != nil || got != want {
+			t.Fatalf("%s: %d %v", name, got, err)
+		}
+	}
+	refused := []any{0.0, -1.0, 31.0, 2.5, "3", true, nil}
+	for _, value := range refused {
+		_, err := StepMillisFromEnv(map[string]any{"totpPeriodSeconds": value})
+		if err == nil || !strings.Contains(err.Error(), "totpPeriodSeconds") {
+			t.Fatalf("%#v: %v", value, err)
+		}
+	}
+	if len(accepted)+len(refused) != 11 {
+		t.Fatal("case count")
 	}
 }
 

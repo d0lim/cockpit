@@ -114,6 +114,10 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	if err != nil {
 		return fail(err.Error())
 	}
+	totpStep, err := totp.StepMillisFromEnv(publicEnv)
+	if err != nil {
+		return fail(err.Error())
+	}
 	wire, err := parseWireRoutes(s.wireRoutes)
 	if err != nil {
 		return fail(err.Error())
@@ -144,7 +148,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		return fail("could not build the allowlist from public env addresses: " + err.Error())
 	}
 	ctxDeps := &runnerctx.Deps{
-		Env: publicEnv, Priv: priv, PrivPath: s.privPath, SeedKeys: seedKeys(publicEnv),
+		Env: publicEnv, Priv: priv, PrivPath: s.privPath, SeedKeys: seedKeys(publicEnv), TOTPStep: totpStep,
 		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText,
 		Secret: func(v string, priv []string) bool { return base.WithKnown(priv).Mask(v) != v },
 	}

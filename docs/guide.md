@@ -93,7 +93,7 @@ Suites import only from `cockpit:flow` and from relative paths inside the script
 | `capture(name, value, { persist? })` | stores a value for later steps; `persist: true` keeps it in the context file across runs |
 | `ref(name, value)` | marks `value` as a public correlation key of the running step, under `name`; see below |
 | `get(name)` | reads a captured value and fails the step when it is missing |
-| `totp(loginId)`, `saveSeed(loginId, secret)` | produces a TOTP code from a stored seed, and stores a seed into the private env |
+| `totp(loginId)`, `saveSeed(loginId, secret)` | produces a TOTP code from a stored seed, and stores a seed into the private env; the time step is env.json `totpPeriodSeconds` (1 to 30, 30 when absent), and it must match the step the service verifies with |
 | `crypto` | `randomUUID`, `getRandomValues` and RSA signing through `subtle` |
 | `readSource(source, path)`, `listSource(source, dir)` | reads files under `/work/source/<source>` |
 | `clock()`, `sleep(ms)` | the current time in milliseconds and a pause |

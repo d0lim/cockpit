@@ -42,6 +42,7 @@ var runnerMutations = []porttest.Mutation{
 	{"records belong to one step", "TakeCalls keeps the calls it returned", "red: the quiet step carries calls", "TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs"},
 	{"poll stops at the deadline", "skip the deadline check after a failed attempt", "red: the delta step never finishes or reports another attempt count", "TestPollGivesUpAtTheDeadlineAndReportsTheAttemptCount"},
 	{"the recorded span id is the one the request carried", "takeRecords leaves SpanID out of the step call", "red: the recorded span id is empty while the server received a traceparent", "TestTheStepCallCarriesTheSpanIDThatWasSent"},
+	{"a TOTP period outside 1 to 30 seconds refuses to start", "ignore the StepMillisFromEnv error in Main", "red: the runner exits 0 with totpPeriodSeconds 31", "TestATOTPPeriodOutsideOneToThirtySecondsInEnvJSONExitsTwoBeforeTheManifest"},
 	{"a malformed COCKPIT_TRACE_ID is refused", "delete the IsTraceID check in Main", "red: the runner exits 0 and sends requests with the malformed trace id", "TestARunnerWithoutATraceIDSendsNoTraceparentAndAMalformedTraceIDRefusesToStart"},
 }
 
@@ -113,6 +114,23 @@ func TestMissingOrBrokenSuiteFileExitsTwoWithoutManifest(t *testing.T) {
 	os.Remove(suite)
 	if got := w.run(nil); got.code != 2 {
 		t.Fatalf("missing: exit %d", got.code)
+	}
+}
+
+func TestATOTPPeriodOutsideOneToThirtySecondsInEnvJSONExitsTwoBeforeTheManifest(t *testing.T) {
+	w := newWorld(t, core, nil)
+	if err := os.WriteFile(w.env["E2E_ENV"], []byte(`{"baseUrl":"http://fake.local","totpPeriodSeconds":31}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := w.run(nil)
+	if got.code != 2 || !strings.Contains(strings.Join(got.stderr, "\n"), "totpPeriodSeconds") || w.exists("manifest.json") {
+		t.Fatalf("31: exit %d stderr %v", got.code, got.stderr)
+	}
+	if err := os.WriteFile(w.env["E2E_ENV"], []byte(`{"baseUrl":"http://fake.local","totpPeriodSeconds":3}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.run(nil); got.code != 0 {
+		t.Fatalf("3: exit %d stderr %v", got.code, got.stderr)
 	}
 }
 
