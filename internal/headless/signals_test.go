@@ -1,6 +1,7 @@
 package headless
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -133,7 +134,9 @@ func otlpSpans(runID string) []fakedocker.OTLPLine {
 func TestOTLPSpansThatArriveWhileTheRunnerRefreshesTheMaskerJoinTheFrozenRunTraceAndTheDrainIsNamed(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "bundle")
 	f := newFake(func(f *fakedocker.Fake) { f.OTLP = otlpSpans })
-	code, text := runFake(t, toyProject(t), f, Options{Out: out})
+	limits := testLimits()
+	limits.OTLPQuiet, limits.OTLPDrain = time.Second, 5*time.Second
+	code, text := runFakeLimited(context.Background(), t, toyProject(t), f, Options{Out: out}, limits)
 	if code != cli.ExitOK || !strings.Contains(text, "otlp drained after") {
 		t.Fatalf("exit %d, the runner line must name the drain\n%s", code, text)
 	}

@@ -83,6 +83,11 @@ func runFake(t *testing.T, project string, f *fakedocker.Fake, opts Options) (in
 
 func runFakeIn(ctx context.Context, t *testing.T, project string, f *fakedocker.Fake, opts Options) (int, string) {
 	t.Helper()
+	return runFakeLimited(ctx, t, project, f, opts, testLimits())
+}
+
+func runFakeLimited(ctx context.Context, t *testing.T, project string, f *fakedocker.Fake, opts Options, limits hubstages.Limits) (int, string) {
+	t.Helper()
 	opts.Project = project
 	var out bytes.Buffer
 	code := Run(ctx, opts, Deps{
@@ -94,7 +99,7 @@ func runFakeIn(ctx context.Context, t *testing.T, project string, f *fakedocker.
 		TempDir:      t.TempDir(),
 		Submitter:    "tester",
 		ListenCanary: canaryFor(f),
-		Limits:       testLimits(),
+		Limits:       limits,
 	})
 	return code, out.String()
 }
