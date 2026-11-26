@@ -164,7 +164,7 @@ To start over, bring the stack down with its volumes and delete the state direct
 | `manifest.json` | the suite's stages, flows and steps, with source file and line |
 | `result.json` | one entry per step: status, duration, request count, last HTTP status, failure message |
 | `ledger.json` | the last status of every flow in this environment |
-| `context.json` | persisted captures and TOTP steps |
+| `context.json` | persisted captures, TOTP steps and the step length they were counted in; a runner started with another length drops the steps |
 | `exec/<time>-<flow>.json` | the result of a `--flow` target |
 | `wire.private.env.json` | in a recording run only: the values the runner masks, kept current (mode 600) and read by the hub to mask the wire record; never part of the report |
 

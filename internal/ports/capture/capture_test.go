@@ -20,6 +20,7 @@ var captureMutations = []porttest.Mutation{
 	{"rewriting a capture as secret drops it from the persisted list", "Set does not clear persistNames when persist=false", "red: draftId stays in persisted", "TestCarriedOverCapturesPersistAgainAndRewritingAsSecretDropsThem"},
 	{"a missing capture is rejected with its name", "Get returns an empty string", "red: no error, or the name is missing", "TestReadingMissingCaptureFailsWithPortBadArgsAndItsName"},
 	{"atomic write", "Save writes the file directly without a temp file", "red: a half-written file other than .tmp shows up in the directory during the write", "TestSaveWritesSchemaVersion2ContextJSONAtomicallyAndLoadReadsItBack"},
+	{"steps saved under another TOTP step length are dropped", "UseTOTPStep keeps the steps when the length changes", "red: admin-1 keeps step 99 after the length goes from 30 to 3 seconds", "TestTOTPStepsAreDroppedOnlyWhenTheTOTPStepLengthChanges"},
 	{"schemaVersion check", "Load ignores the version", "red: a version 1 file is carried over", "TestContextJSONWithUnknownSchemaVersionIsNotCarriedOver"},
 }
 
@@ -103,6 +104,48 @@ func TestSaveWritesSchemaVersion2ContextJSONAtomicallyAndLoadReadsItBack(t *test
 	}
 	if _, ok := again.LastStep("admin-2"); ok {
 		t.Fatal("step found for an unknown account")
+	}
+}
+
+func TestTOTPStepsAreDroppedOnlyWhenTheTOTPStepLengthChanges(t *testing.T) {
+	dir := t.TempDir()
+	c, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.CommitStep("admin-1", 99); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.UseTOTPStep(30_000); err != nil {
+		t.Fatal(err)
+	}
+	if last, ok := c.LastStep("admin-1"); !ok || last != 99 {
+		t.Fatalf("same length: %d %v", last, ok)
+	}
+	if err := c.UseTOTPStep(3_000); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := c.LastStep("admin-1"); ok {
+		t.Fatal("a step saved under 30 seconds survived the change to 3 seconds")
+	}
+	raw, _ := os.ReadFile(filepath.Join(dir, "context.json"))
+	parsed, err := contract.ReadRunnerFile[contract.Context](strings.NewReader(string(raw)))
+	if err != nil || parsed.TOTPStep != 3_000 || len(parsed.TOTPSteps) != 0 {
+		t.Fatalf("%+v %v", parsed, err)
+	}
+	legacy := t.TempDir()
+	if err := os.WriteFile(filepath.Join(legacy, "context.json"), []byte(`{"schemaVersion":2,"captures":{},"totpSteps":{"admin-1":5}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	old, err := Load(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := old.UseTOTPStep(30_000); err != nil {
+		t.Fatal(err)
+	}
+	if last, ok := old.LastStep("admin-1"); !ok || last != 5 {
+		t.Fatalf("a file without a length is read as 30 seconds: %d %v", last, ok)
 	}
 }
 

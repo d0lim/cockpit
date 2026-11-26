@@ -131,6 +131,9 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	if err != nil {
 		return fail("could not read the context: " + err.Error())
 	}
+	if err := e2eCtx.UseTOTPStep(totpStep); err != nil {
+		return fail("could not reset the TOTP steps for the new time step: " + err.Error())
+	}
 	roots, err := sourceRoots(s.sources)
 	if err != nil {
 		return fail(err.Error())

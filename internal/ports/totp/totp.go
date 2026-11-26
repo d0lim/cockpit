@@ -6,13 +6,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/d0lim/cockpit/internal/contract"
 	"math"
 	"strings"
 	"unicode"
 )
 
 const (
-	StandardStepMillis int64 = 30_000
+	StandardStepMillis       = contract.StandardTOTPStepMillis
 	periodKey                = "totpPeriodSeconds"
 	waitMarginMillis   int64 = 300
 	alphabet                 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
@@ -76,7 +77,7 @@ func StepMillisFromEnv(env map[string]any) (int64, error) {
 func ChooseStep(nowMs int64, last int64, hasLast bool, stepMillis int64) (step int64, waitMs int64) {
 	now := nowMs / stepMillis
 	step = now
-	if hasLast && last <= now+1 && last+1 > now {
+	if hasLast && last+1 > now {
 		step = last + 1
 	}
 	if step > now+1 {

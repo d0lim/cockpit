@@ -20,10 +20,11 @@ type Context struct {
 	dir      string
 	Captures *Store
 	steps    map[string]int64
+	stepMs   int64
 }
 
 func Load(dir string) (*Context, error) {
-	c := &Context{dir: dir, steps: map[string]int64{}}
+	c := &Context{dir: dir, steps: map[string]int64{}, stepMs: contract.StandardTOTPStepMillis}
 	raw, err := os.ReadFile(filepath.Join(dir, fileName))
 	if errors.Is(err, fs.ErrNotExist) {
 		c.Captures = NewStore(nil)
@@ -40,7 +41,22 @@ func Load(dir string) (*Context, error) {
 	if parsed.TOTPSteps != nil {
 		c.steps = maps.Clone(parsed.TOTPSteps)
 	}
+	if parsed.TOTPStep != 0 {
+		c.stepMs = parsed.TOTPStep
+	}
 	return c, nil
+}
+
+func (c *Context) UseTOTPStep(stepMillis int64) error {
+	c.mu.Lock()
+	if c.stepMs == stepMillis {
+		c.mu.Unlock()
+		return nil
+	}
+	c.stepMs = stepMillis
+	c.steps = map[string]int64{}
+	c.mu.Unlock()
+	return c.Save()
 }
 
 func (c *Context) LastStep(loginID string) (int64, bool) {
@@ -64,6 +80,7 @@ func (c *Context) Save() error {
 		SchemaVersion: contract.RunnerSchemaVersion,
 		Captures:      c.Captures.Persisted(),
 		TOTPSteps:     maps.Clone(c.steps),
+		TOTPStep:      c.stepMs,
 	}
 	data, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
