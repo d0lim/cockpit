@@ -25,6 +25,7 @@ var totpMutations = []porttest.Mutation{
 	{"a second issue in the same window waits for the next window", "ChooseStep ignores last", "red: the second issue returns the same step without waiting", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
 	{"the step is recorded before the code", "Issue calls CommitStep after making the code", "red: a code goes out even when recording the step fails", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
 	{"the issuer counts windows in the configured step length", "ChooseStep divides by StandardStepMillis instead of the given length", "red: the commits are 0, 1, 2 instead of 3, 4, 5", "TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow"},
+	{"a saved step from a shorter period does not stall the issuer", "ChooseStep trusts last even when it is beyond the next window", "red: the issuer sleeps for days after the period grows from 3 to 30 seconds", "TestASavedStepFromAShorterPeriodIsIgnoredInsteadOfWaitingForItsWindow"},
 	{"the period outside 1 to 30 seconds is refused", "StepMillisFromEnv returns the value without the range check", "red: 0, -1 and 31 are accepted", "TestStepMillisFromEnvDefaultsToThirtySecondsAndRefusesPeriodsOutsideOneToThirty"},
 	{"the seed never appears in error messages", "put the seed value in the unknown account error", "red: the PLANTED seed shows in the error message", "TestUnknownAccountAndEmptySeedAreRejectedWithoutTheSeedInTheMessage"},
 	{"in-place save", "SeedFile.Save writes through rename", "red: the inode changes and the mode is not 0600", "TestSeedSaveRewritesPrivateEnvInPlaceAndKeepsOtherSections"},
@@ -111,10 +112,13 @@ func TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow(t *testi
 	var slept []int64
 	iss := issuer(&now, steps, &slept)
 	iss.StepMillis = 3_000
+	var issued []string
 	for range 3 {
-		if _, err := iss.Issue(context.Background(), "admin-1"); err != nil {
+		code, err := iss.Issue(context.Background(), "admin-1")
+		if err != nil {
 			t.Fatal(err)
 		}
+		issued = append(issued, code)
 	}
 	if len(steps.commits) != 3 || steps.commits[0] != 3 || steps.commits[1] != 4 || steps.commits[2] != 5 {
 		t.Fatalf("commits=%v", steps.commits)
@@ -122,9 +126,27 @@ func TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow(t *testi
 	if len(slept) != 1 || slept[0] != 4*3_000-(9_000+100)+300 {
 		t.Fatalf("slept=%v", slept)
 	}
-	code, err := At(rfcSeed, 5)
-	if err != nil || code == "" {
-		t.Fatalf("%q %v", code, err)
+	for i, step := range steps.commits {
+		want, err := At(rfcSeed, step)
+		if err != nil || issued[i] != want {
+			t.Fatalf("issue %d: got %q, the code of step %d is %q (%v)", i, issued[i], step, want, err)
+		}
+	}
+}
+
+func TestASavedStepFromAShorterPeriodIsIgnoredInsteadOfWaitingForItsWindow(t *testing.T) {
+	now := int64(90_000 + 100)
+	stale := &fakeSteps{last: map[string]int64{"admin-1": 90_100 / 3_000}}
+	var slept []int64
+	code, err := issuer(&now, stale, &slept).Issue(context.Background(), "admin-1")
+	want, _ := At(rfcSeed, 3)
+	if err != nil || len(slept) != 0 || len(stale.commits) != 1 || stale.commits[0] != 3 || code != want {
+		t.Fatalf("stale step: %q %v slept=%v commits=%v", code, err, slept, stale.commits)
+	}
+	current := &fakeSteps{last: map[string]int64{"admin-1": 4}}
+	slept = nil
+	if _, err := issuer(&now, current, &slept).Issue(context.Background(), "admin-1"); err != nil || len(slept) != 1 || current.commits[0] != 5 {
+		t.Fatalf("a step one window ahead still waits: %v slept=%v commits=%v", err, slept, current.commits)
 	}
 }
 
