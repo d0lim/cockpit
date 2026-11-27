@@ -24,6 +24,7 @@ var envgenMutations = []porttest.Mutation{
 	{"outputs are 600", "drop the Chmod in sealOutputs", "red: an output written 644 stays 644", "TestGeneratedOutputsEndAt600AndAMissingOrLinkedOutputFailsGeneration"},
 	{"a failed generation removes only its own outputs and masks stderr", "drop the cleanup loop or the in.Mask call", "red: a produced output survives, a committed one is removed, or the planted value shows", "TestFailedEnvCommandRemovesOnlyItsOwnOutputsAndMasksTheStderrTail"},
 	{"an env command that runs with gitlinks left out warns naming them", "drop the logger.Warn call in GenerateEnv", "red: no warning names vendor/extra and deps/queue", "TestAnEnvCommandRunWithLeftOutSubmodulesLogsAWarningNamingThemAndARunWithoutThemLogsNone"},
+	{"the left-out warning masks each gitlink name", "log in.LeftOut without in.Mask in GenerateEnv", "red: the planted gitlink name shows in the warning", "TestTheLeftOutWarningMasksAGitlinkNameThatCarriesAPlantedValue"},
 	{"every env output is a masker value source", "build MaskSources from secrets.sources only", "red: the planted value in e2e.private.env.json is not masked", "TestValuePlantedInAnOutputOutsideSecretsSourcesIsMaskedAfterRefresh"},
 }
 
@@ -240,5 +241,16 @@ func TestAnEnvCommandRunWithLeftOutSubmodulesLogsAWarningNamingThemAndARunWithou
 	}
 	if got := envWarnings(t, []string{"vendor/extra"}, false); len(got) != 0 {
 		t.Fatalf("a run without env.command warned: %v", got)
+	}
+}
+
+func TestTheLeftOutWarningMasksAGitlinkNameThatCarriesAPlantedValue(t *testing.T) {
+	warned := envWarnings(t, []string{"vendor/" + planted, "deps/queue"}, true)
+	if len(warned) != 1 {
+		t.Fatalf("warnings %v", warned)
+	}
+	got := fmt.Sprint(warned[0]["gitlinks"])
+	if strings.Contains(got, planted) || !strings.Contains(got, "vendor/****") || !strings.Contains(got, "deps/queue") {
+		t.Fatalf("gitlinks %q", got)
 	}
 }

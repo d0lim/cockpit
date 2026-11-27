@@ -77,7 +77,11 @@ func GenerateEnv(ctx context.Context, d Docker, root *os.Root, in EnvInput) erro
 		if logger == nil {
 			logger = slog.Default()
 		}
-		logger.Warn("env.command runs while the run leaves submodules out", "run", in.RunID, "gitlinks", in.LeftOut)
+		gitlinks := make([]string, len(in.LeftOut))
+		for i, g := range in.LeftOut {
+			gitlinks[i] = in.Mask(g)
+		}
+		logger.Warn("env.command runs while the run leaves submodules out", "run", in.RunID, "gitlinks", gitlinks)
 	}
 	if strings.ContainsAny(in.Layout.Src, ",=") {
 		return fmt.Errorf("run source directory %q cannot be bound: it contains a comma or an equals sign", in.Layout.Src)
