@@ -16,12 +16,13 @@ import (
 var submoduleMutations = []porttest.Mutation{
 	{"a submodule name cannot climb out of modules/", "drop the cleanRelative name check in objects.module and resolve the name with os.Stat on the joined path", "red: the gitlink is spliced from the outside repository through a ../ name", "TestASubmoduleNameThatClimbsOutOfModulesOrLinksOutIsRejectedAndANestedNameOrAnInsideLinkPasses"},
 	{"a link under modules/ cannot lead out of it", "resolve the name with os.Stat on the joined path instead of os.Root", "red: modules/evil linking to the outside repository is spliced", "TestASubmoduleNameThatClimbsOutOfModulesOrLinksOutIsRejectedAndANestedNameOrAnInsideLinkPasses"},
-	{"a gitlink path is a clean relative path", "drop the cleanRelative check on the gitlink path in repository.submodule", "red: gitlinks at .. and . are spliced", "TestAGitlinkAtADotOrParentSegmentIsRejectedEvenWhenGitmodulesMapsItToAnInitializedSubmodule"},
+	{"every listed gitlink path is a clean relative path, spliced or not", "drop the uncleanGitlink check in Tree.add", "red: gitlinks at .. and . are spliced when referenced and listed when no path references them", "TestAGitlinkAtADotOrParentSegmentIsRejectedWhetherOrNotADeclaredPathReferencesItWhileACleanGitlinkIsSpliced"},
+	{"a gitlink path is checked before anything references it", "check the gitlink path only in Tree.open", "red: gitlinks at .. and . are listed when no path references them", "TestAGitlinkAtADotOrParentSegmentIsRejectedWhetherOrNotADeclaredPathReferencesItWhileACleanGitlinkIsSpliced"},
 	{"an include in a committed .gitmodules is not followed", "drop --no-includes from objects.config", "red: the gitlink maps through the planted host file and is spliced", "TestAnIncludeInACommittedGitmodulesIsNotFollowedAndItsEntriesDoNotMapAGitlink"},
-	{"a gitlink that does not resolve fails the listing", "skip a gitlink whose module or pinned commit cannot be read in splice", "red: the listing passes and mock/ holds no files", "TestAnUninitializedSubmoduleOrAPinMissingFromItsModuleIsRejectedAtListingAndAnInitializedOneIsSpliced"},
+	{"a referenced gitlink that does not resolve fails the splice", "record an unresolvable referenced gitlink as an empty repository in Tree.open", "red: the splice passes and mock/ holds no files", "TestAnUninitializedSubmoduleOrAPinMissingFromItsModuleIsRejectedWhenAPathReferencesItAndAnInitializedOneIsSpliced"},
 	{"submodules resolve from the common dir, never from a linked worktree", "list the root through the worktree's own git dir (rev-parse --absolute-git-dir) instead of CommonDir", "red: a pin held only by worktrees/wt/modules/mock is spliced", "TestASubmoduleInitializedOnlyInALinkedWorktreeIsRejectedWithTheMainCheckoutHintUntilTheMainModuleHoldsThePin"},
 	{"object reads never follow a module's core.worktree", "drop --git-dir=. --work-tree=. from objectsOnly", "red: git cannot chdir to the removed checkout", "TestSubmoduleObjectsAreReadAfterTheCheckoutIsRemovedWhilePlainGitInTheModuleFails"},
-	{"a commit pins at most 64 submodules", "drop the maxSubmodules check in repository.submodule", "red: 65 submodules are spliced", "TestACommitPinningMoreThan64SubmodulesIsRejectedAtTheGitlinkThatCrossesTheCapAnd64Pass"},
+	{"a run splices at most 64 submodules", "drop the maxSubmodules check in repository.submodule", "red: 65 submodules are spliced", "TestReferencingMoreThan64SubmodulesIsRejectedAtTheGitlinkThatCrossesTheCapWhile64OrUnreferencedOnesPass"},
 }
 
 func TestSubmoduleMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -40,7 +41,7 @@ func umbrella(t *testing.T) (string, string) {
 
 func listHead(t *testing.T, dir string) (Tree, error) {
 	t.Helper()
-	return Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "rev-parse", "HEAD"))
+	return Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "rev-parse", "HEAD"), "mock")
 }
 
 func renameSubmodule(t *testing.T, dir, name string) {
@@ -121,17 +122,25 @@ func gitStdin(t *testing.T, dir, stdin string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
-func TestAGitlinkAtADotOrParentSegmentIsRejectedEvenWhenGitmodulesMapsItToAnInitializedSubmodule(t *testing.T) {
+func TestAGitlinkAtADotOrParentSegmentIsRejectedWhetherOrNotADeclaredPathReferencesItWhileACleanGitlinkIsSpliced(t *testing.T) {
 	dir, _ := umbrella(t)
 	pin := gitT(t, dir, "rev-parse", "HEAD:mock")
+	refused := 0
 	for _, at := range []string{"..", "."} {
 		gitmodules := gitStdin(t, dir, "[submodule \"mock\"]\n\tpath = "+at+"\n\turl = ./mock\n", "hash-object", "-w", "--stdin")
 		tree := gitStdin(t, dir, "100644 blob "+gitmodules+"\t.gitmodules\n160000 commit "+pin+"\t"+at+"\n", "mktree")
-		_, err := Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "commit-tree", tree, "-m", "gitlink at "+at))
-		refusedAt(t, err, at, "not a clean relative path")
+		sha := gitT(t, dir, "commit-tree", tree, "-m", "gitlink at "+at)
+		for _, paths := range [][]string{{at}, nil, {".gitmodules"}} {
+			_, err := Git{Dir: dir}.ListTree(context.Background(), sha, paths...)
+			refusedAt(t, err, at, "not a clean relative path")
+			refused++
+		}
+	}
+	if refused != 6 {
+		t.Fatalf("refused %d of 6 listings", refused)
 	}
 	good := gitStdin(t, dir, "100644 blob "+gitT(t, dir, "rev-parse", "HEAD:.gitmodules")+"\t.gitmodules\n160000 commit "+pin+"\tmock\n", "mktree")
-	listed, err := Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "commit-tree", good, "-m", "canary"))
+	listed, err := Git{Dir: dir}.ListTree(context.Background(), gitT(t, dir, "commit-tree", good, "-m", "canary"), "mock")
 	spliced(t, listed, err, "mock/main.go")
 }
 
@@ -151,7 +160,7 @@ func TestAnIncludeInACommittedGitmodulesIsNotFollowedAndItsEntriesDoNotMapAGitli
 	refusedAt(t, err, "mock", "no submodule entry in .gitmodules")
 }
 
-func TestAnUninitializedSubmoduleOrAPinMissingFromItsModuleIsRejectedAtListingAndAnInitializedOneIsSpliced(t *testing.T) {
+func TestAnUninitializedSubmoduleOrAPinMissingFromItsModuleIsRejectedWhenAPathReferencesItAndAnInitializedOneIsSpliced(t *testing.T) {
 	dir, origin := umbrella(t)
 	tree, err := listHead(t, dir)
 	spliced(t, tree, err, "mock/main.go")
@@ -236,15 +245,19 @@ func pinLinks(t *testing.T, dir, pin string, from, to int) string {
 	return gitT(t, dir, "rev-parse", "HEAD")
 }
 
-func TestACommitPinningMoreThan64SubmodulesIsRejectedAtTheGitlinkThatCrossesTheCapAnd64Pass(t *testing.T) {
+func TestReferencingMoreThan64SubmodulesIsRejectedAtTheGitlinkThatCrossesTheCapWhile64OrUnreferencedOnesPass(t *testing.T) {
 	dir, _ := umbrella(t)
 	pin := gitT(t, dir, "rev-parse", "HEAD:mock")
 	at64 := pinLinks(t, dir, pin, 0, maxSubmodules-1)
-	tree, err := Git{Dir: dir}.ListTree(context.Background(), at64)
+	tree, err := Git{Dir: dir}.ListTree(context.Background(), at64, "links", "mock")
 	if err != nil || len(tree.repos) != maxSubmodules+1 || !tree.Has("links/m62/main.go") {
 		t.Fatalf("64 submodules: %d repositories, %v", len(tree.repos), err)
 	}
 	at65 := pinLinks(t, dir, pin, maxSubmodules-1, maxSubmodules)
-	_, err = Git{Dir: dir}.ListTree(context.Background(), at65)
+	tree, err = Git{Dir: dir}.ListTree(context.Background(), at65, "mock")
+	if err != nil || len(tree.repos) != 2 || !tree.Has("mock/main.go") || tree.Has("links/m63/main.go") {
+		t.Fatalf("65 pinned and 1 referenced: %d repositories, %v", len(tree.repos), err)
+	}
+	_, err = Git{Dir: dir}.ListTree(context.Background(), at65, "links", "mock")
 	refusedAt(t, err, "mock", "more than 64 submodules")
 }

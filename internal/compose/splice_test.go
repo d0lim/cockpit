@@ -13,7 +13,7 @@ import (
 )
 
 var spliceMutations = []porttest.Mutation{
-	{"the run commit holds every file of every pinned submodule commit, recursively", "splice only the first level of submodules", "red: mock/inner/lib.txt is missing and the count differs from ls-files --recurse-submodules", "TestSplicedTreeCountsTheSameFilesAsLsFilesRecurseSubmodulesAndReadsBlobsFromEachRepository"},
+	{"a referenced submodule joins the tree with every file of its pinned commit, recursively", "splice only the first level of submodules", "red: mock/inner/lib.txt is missing and the count differs from ls-files --recurse-submodules", "TestSplicedTreeCountsTheSameFilesAsLsFilesRecurseSubmodulesAndReadsBlobsFromEachRepository"},
 	{"a path claimed by two submodule names is refused", "keep the last name for a path claimed twice in parseSubmoduleNames", "red: lib claimed by a and b parses", "TestParseSubmoduleNamesKeepsDottedAndSlashedNamesAndRejectsAPathClaimedTwice"},
 }
 
@@ -26,7 +26,7 @@ func TestSplicedTreeCountsTheSameFilesAsLsFilesRecurseSubmodulesAndReadsBlobsFro
 	composetest.Submodule(t, dir, "mock", "mock")
 	composetest.Submodule(t, filepath.Join(dir, "mock"), "inner", "inner")
 	sha := commit(t, dir, func() {})
-	tree, err := Git{Dir: dir}.ListTree(context.Background(), sha)
+	tree, err := Git{Dir: dir}.ListTree(context.Background(), sha, "mock")
 	if err != nil {
 		t.Fatal(err)
 	}

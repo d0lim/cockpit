@@ -41,9 +41,11 @@ func pathChecks(in Input, svcs []service) []Result {
 	for _, kind := range []string{"configs", "secrets"} {
 		table := record(in.Config[kind])
 		for _, name := range sortedNames(table) {
-			if file := text(record(table[name])["file"]); file != "" && !inRun(file) {
+			file := text(record(table[name])["file"])
+			if file != "" && !inRun(file) {
 				files = append(files, fmt.Sprintf("%s.%s: %s", kind, name, file))
 			}
+			files = append(files, leftOut(in, fmt.Sprintf("%s.%s: %s", kind, name, file), file)...)
 		}
 	}
 	var builds []string
@@ -63,7 +65,9 @@ func pathChecks(in Input, svcs []service) []Result {
 			if !inRun(c) {
 				builds = append(builds, fmt.Sprintf("%s: build context %q is outside the run directory", s.name, c))
 			}
+			builds = append(builds, leftOut(in, fmt.Sprintf("%s: build context %q", s.name, c), c)...)
 		}
+		builds = append(builds, dockerfileReach(in, s.name, text(b["context"]), text(b["dockerfile"]))...)
 		for _, field := range []string{"ssh", "secrets"} {
 			if present(b[field]) {
 				builds = append(builds, fmt.Sprintf("%s: build.%s", s.name, field))

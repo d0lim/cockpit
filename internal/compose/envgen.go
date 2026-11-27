@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
 	"slices"
@@ -23,11 +24,17 @@ const (
 )
 
 type EnvInput struct {
-	RunID  string
-	Layout Layout
-	Env    contract.EnvSection
-	User   string
-	Mask   func(string) string
+	RunID   string
+	Layout  Layout
+	Env     contract.EnvSection
+	User    string
+	Mask    func(string) string
+	LeftOut []string
+	Logger  *slog.Logger
+}
+
+func LeftOutNotice(gitlinks []string) string {
+	return fmt.Sprintf("env.command reads src/, where the submodules %s are empty directories because no declared path references them; name a submodule the command reads in a declared path, such as env.outputs or inputs.dirty", strings.Join(gitlinks, ", "))
 }
 
 func EnvUser(uid, gid int) string {
@@ -64,6 +71,17 @@ func GenerateEnv(ctx context.Context, d Docker, root *os.Root, in EnvInput) erro
 	}
 	if in.Env.Image == "" || in.User == "" || in.Mask == nil {
 		return errors.New("env generation needs env.image, a user and a masker")
+	}
+	if len(in.LeftOut) > 0 {
+		logger := in.Logger
+		if logger == nil {
+			logger = slog.Default()
+		}
+		gitlinks := make([]string, len(in.LeftOut))
+		for i, g := range in.LeftOut {
+			gitlinks[i] = in.Mask(g)
+		}
+		logger.Warn("env.command runs while the run leaves submodules out", "run", in.RunID, "gitlinks", gitlinks)
 	}
 	if strings.ContainsAny(in.Layout.Src, ",=") {
 		return fmt.Errorf("run source directory %q cannot be bound: it contains a comma or an equals sign", in.Layout.Src)

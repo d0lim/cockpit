@@ -59,7 +59,7 @@ func TestDirtyPlanGivesEachDeclaredPathToTheDeepestRepositoryAndAddsEveryInclude
 func dirtyFiles(t *testing.T, dir string, paths ...string) []string {
 	t.Helper()
 	g := Git{Dir: dir}
-	tree, err := g.ListTree(context.Background(), gitT(t, dir, "rev-parse", "HEAD"))
+	tree, err := g.ListTree(context.Background(), gitT(t, dir, "rev-parse", "HEAD"), paths...)
 	if err != nil {
 		t.Fatal(err)
 	}

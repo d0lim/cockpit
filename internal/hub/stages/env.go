@@ -97,7 +97,10 @@ func (e *Env) Extract(ctx context.Context) error {
 func (e *Env) GenerateEnv(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, e.Limits.Call)
 	defer cancel()
-	in := compose.EnvInput{RunID: e.RunID, Layout: e.Layout, Env: e.Loaded.Declaration.Env, User: compose.EnvUser(os.Getuid(), os.Getgid()), Mask: e.Mask}
+	in := compose.EnvInput{RunID: e.RunID, Layout: e.Layout, Env: e.Loaded.Declaration.Env, User: compose.EnvUser(os.Getuid(), os.Getgid()), Mask: e.Mask, LeftOut: e.Loaded.Tree.LeftOut(".")}
+	if len(in.Env.Command) > 0 && len(in.LeftOut) > 0 {
+		e.logLine(compose.LeftOutNotice(in.LeftOut))
+	}
 	if err := compose.GenerateEnv(ctx, e.Docker, e.Root, in); err != nil {
 		return err
 	}
@@ -173,7 +176,7 @@ func (e *Env) SealStatic(ctx context.Context) error {
 	e.Static = seal.Static(seal.Input{
 		Config: config, Files: compose.ReadFiles(e.Layout, e.Loaded.Model), Forbidden: decl.Compose.Forbidden, RunID: e.RunID, RunDir: e.Layout.Root,
 		Layout: e.Layout, PortBase: e.Base, Ports: decl.Ports, Builder: decl.Project.Builder, OTLP: compose.OTLPDeclared(decl), RunnerImage: e.Image,
-		Wire: e.Wire, WireRoutes: e.wireRoutes(), Network: decl.NetworkLevel(),
+		Wire: e.Wire, WireRoutes: e.wireRoutes(), Network: decl.NetworkLevel(), Tree: e.Loaded.Tree,
 	})
 	if err := e.WriteSeal(); err != nil {
 		return err

@@ -79,7 +79,7 @@ func inputPaths(l compose.Loaded) []string {
 }
 
 func declaredHostAPI(ctx context.Context, git compose.Git, sha string, file contract.DeclarationFile) int {
-	tree, err := git.ListTree(ctx, sha)
+	tree, err := git.ListTree(ctx, sha, file.Path())
 	if err != nil {
 		return 0
 	}
