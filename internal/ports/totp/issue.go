@@ -31,11 +31,7 @@ func (i Issuer) Issue(ctx context.Context, loginID string) (string, error) {
 		return "", ports.Unavailable(i.Mask, "two-factor seed for "+loginID+" is empty")
 	}
 	last, has := i.Steps.LastStep(loginID)
-	stepMillis := i.StepMillis
-	if stepMillis == 0 {
-		stepMillis = StandardStepMillis
-	}
-	step, wait := ChooseStep(i.Clock.Millis(), last, has, stepMillis)
+	step, wait := ChooseStep(i.Clock.Millis(), last, has, i.StepMillis)
 	if wait > 0 {
 		if err := i.Sleep(ctx, wait); err != nil {
 			return "", ports.Unavailable(i.Mask, "wait for the next two-factor window for "+loginID+" was cancelled")

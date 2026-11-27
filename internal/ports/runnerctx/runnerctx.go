@@ -18,19 +18,19 @@ import (
 )
 
 type Deps struct {
-	Env      map[string]any
-	Priv     map[string]string
-	PrivPath string
-	SeedKeys map[string]string
-	TOTPStep int64
-	HTTP     *httpport.Client
-	Context  *capture.Context
-	Source   *source.Reader
-	Clock    clock.Clock
-	Keys     *cryptoport.Keys
-	Mask     ports.Mask
-	Secret   func(value string, priv []string) bool
-	Changed  func()
+	Env            map[string]any
+	Priv           map[string]string
+	PrivPath       string
+	SeedKeys       map[string]string
+	TOTPStepMillis int64
+	HTTP           *httpport.Client
+	Context        *capture.Context
+	Source         *source.Reader
+	Clock          clock.Clock
+	Keys           *cryptoport.Keys
+	Mask           ports.Mask
+	Secret         func(value string, priv []string) bool
+	Changed        func()
 
 	mu     sync.Mutex
 	public map[string]bool

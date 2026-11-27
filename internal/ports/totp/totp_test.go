@@ -24,7 +24,9 @@ var totpMutations = []porttest.Mutation{
 	{"RFC 6238 codes", "pin the HMAC dynamic truncation offset to 0", "red: the 59-second vector is not 287082", "TestRFC6238VectorsAndBase32DecodingMatch"},
 	{"a second issue in the same window waits for the next window", "ChooseStep ignores last", "red: the second issue returns the same step without waiting", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
 	{"the step is recorded before the code", "Issue calls CommitStep after making the code", "red: a code goes out even when recording the step fails", "TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst"},
-	{"the issuer counts windows in the configured step length", "ChooseStep divides by StandardStepMillis instead of the given length", "red: the commits are 0, 1, 2 instead of 3, 4, 5", "TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow"},
+	{"the issuer counts windows in the configured step length", "ChooseStep divides by StandardStepMillis instead of the given length", "red: the commits are 0, 1, 2 instead of 3, 4, 5", "TestIssuerWithAThreeSecondStepIssuesEachCodeOnlyOnceItsThreeSecondWindowHasStarted"},
+	{"a code is issued only once its window has started", "ChooseStep waits only when the step is beyond the next window", "red: step 4 is committed at 9100 ms, inside window 3", "TestIssuerWithAThreeSecondStepIssuesEachCodeOnlyOnceItsThreeSecondWindowHasStarted"},
+	{"a zero or negative step length counts 30-second windows", "ChooseStep divides by the given length without the default", "red: the zero length panics with an integer divide by zero", "TestChooseStepCountsThirtySecondWindowsWhenTheStepLengthIsZeroOrNegative"},
 	{"a saved step ahead of the clock is never issued again", "ChooseStep ignores last when it is beyond the next window", "red: the issuer commits 3 again instead of waiting for 7", "TestASavedStepAheadOfTheClockIsWaitedForSoNoUsedCodeComesBack"},
 	{"the period outside 1 to 30 seconds is refused", "StepMillisFromEnv returns the value without the range check", "red: 0, -1 and 31 are accepted", "TestStepMillisFromEnvDefaultsToThirtySecondsAndRefusesPeriodsOutsideOneToThirty"},
 	{"the seed never appears in error messages", "put the seed value in the unknown account error", "red: the PLANTED seed shows in the error message", "TestUnknownAccountAndEmptySeedAreRejectedWithoutTheSeedInTheMessage"},
@@ -34,6 +36,8 @@ var totpMutations = []porttest.Mutation{
 type fakeSteps struct {
 	last    map[string]int64
 	commits []int64
+	at      []int64
+	now     *int64
 	fail    bool
 }
 
@@ -44,10 +48,14 @@ func (f *fakeSteps) CommitStep(id string, step int64) error {
 	}
 	f.last[id] = step
 	f.commits = append(f.commits, step)
+	if f.now != nil {
+		f.at = append(f.at, *f.now)
+	}
 	return nil
 }
 
 func issuer(now *int64, steps *fakeSteps, slept *[]int64) Issuer {
+	steps.now = now
 	return Issuer{
 		Seeds: func(id string) (string, bool) {
 			if id == "admin-1" {
@@ -93,12 +101,8 @@ func TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst(t *test
 		t.Fatalf("first issue: %q %v slept=%v commits=%v", first, err, slept, steps.commits)
 	}
 	second, err := iss.Issue(context.Background(), "admin-1")
-	if err != nil || second == "" || len(slept) != 0 || steps.commits[1] != 4 {
-		t.Fatalf("second issue (the next window is inside the verify window, so no wait): %q %v slept=%v commits=%v", second, err, slept, steps.commits)
-	}
-	third, err := iss.Issue(context.Background(), "admin-1")
-	if err != nil || third == "" || len(slept) != 1 || slept[0] != 4*30_000-(90_000+100)+300 || steps.commits[2] != 5 {
-		t.Fatalf("third issue is outside the window, so it waits: %q %v slept=%v commits=%v", third, err, slept, steps.commits)
+	if err != nil || second == "" || len(slept) != 1 || slept[0] != 4*30_000-(90_000+100)+300 || steps.commits[1] != 4 || steps.at[1] != 4*30_000+300 {
+		t.Fatalf("second issue waits for window 4 to start: %q %v slept=%v commits=%v at=%v", second, err, slept, steps.commits, steps.at)
 	}
 	steps.fail = true
 	if code, err := iss.Issue(context.Background(), "admin-1"); err == nil || code != "" {
@@ -106,7 +110,7 @@ func TestSecondIssueInSame30sWindowWaitsForNextWindowAndCommitsStepFirst(t *test
 	}
 }
 
-func TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow(t *testing.T) {
+func TestIssuerWithAThreeSecondStepIssuesEachCodeOnlyOnceItsThreeSecondWindowHasStarted(t *testing.T) {
 	now := int64(9_000 + 100)
 	steps := &fakeSteps{last: map[string]int64{}}
 	var slept []int64
@@ -123,10 +127,13 @@ func TestIssuerWithAThreeSecondStepWaitsOnlyForTheNextThreeSecondWindow(t *testi
 	if len(steps.commits) != 3 || steps.commits[0] != 3 || steps.commits[1] != 4 || steps.commits[2] != 5 {
 		t.Fatalf("commits=%v", steps.commits)
 	}
-	if len(slept) != 1 || slept[0] != 4*3_000-(9_000+100)+300 {
+	if len(slept) != 2 || slept[0] != 4*3_000-(9_000+100)+300 || slept[1] != 5*3_000-(4*3_000+300)+300 {
 		t.Fatalf("slept=%v", slept)
 	}
 	for i, step := range steps.commits {
+		if steps.at[i]/3_000 != step {
+			t.Fatalf("issue %d: step %d committed at %d ms, inside window %d", i, step, steps.at[i], steps.at[i]/3_000)
+		}
 		want, err := At(rfcSeed, step)
 		if err != nil || issued[i] != want {
 			t.Fatalf("issue %d: got %q, the code of step %d is %q (%v)", i, issued[i], step, want, err)
@@ -140,12 +147,30 @@ func TestASavedStepAheadOfTheClockIsWaitedForSoNoUsedCodeComesBack(t *testing.T)
 	var slept []int64
 	code, err := issuer(&now, steps, &slept).Issue(context.Background(), "admin-1")
 	want, _ := At(rfcSeed, 7)
-	if err != nil || len(slept) != 1 || slept[0] != 6*30_000-(90_000+100)+300 || len(steps.commits) != 1 || steps.commits[0] != 7 || code != want {
-		t.Fatalf("%q %v slept=%v commits=%v", code, err, slept, steps.commits)
+	if err != nil || len(slept) != 1 || slept[0] != 7*30_000-(90_000+100)+300 || len(steps.commits) != 1 || steps.commits[0] != 7 || steps.at[0]/30_000 != 7 || code != want {
+		t.Fatalf("%q %v slept=%v commits=%v at=%v", code, err, slept, steps.commits, steps.at)
+	}
+}
+
+func TestChooseStepCountsThirtySecondWindowsWhenTheStepLengthIsZeroOrNegative(t *testing.T) {
+	executed := 0
+	for _, length := range []int64{0, -3_000, 30_000} {
+		step, wait := ChooseStep(90_100, 3, true, length)
+		if step != 4 || wait != 4*30_000-90_100+300 {
+			t.Fatalf("length %d: step %d wait %d", length, step, wait)
+		}
+		executed++
+	}
+	if step, wait := ChooseStep(90_100, 0, false, 3_000); step != 30 || wait != 0 {
+		t.Fatalf("the given length is used when it is positive: step %d wait %d", step, wait)
+	}
+	if executed != 3 {
+		t.Fatalf("executed %d cases", executed)
 	}
 }
 
 func TestStepMillisFromEnvDefaultsToThirtySecondsAndRefusesPeriodsOutsideOneToThirty(t *testing.T) {
+	executed := 0
 	accepted := map[string]int64{"absent": 30_000, "1": 1_000, "3": 3_000, "30": 30_000}
 	for name, want := range accepted {
 		env := map[string]any{}
@@ -160,6 +185,7 @@ func TestStepMillisFromEnvDefaultsToThirtySecondsAndRefusesPeriodsOutsideOneToTh
 		if err != nil || got != want {
 			t.Fatalf("%s: %d %v", name, got, err)
 		}
+		executed++
 	}
 	refused := []any{0.0, -1.0, 31.0, 2.5, "3", true, nil}
 	for _, value := range refused {
@@ -167,9 +193,10 @@ func TestStepMillisFromEnvDefaultsToThirtySecondsAndRefusesPeriodsOutsideOneToTh
 		if err == nil || !strings.Contains(err.Error(), "totpPeriodSeconds") {
 			t.Fatalf("%#v: %v", value, err)
 		}
+		executed++
 	}
-	if len(accepted)+len(refused) != 11 {
-		t.Fatal("case count")
+	if executed != 11 {
+		t.Fatalf("executed %d cases", executed)
 	}
 }
 

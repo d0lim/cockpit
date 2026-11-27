@@ -114,7 +114,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	if err != nil {
 		return fail(err.Error())
 	}
-	totpStep, err := totp.StepMillisFromEnv(publicEnv)
+	totpStepMillis, err := totp.StepMillisFromEnv(publicEnv)
 	if err != nil {
 		return fail(err.Error())
 	}
@@ -131,7 +131,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 	if err != nil {
 		return fail("could not read the context: " + err.Error())
 	}
-	if err := e2eCtx.UseTOTPStep(totpStep); err != nil {
+	if err := e2eCtx.UseTOTPStepMillis(totpStepMillis); err != nil {
 		return fail("could not reset the TOTP steps for the new time step: " + err.Error())
 	}
 	roots, err := sourceRoots(s.sources)
@@ -151,7 +151,7 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		return fail("could not build the allowlist from public env addresses: " + err.Error())
 	}
 	ctxDeps := &runnerctx.Deps{
-		Env: publicEnv, Priv: priv, PrivPath: s.privPath, SeedKeys: seedKeys(publicEnv), TOTPStep: totpStep,
+		Env: publicEnv, Priv: priv, PrivPath: s.privPath, SeedKeys: seedKeys(publicEnv), TOTPStepMillis: totpStepMillis,
 		HTTP: client, Context: e2eCtx, Source: reader, Clock: clk, Keys: cryptoport.NewKeys(maskText), Mask: maskText,
 		Secret: func(v string, priv []string) bool { return base.WithKnown(priv).Mask(v) != v },
 	}

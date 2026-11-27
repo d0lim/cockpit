@@ -75,13 +75,16 @@ func StepMillisFromEnv(env map[string]any) (int64, error) {
 }
 
 func ChooseStep(nowMs int64, last int64, hasLast bool, stepMillis int64) (step int64, waitMs int64) {
+	if stepMillis <= 0 {
+		stepMillis = StandardStepMillis
+	}
 	now := nowMs / stepMillis
 	step = now
 	if hasLast && last+1 > now {
 		step = last + 1
 	}
-	if step > now+1 {
-		waitMs = (step-1)*stepMillis - nowMs + waitMarginMillis
+	if step > now {
+		waitMs = step*stepMillis - nowMs + waitMarginMillis
 	}
 	return step, waitMs
 }

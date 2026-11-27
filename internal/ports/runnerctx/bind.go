@@ -51,7 +51,7 @@ func (b *binder) get(call goja.FunctionCall) goja.Value {
 
 func (b *binder) totp(call goja.FunctionCall) goja.Value {
 	login := b.str(call, 0, "loginId")
-	issuer := totp.Issuer{Seeds: b.d.seed, Clock: b.d.Clock, Sleep: b.d.Clock.Sleep, Steps: b.d.Context, Mask: b.d.Mask, StepMillis: b.d.TOTPStep}
+	issuer := totp.Issuer{Seeds: b.d.seed, Clock: b.d.Clock, Sleep: b.d.Clock.Sleep, Steps: b.d.Context, Mask: b.d.Mask, StepMillis: b.d.TOTPStepMillis}
 	return b.h.Async(func(ctx context.Context) (any, error) { return issuer.Issue(ctx, login) })
 }
 

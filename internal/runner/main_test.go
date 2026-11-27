@@ -43,7 +43,7 @@ var runnerMutations = []porttest.Mutation{
 	{"records belong to one step", "TakeCalls keeps the calls it returned", "red: the quiet step carries calls", "TestEachStepRecordsItsRequestsWithMaskedPathsAndItsRefs"},
 	{"poll stops at the deadline", "skip the deadline check after a failed attempt", "red: the delta step never finishes or reports another attempt count", "TestPollGivesUpAtTheDeadlineAndReportsTheAttemptCount"},
 	{"the recorded span id is the one the request carried", "takeRecords leaves SpanID out of the step call", "red: the recorded span id is empty while the server received a traceparent", "TestTheStepCallCarriesTheSpanIDThatWasSent"},
-	{"the runner hands the TOTP step to the context", "Main skips UseTOTPStep", "red: context.json keeps the step saved under 3 seconds", "TestStepsSavedUnderAnotherTOTPPeriodAreDroppedWhenTheRunnerStarts"},
+	{"the runner hands the TOTP step to the context", "Main skips UseTOTPStepMillis", "red: context.json keeps the step saved under 3 seconds", "TestStepsSavedUnderAnotherTOTPPeriodAreDroppedWhenTheRunnerStarts"},
 	{"a TOTP period outside 1 to 30 seconds refuses to start", "ignore the StepMillisFromEnv error in Main", "red: the runner exits 0 with totpPeriodSeconds 31", "TestATOTPPeriodOutsideOneToThirtySecondsInEnvJSONExitsTwoBeforeTheManifest"},
 	{"a malformed COCKPIT_TRACE_ID is refused", "delete the IsTraceID check in Main", "red: the runner exits 0 and sends requests with the malformed trace id", "TestARunnerWithoutATraceIDSendsNoTraceparentAndAMalformedTraceIDRefusesToStart"},
 }
@@ -138,7 +138,7 @@ func TestATOTPPeriodOutsideOneToThirtySecondsInEnvJSONExitsTwoBeforeTheManifest(
 
 func TestStepsSavedUnderAnotherTOTPPeriodAreDroppedWhenTheRunnerStarts(t *testing.T) {
 	w := newWorld(t, core, nil)
-	saved := contract.Context{SchemaVersion: contract.RunnerSchemaVersion, Captures: map[string]string{}, TOTPSteps: map[string]int64{"admin-1": 99}, TOTPStep: 3_000}
+	saved := contract.Context{SchemaVersion: contract.RunnerSchemaVersion, Captures: map[string]string{}, TOTPSteps: map[string]int64{"admin-1": 99}, TOTPStepMillis: 3_000}
 	if err := WriteJSON(filepath.Join(w.dir, "context.json"), saved); err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestStepsSavedUnderAnotherTOTPPeriodAreDroppedWhenTheRunnerStarts(t *testin
 	}
 	var ctx contract.Context
 	w.read("context.json", &ctx)
-	if ctx.TOTPStep != contract.StandardTOTPStepMillis || len(ctx.TOTPSteps) != 0 {
+	if ctx.TOTPStepMillis != contract.StandardTOTPStepMillis || len(ctx.TOTPSteps) != 0 {
 		t.Fatalf("%+v", ctx)
 	}
 }
