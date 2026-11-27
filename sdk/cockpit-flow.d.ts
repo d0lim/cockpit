@@ -128,7 +128,7 @@ declare module "cockpit:flow" {
 		ref(name: string, value: string): void;
 		/** Reads a captured value. Throws, failing the step, when the value was never captured. */
 		get(name: string): string;
-		/** Returns a TOTP code for an account in `totpSeedKeys` of the public env (env.json, or the file the declaration names in `scripts.env`), whose seed is in the private env. It does not return the same code twice for one account, and waits for the next time step when it has to. */
+		/** Returns a TOTP code for an account in `totpSeedKeys` of the public env (env.json, or the file the declaration names in `scripts.env`), whose seed is in the private env. It does not return the same code twice for one account: a second call within one time step waits until the next time step starts. The time step is `totpPeriodSeconds` of the public env, a whole number from 1 to 30, and 30 seconds when it is absent. */
 		totp(loginId: string): Promise<string>;
 		/** Stores a TOTP seed for an account in `totpSeedKeys` of the public env (env.json, or the file the declaration names in `scripts.env`) into the private env file. */
 		saveSeed(loginId: string, secret: string): void;

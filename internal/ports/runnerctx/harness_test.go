@@ -117,16 +117,17 @@ func newWorld(t *testing.T) *world {
 		t.Fatal(err)
 	}
 	w.deps = &Deps{
-		Env:      map[string]any{"appBase": "http://app:8080", "flag": true, "nested": map[string]any{"n": 1}},
-		Priv:     priv,
-		PrivPath: w.privPath,
-		SeedKeys: map[string]string{"admin-1": "totpSecret1", "admin-2": "totpSecret2"},
-		HTTP:     client,
-		Context:  cctx,
-		Source:   reader,
-		Keys:     cryptoport.NewKeys(mask),
-		Mask:     mask,
-		Changed:  func() { w.changed++ },
+		Env:            map[string]any{"appBase": "http://app:8080", "flag": true, "nested": map[string]any{"n": 1}},
+		Priv:           priv,
+		PrivPath:       w.privPath,
+		SeedKeys:       map[string]string{"admin-1": "totpSecret1", "admin-2": "totpSecret2"},
+		TOTPStepMillis: 1_000,
+		HTTP:           client,
+		Context:        cctx,
+		Source:         reader,
+		Keys:           cryptoport.NewKeys(mask),
+		Mask:           mask,
+		Changed:        func() { w.changed++ },
 	}
 	return w
 }

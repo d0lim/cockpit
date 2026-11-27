@@ -93,7 +93,7 @@ Suites import only from `cockpit:flow` and from relative paths inside the script
 | `capture(name, value, { persist? })` | stores a value for later steps; `persist: true` keeps it in the context file across runs |
 | `ref(name, value)` | marks `value` as a public correlation key of the running step, under `name`; see below |
 | `get(name)` | reads a captured value and fails the step when it is missing |
-| `totp(loginId)`, `saveSeed(loginId, secret)` | produces a TOTP code from a stored seed, and stores a seed into the private env |
+| `totp(loginId)`, `saveSeed(loginId, secret)` | produces a TOTP code from a stored seed, and stores a seed into the private env; the time step is env.json `totpPeriodSeconds` (1 to 30, 30 when absent), and it must match the step the service verifies with; a second call for one account within one time step waits until the next time step starts, so a code is never issued ahead of its window |
 | `crypto` | `randomUUID`, `getRandomValues` and RSA signing through `subtle` |
 | `readSource(source, path)`, `listSource(source, dir)` | reads files under `/work/source/<source>` |
 | `clock()`, `sleep(ms)` | the current time in milliseconds and a pause |
@@ -164,7 +164,7 @@ To start over, bring the stack down with its volumes and delete the state direct
 | `manifest.json` | the suite's stages, flows and steps, with source file and line |
 | `result.json` | one entry per step: status, duration, request count, last HTTP status, failure message |
 | `ledger.json` | the last status of every flow in this environment |
-| `context.json` | persisted captures and TOTP steps |
+| `context.json` | persisted captures, TOTP steps and the step length they were counted in; a runner started with another length drops the steps |
 | `exec/<time>-<flow>.json` | the result of a `--flow` target |
 | `wire.private.env.json` | in a recording run only: the values the runner masks, kept current (mode 600) and read by the hub to mask the wire record; never part of the report |
 

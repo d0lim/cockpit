@@ -16,14 +16,15 @@ import (
 const fileName = "context.json"
 
 type Context struct {
-	mu       sync.Mutex
-	dir      string
-	Captures *Store
-	steps    map[string]int64
+	mu         sync.Mutex
+	dir        string
+	Captures   *Store
+	steps      map[string]int64
+	stepMillis int64
 }
 
 func Load(dir string) (*Context, error) {
-	c := &Context{dir: dir, steps: map[string]int64{}}
+	c := &Context{dir: dir, steps: map[string]int64{}, stepMillis: contract.StandardTOTPStepMillis}
 	raw, err := os.ReadFile(filepath.Join(dir, fileName))
 	if errors.Is(err, fs.ErrNotExist) {
 		c.Captures = NewStore(nil)
@@ -40,7 +41,22 @@ func Load(dir string) (*Context, error) {
 	if parsed.TOTPSteps != nil {
 		c.steps = maps.Clone(parsed.TOTPSteps)
 	}
+	if parsed.TOTPStepMillis != 0 {
+		c.stepMillis = parsed.TOTPStepMillis
+	}
 	return c, nil
+}
+
+func (c *Context) UseTOTPStepMillis(stepMillis int64) error {
+	c.mu.Lock()
+	if c.stepMillis == stepMillis {
+		c.mu.Unlock()
+		return nil
+	}
+	c.stepMillis = stepMillis
+	c.steps = map[string]int64{}
+	c.mu.Unlock()
+	return c.Save()
 }
 
 func (c *Context) LastStep(loginID string) (int64, bool) {
@@ -57,13 +73,23 @@ func (c *Context) CommitStep(loginID string, step int64) error {
 	return c.Save()
 }
 
+func (c *Context) ReserveStep(loginID string, choose func(last int64, has bool) int64) (int64, error) {
+	c.mu.Lock()
+	last, has := c.steps[loginID]
+	step := choose(last, has)
+	c.steps[loginID] = step
+	c.mu.Unlock()
+	return step, c.Save()
+}
+
 func (c *Context) Save() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	doc := contract.Context{
-		SchemaVersion: contract.RunnerSchemaVersion,
-		Captures:      c.Captures.Persisted(),
-		TOTPSteps:     maps.Clone(c.steps),
+		SchemaVersion:  contract.RunnerSchemaVersion,
+		Captures:       c.Captures.Persisted(),
+		TOTPSteps:      maps.Clone(c.steps),
+		TOTPStepMillis: c.stepMillis,
 	}
 	data, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {

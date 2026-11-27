@@ -43,7 +43,8 @@ func Docs() map[string]string {
 		"Ctx.ref":               "Marks a value as a public correlation key of the running step under `name`. The value is no longer masked, and the hub shows it as the step span attribute `ref.<name>`. Refuses a value from the private env or one the credential patterns mask.",
 		"Ctx.get":               "Reads a captured value. Throws, failing the step, when the value was never captured.",
 		"Ctx.totp": "Returns a TOTP code for an account in `totpSeedKeys` of the public env (env.json, or the file the declaration names in `scripts.env`), whose seed is in the private env. " +
-			"It does not return the same code twice for one account, and waits for the next time step when it has to.",
+			"It does not return the same code twice for one account: a second call within one time step waits until the next time step starts. " +
+			"The time step is `totpPeriodSeconds` of the public env, a whole number from 1 to 30, and 30 seconds when it is absent.",
 		"Ctx.saveSeed":   "Stores a TOTP seed for an account in `totpSeedKeys` of the public env (env.json, or the file the declaration names in `scripts.env`) into the private env file.",
 		"Ctx.crypto":     "Randomness and RSA signing.",
 		"Ctx.readSource": "Reads a regular file under /work/source/<source>, at most 4 MiB. Links and paths outside the source are refused.",

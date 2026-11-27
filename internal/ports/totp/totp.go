@@ -6,15 +6,18 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/d0lim/cockpit/internal/contract"
+	"math"
 	"strings"
 	"unicode"
 )
 
 const (
-	StepMillis       int64 = 30_000
-	waitMarginMillis int64 = 300
-	alphabet               = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-	digits                 = 6
+	StandardStepMillis       = contract.StandardTOTPStepMillis
+	periodKey                = "totpPeriodSeconds"
+	waitMarginMillis   int64 = 300
+	alphabet                 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+	digits                   = 6
 )
 
 func DecodeBase32(input string) ([]byte, error) {
@@ -59,14 +62,29 @@ func At(seedBase32 string, step int64) (string, error) {
 	return fmt.Sprintf("%0*d", digits, value%1_000_000), nil
 }
 
-func ChooseStep(nowMs int64, last int64, hasLast bool) (step int64, waitMs int64) {
-	now := nowMs / StepMillis
+func StepMillisFromEnv(env map[string]any) (int64, error) {
+	raw, present := env[periodKey]
+	if !present {
+		return StandardStepMillis, nil
+	}
+	seconds, ok := raw.(float64)
+	if !ok || seconds != math.Trunc(seconds) || seconds < 1 || seconds*1000 > float64(StandardStepMillis) {
+		return 0, fmt.Errorf("env.json %s must be a whole number of seconds from 1 to %d", periodKey, StandardStepMillis/1000)
+	}
+	return int64(seconds) * 1000, nil
+}
+
+func ChooseStep(nowMs int64, last int64, hasLast bool, stepMillis int64) (step int64, waitMs int64) {
+	if stepMillis <= 0 {
+		stepMillis = StandardStepMillis
+	}
+	now := nowMs / stepMillis
 	step = now
 	if hasLast && last+1 > now {
 		step = last + 1
 	}
-	if step > now+1 {
-		waitMs = (step-1)*StepMillis - nowMs + waitMarginMillis
+	if step > now {
+		waitMs = step*stepMillis - nowMs + waitMarginMillis
 	}
 	return step, waitMs
 }

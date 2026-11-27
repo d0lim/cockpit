@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/engine"
@@ -20,6 +22,8 @@ var captureMutations = []porttest.Mutation{
 	{"rewriting a capture as secret drops it from the persisted list", "Set does not clear persistNames when persist=false", "red: draftId stays in persisted", "TestCarriedOverCapturesPersistAgainAndRewritingAsSecretDropsThem"},
 	{"a missing capture is rejected with its name", "Get returns an empty string", "red: no error, or the name is missing", "TestReadingMissingCaptureFailsWithPortBadArgsAndItsName"},
 	{"atomic write", "Save writes the file directly without a temp file", "red: a half-written file other than .tmp shows up in the directory during the write", "TestSaveWritesSchemaVersion2ContextJSONAtomicallyAndLoadReadsItBack"},
+	{"steps saved under another TOTP step length are dropped", "UseTOTPStepMillis keeps the steps when the length changes", "red: admin-1 keeps step 99 after the length goes from 30 to 3 seconds", "TestTOTPStepsAreDroppedOnlyWhenTheTOTPStepLengthChanges"},
+	{"a reserved step is chosen and recorded under one lock", "ReserveStep reads the last step, unlocks, then records the choice", "red: concurrent reservations choose the same step", "TestConcurrentStepReservationsForOneAccountEachGetTheirOwnStep"},
 	{"schemaVersion check", "Load ignores the version", "red: a version 1 file is carried over", "TestContextJSONWithUnknownSchemaVersionIsNotCarriedOver"},
 }
 
@@ -106,6 +110,48 @@ func TestSaveWritesSchemaVersion2ContextJSONAtomicallyAndLoadReadsItBack(t *test
 	}
 }
 
+func TestTOTPStepsAreDroppedOnlyWhenTheTOTPStepLengthChanges(t *testing.T) {
+	dir := t.TempDir()
+	c, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.CommitStep("admin-1", 99); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.UseTOTPStepMillis(30_000); err != nil {
+		t.Fatal(err)
+	}
+	if last, ok := c.LastStep("admin-1"); !ok || last != 99 {
+		t.Fatalf("same length: %d %v", last, ok)
+	}
+	if err := c.UseTOTPStepMillis(3_000); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := c.LastStep("admin-1"); ok {
+		t.Fatal("a step saved under 30 seconds survived the change to 3 seconds")
+	}
+	raw, _ := os.ReadFile(filepath.Join(dir, "context.json"))
+	parsed, err := contract.ReadRunnerFile[contract.Context](strings.NewReader(string(raw)))
+	if err != nil || parsed.TOTPStepMillis != 3_000 || len(parsed.TOTPSteps) != 0 {
+		t.Fatalf("%+v %v", parsed, err)
+	}
+	legacy := t.TempDir()
+	if err := os.WriteFile(filepath.Join(legacy, "context.json"), []byte(`{"schemaVersion":2,"captures":{},"totpSteps":{"admin-1":5}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	old, err := Load(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := old.UseTOTPStepMillis(30_000); err != nil {
+		t.Fatal(err)
+	}
+	if last, ok := old.LastStep("admin-1"); !ok || last != 5 {
+		t.Fatalf("a file without a length is read as 30 seconds: %d %v", last, ok)
+	}
+}
+
 func TestContextJSONWithUnknownSchemaVersionIsNotCarriedOver(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "context.json"), []byte(`{"schemaVersion":1,"captures":{},"totpSteps":{}}`), 0o600); err != nil {
@@ -118,4 +164,41 @@ func TestContextJSONWithUnknownSchemaVersionIsNotCarriedOver(t *testing.T) {
 
 func TestCaptureMutationRecordMatchesTestsInThisFile(t *testing.T) {
 	porttest.AssertMutationRecord(t, "capture_test.go", captureMutations)
+}
+
+func TestConcurrentStepReservationsForOneAccountEachGetTheirOwnStep(t *testing.T) {
+	c, err := Load(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	const callers = 16
+	got := make(chan int64, callers)
+	var wg sync.WaitGroup
+	for range callers {
+		wg.Go(func() {
+			step, err := c.ReserveStep("admin-1", func(last int64, has bool) int64 {
+				if !has {
+					return 1
+				}
+				time.Sleep(time.Millisecond)
+				return last + 1
+			})
+			if err != nil {
+				t.Error(err)
+			}
+			got <- step
+		})
+	}
+	wg.Wait()
+	close(got)
+	seen := map[int64]bool{}
+	for step := range got {
+		seen[step] = true
+	}
+	if len(seen) != callers {
+		t.Fatalf("%d callers got %d distinct steps: %v", callers, len(seen), seen)
+	}
+	if last, ok := c.LastStep("admin-1"); !ok || last != callers {
+		t.Fatalf("last step %d %v", last, ok)
+	}
 }
