@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+
+	"github.com/d0lim/cockpit/internal/contract"
 )
 
-const Usage = "usage: cockpit run --project <path> [--suite <name>] [--unseal-check] [--wire] [--keep] [--out <dir>] [--archive <file>]"
+const Usage = "usage: cockpit run --project <path> [--suite <name>] [--declaration <file>] [--unseal-check] [--wire] [--keep] [--out <dir>] [--archive <file>]"
 
 var suiteName = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
 
 type Options struct {
 	Project     string
 	Suite       string
+	Declaration contract.DeclarationFile
 	UnsealCheck bool
 	Wire        bool
 	Keep        bool
@@ -23,7 +26,8 @@ type Options struct {
 
 func Parse(args []string) (Options, error) {
 	var o Options
-	values := map[string]*string{"--project": &o.Project, "--suite": &o.Suite, "--out": &o.Out, "--archive": &o.Archive}
+	var declaration string
+	values := map[string]*string{"--project": &o.Project, "--suite": &o.Suite, "--declaration": &declaration, "--out": &o.Out, "--archive": &o.Archive}
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--unseal-check":
@@ -59,6 +63,11 @@ func Parse(args []string) (Options, error) {
 		}
 		*p = abs
 	}
+	file, err := contract.ParseDeclarationFile(declaration)
+	if err != nil {
+		return Options{}, err
+	}
+	o.Declaration = file
 	if o.Suite != "" && !suiteName.MatchString(o.Suite) {
 		return Options{}, fmt.Errorf("suite name %q must match %s", o.Suite, suiteName)
 	}

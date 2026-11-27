@@ -21,7 +21,7 @@ cat report/not-proven.md
 - `boot` says whether the expected services came up, and which were still `waiting`.
 - `runner` holds the runner's exit `code`, `oomKilled`, `timedOut`, `aborted` and its last output `lines`.
 - `stages` lists the hub's own readers (`runner.<file>`, `source`, `signals`) and one entry per collector. `absent` means there was nothing to read, which is the normal state of `runner.exec` in a run where no flow was run again. `error` is the status to report.
-- `report/meta.json` is the run record: `submitter`, `createdAt`, `startedAt`, `reportedAt`, and for a run that stopped before its suite `failedStage`, `notice` and `tail`, the last lines of the stage that failed.
+- `report/meta.json` is the run record: `submitter`, `createdAt`, `startedAt`, `reportedAt`, `declaration` when the run read a declaration other than `.cockpit/project.yaml`, and for a run that stopped before its suite `failedStage`, `notice` and `tail`, the last lines of the stage that failed.
 
 ## Flows and steps
 

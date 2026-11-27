@@ -53,7 +53,7 @@ func (s *Screen) suites(w http.ResponseWriter, r *http.Request) {
 func submittedText(got api.Submitted) string {
 	switch {
 	case got.Merged:
-		return "The same commit and suite were already queued, so the request joined " + got.ID + "."
+		return "A run of the same commit, suite, declaration and wire setting was already queued, so the request joined " + got.ID + "."
 	case got.Position > 0:
 		return "Submitted " + got.ID + ". It waits in the queue at position " + itoa(got.Position) + "."
 	}

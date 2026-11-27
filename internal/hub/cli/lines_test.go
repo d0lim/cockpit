@@ -56,6 +56,10 @@ func TestShowListAndExecLinesUseTheHubLabels(t *testing.T) {
 			t.Errorf("show: %q not in\n%s", w, show)
 		}
 	}
+	detail.Declaration = ".cockpit/alt.yaml"
+	if show := strings.Join(showLines(detail, nil), "\n"); !strings.Contains(show, "commit abc · suite - · declaration .cockpit/alt.yaml · submitter cli") {
+		t.Errorf("show does not name the declaration:\n%s", show)
+	}
 	tickErr := "boom"
 	list := strings.Join(listLines(api.HubList{Runs: []api.RunItem{detail.RunItem}, DockerDown: true, TickError: &tickErr}), "\n")
 	for _, w := range []string{id + "  Queued  -", "Docker does not respond", "tick error: boom"} {
@@ -67,5 +71,25 @@ func TestShowListAndExecLinesUseTheHubLabels(t *testing.T) {
 	exec := strings.Join(execLines(api.ExecView{ExitCode: &code, TimedOut: true, Flows: []api.ExecFlow{{ID: "alpha", Steps: []api.ExecStep{{ID: "a1", Status: contract.StepStatusFailed, HTTPStatus: &status, Message: "no"}}}}}), "\n")
 	if !strings.Contains(exec, "alpha › a1 › failed [500] — no") || !strings.Contains(exec, "runner exit code 1 · time limit exceeded") {
 		t.Fatalf("exec\n%s", exec)
+	}
+}
+
+func TestListLinesNameTheDeclarationOnlyWhenARunReadsAnotherThanTheDefault(t *testing.T) {
+	runs := []api.RunItem{
+		{ID: "run-default", PhaseLabel: "Queued", Suite: "smoke", Submitter: "cli", Declaration: contract.DefaultDeclaration},
+		{ID: "run-unset", PhaseLabel: "Queued", Suite: "smoke", Submitter: "cli"},
+		{ID: "run-alt", PhaseLabel: "Queued", Suite: "smoke", Submitter: "cli", Declaration: ".cockpit/alt.yaml"},
+	}
+	lines := listLines(api.HubList{Runs: runs})
+	if len(lines) != len(runs)+1 {
+		t.Fatalf("want %d run lines and a footer, got\n%s", len(runs), strings.Join(lines, "\n"))
+	}
+	for i, want := range []string{"run-default  Queued  -  smoke  cli", "run-unset  Queued  -  smoke  cli", "run-alt  Queued  -  smoke  .cockpit/alt.yaml  cli"} {
+		if lines[i] != want {
+			t.Errorf("line %d = %q, want %q", i, lines[i], want)
+		}
+		if i < 2 && strings.Contains(lines[i], "project.yaml") {
+			t.Errorf("line %d names the default declaration: %q", i, lines[i])
+		}
 	}
 }

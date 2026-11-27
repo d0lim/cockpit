@@ -15,7 +15,7 @@ func TestIntegrationARecordingHarnessRendersThroughComposeWithTheRecorderAndItsW
 		replaceIn(t, filepath.Join(d, DeclarationPath), "  files: [compose.yaml, compose.sealed-app.yaml]\n", "  files: [compose.yaml, compose.sealed-app.yaml, extra.yaml]\n")
 		replaceIn(t, filepath.Join(d, DeclarationPath), "telemetry:\n", "wire:\n  routes:\n    - { name: app, service: app, port: 8080 }\n  publicFields:\n    - { key: token, value: \"tok-[0-9a-f]{8}$\" }\ntelemetry:\n")
 	})
-	loaded, err := ReadDeclaration(ctx, Git{Dir: dir}, sha)
+	loaded, err := ReadDeclaration(ctx, Git{Dir: dir}, sha, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestIntegrationARecordingHarnessRendersThroughComposeWithTheRecorderAndItsW
 		}
 	}
 	decl := loaded.Declaration
-	if err := MakeWorkTree(root, decl); err != nil {
+	if err := MakeWorkTree(root, decl, ""); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := ImageKeys(loaded)

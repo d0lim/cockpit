@@ -38,10 +38,10 @@ func (h *Hub) Accept(ctx context.Context, in scheduler.SubmitInput) (scheduler.A
 	if err != nil {
 		return scheduler.Accepted{}, rejected(scheduler.KindCommit, "%s", err.Error())
 	}
-	loaded, err := compose.ReadDeclaration(ctx, git, sha)
+	loaded, err := compose.ReadDeclaration(ctx, git, sha, in.Declaration)
 	var rejection *compose.Rejection
 	if errors.As(err, &rejection) && rejection.Kind == compose.RejectHostAPI {
-		return scheduler.Accepted{SHA: sha, HostAPI: declaredHostAPI(ctx, git, sha), Repository: repo}, nil
+		return scheduler.Accepted{SHA: sha, HostAPI: declaredHostAPI(ctx, git, sha, in.Declaration), Repository: repo}, nil
 	}
 	if err != nil {
 		return scheduler.Accepted{}, rejected(scheduler.KindDeclaration, "%s", err.Error())
@@ -78,12 +78,12 @@ func inputPaths(l compose.Loaded) []string {
 	return out
 }
 
-func declaredHostAPI(ctx context.Context, git compose.Git, sha string) int {
+func declaredHostAPI(ctx context.Context, git compose.Git, sha string, file contract.DeclarationFile) int {
 	tree, err := git.ListTree(ctx, sha)
 	if err != nil {
 		return 0
 	}
-	raw, err := tree.Blob(ctx, compose.DeclarationPath)
+	raw, err := tree.Blob(ctx, file.Path())
 	if err != nil {
 		return 0
 	}

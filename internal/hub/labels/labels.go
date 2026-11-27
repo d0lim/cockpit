@@ -78,7 +78,7 @@ var messages = map[Message]string{
 	MsgKeep:             "keep",
 	MsgQueued:           "queued #{position}",
 	MsgSubmitted:        "run {id}: submitted, queue position {position}",
-	MsgMerged:           "run {id}: merged into the queued run of the same commit and suite, queue position {position}",
+	MsgMerged:           "run {id}: merged into the queued run of the same commit, suite, declaration and wire setting, queue position {position}",
 	MsgWaitHint:         "to wait: {cmd} wait {id}",
 	MsgWaitResume:       "if the wait is cut: {cmd} wait {id}",
 	MsgVerdictLine:      "{id} · {phase} · verdict {verdict}",

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/hub/lifecycle"
 	"github.com/d0lim/cockpit/internal/hub/store"
 	"github.com/d0lim/cockpit/internal/hub/ticker"
@@ -17,12 +18,13 @@ type Actor struct {
 }
 
 type SubmitInput struct {
-	Worktree  string
-	Commit    string
-	Suite     string
-	Submitter string
-	New       bool
-	Wire      bool
+	Worktree    string
+	Commit      string
+	Suite       string
+	Submitter   string
+	New         bool
+	Wire        bool
+	Declaration contract.DeclarationFile
 }
 
 type Accepted struct {
@@ -120,7 +122,7 @@ func (s *Scheduler) Submit(ctx context.Context, in SubmitInput) SubmitResult {
 	}
 	if !in.New {
 		for i, id := range st.Queue {
-			if m := s.find(id); m != nil && m.Phase == lifecycle.Queued && m.SHA == accepted.SHA && m.Suite == in.Suite && m.Wire == in.Wire {
+			if m := s.find(id); m != nil && m.Phase == lifecycle.Queued && m.SHA == accepted.SHA && m.Suite == in.Suite && m.Wire == in.Wire && m.Declaration == in.Declaration {
 				return SubmitResult{ID: id, Phase: m.Phase, Position: i + 1, Merged: true}
 			}
 		}
@@ -147,6 +149,7 @@ func (s *Scheduler) Submit(ctx context.Context, in SubmitInput) SubmitResult {
 		SHA:            accepted.SHA,
 		Repository:     accepted.Repository,
 		Suite:          in.Suite,
+		Declaration:    in.Declaration,
 		HostAPI:        accepted.HostAPI,
 		CockpitVersion: s.d.CockpitVersion,
 		Submitter:      in.Submitter,

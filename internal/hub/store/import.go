@@ -69,6 +69,7 @@ func ImportedMeta(b contract.BundleMeta) Meta {
 		ID:             b.ID,
 		SHA:            b.SHA,
 		Suite:          b.Suite,
+		Declaration:    b.Declaration,
 		HostAPI:        b.HostAPI,
 		HarnessVersion: b.Harness,
 		CockpitVersion: b.CockpitVersion,

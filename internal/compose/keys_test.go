@@ -14,7 +14,7 @@ import (
 
 func toyKeys(t *testing.T, dir, sha string) map[string]string {
 	t.Helper()
-	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, sha)
+	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, sha, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestImageKeyChangesWhenOneInputTreeChangesAndStaysWhenAFileOutsideTheInputs
 func TestImageKeyHashesEveryIncludedComposeFileAndMovesWhenOnlyAnIncludedFileChanges(t *testing.T) {
 	c := includeCase{include: "include:\n  - stack/compose.yaml\n", files: map[string]string{"stack/compose.yaml": "include:\n  - extra.yaml\n" + queueStack, "stack/extra.yaml": "services: {}\n"}}
 	dir, base := toyRepo(t, c.mutate(t))
-	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, base)
+	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, base, "")
 	if err != nil {
 		t.Fatal(err)
 	}

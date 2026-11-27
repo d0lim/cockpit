@@ -27,7 +27,7 @@ func extracted(t *testing.T, mutate func(dir string)) (Layout, *os.Root, Loaded)
 	t.Helper()
 	dir, sha := toyRepo(t, mutate)
 	g := Git{Dir: dir}
-	loaded, err := ReadDeclaration(context.Background(), g, sha)
+	loaded, err := ReadDeclaration(context.Background(), g, sha, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,13 +114,13 @@ func TestWorkTreeRefusesALinkInsideARunnerSourceAndCopiesCleanSources(t *testing
 			t.Fatal(err)
 		}
 	})
-	err := MakeWorkTree(root, loaded.Declaration)
+	err := MakeWorkTree(root, loaded.Declaration, "")
 	if err == nil || !strings.Contains(err.Error(), "symbolic link") || !strings.Contains(err.Error(), "fixtures/hosts") {
 		t.Fatalf("a runner source with a link: %v", err)
 	}
 	cl, clean, cleanLoaded := extracted(t, nil)
 	writeFile(t, filepath.Join(cl.Src, PrivateEnvName), "{}")
-	if err := MakeWorkTree(clean, cleanLoaded.Declaration); err != nil {
+	if err := MakeWorkTree(clean, cleanLoaded.Declaration, ""); err != nil {
 		t.Fatalf("clean sources were refused: %v", err)
 	}
 }
@@ -128,7 +128,7 @@ func TestWorkTreeRefusesALinkInsideARunnerSourceAndCopiesCleanSources(t *testing
 func TestWorkTreeHoldsScriptsDeclarationSourcesAndAPrivateEnvAt600(t *testing.T) {
 	l, root, loaded := extracted(t, nil)
 	loaded.Declaration.Env.Outputs = loaded.Declaration.Env.Outputs[:1]
-	if err := MakeWorkTree(root, loaded.Declaration); err != nil {
+	if err := MakeWorkTree(root, loaded.Declaration, ""); err != nil {
 		t.Fatal(err)
 	}
 	for _, p := range []string{"scripts/suites/smoke.ts", "scripts/env.json", ".cockpit/project.yaml", "source/fixtures/seed.json"} {
@@ -148,14 +148,14 @@ func TestWorkTreeHoldsScriptsDeclarationSourcesAndAPrivateEnvAt600(t *testing.T)
 	}
 	l2, root2, loaded2 := extracted(t, nil)
 	writeFile(t, filepath.Join(l2.Src, PrivateEnvName), `{"local":{"appToken":"`+planted+`"}}`)
-	if err := MakeWorkTree(root2, loaded2.Declaration); err != nil {
+	if err := MakeWorkTree(root2, loaded2.Declaration, ""); err != nil {
 		t.Fatal(err)
 	}
 	if got := readFile(t, filepath.Join(l2.Work, "e2e", PrivateEnvName)); !strings.Contains(got, planted) {
 		t.Fatalf("the generated private env was not carried into the work tree: %q", got)
 	}
 	_, root3, loaded3 := extracted(t, nil)
-	if err := MakeWorkTree(root3, loaded3.Declaration); err == nil {
+	if err := MakeWorkTree(root3, loaded3.Declaration, ""); err == nil {
 		t.Fatal("a declared private env output that was never generated passed")
 	}
 }
@@ -165,7 +165,7 @@ func TestExtractWritesEverySubmoduleFileUnderItsPathIntoSrcAndBuildAndCountsEach
 	composetest.Submodule(t, dir, "mock", "mock")
 	composetest.Submodule(t, filepath.Join(dir, "mock"), "inner", "inner")
 	g := Git{Dir: dir}
-	loaded, err := ReadDeclaration(context.Background(), g, commit(t, dir, func() {}))
+	loaded, err := ReadDeclaration(context.Background(), g, commit(t, dir, func() {}), "")
 	if err != nil {
 		t.Fatal(err)
 	}

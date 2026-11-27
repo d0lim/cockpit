@@ -13,6 +13,10 @@ inputs:
     description: The repository directory that holds .cockpit/project.yaml.
     required: false
     default: "."
+  declaration:
+    description: The declaration file .cockpit/<name>.yaml the run reads (cockpit run --declaration). Empty reads .cockpit/project.yaml.
+    required: false
+    default: ""
   archive:
     description: Where the bundle archive is written.
     required: false
@@ -56,6 +60,7 @@ runs:
       env:
         COCKPIT_SUITE: ${{ inputs.suite }}
         COCKPIT_PROJECT: ${{ inputs.project }}
+        COCKPIT_DECLARATION_FILE: ${{ inputs.declaration }}
         COCKPIT_ARCHIVE: ${{ inputs.archive }}
         COCKPIT_WIRE: ${{ inputs.wire }}
       run: |

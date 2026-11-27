@@ -92,7 +92,7 @@ func prepareNested(ctx context.Context, t *testing.T) (*os.Root, Layout, Loaded)
 	t.Helper()
 	dir, sha := toyRepo(t, func(dir string) { nestToy(t, dir) })
 	g := Git{Dir: dir}
-	loaded, err := ReadDeclaration(ctx, g, sha)
+	loaded, err := ReadDeclaration(ctx, g, sha, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func prepareNested(ctx context.Context, t *testing.T) (*os.Root, Layout, Loaded)
 	if err := GenerateEnv(ctx, CLI{}, root, EnvInput{RunID: runID, Layout: l, Env: decl.Env, User: EnvUser(os.Getuid(), os.Getgid()), Mask: hubMasker(t)}); err != nil {
 		t.Fatal(err)
 	}
-	if err := MakeWorkTree(root, decl); err != nil {
+	if err := MakeWorkTree(root, decl, ""); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := ImageKeys(loaded)

@@ -60,7 +60,7 @@ func renderToy(ctx context.Context, t *testing.T) map[string]any {
 func renderToyWith(ctx context.Context, t *testing.T, edit func(dir string), wire bool) map[string]any {
 	t.Helper()
 	g, sha := toyCommit(t, edit)
-	loaded, err := compose.ReadDeclaration(ctx, g, sha)
+	loaded, err := compose.ReadDeclaration(ctx, g, sha, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func renderToyWith(ctx context.Context, t *testing.T, edit func(dir string), wir
 		}
 	}
 	decl := loaded.Declaration
-	if err := compose.MakeWorkTree(root, decl); err != nil {
+	if err := compose.MakeWorkTree(root, decl, ""); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := compose.ImageKeys(loaded)

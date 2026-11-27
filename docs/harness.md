@@ -4,7 +4,7 @@ This page holds the rules the hub follows between reading a commit's declaration
 
 ## Reading the declaration
 
-The hub reads `.cockpit/project.yaml` from the git object of the submitted commit (`git cat-file`), never from the work tree. The commit's tree includes every pinned submodule commit, recursively, under its path (see [Git](#git)), so declared paths cross into submodules as if they were directories. The checks run in this order, and the first failure rejects the run with its kind and the field it concerns:
+The hub reads the run's declaration from the git object of the submitted commit (`git cat-file`), never from the work tree. The declaration is `.cockpit/project.yaml` unless the run names another file `.cockpit/<name>.yaml` (`contract.ParseDeclarationFile`: the name matches `^[a-z0-9][a-z0-9-]{0,62}$`, so an absolute path, a `..` segment, a nested path or a file outside `.cockpit/` is refused before the run is created, and the default path names the default). The checks below and their messages are the same for either file and name the file read. The commit's tree includes every pinned submodule commit, recursively, under its path (see [Git](#git)), so declared paths cross into submodules as if they were directories. The checks run in this order, and the first failure rejects the run with its kind and the field it concerns:
 
 | Order | Kind | Rejects |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ The hub reads `.cockpit/project.yaml` from the git object of the submitted commi
 | 2 | `missing` | a commit without the file |
 | 3 | `unreadable` | a link, a non-file, a file over 1 MiB, or invalid YAML |
 | 4 | `schema` | a document that fails `schema/declaration.json` or carries unknown fields |
-| 5 | `confinement` | a path that is not a clean relative path, passes through a committed symbolic link, or is missing where a file or directory is required (a submodule root is a directory); a name outside `^[a-z0-9][a-z0-9-]{0,62}$` or used twice; suites or collectors outside `scripts.dir` |
+| 5 | `confinement` | a path that is not a clean relative path, passes through a committed symbolic link, or is missing where a file or directory is required (a submodule root is a directory); a name outside `^[a-z0-9][a-z0-9-]{0,62}$` or used twice; suites, collectors or `scripts.env` outside `scripts.dir`, or a `scripts.env` that is not a file |
 | 6 | `host-api` | a `hostApi` outside the set this hub serves; the message names the served set and the cockpit version |
 | 7 | `secrets` | an empty `secrets.sources`; a `wire.publicFields` entry whose key is outside the `token`, `session` and `credential` family or whose value is not RE2 or matches a built-in credential probe ([wire record](wire.md#declaration-rules)) |
 | 8 | `ports` | an offset outside `0..99`, on the reserved offset 99, or taken twice; a port outside `1..65535`; a port on a service that the compose files (with their includes) do not define; a `databases[].port` that names no entry of `ports` |
@@ -57,7 +57,7 @@ The dirty check runs `git status --porcelain -z --untracked-files=normal --ignor
 The hub opens each run directory with `os.Root`. It holds `src/` and `build/` (two extractions of the commit and of every pinned submodule commit under its path, each repository's archive checked against its file count in the tree), `work/` (the runner's view), `env/` (`run.env` and the kit README) and `harness.yaml`. Directories the hub creates for credentials are 700 and their files 600.
 
 - **Environment generation**: `env.command` runs in `docker run --rm --network none` with the digest-pinned `env.image`, a non-root user, a read-only root, all capabilities dropped, only `src/` bound at `/src`, and only `COMPOSE_PROJECT_NAME` in its environment, under `umask 077`. Every output must then be a regular file, and the hub sets it to 600. A failure removes the outputs that did not exist before and reports the exit code with the masked end of stderr. Every output is a value source of the run redactor; `secrets.sources` adds more.
-- **Work tree**: `work/scripts` copies `scripts.dir`, `work/.cockpit/project.yaml` copies the declaration, and `work/source/<name>` copies each `inputs.runnerSources` entry. A symbolic link inside a copied tree fails the copy. `work/e2e/e2e.private.env.json` is the env output of that name, or `{"local": {}}` when none is declared.
+- **Work tree**: `work/scripts` copies `scripts.dir`, `work/.cockpit/project.yaml` copies the run's declaration, whichever file the run read, and `work/source/<name>` copies each `inputs.runnerSources` entry. A symbolic link inside a copied tree fails the copy. `work/e2e/e2e.private.env.json` is the env output of that name, or `{"local": {}}` when none is declared.
 - **Image keys**: each key in `images` hashes the sorted git object ids of its inputs plus every compose file of the model, the declared files and every file they include (sha256, first 12 hex characters). An input that is a submodule root counts as its pinned commit id, and an input inside a submodule as its own object id. The runner image has no key; it belongs to the cockpit version.
 - **run.env**: `RUN_ID`, `RUN_SRC`, `RUN_BUILD`, `RUN_WORK`, one `RUN_PORT_<NAME>` per port offset, one line per image key and, in a recording run, one `COCKPIT_WIRE_<NAME>=cockpit-wire:<41001 + route index>` per wire route. `compose.WireRoutes` is the single source of those ports for this file, the harness, the runner variable and the seal.
 
@@ -72,7 +72,7 @@ Every compose call of a run names the project `-p <run id>` and `--project-direc
 | Service | Mode | Networks | Notes |
 | --- | --- | --- | --- |
 | `cockpit-edge` | `edge` | the internal networks and `egress` | publishes `127.0.0.1:<base + offset>` to container port `30000 + offset` and proxies to `<service>:<port>`; without declared `ports` it listens on nothing and runs until it is stopped |
-| `cockpit-runner` | `run` (profile `runner`) | the internal networks | binds only `work/` paths; only `/work/e2e` is writable; its `environment` takes `E2E_EXEC_OUT` and `COCKPIT_TRACE_ID` from the compose process environment |
+| `cockpit-runner` | `run` (profile `runner`) | the internal networks | binds only `work/` paths; only `/work/e2e` is writable; its `environment` takes `E2E_EXEC_OUT` and `COCKPIT_TRACE_ID` from the compose process environment, holds `E2E_ENV=/work/scripts/<path inside scripts.dir>` only when the declaration sets `scripts.env`, and `COCKPIT_SUITES=/work/scripts/<path inside scripts.dir>` only when `scripts.suites` is not `<scripts.dir>/suites` |
 | `cockpit-probe` | `probe` (profile `probe`) | `default` | canary port `base + 99`; `extra_hosts: host.docker.internal:host-gateway` |
 | `cockpit-probe-control` | `probe` (profile `probe`) | `egress` | the positive control of the probe; the same `extra_hosts` entry |
 | `cockpit-otlp` | `otlp :4318` | the internal networks | the [OTLP receiver](#otlp-receiver); no ports, no binds and no profile, so it starts with the stack like the edge |

@@ -62,7 +62,7 @@ func (h *Hub) Suites(ctx context.Context, worktree, commit string) ([]string, er
 	if err != nil {
 		return nil, err
 	}
-	loaded, err := compose.ReadDeclaration(ctx, git, sha)
+	loaded, err := compose.ReadDeclaration(ctx, git, sha, "")
 	if err != nil {
 		return nil, err
 	}

@@ -118,14 +118,14 @@ func writeEntry(root *os.Root, target string, mode fs.FileMode, r io.Reader) err
 	return f.Close()
 }
 
-func MakeWorkTree(root *os.Root, decl contract.Declaration) error {
+func MakeWorkTree(root *os.Root, decl contract.Declaration, file contract.DeclarationFile) error {
 	if err := privateDir(root, workDir); err != nil {
 		return err
 	}
 	if err := copyTree(root, srcPath(decl.Scripts.Dir), path.Join(workDir, "scripts")); err != nil {
 		return err
 	}
-	if err := copyTree(root, srcPath(DeclarationPath), path.Join(workDir, DeclarationPath)); err != nil {
+	if err := copyTree(root, srcPath(contract.RelPath(file.Path())), path.Join(workDir, DeclarationPath)); err != nil {
 		return err
 	}
 	for _, s := range decl.Inputs.RunnerSources {

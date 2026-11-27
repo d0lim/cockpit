@@ -10,6 +10,10 @@
     "suite": {
       "type": "string"
     },
+    "declaration": {
+      "type": "string",
+      "pattern": "^\\.cockpit/[a-z0-9][a-z0-9-]{0,62}\\.yaml$"
+    },
     "harness": {
       "type": "integer"
     },

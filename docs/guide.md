@@ -20,9 +20,10 @@ Each path can be moved with an environment variable on the runner service:
 | Variable | Default |
 | --- | --- |
 | `COCKPIT_SCRIPTS` | `/work/scripts` |
+| `COCKPIT_SUITES` | `$COCKPIT_SCRIPTS/suites`, which must stay inside `$COCKPIT_SCRIPTS`; on the hub, the declaration's `scripts.suites` when it is another directory |
 | `COCKPIT_DECLARATION` | `/work/.cockpit/project.yaml` |
 | `E2E_DIR` | `/work/e2e` |
-| `E2E_ENV` | `$COCKPIT_SCRIPTS/env.json` |
+| `E2E_ENV` | `$COCKPIT_SCRIPTS/env.json`; on the hub, the file the declaration names in `scripts.env`, when it names one |
 | `E2E_PRIVATE_ENV` | `$E2E_DIR/e2e.private.env.json` |
 | `COCKPIT_SOURCES` | `/work/source` |
 | `E2E_EXEC_OUT` | a timestamped file under `$E2E_DIR/exec/` |

@@ -37,7 +37,7 @@ func toyInput(t *testing.T) Input {
 	if err != nil {
 		t.Fatal(err)
 	}
-	decl, err := compose.ParseDeclaration(raw)
+	decl, err := compose.ParseDeclaration(compose.DeclarationPath, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

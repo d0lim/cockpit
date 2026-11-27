@@ -21,6 +21,7 @@ func BundleMetaOf(m store.Meta, s SummaryInput, verdict contract.FinalVerdict) c
 		ID:             m.ID,
 		SHA:            m.SHA,
 		Suite:          m.Suite,
+		Declaration:    m.Declaration,
 		Harness:        s.Harness,
 		HubCommit:      s.HubCommit,
 		Submitter:      m.Submitter,

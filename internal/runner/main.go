@@ -2,11 +2,13 @@ package runner
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"maps"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -68,8 +70,9 @@ func parseArgs(args []string) (string, []string, error) {
 	return name, targets, nil
 }
 
-func driverSource(name string) string {
-	return "import * as mod from \"./suites/" + name + ".ts\";\nimport { __drive } from \"cockpit:flow\";\nexport default () => __drive(mod);\n"
+func driverSource(suites, name string) string {
+	entry, _ := json.Marshal("./" + suites + "/" + name + ".ts")
+	return "import * as mod from " + string(entry) + ";\nimport { __drive } from \"cockpit:flow\";\nexport default () => __drive(mod);\n"
 }
 
 func Main(ctx context.Context, args []string, getenv func(string) string, deps Deps) int {
@@ -176,7 +179,11 @@ func Main(ctx context.Context, args []string, getenv func(string) string, deps D
 		Identity: contract.RunnerIdentity{Version: version.String(), Image: s.image},
 		ExecOut:  execOut, TakeRefs: ctxDeps.TakeRefs,
 	})
-	bundle, err := engine.BuildBundle(ctx, engine.BundleInput{Driver: driverSource(name), Root: s.scripts, Site: engine.SiteRunner})
+	suites, err := filepath.Rel(s.scripts, s.suites)
+	if err != nil || !filepath.IsLocal(suites) {
+		return fail(fmt.Sprintf("COCKPIT_SUITES %s is not inside COCKPIT_SCRIPTS %s", s.suites, s.scripts))
+	}
+	bundle, err := engine.BuildBundle(ctx, engine.BundleInput{Driver: driverSource(filepath.ToSlash(suites), name), Root: s.scripts, Site: engine.SiteRunner})
 	if err != nil {
 		return fail("could not bundle suite " + name + ": " + err.Error())
 	}

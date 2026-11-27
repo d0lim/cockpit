@@ -19,7 +19,7 @@ func (h *Hub) declaration(ctx context.Context, m store.Meta) (compose.Loaded, er
 	if m.Repository == "" {
 		return compose.Loaded{}, fmt.Errorf("run %s records no repository", m.ID)
 	}
-	return compose.ReadDeclaration(ctx, compose.Git{Dir: m.Repository}, m.SHA)
+	return compose.ReadDeclaration(ctx, compose.Git{Dir: m.Repository}, m.SHA, m.Declaration)
 }
 
 func (h *Hub) runLayout(loaded compose.Loaded) lease.Layout {

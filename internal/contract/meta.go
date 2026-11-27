@@ -4,6 +4,7 @@ type BundleMeta struct {
 	ID             string            `json:"id"`
 	SHA            string            `json:"sha"`
 	Suite          string            `json:"suite"`
+	Declaration    DeclarationFile   `json:"declaration,omitempty"`
 	Harness        int               `json:"harness"`
 	HubCommit      string            `json:"hubCommit"`
 	Submitter      string            `json:"submitter"`

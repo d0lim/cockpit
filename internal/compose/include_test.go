@@ -193,7 +193,7 @@ func TestAnIncludeIntoASubmoduleReadsItsPinnedFilesAndAValueClimbingOutOfTheComm
 	}}
 	dir, _ := toyRepo(t, c.mutate(t))
 	composetest.Submodule(t, dir, "deps/queue", "queue")
-	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, gitT(t, dir, "rev-parse", "HEAD"))
+	loaded, err := ReadDeclaration(context.Background(), Git{Dir: dir}, gitT(t, dir, "rev-parse", "HEAD"), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,6 +203,6 @@ func TestAnIncludeIntoASubmoduleReadsItsPinnedFilesAndAValueClimbingOutOfTheComm
 	sub := filepath.Join(dir, "deps", "queue")
 	writeFile(t, filepath.Join(sub, "extra.yaml"), "include:\n  - ../../../outside.yaml\n")
 	composetest.Git(t, sub, "commit", "-q", "-a", "-m", "climb")
-	_, err = ReadDeclaration(context.Background(), Git{Dir: dir}, commit(t, dir, func() {}))
+	_, err = ReadDeclaration(context.Background(), Git{Dir: dir}, commit(t, dir, func() {}), "")
 	includeRejected(t, includeCase{name: "a climb out of the submodule", field: "compose.files[0] include[0].path include[0] include[0]", says: `resolves to "../outside.yaml", outside the commit`}, err)
 }
