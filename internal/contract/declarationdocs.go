@@ -50,7 +50,7 @@ func DeclarationDocs() map[string]string {
 		"exec":                      "What collectors may run with `ctx.docker.exec`.",
 		"exec.allow":                "Allowed argv prefixes. An exec passes when its argv starts with one of them, and the first element must be a program, not a shell.",
 		"scripts":                   "Where the TypeScript scripts live.",
-		"scripts.dir":               "The directory the runner sees as `/work/scripts`; `env.json` sits at its top.",
+		"scripts.dir":               "The directory the runner sees as `/work/scripts`. `env.json` at its top is the default public env, unless `scripts.env` names another file.",
 		"scripts.suites":            "The suites directory inside `dir`: each `<name>.ts` whose name is a suite name is a suite.",
 		"scripts.collectors":        "The collectors directory inside `dir`: each `<id>.ts` is a collector. Without it the run has no collectors.",
 		"scripts.env":               "A file inside `dir` the runner reads as its public env instead of `env.json`, so two declarations that share `dir` can give their flows different values.",

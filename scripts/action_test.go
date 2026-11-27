@@ -22,6 +22,7 @@ var actionMutations = []porttest.Mutation{
 	{"the action records the wire only when its input says true", "add --wire to every cockpit run in action-run.sh", "red: the run with the default input passes --wire", "TestTheActionPassesWireOnlyWhenItsInputIsTrue"},
 	{"the action passes a declaration only when its input names one", "add --declaration .cockpit/project.yaml to every cockpit run in action-run.sh", "red: the run with the empty input passes --declaration", "TestTheActionPassesTheDeclarationOnlyWhenItsInputNamesOneAndTheSummaryNamesIt"},
 	{"the job summary names the declaration the run read", "drop the Declaration row from action-summary.jq", "red: the summary of the alt run does not name .cockpit/alt.yaml", "TestTheActionPassesTheDeclarationOnlyWhenItsInputNamesOneAndTheSummaryNamesIt"},
+	{"the job summary names the declaration meta.json records, not the input", "pass COCKPIT_DECLARATION_FILE to action-summary.jq without reading meta.json in action-run.sh", "red: the summary names the input .cockpit/alt.yaml when meta.json records .cockpit/recorded.yaml", "TestTheJobSummaryNamesTheDeclarationTheRunRecordedInItsMetadata"},
 }
 
 func TestActionMutationRecordMatchesTestsInThisFileBothWays(t *testing.T) {
@@ -174,5 +175,21 @@ func TestTheActionPassesTheDeclarationOnlyWhenItsInputNamesOneAndTheSummaryNames
 	got, summary = runAction(t, reports, false, "COCKPIT_DECLARATION_FILE=")
 	if !strings.Contains(got, "args=run --project") || strings.Contains(got, "--declaration") || !strings.Contains(summary, "| Declaration | `.cockpit/project.yaml` |") {
 		t.Fatalf("the empty input passes --declaration or the summary does not name the default:\n%s\n%s", got, summary)
+	}
+}
+
+func TestTheJobSummaryNamesTheDeclarationTheRunRecordedInItsMetadata(t *testing.T) {
+	recordsWith := func(meta string) string {
+		return "#!/usr/bin/env bash\nwhile [[ $# -gt 0 ]]; do if [[ $1 = --out ]]; then mkdir -p \"$2\"; " +
+			"echo '{\"verdict\":\"passed\",\"suite\":\"alt\",\"commit\":\"0123456789abcdef\"}' > \"$2/summary.json\"; " +
+			"echo '" + meta + "' > \"$2/meta.json\"; fi; shift; done\n"
+	}
+	_, summary := runAction(t, recordsWith(`{"id":"r","declaration":".cockpit/recorded.yaml"}`), false, "COCKPIT_DECLARATION_FILE=.cockpit/alt.yaml")
+	if !strings.Contains(summary, "| Declaration | `.cockpit/recorded.yaml` |") || strings.Contains(summary, ".cockpit/alt.yaml") {
+		t.Fatalf("the summary does not name the recorded declaration:\n%s", summary)
+	}
+	_, summary = runAction(t, recordsWith(`{"id":"r"}`), false, "COCKPIT_DECLARATION_FILE=.cockpit/alt.yaml")
+	if !strings.Contains(summary, "| Declaration | `.cockpit/project.yaml` |") || strings.Contains(summary, ".cockpit/alt.yaml") {
+		t.Fatalf("a meta.json without a declaration does not read as the default:\n%s", summary)
 	}
 }

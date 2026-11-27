@@ -47,7 +47,7 @@ func TestSubmitCarriesTheDeclarationToTheRunItemAndRefusesAnotherShapeBeforeARun
 	}
 	before := runs()
 	refused := 0
-	for _, value := range []any{"../x.yaml", "/etc/x.yaml", "scripts/x.yaml", true} {
+	for _, value := range []any{"../x.yaml", "/etc/x.yaml", "scripts/x.yaml", true, "", "  "} {
 		status, raw := f.post("/api/runs", map[string]any{"worktree": "/w", "commit": "c3", "suite": "toy", "declaration": value})
 		if status != http.StatusBadRequest || !strings.Contains(string(raw), "declaration") {
 			t.Errorf("declaration %v: %d %s", value, status, raw)
@@ -55,7 +55,7 @@ func TestSubmitCarriesTheDeclarationToTheRunItemAndRefusesAnotherShapeBeforeARun
 		}
 		refused++
 	}
-	if refused != 4 || before != 2 || runs() != before {
-		t.Fatalf("refused %d of 4; runs %d before and %d after", refused, before, runs())
+	if refused != 6 || before != 2 || runs() != before {
+		t.Fatalf("refused %d of 6; runs %d before and %d after", refused, before, runs())
 	}
 }

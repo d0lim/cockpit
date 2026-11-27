@@ -24,7 +24,7 @@ declare module "cockpit:flow" {
 		timeoutMs?: number;
 	}
 	export interface HttpPort {
-		/** Sends one request and resolves with the response, whatever its status. The URL must be absolute and its origin (scheme://host[:port]) must appear as a value of its own in env.json; an IP address or a URL with a path is not an origin. Other origins and redirect responses are refused. */
+		/** Sends one request and resolves with the response, whatever its status. The URL must be absolute and its origin (scheme://host[:port]) must appear as a value of its own in the public env (env.json, or the file the declaration names in `scripts.env`); an IP address or a URL with a path is not an origin. Other origins and redirect responses are refused. */
 		send(method: string, url: string, opts?: SendOptions): Promise<HttpResponse>;
 	}
 	export interface CaptureOptions {
@@ -120,7 +120,7 @@ declare module "cockpit:flow" {
 		readonly env: Readonly<Record<string, unknown>>;
 		/** The `local` section of the private env. Every value is masked as **** in the console, failure messages and output files. */
 		readonly priv: Readonly<Record<string, string>>;
-		/** Requests to the origins listed in env.json. */
+		/** Requests to the origins listed in the public env (env.json, or the file the declaration names in `scripts.env`). */
 		readonly http: HttpPort;
 		/** Stores a value for later steps and flows in this run. Captured values are masked in all output, unless `ref` marked them public. */
 		capture(name: string, value: string, opts?: CaptureOptions): void;
@@ -128,9 +128,9 @@ declare module "cockpit:flow" {
 		ref(name: string, value: string): void;
 		/** Reads a captured value. Throws, failing the step, when the value was never captured. */
 		get(name: string): string;
-		/** Returns a TOTP code for an account in env.json `totpSeedKeys`, whose seed is in the private env. It does not return the same code twice for one account, and waits for the next time step when it has to. */
+		/** Returns a TOTP code for an account in `totpSeedKeys` of the public env (env.json, or the file the declaration names in `scripts.env`), whose seed is in the private env. It does not return the same code twice for one account, and waits for the next time step when it has to. */
 		totp(loginId: string): Promise<string>;
-		/** Stores a TOTP seed for an account in env.json `totpSeedKeys` into the private env file. */
+		/** Stores a TOTP seed for an account in `totpSeedKeys` of the public env (env.json, or the file the declaration names in `scripts.env`) into the private env file. */
 		saveSeed(loginId: string, secret: string): void;
 		/** Randomness and RSA signing. */
 		readonly crypto: CryptoPort;

@@ -344,7 +344,7 @@
       "properties": {
         "dir": {
           "type": "string",
-          "description": "The directory the runner sees as `/work/scripts`; `env.json` sits at its top.",
+          "description": "The directory the runner sees as `/work/scripts`. `env.json` at its top is the default public env, unless `scripts.env` names another file.",
           "pattern": "^(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
         },
         "suites": {

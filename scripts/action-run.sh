@@ -41,4 +41,8 @@ if [[ ! -f "$summary" ]]; then
 fi
 
 echo "verdict=$(jq -r '.verdict' "$summary")" >> "$GITHUB_OUTPUT"
-jq -r --arg code "$code" --arg declaration "${COCKPIT_DECLARATION_FILE:-.cockpit/project.yaml}" -f "$GITHUB_ACTION_PATH/scripts/action-summary.jq" "$summary" >> "$GITHUB_STEP_SUMMARY"
+declaration="${COCKPIT_DECLARATION_FILE:-.cockpit/project.yaml}"
+if [[ -f "$out/meta.json" ]]; then
+  declaration="$(jq -r '.declaration // ".cockpit/project.yaml"' "$out/meta.json")"
+fi
+jq -r --arg code "$code" --arg declaration "$declaration" -f "$GITHUB_ACTION_PATH/scripts/action-summary.jq" "$summary" >> "$GITHUB_STEP_SUMMARY"
