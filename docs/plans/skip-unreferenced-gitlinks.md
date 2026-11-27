@@ -31,7 +31,7 @@ Goal. A repository can pin a submodule that only some of its declarations use, a
 - Breaking change made explicit: a whole-tree bind, `build: .` at the repository root or a bind of `${RUN_BUILD}` fails the static seal while any submodule is left out, with the migration in `docs/harness.md` (Git), `docs/hub.md` (section 7 and the refusal table) and the commit footer.
 - Every declared path must be clean before the splice, so an unclean path into an unresolvable submodule is refused as `confinement`, not `submodule`.
 - Every listed gitlink path must be clean, spliced or not, so a gitlink at `.` or `..` is still refused at acceptance, before a port block.
-- A service `extends.file` inside an unspliced submodule is refused as `compose` naming the gitlink, and a dockerfile outside its context that reaches one fails `paths.build` naming it.
+- A service `extends.file` inside an unspliced submodule is refused as `compose` naming the gitlink, and a dockerfile outside its context that reaches one fails `paths.build` naming it. Outside means the real path, so a dockerfile link inside the context counts by its target, and a dockerfile that does not resolve fails `paths.build`.
 - An `env.command` that runs while the run leaves submodules out logs a structured warning and a run stream line naming them.
 
 ## Left open

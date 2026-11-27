@@ -31,13 +31,20 @@ func leftOut(in Input, subject, path string) []string {
 	return out
 }
 
-func outsideContext(context, dockerfile string) (string, bool) {
+func dockerfileReach(in Input, service, context, dockerfile string) []string {
 	if dockerfile == "" || context == "" {
-		return "", false
+		return nil
 	}
 	file := dockerfile
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(context, file)
 	}
-	return file, !inside(filepath.Clean(context), file)
+	realFile, ok := in.Realpath(file)
+	if !ok {
+		return []string{fmt.Sprintf("%s: cannot resolve the real path of the build dockerfile %q, such as a link whose target is missing", service, file)}
+	}
+	if realContext, ok := in.Realpath(context); ok && inside(realContext, realFile) {
+		return nil
+	}
+	return leftOut(in, fmt.Sprintf("%s: build dockerfile %q", service, file), realFile)
 }
