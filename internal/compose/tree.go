@@ -107,11 +107,27 @@ func (t Tree) add(ctx context.Context, r repository) error {
 		return reject(RejectSubmodule, r.prefix, "submodule %q pins commit %s, which %s does not hold (%v); %s", r.name, r.commit, r.objects.dir, err, submoduleHint)
 	}
 	t.repos[r.prefix] = r
+	if rel, ok := uncleanGitlink(listed); ok {
+		return reject(RejectSubmodule, join(r.prefix, rel), "the gitlink path is not a clean relative path")
+	}
 	for rel, e := range listed {
 		e.repo = r.prefix
 		t.Entries[join(r.prefix, rel)] = e
 	}
 	return nil
+}
+
+func uncleanGitlink(listed map[string]Entry) (string, bool) {
+	var bad []string
+	for rel, e := range listed {
+		if e.Type == submoduleType && !cleanRelative(rel) {
+			bad = append(bad, rel)
+		}
+	}
+	if len(bad) == 0 {
+		return "", false
+	}
+	return slices.Min(bad), true
 }
 
 func join(prefix, rel string) string {

@@ -68,6 +68,9 @@ func (w *walk) visit(field string, f composeFile) error {
 		return reject(RejectCompose, field, "%s: %v", f.path, err)
 	}
 	w.model.read(f.path)
+	if r := w.extends(field, f, root); r != nil {
+		return r
+	}
 	items, err := includeItems(field, f.path, root)
 	if err != nil {
 		return err

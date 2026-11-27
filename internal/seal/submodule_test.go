@@ -17,6 +17,8 @@ var submoduleMutations = []porttest.Mutation{
 	{"a bind source that reaches a gitlink the run does not splice fails mounts.binds", "drop the leftOut call in mountChecks", "red: the binds at, inside and around vendor/extra pass mounts.binds", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"a build or additional context that reaches a gitlink the run does not splice fails paths.build", "drop the leftOut call on contexts in pathChecks", "red: the build context inside vendor/extra and the additional context at the build root pass paths.build", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"a configs or secrets file that reaches a gitlink the run does not splice fails paths.configs-secrets", "drop the leftOut call on configs and secrets files in pathChecks", "red: the config file inside vendor/extra passes paths.configs-secrets", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
+	{"a dockerfile outside its build context that reaches a gitlink the run does not splice fails paths.build", "drop the outsideContext check in pathChecks", "red: the dockerfile ../vendor/extra/Dockerfile of the context build/mock passes paths.build", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
+	{"a dockerfile inside its build context is judged by the context alone", "return true whatever the path in outsideContext", "red: the dockerfile Dockerfile.sealed inside build/mock/vendor/extra names the gitlink twice", "TestADockerfileInsideItsContextIsJudgedByTheContextAlone"},
 	{"a path that contains a left-out gitlink reaches it", "drop the loop over contained gitlinks in compose Tree.LeftOut", "red: the bind of src/vendor and the additional context at the build root pass", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"paths under build/ are judged against the tree as well as paths under src/", "map paths only under Layout.Src in leftOut", "red: the builder bind and the build context under build/ pass", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
 	{"a path that contains a tree root reaches every left-out gitlink of that tree", "map only paths inside Layout.Src or Layout.Build in leftOut, not paths that contain one", "red: the build context at the run directory passes paths.build", "TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItAndPassesOnceADeclaredPathReferencesIt"},
@@ -79,6 +81,9 @@ func reachCases(t *testing.T) []struct {
 		{"a build context at the run directory, around both trees", "paths.build", func(in *Input) {
 			record(svc(t, *in, "app")["build"])["context"] = fixtureRun
 		}},
+		{"a dockerfile outside its context inside the gitlink", "paths.build", func(in *Input) {
+			record(svc(t, *in, "app")["build"])["dockerfile"] = "../vendor/extra/Dockerfile"
+		}},
 		{"a config file inside the gitlink", "paths.configs-secrets", func(in *Input) {
 			in.Config["configs"] = map[string]any{"extra": map[string]any{"file": fixtureRun + "/src/vendor/extra/extra.conf"}}
 		}},
@@ -114,8 +119,8 @@ func TestABindBuildContextOrConfigFileThatReachesALeftOutSubmoduleFailsNamingItA
 		}
 		passed++
 	}
-	if denied != 8 || passed != 8 {
-		t.Fatalf("%d of 8 copies denied and %d of 8 passed", denied, passed)
+	if denied != 9 || passed != 9 {
+		t.Fatalf("%d of 9 copies denied and %d of 9 passed", denied, passed)
 	}
 }
 
@@ -150,4 +155,23 @@ func detail(results []Result, name string) string {
 		}
 	}
 	return ""
+}
+
+func TestADockerfileInsideItsContextIsJudgedByTheContextAlone(t *testing.T) {
+	tree := umbrellaTree(t)
+	in := toyInput(t)
+	in.Tree = tree
+	if got := failing(Static(in)); len(got) != 0 {
+		t.Fatalf("canary: the toy dockerfile inside build/mock turned %v red", got)
+	}
+	in = toyInput(t)
+	in.Tree = tree
+	record(svc(t, in, "app")["build"])["context"] = fixtureRun + "/build/vendor/extra"
+	results := Static(in)
+	if got := failing(results); !slices.Equal(got, []string{"paths.build"}) {
+		t.Fatalf("a context at vendor/extra with its dockerfile inside turned %v red", got)
+	}
+	if d := detail(results, "paths.build"); strings.Count(d, "the submodule vendor/extra") != 1 || strings.Contains(d, "dockerfile") {
+		t.Fatalf("paths.build does not name the gitlink once through the context alone: %s", d)
+	}
 }

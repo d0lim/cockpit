@@ -30,3 +30,14 @@ func leftOut(in Input, subject, path string) []string {
 	}
 	return out
 }
+
+func outsideContext(context, dockerfile string) (string, bool) {
+	if dockerfile == "" || context == "" {
+		return "", false
+	}
+	file := dockerfile
+	if !filepath.IsAbs(file) {
+		file = filepath.Join(context, file)
+	}
+	return file, !inside(filepath.Clean(context), file)
+}

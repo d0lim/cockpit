@@ -21,9 +21,6 @@ const (
 
 func (r repository) submodule(rel, commit string, names map[string]string, spliced int) (repository, error) {
 	at := join(r.prefix, rel)
-	if !cleanRelative(rel) {
-		return repository{}, reject(RejectSubmodule, at, "the gitlink path is not a clean relative path")
-	}
 	if spliced >= maxSubmodules {
 		return repository{}, reject(RejectSubmodule, at, "the declaration references more than %d submodules", maxSubmodules)
 	}

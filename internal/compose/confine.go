@@ -89,9 +89,25 @@ func declaredNames(d contract.Declaration) []declaredName {
 	return out
 }
 
-func confinePath(p declaredPath, tree Tree) *Rejection {
+func cleanDeclared(p declaredPath) *Rejection {
 	if p.path == "" || !filepath.IsLocal(p.path) || filepath.ToSlash(filepath.Clean(p.path)) != p.path || strings.Contains(p.path, `\`) {
 		return reject(RejectConfinement, p.field, "%q must be a clean relative path inside the commit", p.path)
+	}
+	return nil
+}
+
+func cleanDeclaredPaths(d contract.Declaration) error {
+	for _, p := range declaredPaths(d) {
+		if r := cleanDeclared(p); r != nil {
+			return r
+		}
+	}
+	return nil
+}
+
+func confinePath(p declaredPath, tree Tree) *Rejection {
+	if r := cleanDeclared(p); r != nil {
+		return r
 	}
 	if link, ok := tree.Link(p.path); ok {
 		return reject(RejectConfinement, p.field, "%q passes through the symbolic link %s in the commit", p.path, link)

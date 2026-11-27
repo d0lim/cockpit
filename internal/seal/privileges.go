@@ -67,6 +67,9 @@ func pathChecks(in Input, svcs []service) []Result {
 			}
 			builds = append(builds, leftOut(in, fmt.Sprintf("%s: build context %q", s.name, c), c)...)
 		}
+		if file, ok := outsideContext(text(b["context"]), text(b["dockerfile"])); ok {
+			builds = append(builds, leftOut(in, fmt.Sprintf("%s: build dockerfile %q", s.name, file), file)...)
+		}
 		for _, field := range []string{"ssh", "secrets"} {
 			if present(b[field]) {
 				builds = append(builds, fmt.Sprintf("%s: build.%s", s.name, field))

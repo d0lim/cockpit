@@ -1,7 +1,11 @@
 package compose
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -19,6 +23,7 @@ var envgenMutations = []porttest.Mutation{
 	{"the env container never runs as root", "let EnvUser return 0:0 for the root hub", "red: the hub running as root yields user 0", "TestEnvUserFallsBackToANonRootUserWhenTheHubRunsAsRoot"},
 	{"outputs are 600", "drop the Chmod in sealOutputs", "red: an output written 644 stays 644", "TestGeneratedOutputsEndAt600AndAMissingOrLinkedOutputFailsGeneration"},
 	{"a failed generation removes only its own outputs and masks stderr", "drop the cleanup loop or the in.Mask call", "red: a produced output survives, a committed one is removed, or the planted value shows", "TestFailedEnvCommandRemovesOnlyItsOwnOutputsAndMasksTheStderrTail"},
+	{"an env command that runs with gitlinks left out warns naming them", "drop the logger.Warn call in GenerateEnv", "red: no warning names vendor/extra and deps/queue", "TestAnEnvCommandRunWithLeftOutSubmodulesLogsAWarningNamingThemAndARunWithoutThemLogsNone"},
 	{"every env output is a masker value source", "build MaskSources from secrets.sources only", "red: the planted value in e2e.private.env.json is not masked", "TestValuePlantedInAnOutputOutsideSecretsSourcesIsMaskedAfterRefresh"},
 }
 
@@ -196,5 +201,44 @@ func TestValuePlantedInAnOutputOutsideSecretsSourcesIsMaskedAfterRefresh(t *test
 	}
 	if !strings.Contains(out, "toyuser1") {
 		t.Fatalf("a public name value was masked: %q", out)
+	}
+}
+
+func envWarnings(t *testing.T, leftOut []string, command bool) []map[string]any {
+	t.Helper()
+	l := testLayout(t)
+	var buf bytes.Buffer
+	in := envInput(t, l)
+	in.LeftOut = leftOut
+	in.Logger = slog.New(slog.NewJSONHandler(&buf, nil))
+	if !command {
+		in.Env.Command, in.Env.Outputs = nil, nil
+	}
+	if err := GenerateEnv(context.Background(), writing(l, map[string]string{".env": "A=1\n", PrivateEnvName: "{}"}, 0, ""), runRoot(t, l), in); err != nil {
+		t.Fatal(err)
+	}
+	var out []map[string]any
+	for _, line := range bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n")) {
+		var rec map[string]any
+		if len(line) > 0 && json.Unmarshal(line, &rec) == nil {
+			out = append(out, rec)
+		}
+	}
+	return out
+}
+
+func TestAnEnvCommandRunWithLeftOutSubmodulesLogsAWarningNamingThemAndARunWithoutThemLogsNone(t *testing.T) {
+	warned := envWarnings(t, []string{"deps/queue", "vendor/extra"}, true)
+	if len(warned) != 1 || warned[0]["level"] != "WARN" || warned[0]["run"] != runID || fmt.Sprint(warned[0]["gitlinks"]) != "[deps/queue vendor/extra]" {
+		t.Fatalf("warnings %v", warned)
+	}
+	if !strings.Contains(LeftOutNotice([]string{"deps/queue", "vendor/extra"}), "the submodules deps/queue, vendor/extra are empty directories") {
+		t.Fatalf("notice %q", LeftOutNotice([]string{"deps/queue", "vendor/extra"}))
+	}
+	if got := envWarnings(t, nil, true); len(got) != 0 {
+		t.Fatalf("a run that splices every gitlink warned: %v", got)
+	}
+	if got := envWarnings(t, []string{"vendor/extra"}, false); len(got) != 0 {
+		t.Fatalf("a run without env.command warned: %v", got)
 	}
 }

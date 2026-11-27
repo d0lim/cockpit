@@ -84,6 +84,9 @@ func ReadDeclaration(ctx context.Context, git Git, sha string, file contract.Dec
 	if err != nil {
 		return Loaded{}, err
 	}
+	if err := cleanDeclaredPaths(decl); err != nil {
+		return Loaded{}, err
+	}
 	if err := tree.splice(ctx, referencedPaths(decl)); err != nil {
 		return Loaded{}, err
 	}

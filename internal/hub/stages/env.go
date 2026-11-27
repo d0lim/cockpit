@@ -97,7 +97,10 @@ func (e *Env) Extract(ctx context.Context) error {
 func (e *Env) GenerateEnv(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, e.Limits.Call)
 	defer cancel()
-	in := compose.EnvInput{RunID: e.RunID, Layout: e.Layout, Env: e.Loaded.Declaration.Env, User: compose.EnvUser(os.Getuid(), os.Getgid()), Mask: e.Mask}
+	in := compose.EnvInput{RunID: e.RunID, Layout: e.Layout, Env: e.Loaded.Declaration.Env, User: compose.EnvUser(os.Getuid(), os.Getgid()), Mask: e.Mask, LeftOut: e.Loaded.Tree.LeftOut(".")}
+	if len(in.Env.Command) > 0 && len(in.LeftOut) > 0 {
+		e.logLine(compose.LeftOutNotice(in.LeftOut))
+	}
 	if err := compose.GenerateEnv(ctx, e.Docker, e.Root, in); err != nil {
 		return err
 	}
