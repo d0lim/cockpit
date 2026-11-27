@@ -26,6 +26,14 @@ Goal. A repository can pin a submodule that only some of its declarations use, a
 - [x] Live with a head binary and a binary built from the base branch, on fixture repositories made from `testdata/toy-project`. Evidence: without a submodule both runs pass with the same 17 stages and the same image key; with an uninitialized submodule that no declared path references, the base refuses it as `submodule` and the head passes, with the gitlink an empty directory in `src/` and `build/` and the static seal at 25 of 25; a referenced submodule's new pin changes `IMG_APP`, and the base and the head compute the same key for the first pin; a referenced uninitialized submodule is refused by `cockpit run` and by a hub, which creates no run directory, while an accepted submit creates one; an include into an unreferenced submodule is refused naming the gitlink, and passes once `inputs.dirty` names it; a nested submodule's file reaches the run tree; an edit inside a referenced submodule is refused as `dirty` naming the file; a submodule initialized only in the main checkout runs from a linked worktree with its files in the run tree. The acceptance work on a repository of 4737 files without submodules took 343.0 ms at the head against 349.5 ms at the base (medians of 5 alternating runs).
 - [ ] CI green.
 
+## Review fixes
+
+- Breaking change made explicit: a whole-tree bind, `build: .` at the repository root or a bind of `${RUN_BUILD}` fails the static seal while any submodule is left out, with the migration in `docs/harness.md` (Git), `docs/hub.md` (section 7 and the refusal table) and the commit footer.
+- Every declared path must be clean before the splice, so an unclean path into an unresolvable submodule is refused as `confinement`, not `submodule`.
+- Every listed gitlink path must be clean, spliced or not, so a gitlink at `.` or `..` is still refused at acceptance, before a port block.
+- A service `extends.file` inside an unspliced submodule is refused as `compose` naming the gitlink, and a dockerfile outside its context that reaches one fails `paths.build` naming it.
+- An `env.command` that runs while the run leaves submodules out logs a structured warning and a run stream line naming them.
+
 ## Left open
 
-- An `env.command` that reads an unspliced submodule sees an empty directory. Its container binds the whole of `src/`, which holds every gitlink, and the hub does not interpret the command, so the read cannot be decided. An env command that reads a submodule names it in a declared path, such as `env.outputs` or `inputs.dirty`.
+- An `env.command` that reads an unspliced submodule still sees an empty directory. Its container binds the whole of `src/`, and the hub does not interpret the command, so the read cannot be decided; the hub warns instead. An env command that reads a submodule names it in a declared path, such as `env.outputs` or `inputs.dirty`.

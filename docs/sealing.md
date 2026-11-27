@@ -53,7 +53,7 @@ The hub renders the run's configuration once with `docker compose ... --profile 
 | 21 | `privileges.cap-add` | `cap_add` appears nowhere. |
 | 22 | `paths.configs-secrets` | Top-level `configs` and `secrets` read files inside the run directory, and none reaches a submodule the run leaves out. |
 | 23 | `paths.env-file` | `env_file` appears nowhere. |
-| 24 | `paths.build` | Build contexts and additional contexts are inside the run directory and reach no submodule the run leaves out, and no build uses `ssh` or `secrets`. |
+| 24 | `paths.build` | Build contexts and additional contexts are inside the run directory and reach no submodule the run leaves out, a dockerfile outside its context reaches no such submodule, and no build uses `ssh` or `secrets`. |
 | 25 | `wire.routes` | In a run that does not record, no service is named or labeled `cockpit-wire`. In a recording run, `cockpit-wire` runs the runner image in `wire` mode for this run id, without an entrypoint override, `volumes` or `tmpfs`, and its routes are exactly `compose.WireRoutes`, each to a project service that is not a harness service. The record then cannot reach a disk, and the recorder can reach no other address. |
 
 Assertions 2 to 24 keep the names and order of the previous cockpit. The edge assertions 9 to 11 read the rendered offset map (the edge `command`) instead of an nginx configuration, and `privileges.cap-add` allows no capability because the edge is the runner binary, not nginx.
