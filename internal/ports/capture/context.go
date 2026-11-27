@@ -73,6 +73,15 @@ func (c *Context) CommitStep(loginID string, step int64) error {
 	return c.Save()
 }
 
+func (c *Context) ReserveStep(loginID string, choose func(last int64, has bool) int64) (int64, error) {
+	c.mu.Lock()
+	last, has := c.steps[loginID]
+	step := choose(last, has)
+	c.steps[loginID] = step
+	c.mu.Unlock()
+	return step, c.Save()
+}
+
 func (c *Context) Save() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

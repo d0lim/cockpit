@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/d0lim/cockpit/internal/contract"
 	"github.com/d0lim/cockpit/internal/engine"
@@ -21,6 +23,7 @@ var captureMutations = []porttest.Mutation{
 	{"a missing capture is rejected with its name", "Get returns an empty string", "red: no error, or the name is missing", "TestReadingMissingCaptureFailsWithPortBadArgsAndItsName"},
 	{"atomic write", "Save writes the file directly without a temp file", "red: a half-written file other than .tmp shows up in the directory during the write", "TestSaveWritesSchemaVersion2ContextJSONAtomicallyAndLoadReadsItBack"},
 	{"steps saved under another TOTP step length are dropped", "UseTOTPStepMillis keeps the steps when the length changes", "red: admin-1 keeps step 99 after the length goes from 30 to 3 seconds", "TestTOTPStepsAreDroppedOnlyWhenTheTOTPStepLengthChanges"},
+	{"a reserved step is chosen and recorded under one lock", "ReserveStep reads the last step, unlocks, then records the choice", "red: concurrent reservations choose the same step", "TestConcurrentStepReservationsForOneAccountEachGetTheirOwnStep"},
 	{"schemaVersion check", "Load ignores the version", "red: a version 1 file is carried over", "TestContextJSONWithUnknownSchemaVersionIsNotCarriedOver"},
 }
 
@@ -161,4 +164,41 @@ func TestContextJSONWithUnknownSchemaVersionIsNotCarriedOver(t *testing.T) {
 
 func TestCaptureMutationRecordMatchesTestsInThisFile(t *testing.T) {
 	porttest.AssertMutationRecord(t, "capture_test.go", captureMutations)
+}
+
+func TestConcurrentStepReservationsForOneAccountEachGetTheirOwnStep(t *testing.T) {
+	c, err := Load(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	const callers = 16
+	got := make(chan int64, callers)
+	var wg sync.WaitGroup
+	for range callers {
+		wg.Go(func() {
+			step, err := c.ReserveStep("admin-1", func(last int64, has bool) int64 {
+				if !has {
+					return 1
+				}
+				time.Sleep(time.Millisecond)
+				return last + 1
+			})
+			if err != nil {
+				t.Error(err)
+			}
+			got <- step
+		})
+	}
+	wg.Wait()
+	close(got)
+	seen := map[int64]bool{}
+	for step := range got {
+		seen[step] = true
+	}
+	if len(seen) != callers {
+		t.Fatalf("%d callers got %d distinct steps: %v", callers, len(seen), seen)
+	}
+	if last, ok := c.LastStep("admin-1"); !ok || last != callers {
+		t.Fatalf("last step %d %v", last, ok)
+	}
 }
